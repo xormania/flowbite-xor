@@ -6,10 +6,18 @@
         "templates/": "templates/"
     },
     "dependencies": {
-        "recipe": ["form-field", "input", "select", "textarea", "checkbox", "radio", "label", "button"],
+        "recipe": [
+            "form-field",
+            "input",
+            "select",
+            "textarea",
+            "checkbox",
+            "radio",
+            "label",
+            "button"
+        ],
         "composer": [
-            "symfony/form:^7.4",
-            "symfony/ux-twig-component:^3.5"
+            "symfony/form:^7.4"
         ]
     }
 }

@@ -7,31 +7,33 @@
 
 {#- Rows -#}
 
+{##- A row: a FormField with the label, the control, its help and errors; a compound field (expanded choices, a date in three selects, a sub-form) is a fieldset with a legend. -#}
 {%- block form_row -%}
-    {#- A compound field (expanded choices, a date in three selects, a sub-form) is a fieldset with a legend. -#}
     {%- set _row_kind = compound ? 'fieldset' : 'field' -%}
     {{- block('flowbite_row') -}}
 {%- endblock form_row -%}
 
+{##- A checkbox row: the checkbox, its label beside it, then help and errors. -#}
 {%- block checkbox_row -%}
     {%- set _row_kind = 'check' -%}
     {{- block('flowbite_row') -}}
 {%- endblock checkbox_row -%}
 
+{##- A single radio row, laid out like a checkbox row. -#}
 {%- block radio_row -%}
     {%- set _row_kind = 'check' -%}
     {{- block('flowbite_row') -}}
 {%- endblock radio_row -%}
 
-{#- One FormField per row: label, control, help and errors, wired with aria-describedby and aria-invalid. -#}
+{##- Renders one row as a FormField, wiring aria-describedby and aria-invalid on the control. -#}
 {%- block flowbite_row -%}
     {%- set _label = null -%}
     {%- if label is not same as(false) -%}
-        {%- set _label -%}{{- block('form_label_content') -}}{%- endset -%}
+        {%- set _label -%}{##- The label text, translated, from Symfony's layout. -#}{{- block('form_label_content') -}}{%- endset -%}
     {%- endif -%}
     {%- set _help = null -%}
     {%- if help -%}
-        {%- set _help -%}{{- block('form_help_content') -}}{%- endset -%}
+        {%- set _help -%}{##- The help text, translated, from Symfony's layout. -#}{{- block('form_help_content') -}}{%- endset -%}
     {%- endif -%}
     {%- set _errors = errors|map((error) => error.message) -%}
     {%- set _describedby = ((help ? [id ~ '_help'] : [])|merge(errors|length ? [id ~ '_error'] : []))|join(' ') -%}
@@ -58,6 +60,7 @@
 
 {#- Labels, help, errors outside a row (form_label(), form_help(), form_errors()) -#}
 
+{##- A label outside a row, through the Label component (its invalid variant when the field has errors). -#}
 {%- block form_label -%}
     {%- if label is not same as(false) -%}
         {%- set _label -%}{{- block('form_label_content') -}}{%- endset -%}
@@ -66,13 +69,14 @@
     {%- endif -%}
 {%- endblock form_label -%}
 
-{#- Same ids and classes as FormField's help and error. -#}
+{##- Help text outside a row, with the id and classes of FormField's help. -#}
 {%- block form_help -%}
     {%- if help -%}
         <p id="{{ id }}_help" class="{{ help_attr.class|default('mt-2.5 text-sm text-body') }}">{{- block('form_help_content') -}}</p>
     {%- endif -%}
 {%- endblock form_help -%}
 
+{##- Errors outside a row (and the form's own errors), with the id and classes of FormField's error. -#}
 {%- block form_errors -%}
     {%- if errors|length > 0 -%}
         {%- if errors|length == 1 -%}
@@ -87,6 +91,7 @@
 
 {#- Controls -#}
 
+{##- Text-like inputs through the Input component; hidden, range and color inputs keep Symfony's markup. -#}
 {%- block form_widget_simple -%}
     {%- set type = type|default('text') -%}
     {%- if type in ['hidden', 'range', 'color'] -%}
@@ -98,23 +103,26 @@
     {%- endif -%}
 {%- endblock form_widget_simple -%}
 
+{##- A textarea through the Textarea component. -#}
 {%- block textarea_widget -%}
     {%- set _control = 'Textarea' -%}
     {%- set _control_content = value -%}
     {{- block('flowbite_control') -}}
 {%- endblock textarea_widget -%}
 
+{##- A collapsed choice through the Select component. -#}
 {%- block choice_widget_collapsed -%}
     {%- if required and placeholder is none and not placeholder_in_choices and not multiple and (attr.size is not defined or attr.size <= 1) -%}
         {%- set required = false -%}
     {%- endif -%}
     {%- set _control_content -%}
         {%- if placeholder is not none -%}
-            <option value=""{% if placeholder_attr|default({}) %}{% with {attr: placeholder_attr} %}{{ block('attributes') }}{% endwith %}{% endif %}{% if required and value is empty %} selected="selected"{% endif %}>{{ placeholder != '' ? (translation_domain is same as(false) ? placeholder : placeholder|trans({}, translation_domain)) }}</option>
+            <option value=""{% if placeholder_attr|default({}) %}{% with {attr: placeholder_attr} %}{##- The placeholder option's attributes, from Symfony's layout. -#}{{ block('attributes') }}{% endwith %}{% endif %}{% if required and value is empty %} selected="selected"{% endif %}>{{ placeholder != '' ? (translation_domain is same as(false) ? placeholder : placeholder|trans({}, translation_domain)) }}</option>
         {%- endif -%}
         {%- if preferred_choices|length > 0 -%}
             {%- set options = preferred_choices -%}
             {%- set render_preferred_choices = true -%}
+            {##- The options, from Symfony's layout. -#}
             {{- block('choice_widget_options') -}}
             {%- if choices|length > 0 and separator is not none -%}
                 {%- if separator_html is not defined or separator_html is same as(false) -%}
@@ -133,9 +141,10 @@
     {{- block('flowbite_control') -}}
 {%- endblock choice_widget_collapsed -%}
 
+{##- Expanded choices: each radio or checkbox with its label beside it. -#}
 {%- block choice_widget_expanded -%}
     {%- set attr = attr|merge({class: attr.class|default('space-y-3')}) -%}
-    <div {{ block('widget_container_attributes') }}>
+    <div {## The container's id and attributes, from Symfony's layout. #}{{ block('widget_container_attributes') }}>
         {%- for child in form %}
             <div class="flex items-center gap-2">
                 {{- form_widget(child) -}}
@@ -145,18 +154,21 @@
     </div>
 {%- endblock choice_widget_expanded -%}
 
+{##- A checkbox through the Checkbox component. -#}
 {%- block checkbox_widget -%}
     {%- set _control = 'Checkbox' -%}
     {%- set _control_attr = {value: value is defined ? value : null, checked: checked} -%}
     {{- block('flowbite_control') -}}
 {%- endblock checkbox_widget -%}
 
+{##- A radio through the Radio component. -#}
 {%- block radio_widget -%}
     {%- set _control = 'Radio' -%}
     {%- set _control_attr = {value: value is defined ? value : null, checked: checked} -%}
     {{- block('flowbite_control') -}}
 {%- endblock radio_widget -%}
 
+{##- A button through the Button component; `attr: {variant: ...}` picks its variant. -#}
 {%- block button_widget -%}
     {%- set _control_content -%}{{- block('form_label_content') -}}{%- endset -%}
     {%- set _control = 'Button' -%}
@@ -164,11 +176,7 @@
     {{- block('flowbite_control') -}}
 {%- endblock button_widget -%}
 
-{#-
-    Renders the component named by _control with the attributes form_div_layout's widget_attributes
-    would print (id, name, disabled, required, attr with translated placeholder/title), merged with
-    _control_attr, and _control_content as its content.
--#}
+{##- Renders the component named by `_control` with the attributes Symfony's widget_attributes would print, merged with `_control_attr`, and `_control_content` as its content. -#}
 {%- block flowbite_control -%}
     {%- set _attrs = {id: id, name: full_name, disabled: disabled, required: required|default(false)} -%}
     {%- for _name, _value in attr -%}
