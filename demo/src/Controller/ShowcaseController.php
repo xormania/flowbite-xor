@@ -18,7 +18,7 @@ final class ShowcaseController extends AbstractController
     public function index(): Response
     {
         return $this->render('showcase/index.html.twig', [
-            'kit' => $this->kit->getManifest(),
+            'kit' => $this->kit->getKit(),
             'recipes' => $this->kit->getRecipes(),
         ]);
     }
@@ -32,6 +32,7 @@ final class ShowcaseController extends AbstractController
 
         return $this->render('showcase/recipe.html.twig', [
             'recipe' => $found,
+            'examples' => $this->kit->getExamples($found),
         ]);
     }
 }
