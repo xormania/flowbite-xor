@@ -90,7 +90,7 @@ jobs:
 
             - name: Get Composer cache directory
               id: composer-cache
-              run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+              run: echo "dir=$(composer config --global cache-files-dir)" >> "$GITHUB_OUTPUT"
 
             - uses: actions/cache@v6
               with:
@@ -101,6 +101,7 @@ jobs:
             - name: Install the demo
               working-directory: demo
               run: |
+                  composer validate --no-check-publish --strict     # also fails on a stale composer.lock
                   composer install --no-interaction --no-progress   # auto-scripts: cache:clear, importmap:install
                   php bin/console tailwind:build
                   php bin/console asset-map:compile
