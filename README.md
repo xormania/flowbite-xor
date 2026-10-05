@@ -7,8 +7,9 @@ Stimulus controllers, layouts, blocks, a form theme, a theme) for xor's Symfony 
 All behavior lives in Stimulus controllers (no global `initFlowbite()`), so components keep working
 when Live Components re-render them and when Turbo navigates.
 
-> **Status:** Phase 1: the 22 base recipes of the official `flowbite-4` kit, copied byte-identical
-> (see [`UPSTREAM.md`](UPSTREAM.md)). The build plan is [`docs/PLAN.md`](docs/PLAN.md).
+> **Status:** Phase 2: the 22 base recipes of the official `flowbite-4` kit (see [`UPSTREAM.md`](UPSTREAM.md)),
+> plus `theme` (Flowbite's color roles with contrast fixes, checked in CI) and `theme-toggle`.
+> The build plan is [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Usage
 
@@ -43,6 +44,7 @@ Project setup (Tailwind, Flowbite, theme) is described in [`INSTALL.md`](INSTALL
 | `manifest.json`, `INSTALL.md`, `kit.css`, `kit.js`, `icon.svg`, `<recipe>/` (minus `<recipe>/tests/`) | yes | the kit |
 | `demo/` | no | Symfony app showing every recipe, plus Turbo/Live scenario pages (`/lab`) |
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
+| `tools/contrast/` | no | WCAG contrast gate for the theme's color roles |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `docs/`, `.github/` | no | plan, CI |
 
@@ -65,6 +67,12 @@ Playwright starts `php -S` on `demo/public` and the browser container unless the
 :8000 and :3000. The demo renders one example alone at `/preview/<recipe>/<example>?theme=light|dark`;
 `/r/<recipe>` shows all of a recipe's examples. Screenshots live in `<recipe>/tests/screenshots/`;
 update them only deliberately: `npx playwright test --project=examples --update-snapshots`.
+
+Check the theme's contrast (both themes, pairs in `tools/contrast/pairs.json`):
+
+```bash
+node tools/contrast/check.mjs
+```
 
 Lint the kit as users download it (`ux-toolkit-kit-lint` reports non-recipe directories such as
 `demo/` as errors, so lint the exported tree):
