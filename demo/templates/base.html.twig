@@ -5,6 +5,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}flowbite-xor demo{% endblock %}</title>
         <link rel="icon" href="data:,">
+        {# No-flash theme snippet from the theme-toggle recipe README: sets the theme before the first paint. #}
+        <script>
+            try {
+                const theme = localStorage.getItem('theme');
+                document.documentElement.classList.toggle('dark', 'dark' === theme || ('light' !== theme && matchMedia('(prefers-color-scheme: dark)').matches));
+            } catch (e) {}
+        </script>
         {% block stylesheets %}
         {% endblock %}
 
@@ -18,6 +25,7 @@
                 <a href="{{ path('app_index') }}" class="font-semibold">flowbite-xor</a>
                 <a href="{{ path('app_index') }}" class="text-sm hover:underline">Recipes</a>
                 <a href="{{ path('app_lab') }}" class="text-sm hover:underline">Lab</a>
+                <twig:ThemeToggle class="ml-auto" />
             </nav>
         </header>
         <main class="mx-auto max-w-5xl px-4 py-8">

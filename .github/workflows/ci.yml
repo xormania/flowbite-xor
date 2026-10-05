@@ -59,6 +59,26 @@ jobs:
               run: |
                   "$RUNNER_TEMP/toolkit/vendor/bin/ux-toolkit-kit-debug" "$GITHUB_WORKSPACE"
 
+    contrast:
+        name: Contrast
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - run: npm ci
+
+            - name: Token contrast (tools/contrast/pairs.json, both themes)
+              run: node tools/contrast/check.mjs
+
+            - name: The theme recipe ships kit.css unchanged
+              run: cmp kit.css theme/assets/styles/flowbite-xor.css
+
     demo:
         name: Demo + Playwright
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository

@@ -1,0 +1,26 @@
+{%- props
+    ## string The accessible name of the button.
+    label = 'Toggle dark mode',
+    ## string The localStorage key the choice is saved under, the same as in the no-flash snippet.
+    storageKey = 'theme'
+-%}
+<button
+    type="button"
+    aria-label="{{ label }}"
+    aria-pressed="false"
+    data-theme-toggle-storage-key-value="{{ storageKey }}"
+    {{ attributes.defaults({
+        class: 'inline-flex size-11 items-center justify-center rounded-base text-body hover:bg-neutral-secondary-medium hover:text-heading focus:outline-none focus:ring-4 focus:ring-brand-medium'|tailwind_classes,
+        'data-controller': 'theme-toggle',
+        'data-action': 'theme-toggle#toggle',
+    }) }}
+>
+    <span class="dark:hidden">
+        {##- The icon shown in the light theme, a moon by default. -#}
+        {%- block light_icon %}<twig:ux:icon name="flowbite:moon-outline" class="size-5" aria-hidden="true" />{% endblock -%}
+    </span>
+    <span class="hidden dark:inline">
+        {##- The icon shown in the dark theme, a sun by default. -#}
+        {%- block dark_icon %}<twig:ux:icon name="flowbite:sun-outline" class="size-5" aria-hidden="true" />{% endblock -%}
+    </span>
+</button>

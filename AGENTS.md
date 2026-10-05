@@ -33,6 +33,7 @@ A Symfony UX Toolkit kit: `manifest.json` at the root, one recipe per top-level 
 ```bash
 tools/sync-demo                 # copy every recipe into demo/ (like ux:install --force); idempotent, deletes nothing
 tools/tests/sync-demo.sh        # proves sync-demo == ux:install (needs demo/vendor)
+node tools/contrast/check.mjs   # theme contrast gate; kit.css and theme/assets/styles/flowbite-xor.css stay identical
 
 # lint the kit as users download it
 tmp=$(mktemp -d) && git archive HEAD | tar -x -C "$tmp" && demo/vendor/bin/ux-toolkit-kit-lint "$tmp"
