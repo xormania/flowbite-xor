@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 6 acceptance: on a fresh Symfony skeleton, `ux:install dashboard-home` (plus `layouts`) from this
+# Phase 6 acceptance: on a fresh Symfony skeleton, `ux:install dashboard-home` (which brings `layouts`) from this
 # kit, as GitHub's archive gives it, yields a working dashboard page.
 #
 #   tools/tests/fresh-install.sh            # PHP=… COMPOSER_BIN=… to use other binaries
@@ -33,7 +33,7 @@ kit="vendor/symfony/ux-toolkit/kits/flowbite-xor-local"
 mkdir -p "$kit"
 git -C "$root" archive HEAD | tar -x -C "$kit"
 
-for recipe in layouts dashboard-home; do
+for recipe in dashboard-home; do
     $php bin/console ux:install "$recipe" --kit=flowbite-xor-local --no-interaction > "install-$recipe.log" 2>&1 \
         || { cat "install-$recipe.log"; echo "FAIL: ux:install $recipe"; exit 1; }
 done
@@ -87,7 +87,8 @@ if [ "$status" != 200 ]; then
     echo "FAIL: the dashboard page answered $status"
     exit 1
 fi
-for expected in '<h1' 'Dashboard' 'Recent orders' 'id="sidebar"' 'data-turbo-permanent' 'id="toasts"'; do
-    grep -q -- "$expected" "$work/page.html" || { echo "FAIL: the dashboard page lacks $expected"; exit 1; }
+page="$(tr '\n' ' ' < "$work/page.html")"
+for expected in '<h1[^>]*>[[:space:]]*Dashboard[[:space:]]*</h1>' 'Recent orders' '<aside[^>]*id="sidebar"[^>]*data-turbo-permanent' 'id="toasts"'; do
+    grep -qE -- "$expected" <<< "$page" || { echo "FAIL: the dashboard page lacks $expected"; exit 1; }
 done
-echo "ok: ux:install dashboard-home + layouts on a fresh skeleton renders the dashboard (HTTP 200)"
+echo "ok: ux:install dashboard-home on a fresh skeleton renders the dashboard (HTTP 200)"

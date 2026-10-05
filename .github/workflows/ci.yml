@@ -73,7 +73,7 @@ jobs:
                   coverage: none
 
             # Phase 6 acceptance: `ux:install dashboard-home` on a fresh skeleton yields a working page
-            - name: ux:install dashboard-home + layouts on a fresh Symfony skeleton
+            - name: ux:install dashboard-home on a fresh Symfony skeleton
               run: tools/tests/fresh-install.sh
 
     contrast:
