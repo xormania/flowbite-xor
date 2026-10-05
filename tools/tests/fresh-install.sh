@@ -21,14 +21,19 @@ app="$work/app"
 $composer create-project --no-interaction --no-progress "symfony/skeleton:$symfony_version" "$app"
 cd "$app"
 $composer config platform.php "$($php -r 'echo PHP_VERSION;')"
-# as README.md says: tales-from-a-dev/twig-tailwind-extra (the `tailwind_classes` filter of every
-# recipe) registers its bundle through a contrib recipe
+# README.md's "prepare the project once", command for command:
+# - contrib recipes: tales-from-a-dev/twig-tailwind-extra (the `tailwind_classes` filter of every recipe) registers
+#   its bundle through one
+# - symfony/ux-twig-component as a regular dependency, with TwigBundle (its bundle needs it): required only through
+#   `--dev symfony/ux-toolkit`, its symfony/property-access is dev-only, so FrameworkBundle leaves property_access
+#   off while Flex enables TwigComponentBundle in every environment, and cache:clear fails ("non-existent service
+#   property_accessor")
+# - symfony/http-client with the toolkit, which downloads kits from GitHub with it
 $composer config extra.symfony.allow-contrib true
-# symfony/ux-twig-component first, as a regular dependency: required only through `--dev symfony/ux-toolkit`,
-# its symfony/property-access is dev-only, so FrameworkBundle leaves property_access off while Flex enables
-# TwigComponentBundle in every environment, and cache:clear fails ("non-existent service property_accessor").
-$composer require --no-interaction --no-progress symfony/twig-bundle symfony/asset-mapper symfony/stimulus-bundle symfony/http-client "symfony/ux-twig-component:^3.5"
-$composer require --no-interaction --no-progress --dev "symfony/ux-toolkit:$toolkit_version"
+$composer require --no-interaction --no-progress symfony/twig-bundle "symfony/ux-twig-component:^3.5"
+$composer require --no-interaction --no-progress --dev "symfony/ux-toolkit:$toolkit_version" symfony/http-client
+# the front end: AssetMapper (the layouts' importmap entrypoint) and Stimulus (the recipes' controllers)
+$composer require --no-interaction --no-progress symfony/asset-mapper symfony/stimulus-bundle
 
 kit="vendor/symfony/ux-toolkit/kits/flowbite-xor-local"
 mkdir -p "$kit"
@@ -38,11 +43,12 @@ for recipe in dashboard-home signup; do
     $php bin/console ux:install "$recipe" --kit=flowbite-xor-local --no-interaction > "install-$recipe.log" 2>&1 \
         || { cat "install-$recipe.log"; echo "FAIL: ux:install $recipe"; exit 1; }
 done
-# the installer prints the Composer packages the installed recipes need
-packages="$(grep -ho 'composer require .*' install-*.log | sed 's/^composer require //' | tr ' ' '\n' | grep . | sort -u | tr '\n' ' ')"
-echo "Composer packages suggested by ux:install: $packages"
-# shellcheck disable=SC2086
-$composer require --no-interaction --no-progress $packages
+# the installer prints the Composer packages the installed recipes need: run each printed command through a shell,
+# as a user pasting it would (a constraint such as `^7.4|^8.0` would pipe the line into another command)
+grep -h '^ *\$ composer require ' install-*.log | sed 's/^ *\$ composer //' | while IFS= read -r arguments; do
+    echo "ux:install suggested: composer $arguments"
+    sh -c "$composer $arguments --no-interaction --no-progress" < /dev/null
+done
 
 # a deterministic check: no Iconify API calls, missing icons render nothing
 mkdir -p config/packages
@@ -60,7 +66,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class DashboardController extends AbstractController
 {
-    #[Route('/', name: 'app_dashboard')]
+    #[Route('/', name: 'app_home')]
     public function index(): Response
     {
         return $this->render('dashboard/index.html.twig');

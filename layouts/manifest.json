@@ -8,7 +8,7 @@
     "dependencies": {
         "recipe": ["theme-toggle", "toast", "sidebar", "navbar", "page-header"],
         "composer": [
-            "symfony/asset-mapper:^7.4|^8.0",
+            "symfony/asset-mapper",
             "symfony/ux-turbo:^3.5"
         ]
     }

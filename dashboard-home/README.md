@@ -18,7 +18,7 @@ It renders with sample data, and the recipe installs the `layouts` recipe too, s
 
 ```php
 // src/Controller/DashboardController.php
-#[Route('/', name: 'app_dashboard')]
+#[Route('/', name: 'app_home')]
 public function index(): Response
 {
     return $this->render('dashboard/index.html.twig');
@@ -39,7 +39,7 @@ Then pass your own figures:
 
 ```twig
 <twig:DashboardHome
-    :stats="[{label: 'Revenue', value: revenue|format_currency('USD'), trend: 'up', change: '12%', period: 'vs last month'}]"
+    :stats="[{label: 'Revenue', value: '$' ~ revenue|number_format, trend: 'up', change: '12%', period: 'vs last month'}]"
     :channels="channels"
     :activity="activity"
     :orders="orders"

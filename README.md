@@ -27,10 +27,12 @@ Prepare the project once, in this order, then install recipes with the UX Toolki
 ```bash
 # contrib recipes: twig-tailwind-extra (the `tailwind_classes` filter) registers its bundle through one
 composer config extra.symfony.allow-contrib true
-# a regular dependency before the toolkit: required only through `--dev symfony/ux-toolkit`, its
-# symfony/property-access is dev-only and cache:clear fails ("non-existent service property_accessor")
-composer require symfony/ux-twig-component
-composer require --dev symfony/ux-toolkit:^3.5
+# regular dependencies before the toolkit: TwigComponentBundle needs TwigBundle, and required only through
+# `--dev symfony/ux-toolkit`, symfony/property-access is dev-only and cache:clear fails ("non-existent service
+# property_accessor")
+composer require symfony/twig-bundle symfony/ux-twig-component
+# http-client: the toolkit downloads the kit from GitHub with it
+composer require --dev symfony/ux-toolkit:^3.5 symfony/http-client
 ```
 
 Then install recipes:
@@ -43,7 +45,7 @@ php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-x
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version>
 ```
 
-`ux:install` prints the Composer packages the installed recipes need: require them. Files land in your project, where you own them. Re-running `ux:install` shows a diff and is the update path.
+`ux:install` prints the `composer require` command for the packages the installed recipes need: run it. Files land in your project, where you own them. Re-running `ux:install` is the update path: it asks before overwriting each file you already have.
 Project setup (Tailwind, Flowbite, theme) is described in [`INSTALL.md`](INSTALL.md).
 
 ## Targets
