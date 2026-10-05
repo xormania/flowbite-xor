@@ -129,7 +129,7 @@ Use this card example where you can add form input elements that can be used for
             Login to your account
         </twig:Button>
 
-        <div class="text-sm font-medium text-body">Not registered? <a href="#" class="text-fg-brand hover:underline">Create account</a></div>
+        <div class="text-sm font-medium text-body">Not registered? <a href="#" class="text-fg-brand underline hover:no-underline">Create account</a></div>
     </twig:Card:Footer>
 </twig:Card>
 ```

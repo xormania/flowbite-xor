@@ -81,14 +81,15 @@ Use this animated loading indicator when content inside of a card is still loadi
 
 ```twig {"preview":true}
 <twig:Card class="max-w-sm relative">
-    <twig:Card:Header class="opacity-20">
+    <twig:Card:Header aria-hidden="true">
         <twig:Card:Title as="h5">Noteworthy technology acquisitions 2021</twig:Card:Title>
     </twig:Card:Header>
 
-    <twig:Card:Content class="opacity-20">
+    <twig:Card:Content aria-hidden="true">
         <p>Here are the biggest technology acquisitions of 2025 so far, in reverse chronological order.</p>
     </twig:Card:Content>
 
+    <div class="absolute inset-0 rounded-[inherit] bg-neutral-primary-soft/80"></div>
     <div role="status" class="absolute -translate-x-1/2 -translate-y-1/2 top-2/4 left-1/2">
         <twig:Spinner class="size-8 text-brand"/>
         <span class="sr-only">Loading...</span>

@@ -173,10 +173,12 @@ Use this example if you want to show a dropdown menu when clicking on the avatar
 ```twig {"preview":true}
 <twig:Dropdown id="user-dropdown" placement="bottom-start">
     <twig:Dropdown:Trigger>
-        <twig:Avatar class="cursor-pointer" {{ ...dropdown_trigger_attrs }}>
-            <twig:Avatar:Image src="https://flowbite.com/docs/images/people/profile-picture-5.jpg" alt="Default avatar" />
-            <twig:Avatar:Fallback>JL</twig:Avatar:Fallback>
-        </twig:Avatar>
+        <twig:Button variant="ghost" size="icon" class="rounded-full border-0" aria-label="Open user menu" {{ ...dropdown_trigger_attrs }}>
+            <twig:Avatar class="cursor-pointer">
+                <twig:Avatar:Image src="https://flowbite.com/docs/images/people/profile-picture-5.jpg" alt="Default avatar" />
+                <twig:Avatar:Fallback>JL</twig:Avatar:Fallback>
+            </twig:Avatar>
+        </twig:Button>
     </twig:Dropdown:Trigger>
 
     <twig:Dropdown:Content>
