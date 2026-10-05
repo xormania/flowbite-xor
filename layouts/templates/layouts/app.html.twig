@@ -1,7 +1,7 @@
 {% extends 'layouts/base.html.twig' %}
 
 {##- The body classes of this layout. -#}
-{% block body_class %}h-svh overflow-hidden bg-neutral-secondary-soft text-body antialiased{% endblock %}
+{% block body_class %}min-h-svh bg-neutral-secondary-soft text-body antialiased{% endblock %}
 
 {##- The layout around the page content. -#}
 {% block body %}
@@ -12,19 +12,20 @@
             <twig:Toast:Stream variant="{{ type in ['success', 'warning', 'danger'] ? type : 'info' }}">{{ message }}</twig:Toast:Stream>
         {%- endfor %}
     {%- endfor %}
-    <div class="flex h-full">
-        <twig:Sidebar id="sidebar" data-turbo-permanent>
+    <div class="flex min-h-svh">
+        {#- the document scrolls (keyboard scrolling, Turbo's scroll restoration); the sidebar sticks -#}
+        <twig:Sidebar id="sidebar" data-turbo-permanent class="md:sticky md:top-0 md:h-svh!">
             <twig:block name="header">{##- The brand at the top of the sidebar and the navbar. -#}{{ block(outerBlocks.brand) }}</twig:block>
             {##- The sidebar navigation: `Sidebar:Group`s of `Sidebar:Item`s. -#}
             {{- block(outerBlocks.sidebar) -}}
         </twig:Sidebar>
         <div class="flex min-w-0 flex-1 flex-col">
-            <twig:Navbar sidebarId="sidebar">
+            <twig:Navbar sidebarId="sidebar" class="sticky top-0 z-30">
                 <twig:block name="brand"><span class="md:hidden">{{ block(outerBlocks.brand) }}</span></twig:block>
                 <twig:block name="search">{##- A search form in the navbar. -#}{{ block(outerBlocks.navbar_search) }}</twig:block>
                 <twig:block name="actions">{##- Actions on the right of the navbar; by default the theme toggle. -#}{{ block(outerBlocks.navbar_actions) }}</twig:block>
             </twig:Navbar>
-            <main id="main" class="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+            <main id="main" class="flex-1 p-4 md:p-6">
                 {%- set _page_title %}{##- The page title in the page header (the header is left out when empty). -#}{% block page_title %}{% endblock %}{% endset -%}
                 {%- set _page_description %}{##- A line under the page title. -#}{% block page_description %}{% endblock %}{% endset -%}
                 {%- if _page_title|trim is not empty %}
