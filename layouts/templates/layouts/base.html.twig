@@ -22,6 +22,15 @@
         {% endblock -%}
     </head>
     <body class="{##- Classes of the body. -#}{% block body_class %}min-h-svh bg-neutral-primary text-body antialiased{% endblock %}">
+        {##- Notifications on every layout: the toast region (`data-turbo-permanent`, so a Turbo visit keeps it) and the flash messages, added to it through Turbo Streams. -#}
+        {%- block toasts %}
+            <twig:ToastRegion />
+            {%- for type, messages in app.flashes %}
+                {%- for message in messages %}
+                    <twig:Toast:Stream variant="{{ type in ['success', 'warning', 'danger'] ? type : 'info' }}">{{ message }}</twig:Toast:Stream>
+                {%- endfor %}
+            {%- endfor %}
+        {% endblock -%}
         {##- The page. -#}
         {%- block body %}{% endblock -%}
     </body>

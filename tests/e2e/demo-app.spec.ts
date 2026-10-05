@@ -89,3 +89,36 @@ test('the dashboard passes axe at phone width, its channel bars are meters', asy
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations.filter((v) => 'serious' === v.impact || 'critical' === v.impact).map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
 });
+
+test('flash messages show on every layout: the logout notice on the auth layout, not later on the dashboard', async ({ page }) => {
+    await page.goto('/demo/login');
+    await page.getByRole('textbox', { name: 'Email' }).fill('demo@example.com');
+    await page.getByLabel('Password').fill('demo');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+
+    await page.goto('/demo/logout');
+    await expect(page).toHaveURL(/\/demo\/login$/);
+    await expect(page.getByRole('region', { name: 'Notifications' }).getByText('You are signed out.')).toBeVisible();
+
+    await page.goto('/demo');
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByText('You are signed out.')).toHaveCount(0);
+});
+
+test('every layout keeps the same toast region: a toast closed on another layout does not come back on Back', async ({ page }) => {
+    await page.goto('/demo/settings/profile');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    const region = page.getByRole('region', { name: 'Notifications' });
+    await expect(region.getByText('Profile saved.')).toBeVisible();
+
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Blank' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'A blank page' })).toBeVisible();
+    await expect(region.getByText('Profile saved.')).toBeVisible();
+    await region.getByRole('button', { name: 'Close' }).click();
+    await expect(region.getByText('Profile saved.')).toHaveCount(0);
+
+    await page.goBack();
+    await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+    await expect(page.getByText('Profile saved.')).toHaveCount(0);
+});

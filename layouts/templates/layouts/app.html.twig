@@ -5,13 +5,6 @@
 
 {##- The layout around the page content. -#}
 {% block body %}
-    <twig:ToastRegion />
-    {#- Flash messages go through Turbo Streams: the region is data-turbo-permanent. -#}
-    {%- for type, messages in app.flashes %}
-        {%- for message in messages %}
-            <twig:Toast:Stream variant="{{ type in ['success', 'warning', 'danger'] ? type : 'info' }}">{{ message }}</twig:Toast:Stream>
-        {%- endfor %}
-    {%- endfor %}
     <div class="flex min-h-svh">
         {#- the document scrolls (keyboard scrolling, Turbo's scroll restoration); the sidebar sticks -#}
         <twig:Sidebar id="sidebar" data-turbo-permanent class="md:sticky md:top-0 md:h-svh!">

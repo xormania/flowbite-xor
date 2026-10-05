@@ -7,10 +7,12 @@ use App\Form\LoginType;
 use App\Form\ProfileType;
 use App\Form\RegistrationType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
+use Symfony\Component\Security\Http\Event\LogoutEvent;
 
 /**
  * Every layout and block of the kit as a real page of a small application (/demo), wired the way their
@@ -37,6 +39,15 @@ final class DemoAppController extends AbstractController
     public function logout(): never
     {
         throw new \LogicException('The firewall handles the logout.');
+    }
+
+    /**
+     * A flash message for the login page (the auth layout), after the firewall has invalidated the session.
+     */
+    #[AsEventListener(event: LogoutEvent::class, dispatcher: 'security.event_dispatcher.main', priority: -100)]
+    public function onLogout(LogoutEvent $event): void
+    {
+        $event->getRequest()->getSession()->getFlashBag()->add('info', 'You are signed out.');
     }
 
     #[Route('/signup', name: 'app_demo_signup')]

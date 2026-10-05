@@ -27,8 +27,8 @@ The recipe copies six templates to `templates/layouts/`. Extend one from a page:
 
 | Layout | For | Blocks |
 |--------|-----|--------|
-| `base.html.twig` | every other layout: meta, the no-flash theme snippet, the `app` importmap entrypoint with `data-turbo-track="reload"`, the Turbo progress bar in the brand color | `title`, `head`, `stylesheets`, `javascripts`, `body_class`, `body` |
-| `app.html.twig` | the application: `Sidebar` (`data-turbo-permanent`, so it keeps its scroll and collapsed state across Turbo visits), `Navbar` with the menu button for small screens, `PageHeader`, the `ToastRegion`, flash messages as toasts | `brand`, `sidebar`, `navbar_search`, `navbar_actions` (theme toggle by default), `page_title`, `page_description`, `page_before`, `page_actions`, `content` |
+| `base.html.twig` | every other layout: meta, the no-flash theme snippet, the `app` importmap entrypoint with `data-turbo-track="reload"`, the Turbo progress bar in the brand color, the `ToastRegion` and flash messages as toasts | `title`, `head`, `stylesheets`, `javascripts`, `body_class`, `toasts`, `body` |
+| `app.html.twig` | the application: `Sidebar` (`data-turbo-permanent`, so it keeps its scroll and collapsed state across Turbo visits), `Navbar` with the menu button for small screens, `PageHeader` | `brand`, `sidebar`, `navbar_search`, `navbar_actions` (theme toggle by default), `page_title`, `page_description`, `page_before`, `page_actions`, `content` |
 | `auth.html.twig` | login, signup, password reset: a centered column | `brand`, `content` |
 | `settings.html.twig` | settings pages: the app shell with a secondary navigation and panels | `settings_nav`, `settings_nav_label`, `settings_content` (and the `app` blocks) |
 | `error.html.twig` | error pages, e.g. `templates/bundles/TwigBundle/Exception/error404.html.twig` | `content` |
@@ -42,4 +42,4 @@ Settings navigation items, with the current one marked:
 {% endblock %}
 ```
 
-Flash messages added with `$this->addFlash('success', '…')` (also `warning`, `danger`, anything else as `info`) appear as toasts on the next page, Turbo visit or not.
+Flash messages added with `$this->addFlash('success', '…')` (also `warning`, `danger`, anything else as `info`) appear as toasts on the next page, whatever its layout, Turbo visit or not.
