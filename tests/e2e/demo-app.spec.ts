@@ -97,7 +97,7 @@ test('flash messages show on every layout: the logout notice on the auth layout,
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
 
-    await page.goto('/demo/logout');
+    await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page).toHaveURL(/\/demo\/login$/);
     await expect(page.getByRole('region', { name: 'Notifications' }).getByText('You are signed out.')).toBeVisible();
 
@@ -121,4 +121,19 @@ test('every layout keeps the same toast region: a toast closed on another layout
     await page.goBack();
     await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
     await expect(page.getByText('Profile saved.')).toHaveCount(0);
+});
+
+test('signing out needs a same-origin request: a direct GET to the logout URL does not sign the user out', async ({ page, allowHttpError }) => {
+    allowHttpError(/\/demo\/logout$/, 403);
+    await page.goto('/demo/login');
+    await page.getByRole('textbox', { name: 'Email' }).fill('demo@example.com');
+    await page.getByLabel('Password').fill('demo');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
+
+    // a typed URL or a link from another site: Sec-Fetch-Site is not same-origin, the stateless logout token fails
+    const response = await page.goto('/demo/logout');
+    expect(response?.status()).toBe(403);
+    await page.goto('/demo');
+    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
 });
