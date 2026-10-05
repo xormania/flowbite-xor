@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Flowbite's sources (downloaded by importmap:install), as in the kit's INSTALL.md */
+@source "../vendor/flowbite";
+
+@custom-variant dark (&:is(.dark *));

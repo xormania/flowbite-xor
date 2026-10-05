@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ recipe.name }} — flowbite-xor{% endblock %}
+
+{% block body %}
+    <p class="text-sm"><a href="{{ path('app_index') }}" class="hover:underline">Recipes</a> / {{ recipe.name }}</p>
+    <h1 class="mt-2 text-2xl font-bold">{{ recipe.displayName }}</h1>
+    {% if recipe.description %}
+        <p class="mt-2 text-gray-600 dark:text-gray-400">{{ recipe.description }}</p>
+    {% endif %}
+
+    <dl class="mt-6 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
+        <dt class="font-medium">Type</dt>
+        <dd>{{ recipe.type }}</dd>
+        <dt class="font-medium">Copies</dt>
+        <dd>
+            {% for source, destination in recipe.copyFiles %}
+                <code>{{ source }}</code> → <code>{{ destination }}</code>{% if not loop.last %}<br>{% endif %}
+            {% else %}
+                nothing
+            {% endfor %}
+        </dd>
+        {% for type, entries in recipe.dependencies %}
+            <dt class="font-medium">{{ type|capitalize }} dependencies</dt>
+            <dd>{{ entries|join(', ') }}</dd>
+        {% endfor %}
+    </dl>
+
+    <section class="mt-8" aria-labelledby="examples-heading">
+        <h2 id="examples-heading" class="text-lg font-semibold">Examples</h2>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">README previews are rendered here from Phase 1 on.</p>
+    </section>
+{% endblock %}

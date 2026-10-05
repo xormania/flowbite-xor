@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ kit.name }} — recipes{% endblock %}
+
+{% block body %}
+    <h1 class="text-2xl font-bold">{{ kit.name }}</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">{{ kit.description }}</p>
+
+    <h2 class="mt-8 text-lg font-semibold">Recipes <span class="text-gray-500" data-testid="recipe-count">({{ recipes|length }})</span></h2>
+    <ul class="mt-4 divide-y divide-gray-200 dark:divide-gray-800" data-testid="recipe-list">
+        {% for recipe in recipes %}
+            <li class="py-3">
+                <a href="{{ path('app_recipe', {recipe: recipe.name}) }}" class="font-medium hover:underline">{{ recipe.name }}</a>
+                <span class="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ recipe.type }}</span>
+                {% if recipe.description %}
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ recipe.description }}</p>
+                {% endif %}
+            </li>
+        {% else %}
+            <li class="py-3 text-gray-600 dark:text-gray-400">No recipes yet.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
