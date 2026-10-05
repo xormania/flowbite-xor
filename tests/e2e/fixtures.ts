@@ -43,7 +43,9 @@ export const test = base.extend<{ allowHttpError: (url: RegExp, status: number) 
                 }
             });
             page.on('requestfailed', (request) => {
-                if (isLocal(request.url())) {
+                // Turbo 8 prefetches a link on hover and cancels the request when the pointer leaves it
+                const cancelledPrefetch = 'prefetch' === request.headers()['x-sec-purpose'] && 'net::ERR_ABORTED' === request.failure()?.errorText;
+                if (isLocal(request.url()) && !cancelledPrefetch) {
                     errors.push({ message: `requestfailed: ${request.url()} ${request.failure()?.errorText}` });
                 }
             });

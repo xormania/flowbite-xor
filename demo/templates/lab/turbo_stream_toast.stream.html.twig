@@ -1,0 +1,4 @@
+<twig:Toast:Stream variant="success" timeout="{{ timeout }}">Notification {{ count }} sent.</twig:Toast:Stream>
+<turbo-stream action="replace" target="toast-count">
+    <template><input type="hidden" id="toast-count" name="count" value="{{ count }}"></template>
+</turbo-stream>
