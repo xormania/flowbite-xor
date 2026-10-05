@@ -7,7 +7,8 @@ Stimulus controllers, layouts, blocks, a form theme, a theme) for xor's Symfony 
 All behavior lives in Stimulus controllers (no global `initFlowbite()`), so components keep working
 when Live Components re-render them and when Turbo navigates.
 
-> **Status:** Phase 4: recipes the official kit lacks: `sidebar`, `navbar`, `drawer`, `toast`, `tooltip`, `breadcrumb`, `page-header`, `stat-card`, `empty-state`, `progress`, `form-field`. A Live Component `data-table` is planned, not built yet.
+> **Status:** Phase 5: `form-theme`, a Symfony form theme that renders rows through `form-field` and controls through the kit's components (demo at `/forms`, pixel parity with hand-written components at `/forms/parity`).
+> Phase 4: recipes the official kit lacks: `sidebar`, `navbar`, `drawer`, `toast`, `tooltip`, `breadcrumb`, `page-header`, `stat-card`, `empty-state`, `progress`, `form-field`. A Live Component `data-table` is planned, not built yet.
 > Phase 3: every behavior is a Stimulus controller (no Flowbite JavaScript), checked under Turbo and Live Components in `/lab`. Phase 2: the 22 base recipes of the official `flowbite-4` kit (see [`UPSTREAM.md`](UPSTREAM.md)),
 > plus `theme` (Flowbite's color roles with contrast fixes, checked in CI) and `theme-toggle`.
 > The build plan is [`docs/PLAN.md`](docs/PLAN.md).

@@ -13,10 +13,12 @@ const recipes = readdirSync(root, { withFileTypes: true })
 const examples: { recipe: string; id: string }[] = JSON.parse(
     execFileSync(process.env.PHP_BINARY ?? 'php', ['bin/console', 'app:examples'], { cwd: join(root, 'demo'), encoding: 'utf8' })
 );
-const labPages = ['live-dropdown', 'live-modal', 'live-table', 'live-drawer', 'turbo-stream-toast', 'turbo-nav', 'turbo-nav/two', 'turbo-frame-detail', 'turbo-frame-detail/apple', 'permanent-plus-live'];
+const labPages = ['live-dropdown', 'live-modal', 'live-table', 'live-drawer', 'live-form', 'turbo-stream-toast', 'turbo-nav', 'turbo-nav/two', 'turbo-frame-detail', 'turbo-frame-detail/apple', 'permanent-plus-live'];
 
 const pages = [
     '/',
+    '/forms',
+    '/forms/parity',
     '/lab',
     ...labPages.map((name) => `/lab/${name}`),
     ...recipes.map((recipe) => `/r/${recipe}`),
