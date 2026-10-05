@@ -94,6 +94,27 @@ test.describe('theme toggle', () => {
         });
     });
 
+    test.describe('storage blocked', () => {
+        test.use({ colorScheme: 'light' });
+
+        test('keeps the choice across Turbo visits without localStorage', async ({ page }) => {
+            await page.addInitScript(() => {
+                const blocked = () => {
+                    throw new DOMException('blocked', 'SecurityError');
+                };
+                Object.defineProperty(window, 'localStorage', { get: blocked });
+            });
+            await page.goto('/');
+            await page.getByRole('button', { name: 'Toggle dark mode' }).click();
+            await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+
+            await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Lab' }).click();
+            await expect(page).toHaveURL(/\/lab$/);
+            await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+            await expect(page.getByRole('button', { name: 'Toggle dark mode' })).toHaveAttribute('aria-pressed', 'true');
+        });
+    });
+
     test.describe('system in dark mode', () => {
         test.use({ colorScheme: 'dark' });
 
