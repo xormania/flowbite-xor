@@ -117,7 +117,11 @@ cat > templates/dashboard/index.html.twig <<'TWIG'
 {% endblock %}
 TWIG
 
-$php bin/console cache:clear --no-interaction > /dev/null
+# a cache built from scratch: cache:clear keeps the cached routes when its own boot rebuilt the container in the
+# same second as their build (the route cache checks the container file's mtime, one-second resolution), and the
+# controllers written above would answer 404 (UPSTREAM.md, Toolkit findings)
+rm -rf var/cache
+$php bin/console cache:warmup --no-interaction > /dev/null
 $php -S "127.0.0.1:$port" -t public > "$work/server.log" 2>&1 &
 server_pid=$!
 for _ in $(seq 1 30); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 1; done
