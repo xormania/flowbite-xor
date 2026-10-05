@@ -1,0 +1,33 @@
+{%- props
+    ## int|float The progress, from 0 to 100.
+    value = 0,
+    ## string|null The visible label, which also names the progress bar.
+    label = null,
+    ## bool Whether the percentage is shown next to the label.
+    showValue = false,
+    ## 'brand'|'success'|'danger'|'warning' The color of the bar.
+    variant = 'brand',
+    ## 'sm'|'default'|'lg' The height of the bar.
+    size = 'default'
+-%}
+{%- set _value = max(0, min(100, value)) -%}
+{%- set track = html_cva(
+    base: 'w-full overflow-hidden rounded-full bg-neutral-primary ring-1 ring-default ring-inset',
+    variants: {size: {sm: 'h-1.5', default: 'h-2.5', lg: 'h-4'}},
+) -%}
+{%- set bar = html_cva(
+    base: 'h-full rounded-full',
+    variants: {variant: {brand: 'bg-brand', success: 'bg-success', danger: 'bg-danger', warning: 'bg-warning'}},
+) -%}
+{%- set _label_id = label ? 'progress-' ~ random() : null -%}
+<div {{ attributes.defaults({class: 'w-full'|tailwind_classes}) }}>
+    {%- if label %}
+        <div class="mb-1 flex justify-between text-sm font-medium text-heading">
+            <span id="{{ _label_id }}">{{ label }}</span>
+            {%- if showValue %}<span>{{ _value|round }}%</span>{% endif %}
+        </div>
+    {%- endif %}
+    <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ _value }}"{% if _label_id %} aria-labelledby="{{ _label_id }}"{% endif %} class="{{ track.apply({size: size}) }}">
+        <div class="{{ bar.apply({variant: variant}) }}" style="width: {{ _value }}%"></div>
+    </div>
+</div>
