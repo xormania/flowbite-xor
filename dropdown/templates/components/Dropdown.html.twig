@@ -1,0 +1,32 @@
+
+{%- props
+    ## string Unique identifier for generating internal IDs.
+    id,
+    ## boolean Whether the dropdown is open on initial render.
+    open = false,
+    ## 'bottom'|'top'|'left'|'right'|'left-start'|'left-end'|'right-start'|'right-end'|'bottom-start'|'bottom-end'|'top-start'|'top-end' The dropdown placement relative to the trigger.
+    placement = 'bottom',
+    ## 'click'|'hover' The dropdown trigger type.
+    triggerType = 'click',
+    ## int The dropdown delay.
+    delay = 300,
+    ## int The dropdown content offset.
+    offsetDistance = 10
+-%}
+
+{%- set _dropdown_id = 'dropdown-' ~ id -%}
+{%- set _dropdown_trigger_id = _dropdown_id ~ '-trigger' -%}
+
+<div
+    data-dropdown-placement-value="{{ placement }}"
+    data-dropdown-trigger-type-value="{{ triggerType }}"
+    data-dropdown-open-value="{{ open ? 'true' : 'false' }}"
+    data-dropdown-delay-value="{{ delay }}"
+    data-dropdown-offset-distance-value="{{ offsetDistance }}"
+    {{ attributes.defaults({
+        'data-controller': 'dropdown',
+    }) }}
+>
+    {##- The dropdown structure (Dropdown:Trigger and Dropdown:Content). -#}
+    {%- block content %}{% endblock -%}
+</div>

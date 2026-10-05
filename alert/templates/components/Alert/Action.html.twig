@@ -1,0 +1,8 @@
+<div
+    {{ attributes.defaults({
+        class: 'mt-2 group-has-[>svg]/alert:col-start-2'|tailwind_classes,
+    }) }}
+>
+    {##- The action element, typically a button or link. -#}
+    {%- block content %}{% endblock -%}
+</div>

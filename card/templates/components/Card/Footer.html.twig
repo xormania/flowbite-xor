@@ -1,0 +1,8 @@
+<div
+    {{ attributes.defaults({
+        class: 'pt-6'|tailwind_classes,
+    }) }}
+>
+    {##- The footer area, typically contains actions or additional information. -#}
+    {%- block content %}{% endblock -%}
+</div>
