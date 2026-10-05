@@ -65,3 +65,27 @@ test('the not-found block answers 404 and passes axe', async ({ page, allowHttpE
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations.filter((v) => 'serious' === v.impact || 'critical' === v.impact).map((v) => v.id)).toEqual([]);
 });
+
+test('the app layout scrolls the document, so the keyboard scrolls it and Turbo restores it on Back', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    await page.goto('/demo');
+    await page.keyboard.press('PageDown');
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await expect(page.locator('#sidebar')).toBeInViewport();
+
+    await page.evaluate(() => window.scrollTo(0, 300));
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(300);
+});
+
+test('the dashboard passes axe at phone width, its channel bars are meters', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/demo');
+    await expect(page.getByRole('meter', { name: 'Online store' })).toHaveAttribute('aria-valuenow', '64');
+    await expect(page.getByRole('region', { name: 'Recent orders' })).toHaveAttribute('tabindex', '0');
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations.filter((v) => 'serious' === v.impact || 'critical' === v.impact).map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
+});
