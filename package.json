@@ -1,0 +1,12 @@
+{
+    "name": "flowbite-xor-e2e",
+    "private": true,
+    "description": "Playwright tests of the flowbite-xor demo app (not part of the kit).",
+    "license": "MIT",
+    "scripts": {
+        "test:e2e": "playwright test"
+    },
+    "devDependencies": {
+        "@playwright/test": "1.63.0"
+    }
+}

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}flowbite-xor demo{% endblock %}</title>
+        <link rel="icon" href="data:,">
+        {% block stylesheets %}
+        {% endblock %}
+
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body class="min-h-screen bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
+        <header class="border-b border-gray-200 dark:border-gray-800">
+            <nav class="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3" aria-label="Main">
+                <a href="{{ path('app_index') }}" class="font-semibold">flowbite-xor</a>
+                <a href="{{ path('app_index') }}" class="text-sm hover:underline">Recipes</a>
+                <a href="{{ path('app_lab') }}" class="text-sm hover:underline">Lab</a>
+            </nav>
+        </header>
+        <main class="mx-auto max-w-5xl px-4 py-8">
+            {% block body %}{% endblock %}
+        </main>
+    </body>
+</html>

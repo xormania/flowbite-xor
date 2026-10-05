@@ -1,0 +1,72 @@
+# flowbite-xor
+
+A [Symfony UX Toolkit](https://symfony.com/bundles/ux-toolkit/current/index.html) kit built on the free
+[Flowbite](https://flowbite.com/) v4 library and Tailwind CSS v4: copy-in recipes (Twig components,
+Stimulus controllers, layouts, blocks, a form theme, a theme) for xor's Symfony projects.
+
+All behavior lives in Stimulus controllers (no global `initFlowbite()`), so components keep working
+when Live Components re-render them and when Turbo navigates.
+
+> **Status:** bootstrap (Phase 0). The recipes land in the next phases; the build plan is
+> [`docs/PLAN.md`](docs/PLAN.md).
+
+## Usage
+
+Recipes are installed into a project with the UX Toolkit (`composer require --dev symfony/ux-toolkit:^3.5`):
+
+```bash
+# from main
+php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor
+
+# from a tag, branch or commit SHA (no "/" allowed: use the SHA for branches like feat/x)
+php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version>
+```
+
+Files land in your project, where you own them. Re-running `ux:install` shows a diff and is the update path.
+Project setup (Tailwind, Flowbite, theme) is described in [`INSTALL.md`](INSTALL.md).
+
+## Targets
+
+| | |
+|---|---|
+| Symfony UX Toolkit | ^3.5 (blocks need 3.5) |
+| PHP | ≥ 8.4 (required by the toolkit) |
+| Symfony | 7.4 LTS (demo app); toolkit supports ^7.4 \| ^8.0 |
+| Assets | AssetMapper (Encore: npm dependencies declared) |
+| Tailwind CSS | 4.x |
+| Flowbite | 4.x |
+
+## Repository layout
+
+| Path | In `ux:install` downloads | |
+|------|---------------------------|---|
+| `manifest.json`, `INSTALL.md`, `icon.svg`, `<recipe>/` | yes | the kit |
+| `demo/` | no | Symfony app showing every recipe, plus Turbo/Live scenario pages (`/lab`) |
+| `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
+| `tests/e2e/`, `playwright.config.ts` | no | Playwright tests against the demo |
+| `docs/`, `.github/` | no | plan, CI |
+
+`ux:install` downloads GitHub's archive of the whole repository; `.gitattributes` `export-ignore`
+keeps everything but the kit out of it.
+
+## Development
+
+Requires PHP 8.4, Composer and Node.js.
+
+```bash
+tools/sync-demo                                   # copy recipes into demo/
+(cd demo && composer install && php bin/console importmap:install && php bin/console tailwind:build)
+npm ci && npx playwright install chromium
+npx playwright test                               # starts php -S on demo/public if nothing listens on :8000
+```
+
+Lint the kit as users download it (`ux-toolkit-kit-lint` reports non-recipe directories such as
+`demo/` as errors, so lint the exported tree):
+
+```bash
+tmp=$(mktemp -d) && git archive HEAD | tar -x -C "$tmp" && demo/vendor/bin/ux-toolkit-kit-lint "$tmp"
+```
+
+## License
+
+MIT — see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE) (Symfony UX, Flowbite).

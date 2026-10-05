@@ -1,0 +1,11 @@
+flowbite-xor includes files copied or derived from the following MIT-licensed projects.
+
+Symfony UX (https://github.com/symfony/ux), src/Toolkit/kits/flowbite-4
+    Copyright (c) 2025-present Fabien Potencier
+    Copied files and their deviations are listed in UPSTREAM.md.
+
+Flowbite (https://github.com/themesberg/flowbite)
+    Copyright (c) 2023 Bergside Inc.
+    Design tokens, class names and markup patterns of the Flowbite components.
+
+Both are distributed under the MIT License; its text is in LICENSE.

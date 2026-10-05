@@ -1,0 +1,7 @@
+{
+    "type": "component",
+    "name": "Gadget",
+    "copy-files": {
+        "templates/": "templates/"
+    }
+}
