@@ -14,6 +14,8 @@ A profile settings card: avatar, name and a Symfony form rendered through the fo
 
 ## Usage
 
+The block applies the form theme (`form/flowbite_layout.html.twig`, from the `form-theme` recipe) to its form itself: no `twig.form_themes` setting is needed.
+
 ```php
 // src/Controller/SettingsController.php
 #[Route('/settings/profile', name: 'app_settings_profile')]
@@ -27,7 +29,7 @@ public function profile(Request $request): Response
         // ... flush
         $this->addFlash('success', 'Profile saved.');
 
-        return $this->redirectToRoute('app_settings_profile');
+        return $this->redirectToRoute('app_settings_profile', [], Response::HTTP_SEE_OTHER);
     }
 
     return $this->render('settings/profile.html.twig', ['form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));

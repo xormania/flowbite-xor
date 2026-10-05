@@ -8,6 +8,8 @@
     ## string|null The link to the login page.
     loginHref = null
 -%}
+{#- the block renders its form through the form-theme recipe, whatever twig.form_themes says -#}
+{%- form_theme form 'form/flowbite_layout.html.twig' -%}
 <div {{ attributes.defaults({class: 'w-full'|tailwind_classes}) }}>
     <twig:Card>
         <twig:Card:Header>

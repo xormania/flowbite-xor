@@ -14,6 +14,8 @@ A sign-in card rendering a Symfony login form through the form theme, with the l
 
 ## Usage
 
+The block applies the form theme (`form/flowbite_layout.html.twig`, from the `form-theme` recipe) to its form itself: no `twig.form_themes` setting is needed.
+
 The form posts to `form_login`, so its fields keep the names the authenticator reads: `_username`, `_password`, `_remember_me` and the `_csrf_token` checked with the `authenticate` id.
 
 ```php

@@ -14,6 +14,8 @@ A registration card rendering a Symfony form through the form theme.
 
 ## Usage
 
+The block applies the form theme (`form/flowbite_layout.html.twig`, from the `form-theme` recipe) to its form itself: no `twig.form_themes` setting is needed.
+
 ```php
 // src/Form/RegistrationType.php
 final class RegistrationType extends AbstractType
@@ -39,7 +41,7 @@ public function register(Request $request): Response
 
     if ($form->isSubmitted() && $form->isValid()) {
         // ... hash the password, persist the user, log them in
-        return $this->redirectToRoute('app_home');
+        return $this->redirectToRoute('app_home', [], Response::HTTP_SEE_OTHER);
     }
 
     // 422 lets Turbo render the errors
