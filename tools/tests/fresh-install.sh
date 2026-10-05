@@ -127,6 +127,9 @@ fetch() { # fetch <path> <file>: fails unless the page answers 200
     status="$(curl -s -o "$2" -w '%{http_code}' "http://127.0.0.1:$port$1")"
     if [ "$status" != 200 ]; then
         grep -o '<title>[^<]*' "$2" || true
+        echo "--- routes"; $php bin/console debug:router --no-interaction 2>&1 | head -30 || true
+        echo "--- src/Controller"; ls -la src/Controller || true
+        echo "--- server log"; tail -20 "$work/server.log" || true
         echo "FAIL: $1 answered $status"
         exit 1
     fi
