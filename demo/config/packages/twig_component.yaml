@@ -3,3 +3,7 @@ twig_component:
     defaults:
         # Namespace & directory for components
         App\Twig\Components\: 'components/'
+        # The /lab scenarios' own Live Components ("Lab:*"); templates/components/ only holds synced recipes
+        App\Twig\Lab\:
+            template_directory: 'lab/components/'
+            name_prefix: 'Lab'

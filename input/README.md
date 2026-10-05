@@ -64,8 +64,8 @@ Get started with this example if you want to apply the disabled state to an inpu
 
 ```twig {"preview":true}
 <div class="space-y-6">
-    <twig:Input type="text" value="Disabled input" disabled class="max-w-sm" />
-    <twig:Input type="text" value="Disabled readonly input" disabled readonly class="max-w-sm" />
+    <twig:Input type="text" value="Disabled input" aria-label="Disabled input" disabled class="max-w-sm" />
+    <twig:Input type="text" value="Disabled readonly input" aria-label="Disabled readonly input" disabled readonly class="max-w-sm" />
 </div>
 ```
 

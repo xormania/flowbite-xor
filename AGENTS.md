@@ -40,7 +40,7 @@ tmp=$(mktemp -d) && git archive HEAD | tar -x -C "$tmp" && demo/vendor/bin/ux-to
 demo/vendor/bin/ux-toolkit-kit-debug .   # what the toolkit sees
 
 (cd demo && composer install && php bin/console tailwind:build)
-npx playwright test             # smoke + README example screenshots + recipe specs (needs Docker)
+npx playwright test             # smoke + lab (Turbo/Live) + axe on every demo page + README screenshots + recipe specs (needs Docker)
 ```
 
 `git archive` exports committed files only: commit before linting.

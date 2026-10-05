@@ -1,15 +1,22 @@
 import { Controller } from '@hotwired/stimulus';
-import { Dismiss } from 'flowbite';
 
+/**
+ * Dismisses an `Alert`: fades it out, then hides it, like Flowbite's `Dismiss` (which this
+ * controller replaces so no global Flowbite code runs).
+ *
+ * @target alert The element to hide, the alert itself.
+ * @action close Fades the alert out over 300 ms, then hides it.
+ */
 export default class extends Controller {
-    alert = null;
     static targets = ['alert'];
 
-    connect() {
-        this.alert = new Dismiss(this.alertTarget);
+    disconnect() {
+        clearTimeout(this.hideTimeout);
     }
 
     close() {
-        this.alert.hide();
+        this.alertTarget.classList.add('transition-opacity', 'duration-300', 'ease-out', 'opacity-0');
+        clearTimeout(this.hideTimeout);
+        this.hideTimeout = setTimeout(() => this.alertTarget.classList.add('hidden'), 300);
     }
 }

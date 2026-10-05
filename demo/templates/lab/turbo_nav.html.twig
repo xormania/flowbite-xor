@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}turbo-nav ({{ page }}) — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'turbo-nav'}) }}
+    <div class="grid grid-cols-[12rem_1fr] gap-6">
+        <aside id="lab-permanent-panel" data-turbo-permanent class="h-40 overflow-y-auto rounded-base border border-default p-2" aria-label="Permanent panel" tabindex="0">
+            <ul>
+                {% for i in 1..30 %}<li class="py-1 text-sm">Entry {{ i }}</li>{% endfor %}
+            </ul>
+        </aside>
+        <section>
+            <h2 class="text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+            <a href="{{ path('app_lab_turbo_nav', {page: page == 'one' ? 'two' : 'one'}) }}" class="mt-2 inline-block text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a>
+        </section>
+    </div>
+{% endblock %}

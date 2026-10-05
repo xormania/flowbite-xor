@@ -28,15 +28,6 @@ return [
     '@symfony/ux-live-component' => [
         'path' => './vendor/symfony/ux-live-component/assets/dist/live_controller.js',
     ],
-    'flowbite' => [
-        'version' => '4.0.2',
-    ],
-    '@popperjs/core' => [
-        'version' => '2.11.8',
-    ],
-    'flowbite-datepicker' => [
-        'version' => '2.0.0',
-    ],
     'flowbite/dist/flowbite.min.css' => [
         'version' => '4.0.2',
         'type' => 'css',

@@ -260,7 +260,7 @@ Use the menu icon trigger element on components such as cards as an alternative 
     <div class="flex justify-center space-x-4 rtl:space-x-reverse">
         <twig:Dropdown id="icon-vt">
             <twig:Dropdown:Trigger>
-                <twig:Button variant="ghost" size="icon" {{ ...dropdown_trigger_attrs }}>
+                <twig:Button variant="ghost" size="icon" aria-label="More actions" {{ ...dropdown_trigger_attrs }}>
                     <twig:ux:icon name="flowbite:dots-vertical-outline" class="size-6" aria-hidden="true"/>
                 </twig:Button>
             </twig:Dropdown:Trigger>
@@ -285,7 +285,7 @@ Use the menu icon trigger element on components such as cards as an alternative 
 
         <twig:Dropdown id="icon-hz">
             <twig:Dropdown:Trigger>
-                <twig:Button variant="ghost" size="icon" {{ ...dropdown_trigger_attrs }}>
+                <twig:Button variant="ghost" size="icon" aria-label="More actions" {{ ...dropdown_trigger_attrs }}>
                     <twig:ux:icon name="flowbite:dots-horizontal-outline" class="size-6" aria-hidden="true"/>
                 </twig:Button>
             </twig:Dropdown:Trigger>

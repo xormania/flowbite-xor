@@ -1,0 +1,37 @@
+<div {{ attributes }}>
+    <table class="w-full text-left text-sm text-body">
+        <thead>
+            <tr>
+                {% for column in ['name', 'stock'] %}
+                    <th class="p-2">
+                        <button type="button" class="font-medium text-heading hover:underline" data-action="live#action" data-live-action-param="sortBy" data-live-column-param="{{ column }}">
+                            {{ column|capitalize }}{% if sort == column %} ({{ direction }}){% endif %}
+                        </button>
+                    </th>
+                {% endfor %}
+                <th class="p-2"><span class="sr-only">Actions</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in this.rows %}
+                <tr data-testid="row" data-row="{{ row.id }}" id="row-{{ row.id }}">
+                    <td class="p-2">{{ row.name }}</td>
+                    <td class="p-2">{{ row.stock }}</td>
+                    <td class="p-2">
+                        <twig:Dropdown id="row-{{ row.id }}" placement="bottom-end">
+                            <twig:Dropdown:Trigger>
+                                <twig:Button variant="ghost" size="sm" {{ ...dropdown_trigger_attrs }}>Actions for {{ row.name }}</twig:Button>
+                            </twig:Dropdown:Trigger>
+                            <twig:Dropdown:Content>
+                                <twig:Dropdown:Group>
+                                    <twig:Dropdown:Item href="#">Edit {{ row.name }}</twig:Dropdown:Item>
+                                    <twig:Dropdown:Item href="#">Delete {{ row.name }}</twig:Dropdown:Item>
+                                </twig:Dropdown:Group>
+                            </twig:Dropdown:Content>
+                        </twig:Dropdown>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
