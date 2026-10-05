@@ -63,3 +63,21 @@ test('a tooltip that does not fit above its trigger opens below it', async ({ pa
     const [tip, button] = await Promise.all([tooltip.boundingBox(), trigger.boundingBox()]);
     expect(tip!.y).toBeGreaterThanOrEqual(button!.y + button!.height);
 });
+
+test('a tooltip stays open while its trigger is still hovered or focused', async ({ page }) => {
+    await page.goto('/lab/live-table');
+    const trigger = page.getByRole('button', { name: '12', exact: true });
+    const tooltip = page.getByRole('tooltip', { name: '12 Apple crates in the warehouse' });
+
+    await trigger.hover();
+    await trigger.focus();
+    await page.mouse.move(0, 0);
+    await expect(tooltip).toBeVisible();
+
+    await trigger.hover();
+    await page.getByRole('button', { name: /^Stock/ }).focus();
+    await expect(tooltip).toBeVisible();
+
+    await page.mouse.move(0, 0);
+    await expect(tooltip).toBeHidden();
+});

@@ -9,7 +9,7 @@ import { Controller } from '@hotwired/stimulus';
  * @target tooltip   The tooltip element.
  * @value  placement Where the tooltip opens: `top`, `bottom`, `left` or `right`.
  * @action show      Shows and places the tooltip.
- * @action hide      Hides the tooltip.
+ * @action hide      Hides the tooltip once its trigger is neither hovered nor focused, or at once on Escape.
  */
 export default class extends Controller {
     static targets = ['tooltip'];
@@ -43,7 +43,12 @@ export default class extends Controller {
         return [...this.element.children].find((child) => child !== this.tooltipTarget) ?? null;
     }
 
-    show() {
+    show(event) {
+        if ('mouseenter' === event?.type) {
+            this.hovered = true;
+        } else if ('focusin' === event?.type) {
+            this.focused = true;
+        }
         this.describe();
         const tooltip = this.tooltipTarget;
         tooltip.hidden = false;
@@ -77,7 +82,17 @@ export default class extends Controller {
         tooltip.dataset.placement = side;
     }
 
-    hide() {
-        this.tooltipTarget.hidden = true;
+    hide(event) {
+        if ('mouseleave' === event?.type) {
+            this.hovered = false;
+        } else if ('focusout' === event?.type) {
+            this.focused = this.element.contains(event.relatedTarget);
+        } else {
+            // Escape, disconnect: hide until the next hover or focus
+            this.hovered = this.focused = false;
+        }
+        if (!this.hovered && !this.focused) {
+            this.tooltipTarget.hidden = true;
+        }
     }
 }
