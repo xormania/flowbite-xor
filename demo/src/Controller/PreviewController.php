@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Kit\KitReader;
+use App\Kit\PreviewForms;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
@@ -24,6 +25,7 @@ final class PreviewController extends AbstractController
         string $recipe,
         string $example,
         KitReader $kit,
+        PreviewForms $forms,
         Environment $twig,
         #[MapQueryParameter]
         string $theme = 'light',
@@ -43,7 +45,7 @@ final class PreviewController extends AbstractController
             'title' => \sprintf('%s / %s', $recipe, $example),
             'theme' => $theme,
             'is_block' => RecipeType::Block === $recipeObject->manifest->type,
-            'html' => $template->render(),
+            'html' => $template->render($forms->contextFor($recipe)),
         ]);
     }
 }
