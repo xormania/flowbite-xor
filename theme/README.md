@@ -19,8 +19,7 @@ The recipe copies `assets/styles/flowbite-xor.css`: Flowbite's theme (`@theme` r
 
 @import "./flowbite-xor.css";
 
-/* Flowbite's own sources, and the templates of your app (Tailwind scans the project root by default; list them if you build from elsewhere) */
-@source "../vendor/flowbite";
+/* The templates of your app (Tailwind scans the project root by default; list them if you build from elsewhere) */
 @source "../../templates";
 ```
 

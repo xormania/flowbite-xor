@@ -19,11 +19,11 @@ This kit requires TailwindCSS and Flowbite v4 to work:
 
 ## Installation
 
-1. Install Flowbite, either with `importmap:require` for AssetMapper, or `npm` for Webpack Encore:
+1. Install Flowbite's stylesheet (base styles of the form controls), either with `importmap:require` for AssetMapper, or `npm` for Webpack Encore. The kit uses no Flowbite JavaScript: every behavior lives in the recipes' Stimulus controllers.
 
 ```
 # With AssetMapper
-php bin/console importmap:require flowbite
+php bin/console importmap:require flowbite/dist/flowbite.min.css
 
 # With npm
 npm install flowbite
@@ -38,17 +38,11 @@ php bin/console ux:install theme --kit=https://github.com/xormania/flowbite-xor
 ```css
 @import 'tailwindcss';
 
-/* With AssetMapper... */
-@source "../vendor/flowbite";
+/* With AssetMapper (downloaded by importmap:require)... */
+@import '../vendor/flowbite/dist/flowbite.min.css';
 /* ... or with Webpack Encore */
-/* @source "../../node_modules/flowbite"; */
+/* @import 'flowbite/dist/flowbite.min.css'; */
 
 /* Theme roles, `.dark` overrides and `@custom-variant dark`, installed by the `theme` recipe */
 @import './flowbite-xor.css';
-```
-
-3. Modify your `assets/app.js` file by adding:
-
-```js
-import 'flowbite';
 ```

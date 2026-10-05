@@ -6,5 +6,4 @@
 @import "tailwindcss";
 @import "../vendor/flowbite/dist/flowbite.min.css";
 @import "../../../kit.css";
-@source "../vendor/flowbite";
 @source "../../..";
