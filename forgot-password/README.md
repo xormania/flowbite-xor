@@ -26,10 +26,13 @@ public function request(Request $request): Response
 
     if ($form->isSubmitted() && $form->isValid()) {
         // ... send the link (symfonycasts/reset-password-bundle), whether or not the account exists
-        return $this->render('reset_password/request.html.twig', ['form' => $form, 'sent' => true]);
+        return $this->redirectToRoute('app_forgot_password', ['sent' => 1], Response::HTTP_SEE_OTHER);
     }
 
-    return $this->render('reset_password/request.html.twig', ['form' => $form, 'sent' => false], new Response(null, $form->isSubmitted() ? 422 : 200));
+    return $this->render('reset_password/request.html.twig', [
+        'form' => $form,
+        'sent' => $request->query->getBoolean('sent'),
+    ], new Response(null, $form->isSubmitted() ? 422 : 200));
 }
 ```
 
@@ -42,4 +45,4 @@ public function request(Request $request): Response
 {% endblock %}
 ```
 
-The confirmation never says whether the account exists, so the form cannot be used to find out who has one.
+The confirmation never says whether the account exists, so the form cannot be used to find out who has one. Turbo Drive needs the redirect after a successful submit (and a 422 to show errors).
