@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
 
 const PLACEHOLDER_IMAGE = fileURLToPath(new URL('./examples/placeholder.png', import.meta.url));
 
@@ -62,3 +62,15 @@ export const test = base.extend<{ allowHttpError: (url: RegExp, status: number) 
 });
 
 export { expect };
+
+/**
+ * Waits until the current Turbo visit has rendered the server's response. A visit to a page Turbo has cached first
+ * shows that snapshot as a preview (`data-turbo-preview` on <html>), so the new page's content is visible while its
+ * request is still running, and going Back or away then cancels the request. Turbo marks <html> `aria-busy` from
+ * the start of a visit to its end.
+ */
+export async function turboVisitDone(page: Page): Promise<void> {
+    const html = page.locator('html');
+    await expect(html).not.toHaveAttribute('aria-busy');
+    await expect(html).not.toHaveAttribute('data-turbo-preview');
+}

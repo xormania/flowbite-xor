@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect, turboVisitDone } from './fixtures';
 
 test('a data-turbo-permanent panel is kept across Turbo visits (not its scroll) and the theme persists', async ({ page }) => {
     await page.goto('/lab/turbo-nav');
@@ -11,6 +11,7 @@ test('a data-turbo-permanent panel is kept across Turbo visits (not its scroll) 
 
     await page.getByRole('link', { name: 'Go to page two' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page two');
+    await turboVisitDone(page);
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
     // Turbo moves the same node into the new page, but Chromium resets the scroll of a re-inserted
     // element: a permanent element that must keep its scroll restores it itself (sidebar controller, phase 4).
@@ -19,6 +20,7 @@ test('a data-turbo-permanent panel is kept across Turbo visits (not its scroll) 
     await page.getByRole('button', { name: 'Toggle dark mode' }).click();
     await page.getByRole('link', { name: 'Go to page one' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page one');
+    await turboVisitDone(page);
     await expect(page.locator('html')).toHaveClass(/\bdark\b/);
     expect(await panel.evaluate((element) => (element as any).__marker)).toBe('kept');
 });
@@ -36,6 +38,7 @@ test('the permanent sidebar keeps its scroll, collapsed state and current item a
 
     await page.getByRole('link', { name: 'Go to page two' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page two');
+    await turboVisitDone(page);
     expect(await nav.evaluate((element) => [(element as any).__marker, element.scrollTop])).toEqual(['kept', 150]);
     await expect(nav.getByRole('link', { name: 'Page two' })).toHaveAttribute('aria-current', 'page');
     await expect(nav.getByRole('link', { name: 'Page one' })).not.toHaveAttribute('aria-current');
@@ -46,6 +49,7 @@ test('the permanent sidebar keeps its scroll, collapsed state and current item a
 
     await page.getByRole('link', { name: 'Go to page one' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page one');
+    await turboVisitDone(page);
     await expect(sidebar).toHaveAttribute('data-collapsed');
     await expect(nav.getByRole('link', { name: 'Page one' })).toHaveAttribute('aria-current', 'page');
 
@@ -62,15 +66,19 @@ test('a flash toast written as a Turbo Stream shows once across Turbo visits', a
 
     await page.getByRole('button', { name: 'Save settings' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page two');
+    await turboVisitDone(page);
     await expect(toasts).toHaveCount(1);
     await expect(toasts).toHaveText('Settings saved.');
 
     await page.getByRole('link', { name: 'Go to page one' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page one');
+    await turboVisitDone(page);
     await page.getByRole('link', { name: 'Go to page two' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page two');
+    await turboVisitDone(page);
     await page.goBack();
     await expect(page.getByTestId('page')).toHaveText('Page one');
+    await turboVisitDone(page);
     await expect(toasts).toHaveCount(1);
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
 });
@@ -95,6 +103,7 @@ test('on a small screen the navbar button opens the sidebar over the page', asyn
     await menu.click();
     await sidebar.getByRole('link', { name: 'Page two' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page two');
+    await turboVisitDone(page);
     await expect(sidebar).toBeHidden();
     await expect(page.getByRole('button', { name: 'Open menu' })).toHaveAttribute('aria-expanded', 'false');
 });
