@@ -1,0 +1,32 @@
+{%- props
+    ## string What the value measures.
+    label,
+    ## string The value, already formatted.
+    value,
+    ## 'up'|'down'|null The direction of the change, shown with an arrow and a color.
+    trend = null,
+    ## string|null The size of the change, already formatted (e.g. "12%").
+    change = null,
+    ## string|null The period the change compares to (e.g. "vs last month").
+    period = null
+-%}
+<div {{ attributes.defaults({class: 'rounded-base border border-default bg-neutral-primary-soft p-6 shadow-xs'|tailwind_classes}) }}>
+    <p class="text-sm font-medium text-body">{{ label }}</p>
+    <p class="mt-2 text-3xl font-semibold tracking-tight text-heading">{{ value }}</p>
+    {%- if change or period %}
+        <p class="mt-2 flex flex-wrap items-center gap-1 text-sm text-body">
+            {%- if change %}
+                <span class="inline-flex items-center gap-0.5 font-medium {{ trend == 'down' ? 'text-fg-danger' : (trend == 'up' ? 'text-fg-success' : 'text-heading') }}">
+                    {%- if trend %}
+                        <twig:ux:icon name="flowbite:arrow-{{ trend }}-outline" class="size-4" aria-hidden="true" />
+                        <span class="sr-only">{{ trend == 'up' ? 'Increased by' : 'Decreased by' }}</span>
+                    {%- endif %}
+                    {{ change }}
+                </span>
+            {%- endif %}
+            {%- if period %}<span>{{ period }}</span>{% endif %}
+        </p>
+    {%- endif %}
+    {##- Extra content below the value, e.g. a sparkline or a link. -#}
+    {%- block content %}{% endblock -%}
+</div>

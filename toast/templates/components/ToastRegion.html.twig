@@ -1,0 +1,16 @@
+{%- props
+    ## string The id Turbo Streams target to add toasts, the same as `Toast:Stream`'s `target`.
+    id = 'toasts',
+    ## string The accessible name of the region.
+    label = 'Notifications'
+-%}
+<section
+    id="{{ id }}"
+    aria-label="{{ label }}"
+    aria-live="polite"
+    data-turbo-permanent
+    {{ attributes.defaults({class: 'pointer-events-none fixed right-4 bottom-4 z-50 flex w-full max-w-sm flex-col gap-3'|tailwind_classes}) }}
+>
+    {##- Toasts rendered with the region, shown on a full page load only: on a Turbo visit, Turbo keeps the region already on screen. Use `Toast:Stream` for flash messages. -#}
+    {%- block content %}{% endblock -%}
+</section>

@@ -1,0 +1,28 @@
+{%- props
+    ## string The id of the control, which the label points to and the help/error ids derive from.
+    for,
+    ## string|null The visible label.
+    label = null,
+    ## string|null A hint below the control, its id is `<for>-help`.
+    help = null,
+    ## string|null An error message below the control, its id is `<for>-error`.
+    error = null,
+    ## boolean Whether the field is required (adds a marker to the label).
+    required = false
+-%}
+<div {{ attributes.defaults({class: 'w-full'|tailwind_classes}) }}>
+    {%- if label %}
+        <label for="{{ for }}" class="mb-2.5 block text-sm font-medium text-heading">
+            {{- label -}}
+            {%- if required %}<span class="ms-0.5 text-fg-danger-strong" aria-hidden="true">*</span>{% endif -%}
+        </label>
+    {%- endif %}
+    {##- The control: an `Input`, `Select`, `Textarea`… with `id` set to `for`, and `aria-describedby`/`aria-invalid` as needed. -#}
+    {%- block content %}{% endblock -%}
+    {%- if help %}
+        <p id="{{ for }}-help" class="mt-2.5 text-sm text-body">{{ help }}</p>
+    {%- endif %}
+    {%- if error %}
+        <p id="{{ for }}-error" class="mt-2.5 text-sm text-fg-danger-strong">{{ error }}</p>
+    {%- endif %}
+</div>

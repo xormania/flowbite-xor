@@ -1,0 +1,15 @@
+{%- props
+    ## string|null The link of the level; without one the item is the current page.
+    href = null
+-%}
+<li {{ attributes.defaults({class: 'inline-flex items-center gap-1 md:gap-2'|tailwind_classes}) }}>
+    <twig:ux:icon name="flowbite:chevron-right-outline" class="size-4 text-body-subtle [li:first-child>&]:hidden" aria-hidden="true" />
+    {%- if href is not null %}
+        <a href="{{ href }}" class="inline-flex items-center gap-1.5 rounded text-body hover:text-fg-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-medium">
+            {##- The label of the level, optionally with a leading icon. -#}
+            {%- block content %}{% endblock -%}
+        </a>
+    {%- else %}
+        <span aria-current="page" class="inline-flex items-center gap-1.5 text-body-subtle">{{ block('content') }}</span>
+    {%- endif %}
+</li>

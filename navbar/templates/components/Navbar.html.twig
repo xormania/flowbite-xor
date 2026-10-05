@@ -1,0 +1,26 @@
+{%- props
+    ## string|null The id of the `Sidebar` the menu button opens on small screens; no button without it.
+    sidebarId = null,
+    ## string The accessible name of the menu button.
+    menuLabel = 'Open menu'
+-%}
+<header {{ attributes.defaults({class: 'flex h-16 items-center gap-3 border-b border-default bg-neutral-primary-soft px-4'|tailwind_classes, 'data-controller': 'navbar'}) }}>
+    {%- if sidebarId %}
+        <button type="button" data-action="navbar#toggleSidebar" data-navbar-sidebar-param="{{ sidebarId }}" data-sidebar-trigger="{{ sidebarId }}" aria-controls="{{ sidebarId }}" aria-expanded="false" aria-label="{{ menuLabel }}"
+                class="inline-flex size-11 items-center justify-center rounded-base text-body hover:bg-neutral-secondary-medium hover:text-heading focus:outline-none focus:ring-2 focus:ring-brand-medium md:hidden">
+            <twig:ux:icon name="flowbite:bars-outline" class="size-6" aria-hidden="true" />
+        </button>
+    {%- endif %}
+    <div class="flex shrink-0 items-center">
+        {##- The brand: logo and product name, usually a link home. -#}
+        {%- block brand %}{% endblock -%}
+    </div>
+    <div class="flex min-w-0 flex-1 justify-center">
+        {##- A search form or other central content. -#}
+        {%- block search %}{% endblock -%}
+    </div>
+    <div class="flex shrink-0 items-center gap-2">
+        {##- Actions on the right: notifications, theme toggle, user menu. -#}
+        {%- block actions %}{% endblock -%}
+    </div>
+</header>

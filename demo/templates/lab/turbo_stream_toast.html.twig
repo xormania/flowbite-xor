@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}turbo-stream-toast — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'turbo-stream-toast'}) }}
+    <twig:ToastRegion />
+    <form method="post" action="{{ path('app_lab_turbo_stream_toast') }}" class="flex flex-wrap items-end gap-3">
+        <label class="text-sm text-heading">Timeout (ms)
+            <input type="number" name="timeout" value="1500" min="0" step="100" class="mt-1 block w-32 rounded-base border border-default-medium bg-neutral-secondary-medium px-3 py-2 text-sm text-heading">
+        </label>
+        <input type="hidden" id="toast-count" name="count" value="0">
+        <twig:Button type="submit">Notify</twig:Button>
+    </form>
+    <a href="{{ path('app_lab_turbo_nav') }}" class="mt-4 inline-block text-fg-brand hover:underline">Go to turbo-nav</a>
+{% endblock %}

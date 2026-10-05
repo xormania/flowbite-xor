@@ -4,7 +4,35 @@
 
 {% block body %}
     {{ include('lab/_header.html.twig', {name: 'turbo-nav'}) }}
-    <div class="grid grid-cols-[12rem_1fr] gap-6">
+    <twig:ToastRegion />
+    {# Flash messages go through Turbo Streams: the region is data-turbo-permanent, so a toast written inside the new page's region would be dropped. #}
+    {% for message in app.flashes('success') %}
+        <twig:Toast:Stream variant="success" timeout="0">{{ message }}</twig:Toast:Stream>
+    {% endfor %}
+    <twig:Navbar sidebarId="lab-sidebar" class="mb-4 rounded-base border">
+        <twig:block name="brand"><span class="font-semibold text-heading">Lab app</span></twig:block>
+    </twig:Navbar>
+    <div class="grid gap-6 md:grid-cols-[auto_12rem_1fr]">
+        <twig:Sidebar id="lab-sidebar" label="Lab" storageKey="lab-sidebar-collapsed" data-turbo-permanent class="h-80 rounded-base border">
+            <twig:block name="header"><span class="font-semibold text-heading">Lab app</span></twig:block>
+            <twig:Sidebar:Group label="Pages">
+                {% for name in ['one', 'two'] %}
+                    <twig:Sidebar:Item href="{{ path('app_lab_turbo_nav', {page: name}) }}">
+                        <twig:block name="icon"><twig:ux:icon name="flowbite:home-solid" class="size-5" /></twig:block>
+                        Page {{ name }}
+                    </twig:Sidebar:Item>
+                {% endfor %}
+            </twig:Sidebar:Group>
+            <twig:Sidebar:Group label="Recipes">
+                {% for recipe in recipes %}
+                    <twig:Sidebar:Item href="{{ path('app_recipe', {recipe: recipe.name}) }}">
+                        <twig:block name="icon"><twig:ux:icon name="flowbite:chart-pie-outline" class="size-5" /></twig:block>
+                        {{ recipe.name }}
+                    </twig:Sidebar:Item>
+                {% endfor %}
+            </twig:Sidebar:Group>
+        </twig:Sidebar>
+        {# A plain data-turbo-permanent element: Turbo keeps the node, the browser resets its scroll. #}
         <aside id="lab-permanent-panel" data-turbo-permanent class="h-40 overflow-y-auto rounded-base border border-default p-2" aria-label="Permanent panel" tabindex="0">
             <ul>
                 {% for i in 1..30 %}<li class="py-1 text-sm">Entry {{ i }}</li>{% endfor %}
@@ -13,6 +41,9 @@
         <section>
             <h2 class="text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
             <a href="{{ path('app_lab_turbo_nav', {page: page == 'one' ? 'two' : 'one'}) }}" class="mt-2 inline-block text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a>
+            <form method="post" action="{{ path('app_lab_turbo_nav_save') }}" class="mt-4">
+                <twig:Button type="submit" variant="outline" size="sm">Save settings</twig:Button>
+            </form>
         </section>
     </div>
 {% endblock %}

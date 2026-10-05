@@ -16,7 +16,11 @@
             {% for row in this.rows %}
                 <tr data-testid="row" data-row="{{ row.id }}" id="row-{{ row.id }}">
                     <td class="p-2">{{ row.name }}</td>
-                    <td class="p-2">{{ row.stock }}</td>
+                    <td class="p-2">
+                        <twig:Tooltip id="stock-{{ row.id }}" content="{{ row.stock }} {{ row.name }} crates in the warehouse">
+                            <button type="button" class="underline decoration-dotted underline-offset-4">{{ row.stock }}</button>
+                        </twig:Tooltip>
+                    </td>
                     <td class="p-2">
                         <twig:Dropdown id="row-{{ row.id }}" placement="bottom-end">
                             <twig:Dropdown:Trigger>

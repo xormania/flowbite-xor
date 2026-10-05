@@ -24,6 +24,9 @@ A Symfony UX Toolkit kit: `manifest.json` at the root, one recipe per top-level 
   `StatCard:Trend`), controllers `snake_controller.js` ↔ kebab identifier. Official recipe and
   controller names stay unchanged.
 - **Colors** only through Flowbite role utilities (`bg-brand`, `text-heading`, `border-default`…).
+- **CSS order.** `flowbite.min.css` loads after Tailwind's utilities and wins ties: a variant it lacks loses to a base
+  utility it has (`flex max-md:hidden` stays `flex`), and its `max-w-2xl` is 16rem. Raise the variant's specificity
+  or use `!`, and check the computed style (see `UPSTREAM.md` → *Toolkit findings*).
 - **Never commit** `demo/vendor/`, `demo/var/`, `demo/public/assets/`, `demo/assets/vendor/`,
   `node_modules/`, Playwright output (`test-results/`, `playwright-report/`).
 - **Commits:** Conventional Commits (`feat(sidebar): …`, `chore(demo): …`). One PR per plan phase.
