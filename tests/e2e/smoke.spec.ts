@@ -41,8 +41,8 @@ test('links navigate with Turbo Drive (no full page load)', async ({ page }) => 
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
 });
 
-test('unknown recipes are 404', async ({ page, pageErrors }) => {
+test('unknown recipes are 404', async ({ page, allowHttpError }) => {
+    allowHttpError(/\/r\/does-not-exist$/, 404); // the 404 document itself, nothing else
     const response = await page.goto('/r/does-not-exist');
     expect(response?.status()).toBe(404);
-    pageErrors.length = 0; // the 404 itself is expected
 });
