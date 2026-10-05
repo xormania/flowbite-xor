@@ -19,4 +19,5 @@
 /assets/controllers/*
 !/assets/controllers/csrf_protection_controller.js
 /assets/styles/flowbite-xor.css
+/templates/form/
 ###< flowbite-xor ###

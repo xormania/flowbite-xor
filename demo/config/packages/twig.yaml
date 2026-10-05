@@ -1,5 +1,7 @@
 twig:
     file_name_pattern: '*.twig'
+    # the form-theme recipe, copied by tools/sync-demo
+    form_themes: ['form/flowbite_layout.html.twig']
 
 when@test:
     twig:

@@ -1,0 +1,13 @@
+<div {{ attributes }}>
+    {% if saved %}
+        <twig:Alert variant="success" class="mb-6"><twig:Alert:Description>Profile saved.</twig:Alert:Description></twig:Alert>
+    {% endif %}
+    <div class="max-w-xl">
+        {{ form_start(form, {attr: {'data-model': 'on(change)|*', 'data-action': 'live#action:prevent', 'data-live-action-param': 'save', novalidate: true}}) }}
+            {{ form_row(form.name) }}
+            {{ form_row(form.email) }}
+            {{ form_row(form.bio) }}
+            <twig:Button type="submit">Save</twig:Button>
+        {{ form_end(form) }}
+    </div>
+</div>

@@ -23,6 +23,7 @@ final class LabController extends AbstractController
         'live-dropdown' => 'A Dropdown open while its Live Component re-renders (action and model change).',
         'live-modal' => 'A Modal (<dialog>) across Live re-renders, open and closed.',
         'live-table' => 'A Live table re-sorting rows that hold Dropdowns and Tooltips.',
+        'live-form' => 'A form rendered by the form theme in a Live Component: changed fields are validated on the server, focus and typed values survive the re-render.',
         'live-drawer' => 'A modal Drawer across Live re-renders, and a non-modal Drawer beside the page.',
         'turbo-nav' => 'Turbo Drive visits between two pages: a data-turbo-permanent Sidebar keeps its scroll, collapsed state and current item, the theme persists, a flash toast is not duplicated.',
         'turbo-stream-toast' => 'A form whose Turbo Stream response appends a Toast to the region: it appears, pauses while hovered, dismisses itself, and focus stays put.',
@@ -47,6 +48,7 @@ final class LabController extends AbstractController
     #[Route('/live-modal', name: 'app_lab_live_modal')]
     #[Route('/live-table', name: 'app_lab_live_table')]
     #[Route('/live-drawer', name: 'app_lab_live_drawer')]
+    #[Route('/live-form', name: 'app_lab_live_form')]
     public function live(string $_route): Response
     {
         $name = str_replace('_', '-', substr($_route, \strlen('app_lab_')));
