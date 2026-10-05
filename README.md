@@ -22,7 +22,18 @@ when Live Components re-render them and when Turbo navigates.
 
 ## Usage
 
-Recipes are installed into a project with the UX Toolkit (`composer require --dev symfony/ux-toolkit:^3.5`):
+Prepare the project once, in this order, then install recipes with the UX Toolkit:
+
+```bash
+# contrib recipes: twig-tailwind-extra (the `tailwind_classes` filter) registers its bundle through one
+composer config extra.symfony.allow-contrib true
+# a regular dependency before the toolkit: required only through `--dev symfony/ux-toolkit`, its
+# symfony/property-access is dev-only and cache:clear fails ("non-existent service property_accessor")
+composer require symfony/ux-twig-component
+composer require --dev symfony/ux-toolkit:^3.5
+```
+
+Then install recipes:
 
 ```bash
 # from main
@@ -32,7 +43,7 @@ php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-x
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version>
 ```
 
-Files land in your project, where you own them. Re-running `ux:install` shows a diff and is the update path.
+`ux:install` prints the Composer packages the installed recipes need: require them. Files land in your project, where you own them. Re-running `ux:install` shows a diff and is the update path.
 Project setup (Tailwind, Flowbite, theme) is described in [`INSTALL.md`](INSTALL.md).
 
 ## Targets
