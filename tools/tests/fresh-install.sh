@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Phase 6 acceptance: on a fresh Symfony skeleton, `ux:install dashboard-home` (which brings `layouts`) from this
-# kit, as GitHub's archive gives it, yields a working dashboard page.
+# kit, as GitHub's archive gives it, yields a working dashboard page; `ux:install signup` yields a form rendered
+# through the form theme without any `twig.form_themes` setting.
 #
 #   tools/tests/fresh-install.sh            # PHP=… COMPOSER_BIN=… to use other binaries
 set -euo pipefail
@@ -33,7 +34,7 @@ kit="vendor/symfony/ux-toolkit/kits/flowbite-xor-local"
 mkdir -p "$kit"
 git -C "$root" archive HEAD | tar -x -C "$kit"
 
-for recipe in dashboard-home; do
+for recipe in dashboard-home signup; do
     $php bin/console ux:install "$recipe" --kit=flowbite-xor-local --no-interaction > "install-$recipe.log" 2>&1 \
         || { cat "install-$recipe.log"; echo "FAIL: ux:install $recipe"; exit 1; }
 done
@@ -66,6 +67,40 @@ final class DashboardController extends AbstractController
     }
 }
 PHP
+mkdir -p templates/registration
+cat > src/Controller/RegistrationController.php <<'PHP'
+<?php
+
+namespace App\Controller;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\PasswordType;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class RegistrationController extends AbstractController
+{
+    #[Route('/register', name: 'app_register')]
+    public function register(): Response
+    {
+        $form = $this->createFormBuilder()
+            ->add('email', EmailType::class)
+            ->add('plainPassword', PasswordType::class, ['label' => 'Password', 'help' => 'At least 12 characters.'])
+            ->getForm();
+
+        return $this->render('registration/register.html.twig', ['form' => $form]);
+    }
+}
+PHP
+cat > templates/registration/register.html.twig <<'TWIG'
+{% extends 'layouts/auth.html.twig' %}
+
+{% block title %}Create an account{% endblock %}
+{% block content %}
+    <twig:SignupForm :form="form" />
+{% endblock %}
+TWIG
 cat > templates/dashboard/index.html.twig <<'TWIG'
 {% extends 'layouts/app.html.twig' %}
 
@@ -81,14 +116,31 @@ $php -S "127.0.0.1:$port" -t public > "$work/server.log" 2>&1 &
 server_pid=$!
 for _ in $(seq 1 30); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 1; done
 
-status="$(curl -s -o "$work/page.html" -w '%{http_code}' "http://127.0.0.1:$port/")"
-if [ "$status" != 200 ]; then
-    grep -o '<title>[^<]*' "$work/page.html" || true
-    echo "FAIL: the dashboard page answered $status"
-    exit 1
-fi
+fetch() { # fetch <path> <file>: fails unless the page answers 200
+    local status
+    status="$(curl -s -o "$2" -w '%{http_code}' "http://127.0.0.1:$port$1")"
+    if [ "$status" != 200 ]; then
+        grep -o '<title>[^<]*' "$2" || true
+        echo "FAIL: $1 answered $status"
+        exit 1
+    fi
+}
+
+fetch / "$work/page.html"
 page="$(tr '\n' ' ' < "$work/page.html")"
 for expected in '<h1[^>]*>[[:space:]]*Dashboard[[:space:]]*</h1>' 'Recent orders' '<aside[^>]*id="sidebar"[^>]*data-turbo-permanent' 'id="toasts"'; do
     grep -qE -- "$expected" <<< "$page" || { echo "FAIL: the dashboard page lacks $expected"; exit 1; }
 done
 echo "ok: ux:install dashboard-home on a fresh skeleton renders the dashboard (HTTP 200)"
+
+# no twig.form_themes here: the block applies the form theme itself. Symfony's default layout would print a bare
+# <input id="form_email"> and <label for="form_email" class="required">; the theme prints the kit's components.
+fetch /register "$work/register.html"
+page="$(tr '\n' ' ' < "$work/register.html")"
+grep -oE '<input[^>]*>' <<< "$page" | grep 'id="form_email"' | grep -q 'rounded-base' \
+    || { echo "FAIL: the signup email field is not the Input component"; exit 1; }
+grep -oE '<label[^>]*>' <<< "$page" | grep 'for="form_email"' | grep -q 'text-heading' \
+    || { echo "FAIL: the signup email label is not FormField's"; exit 1; }
+grep -qE '<p id="form_plainPassword_help"[^>]*>[[:space:]]*At least 12 characters' <<< "$page" \
+    || { echo "FAIL: the signup password help is not FormField's"; exit 1; }
+echo "ok: ux:install signup on a fresh skeleton renders its form through the form theme (HTTP 200)"
