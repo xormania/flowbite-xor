@@ -4,6 +4,14 @@ export default class extends Controller {
     static targets = ['trigger', 'tab'];
     static values = { activeTab: String };
 
+    // A tab list without panels (e.g. used as navigation) must not point aria-controls at missing panels.
+    triggerTargetConnected(trigger) {
+        const panelId = trigger.getAttribute('aria-controls');
+        if (panelId && !document.getElementById(panelId)) {
+            trigger.removeAttribute('aria-controls');
+        }
+    }
+
     open(e) {
         this.activeTabValue = e.currentTarget.dataset.tabId;
     }
