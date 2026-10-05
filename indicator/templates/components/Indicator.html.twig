@@ -1,0 +1,31 @@
+{%- props
+    ## 'brand'|'gray'|'danger'|'success'|'warning' The visual style variant.
+    variant = 'brand',
+    ## 'default'|'lg' The badge size.
+    size = 'default'
+-%}
+{%- set style = html_cva(
+    base: 'inline-flex items-center justify-center text-xs font-bold rounded-full',
+    variants: {
+        variant: {
+            brand: 'bg-brand text-white',
+            gray: 'bg-neutral-quaternary text-heading',
+            danger: 'bg-danger text-white',
+            success: 'bg-success text-white',
+            warning: 'bg-warning text-white',
+        },
+        size: {
+            default: 'size-3',
+            lg: 'size-6',
+        },
+    },
+
+) -%}
+<span
+    {{ attributes.defaults({
+        class: style.apply({variant: variant, size: size})|tailwind_classes,
+    }) }}
+>
+    {##- The value. -#}
+    {%- block content %}{% endblock -%}
+</span>

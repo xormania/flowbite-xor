@@ -4,30 +4,43 @@
 
 {% block body %}
     <p class="text-sm"><a href="{{ path('app_index') }}" class="hover:underline">Recipes</a> / {{ recipe.name }}</p>
-    <h1 class="mt-2 text-2xl font-bold">{{ recipe.displayName }}</h1>
+    <h1 class="mt-2 text-2xl font-bold">{{ recipe.manifest.name }}</h1>
     {% if recipe.description %}
         <p class="mt-2 text-gray-600 dark:text-gray-400">{{ recipe.description }}</p>
     {% endif %}
 
     <dl class="mt-6 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
         <dt class="font-medium">Type</dt>
-        <dd>{{ recipe.type }}</dd>
+        <dd>{{ recipe.manifest.type.value }}</dd>
         <dt class="font-medium">Copies</dt>
         <dd>
-            {% for source, destination in recipe.copyFiles %}
+            {% for source, destination in recipe.manifest.copyFiles %}
                 <code>{{ source }}</code> → <code>{{ destination }}</code>{% if not loop.last %}<br>{% endif %}
             {% else %}
                 nothing
             {% endfor %}
         </dd>
-        {% for type, entries in recipe.dependencies %}
-            <dt class="font-medium">{{ type|capitalize }} dependencies</dt>
-            <dd>{{ entries|join(', ') }}</dd>
-        {% endfor %}
+        <dt class="font-medium">Dependencies</dt>
+        <dd>{{ recipe.manifest.dependencies|map(d => d ~ '')|join(', ')|default('none') }}</dd>
     </dl>
 
     <section class="mt-8" aria-labelledby="examples-heading">
-        <h2 id="examples-heading" class="text-lg font-semibold">Examples</h2>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">README previews are rendered here from Phase 1 on.</p>
+        <h2 id="examples-heading" class="text-lg font-semibold">Examples <span class="text-gray-500" data-testid="example-count">({{ examples|length }})</span></h2>
+        {% for example in examples %}
+            <article class="mt-6" data-testid="example" data-example="{{ example.id }}">
+                <h3 class="font-medium">{{ example.id }}</h3>
+                <div class="mt-2 grid gap-4 md:grid-cols-2">
+                    {% for theme in ['light', 'dark'] %}
+                        <iframe src="{{ path('app_preview', {recipe: recipe.name, example: example.id, theme: theme}) }}"
+                                title="{{ example.id }} ({{ theme }})" loading="lazy"
+                                class="h-72 w-full rounded border border-gray-200 dark:border-gray-800"></iframe>
+                    {% endfor %}
+                </div>
+                <details class="mt-2 text-sm">
+                    <summary>Code</summary>
+                    <pre class="mt-2 overflow-x-auto rounded bg-gray-100 p-3 dark:bg-gray-900"><code>{{ example.code }}</code></pre>
+                </details>
+            </article>
+        {% endfor %}
     </section>
 {% endblock %}

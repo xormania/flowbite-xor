@@ -1,6 +1,10 @@
+/*
+ * Same stylesheet as the UX Toolkit generates for the previews of the flowbite-4 kit
+ * (symfony/ux src/Toolkit/src/Preview/PreviewAssetsGenerator.php), pointed at this repository:
+ * Tailwind, the kit's importmap stylesheets, the kit's kit.css, and the kit's sources.
+ */
 @import "tailwindcss";
-
-/* Flowbite's sources (downloaded by importmap:install), as in the kit's INSTALL.md */
+@import "../vendor/flowbite/dist/flowbite.min.css";
+@import "../../../kit.css";
 @source "../vendor/flowbite";
-
-@custom-variant dark (&:is(.dark *));
+@source "../../..";

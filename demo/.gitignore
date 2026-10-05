@@ -13,3 +13,9 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+###> flowbite-xor: files copied from the kit's recipes by tools/sync-demo (never edit them here) ###
+/templates/components/
+/assets/controllers/*
+!/assets/controllers/csrf_protection_controller.js
+###< flowbite-xor ###

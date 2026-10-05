@@ -1,0 +1,8 @@
+<thead
+    {{ attributes.defaults({
+        class: 'text-sm text-body rounded-base group-data-[border=bordered]/table:bg-neutral-secondary-soft group-data-[border=bordered]/table:border-b group-data-[border=bordered]/table:border-default'|tailwind_classes,
+    }) }}
+>
+    {##- The header row(s), typically a `Table:Row` with `Table:Head` cells. -#}
+    {%- block content %}{% endblock -%}
+</thead>

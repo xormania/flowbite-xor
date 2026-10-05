@@ -1,0 +1,12 @@
+{%- props
+    ## string The HTML tag used to render the title.
+    as = 'span'
+-%}
+<{{ as }}
+    {{ attributes.defaults({
+        class: 'text-2xl font-semibold tracking-tight text-heading leading-8'|tailwind_classes,
+    }) }}
+>
+    {##- The title text of the card. -#}
+    {%- block content %}{% endblock -%}
+</{{ as }}>

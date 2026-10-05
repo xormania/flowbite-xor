@@ -12,15 +12,25 @@ inside the current kit). Copies stay byte-identical unless a row below says othe
 
 | File | Since | Notes |
 |------|-------|-------|
+| 22 recipes: `alert` `avatar` `badge` `button` `button-group` `card` `checkbox` `dropdown` `indicator` `input` `kbd` `label` `modal` `pagination` `radio` `select` `skeleton` `spinner` `table` `tabs` `textarea` `toggle` (templates, controllers, READMEs, `tests/*.spec.ts`, `tests/screenshots/*.png`) | Phase 1 | byte-identical (`diff -r` clean) |
+| `kit.css`, `kit.js` | Phase 1 | byte-identical |
 | `icon.svg` | Phase 0 | byte-identical |
 | `INSTALL.md` | Phase 0 | adapted, see below |
 
-The 22 base recipes, `kit.css` and `kit.js` are copied in Phase 1.
+**Recipes: byte-identical except the two manifest fixes below.** The copied screenshots are the visual-regression baseline: the demo renders
+every README example like upstream's preview app (`demo/templates/preview.html.twig`) and Playwright
+compares it in upstream's browser image, `mcr.microsoft.com/playwright:v1.58.2-noble` (217/217 tests
+pass, all 200 PNGs). Demo-side support copied from upstream (not part of the kit):
+`demo/assets/icons/{flowbite,tabler}/*.svg` (from `src/Toolkit/tests/Fixtures/icons`) and
+`tests/e2e/examples/{fixtures.ts,examples.spec.ts,placeholder.png}` (ported from
+`src/Toolkit/assets/test/browser`).
 
 ## Deviations
 
 | File | Change | Reason | Upstream PR |
 |------|--------|--------|-------------|
+| `modal/manifest.json` | Declares `"recipe": ["button"]` | `Modal:Content` renders `<twig:Button>` (close button, on by default), so `ux:install modal` alone installed a modal that fails to render | candidate (upstream bug) |
+| `pagination/manifest.json` | Declares `"recipe": ["button"]` | every `Pagination:Link` renders `<twig:Button>`, so `ux:install pagination` alone failed to render | candidate (upstream bug) |
 | `INSTALL.md` | Intro names this kit and shows the `ux:install --kit=https://github.com/xormania/flowbite-xor` command, instead of "not every Flowbite component is available in this kit…" | It is this kit's install page | n/a (kit-specific) |
 
 ## Toolkit findings
@@ -30,4 +40,6 @@ Behavior of the toolkit itself that this repository works around, with candidate
 | Finding | Workaround here | Upstream |
 |---------|-----------------|----------|
 | `ux-toolkit-kit-lint` (`MissingRecipeManifestChecker`, v3.5.x and main) reports every top-level directory without a `manifest.json` as an error, dot directories included (`.git/`, `.github/`), so a kit repository with a demo app, tools or CI config cannot lint its root. | CI lints the exported kit (`git archive HEAD`, honoring `.gitattributes` `export-ignore`): the same tree GitHub's archive gives `ux:install`. | not opened yet — candidate: skip dot directories and `export-ignore`d paths |
-| The toolkit refuses to load a kit without any recipe ("No recipes found"). | A `placeholder` recipe until the base recipes land. | none needed |
+| The toolkit refuses to load a kit without any recipe ("No recipes found"). | A `placeholder` recipe in Phase 0, removed in Phase 1. | none needed |
+| `symfony/ux-toolkit` v3.5.1 `Recipe::getExamples()` returns no example ids; main (f152d0b) names each example after the heading above it, and the screenshots use those ids. | `demo/src/Kit/KitReader.php` ports main's algorithm. | released in the next toolkit version; switch back then |
+| `Avatar:Fallback` renders its icon without a size class, so it relies on ux-icons having no default `width`/`height`. The ux-icons Flex recipe sets both to `1em`, so a real project shows a smaller icon than upstream's preview. | The demo drops the default size (`demo/config/packages/ux_icons.yaml`), as upstream's preview app does. | candidate: size the fallback icon explicitly |

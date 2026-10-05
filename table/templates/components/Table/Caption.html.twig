@@ -1,0 +1,8 @@
+<caption
+    {{ attributes.defaults({
+        class: 'p-5 text-lg font-medium text-left rtl:text-right text-heading'|tailwind_classes,
+    }) }}
+>
+    {##- The table caption text. -#}
+    {%- block content %}{% endblock -%}
+</caption>

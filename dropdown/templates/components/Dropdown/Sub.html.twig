@@ -1,0 +1,28 @@
+
+{% if __context is defined and __context.id is defined %}
+    {% set id = null %}
+{% endif %}
+
+{%- props
+    ## string Unique identifier for generating internal IDs.
+    id,
+    ## 'bottom'|'top'|'left'|'right'|'left-start'|'left-end'|'right-start'|'right-end'|'bottom-start'|'bottom-end'|'top-start'|'top-end' The dropdown placement relative to the trigger.
+    placement = 'right-start',
+    ## 'click'|'hover' The dropdown trigger type.
+    triggerType = 'click',
+    ## int The dropdown delay.
+    delay = 300,
+    ## int The dropdown content offset.
+    offsetDistance = 10
+-%}
+
+{%- set _dropdown_id = 'dropdown-sub-' ~ id -%}
+{%- set _dropdown_trigger_id = _dropdown_id ~ '-trigger' -%}
+{##- The dropdown structure (Dropdown:SubTrigger and Dropdown:Content). -#}
+{%- set _dropdown_content = block('content') -%}
+
+<li role="none">
+    <twig:Dropdown :id="id" :placement="placement" :triggerType="triggerType" :delay="delay" :offsetDistance="offsetDistance" {{ ...attributes }}>
+        {{- _dropdown_content|raw -}}
+    </twig:Dropdown>
+</li>

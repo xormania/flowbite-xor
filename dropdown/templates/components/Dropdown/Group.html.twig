@@ -1,0 +1,10 @@
+
+<ul
+    role="group"
+    {{ attributes.defaults({
+        class: 'p-2 text-sm text-body font-medium'|tailwind_classes,
+    }) }}
+>
+    {##- The list of `Dropdown:Item` elements. -#}
+    {%- block content %}{% endblock -%}
+</ul>

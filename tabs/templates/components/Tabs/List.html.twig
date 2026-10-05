@@ -1,0 +1,21 @@
+{%- props
+    ## 'default'|'line' The visual style variant.
+    variant = 'default'
+-%}
+{%- set style = html_cva(
+    base: 'group/tabs-list flex flex-wrap -mb-px text-sm font-medium text-center text-body group-data-[orientation=vertical]/tabs:space-y-4 group-data-[orientation=vertical]/tabs:flex-col',
+    variants: {
+        variant: {
+            default: 'border-b border-default',
+            line: 'border-b border-default',
+        },
+    },
+) -%}
+
+<ul
+    role="tablist"
+    data-variant="{{ variant }}"
+    {{ attributes.defaults({class: style.apply({variant: variant})|tailwind_classes}) }}>
+    {## The default block. -#}
+    {% block content %}{% endblock %}
+</ul>

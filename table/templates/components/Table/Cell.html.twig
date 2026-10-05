@@ -1,0 +1,8 @@
+<td
+    {{ attributes.defaults({
+        class: 'px-6 py-4'|tailwind_classes,
+    }) }}
+>
+    {##- The cell content. -#}
+    {%- block content %}{% endblock -%}
+</td>
