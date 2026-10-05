@@ -8,7 +8,9 @@
     ## 'brand'|'success'|'danger'|'warning' The color of the bar.
     variant = 'brand',
     ## 'sm'|'default'|'lg' The height of the bar.
-    size = 'default'
+    size = 'default',
+    ## boolean Whether the bar shows a measure (a share, a quota) rather than the progress of a task: `role="meter"`.
+    meter = false
 -%}
 {#- cast to a number: the value ends up in an inline style -#}
 {%- set _value = max(0, min(100, value|round(2))) -%}
@@ -31,7 +33,7 @@
             {%- if showValue %}<span>{{ _value|round }}%</span>{% endif %}
         </div>
     {%- endif %}
-    <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ _value }}"{% if _label_id or _aria_labelledby %} aria-labelledby="{{ _label_id ?: _aria_labelledby }}"{% elseif _aria_label %} aria-label="{{ _aria_label }}"{% endif %} class="{{ track.apply({size: size}) }}">
+    <div role="{{ meter ? 'meter' : 'progressbar' }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ _value }}"{% if _label_id or _aria_labelledby %} aria-labelledby="{{ _label_id ?: _aria_labelledby }}"{% elseif _aria_label %} aria-label="{{ _aria_label }}"{% endif %} class="{{ track.apply({size: size}) }}">
         <div class="{{ bar.apply({variant: variant}) }}" style="width: {{ _value }}%"></div>
     </div>
 </div>
