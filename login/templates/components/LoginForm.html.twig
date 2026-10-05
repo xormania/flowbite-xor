@@ -1,0 +1,38 @@
+{%- props
+    ## Symfony\Component\Form\FormView The login form, with the `_username`, `_password` and optional `_remember_me` fields `form_login` reads (see the README).
+    form,
+    ## Symfony\Component\Security\Core\Exception\AuthenticationException|null The last authentication error, from `AuthenticationUtils::getLastAuthenticationError()`.
+    error = null,
+    ## string The card title, the page's `h1`.
+    title = 'Sign in to your account',
+    ## string The label of the submit button.
+    submitLabel = 'Sign in',
+    ## string|null The link to the password reset page.
+    forgotPasswordHref = null,
+    ## string|null The link to the signup page.
+    signupHref = null
+-%}
+<div {{ attributes.defaults({class: 'w-full'|tailwind_classes}) }}>
+    <twig:Card>
+        <twig:Card:Header>
+            <twig:Card:Title as="h1" class="text-xl">{{ title }}</twig:Card:Title>
+        </twig:Card:Header>
+        <twig:Card:Content>
+            {%- if error %}
+                <twig:Alert variant="danger" class="mb-6"><twig:Alert:Description>{{ error.messageKey|trans(error.messageData, 'security') }}</twig:Alert:Description></twig:Alert>
+            {%- endif %}
+            {{ form_start(form) }}
+                {{ form_row(form._username) }}
+                {{ form_row(form._password) }}
+                {%- if forgotPasswordHref %}
+                    <p class="-mt-3 mb-6 text-end text-sm"><a href="{{ forgotPasswordHref }}" class="font-medium text-fg-brand underline hover:no-underline">Forgot your password?</a></p>
+                {%- endif %}
+                {%- if form._remember_me is defined %}{{ form_row(form._remember_me) }}{% endif %}
+                <twig:Button type="submit" class="w-full">{{ submitLabel }}</twig:Button>
+            {{ form_end(form) }}
+        </twig:Card:Content>
+        {%- if signupHref %}
+            <p class="mt-6 text-center text-sm text-body">No account yet? <a href="{{ signupHref }}" class="font-medium text-fg-brand underline hover:no-underline">Create one</a></p>
+        {%- endif %}
+    </twig:Card>
+</div>
