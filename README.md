@@ -7,8 +7,8 @@ Stimulus controllers, layouts, blocks, a form theme, a theme) for xor's Symfony 
 All behavior lives in Stimulus controllers (no global `initFlowbite()`), so components keep working
 when Live Components re-render them and when Turbo navigates.
 
-> **Status:** bootstrap (Phase 0). The recipes land in the next phases; the build plan is
-> [`docs/PLAN.md`](docs/PLAN.md).
+> **Status:** Phase 1: the 22 base recipes of the official `flowbite-4` kit, copied byte-identical
+> (see [`UPSTREAM.md`](UPSTREAM.md)). The build plan is [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Usage
 
@@ -40,10 +40,10 @@ Project setup (Tailwind, Flowbite, theme) is described in [`INSTALL.md`](INSTALL
 
 | Path | In `ux:install` downloads | |
 |------|---------------------------|---|
-| `manifest.json`, `INSTALL.md`, `icon.svg`, `<recipe>/` | yes | the kit |
+| `manifest.json`, `INSTALL.md`, `kit.css`, `kit.js`, `icon.svg`, `<recipe>/` (minus `<recipe>/tests/`) | yes | the kit |
 | `demo/` | no | Symfony app showing every recipe, plus Turbo/Live scenario pages (`/lab`) |
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
-| `tests/e2e/`, `playwright.config.ts` | no | Playwright tests against the demo |
+| `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `docs/`, `.github/` | no | plan, CI |
 
 `ux:install` downloads GitHub's archive of the whole repository; `.gitattributes` `export-ignore`
@@ -51,14 +51,20 @@ keeps everything but the kit out of it.
 
 ## Development
 
-Requires PHP 8.4, Composer and Node.js.
+Requires PHP 8.4, Composer, Node.js and Docker (Playwright's browser runs in upstream's image, so
+screenshots match the committed baselines).
 
 ```bash
 tools/sync-demo                                   # copy recipes into demo/
-(cd demo && composer install && php bin/console importmap:install && php bin/console tailwind:build)
-npm ci && npx playwright install chromium
-npx playwright test                               # starts php -S on demo/public if nothing listens on :8000
+(cd demo && composer install && php bin/console tailwind:build)
+npm ci
+npx playwright test                               # smoke + every README example (light/dark) + recipe specs
 ```
+
+Playwright starts `php -S` on `demo/public` and the browser container unless they already listen on
+:8000 and :3000. The demo renders one example alone at `/preview/<recipe>/<example>?theme=light|dark`;
+`/r/<recipe>` shows all of a recipe's examples. Screenshots live in `<recipe>/tests/screenshots/`;
+update them only deliberately: `npx playwright test --project=examples --update-snapshots`.
 
 Lint the kit as users download it (`ux-toolkit-kit-lint` reports non-recipe directories such as
 `demo/` as errors, so lint the exported tree):

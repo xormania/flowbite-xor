@@ -38,8 +38,16 @@ tools/tests/sync-demo.sh        # proves sync-demo == ux:install (needs demo/ven
 tmp=$(mktemp -d) && git archive HEAD | tar -x -C "$tmp" && demo/vendor/bin/ux-toolkit-kit-lint "$tmp"
 demo/vendor/bin/ux-toolkit-kit-debug .   # what the toolkit sees
 
-(cd demo && composer install && php bin/console importmap:install && php bin/console tailwind:build)
-npx playwright test             # e2e against the demo (tests/e2e/)
+(cd demo && composer install && php bin/console tailwind:build)
+npx playwright test             # smoke + README example screenshots + recipe specs (needs Docker)
 ```
 
 `git archive` exports committed files only: commit before linting.
+
+## Screenshots
+
+`<recipe>/tests/screenshots/*.png` are the visual-regression baseline (byte-identical upstream copies
+for base recipes). Never update them as a side effect: a visual change is a deliberate commit made
+with `npx playwright test --project=examples --update-snapshots` (browser in Docker, same image as CI),
+reviewed, and logged in `UPSTREAM.md` when it touches a copied recipe. Icons used by recipes are
+committed under `demo/assets/icons/` (Iconify on-demand is off in the demo).
