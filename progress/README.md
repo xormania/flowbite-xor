@@ -20,4 +20,6 @@ A bar showing how far a task has come.
 <twig:Progress value="45" label="Upload" showValue variant="brand | success | danger | warning" size="sm | default | lg" />
 ```
 
+A bar showing a measure rather than the progress of a task (a share of sales, a storage quota) takes `meter`, so assistive technologies announce it as a meter.
+
 Without a visible `label`, name the bar with `aria-label` or `aria-labelledby`: `<twig:Progress value="45" aria-label="Upload" />` puts it on the `progressbar` element.

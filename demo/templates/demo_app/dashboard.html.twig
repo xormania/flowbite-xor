@@ -1,0 +1,9 @@
+{% extends 'demo_app/_app.html.twig' %}
+
+{% block title %}Dashboard — Acme{% endblock %}
+
+{% block content %}
+    <twig:DashboardHome>
+        <twig:block name="actions"><twig:Button variant="outline">Download report</twig:Button></twig:block>
+    </twig:DashboardHome>
+{% endblock %}

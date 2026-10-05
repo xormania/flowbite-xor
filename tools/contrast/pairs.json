@@ -33,6 +33,10 @@
     { "fg": "success", "bg": "neutral-primary", "min": 3, "usage": "success progress bar fill on its track" },
     { "fg": "warning", "bg": "neutral-primary", "min": 3, "usage": "warning progress bar fill on its track" },
     { "fg": "danger", "bg": "neutral-primary", "min": 3, "usage": "danger progress bar fill on its track" },
+    { "fg": "body", "bg": "neutral-secondary-soft", "min": 4.5, "usage": "text on the app and auth page ground" },
+    { "fg": "heading", "bg": "neutral-secondary-soft", "min": 4.5, "usage": "page titles on the app ground" },
+    { "fg": "fg-brand", "bg": "neutral-primary-soft", "min": 4.5, "usage": "links in cards (login, signup)" },
+    { "fg": "fg-brand", "bg": "neutral-secondary-soft", "min": 4.5, "usage": "links and the error status on the page ground" },
     { "fg": "brand-medium", "bg": "neutral-primary", "min": 3, "usage": "focus ring (button) on the page" },
     { "fg": "brand-medium", "bg": "neutral-primary-soft", "min": 3, "usage": "focus ring (button) in cards/modals" },
     { "fg": "brand-medium", "bg": "gray-50", "min": 3, "usage": "focus ring on a gray-50 ground", "themes": [

@@ -1,0 +1,28 @@
+{%- props
+    ## Symfony\Component\Form\FormView The registration form; every field renders through the form theme.
+    form,
+    ## string The card title, the page's `h1`.
+    title = 'Create an account',
+    ## string The label of the submit button.
+    submitLabel = 'Create account',
+    ## string|null The link to the login page.
+    loginHref = null
+-%}
+{#- the block renders its form through the form-theme recipe, whatever twig.form_themes says -#}
+{%- form_theme form 'form/flowbite_layout.html.twig' -%}
+<div {{ attributes.defaults({class: 'w-full'|tailwind_classes}) }}>
+    <twig:Card>
+        <twig:Card:Header>
+            <twig:Card:Title as="h1" class="text-xl">{{ title }}</twig:Card:Title>
+        </twig:Card:Header>
+        <twig:Card:Content>
+            {{ form_start(form) }}
+                {{ form_widget(form) }}
+                <twig:Button type="submit" class="w-full">{{ submitLabel }}</twig:Button>
+            {{ form_end(form) }}
+        </twig:Card:Content>
+        {%- if loginHref %}
+            <p class="mt-6 text-center text-sm text-body">Already have an account? <a href="{{ loginHref }}" class="font-medium text-fg-brand underline hover:no-underline">Sign in</a></p>
+        {%- endif %}
+    </twig:Card>
+</div>

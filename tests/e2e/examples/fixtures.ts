@@ -22,6 +22,8 @@ type Fixtures = {
     gotoExample: (path: string, options?: GotoExampleOptions) => Promise<void>;
     failOnPageErrors: void;
     blockExternalRequests: void;
+    /** The status the page's own document is expected to answer with (e.g. 404 for an error page). */
+    documentStatus: number;
 };
 
 type StateOptions = {
@@ -67,8 +69,10 @@ export const test = base.extend<Fixtures>({
         { auto: true },
     ],
 
+    documentStatus: [200, { option: true }],
+
     failOnPageErrors: [
-        async ({ page, baseURL }, use) => {
+        async ({ page, baseURL, documentStatus }, use) => {
             const errors: string[] = [];
             const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
 
@@ -78,10 +82,14 @@ export const test = base.extend<Fixtures>({
                 if ('error' !== message.type() || (url && !isLocal(url))) {
                     return;
                 }
+                if (url === page.url() && message.text().startsWith(`Failed to load resource: the server responded with a status of ${documentStatus} `)) {
+                    return;
+                }
                 errors.push(`console.error: ${message.text()}`);
             });
             page.on('response', (response) => {
-                if (response.status() >= 400 && isLocal(response.url())) {
+                const expected = response.request().isNavigationRequest() && response.status() === documentStatus;
+                if (response.status() >= 400 && isLocal(response.url()) && !expected) {
                     errors.push(`HTTP ${response.status()}: ${response.url()}`);
                 }
             });

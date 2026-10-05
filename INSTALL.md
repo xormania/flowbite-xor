@@ -10,7 +10,13 @@ php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-x
 
 ## Requirements
 
-This kit requires TailwindCSS and Flowbite v4 to work:
+This kit requires TailwindCSS and Flowbite v4 to work, and two settings of a fresh Symfony project:
+
+### Symfony
+
+- Allow contrib recipes (`composer config extra.symfony.allow-contrib true`) before requiring the recipes' packages: `tales-from-a-dev/twig-tailwind-extra`, which provides the `tailwind_classes` filter, registers its bundle through one.
+- Require `symfony/twig-bundle` and `symfony/ux-twig-component` as regular dependencies before `composer require --dev symfony/ux-toolkit`: TwigComponentBundle needs TwigBundle, and pulled in by the toolkit only, `symfony/property-access` is a dev dependency, FrameworkBundle leaves `property_access` off and `cache:clear` fails with "non-existent service property_accessor".
+- Require `symfony/http-client` with the toolkit (`composer require --dev symfony/ux-toolkit symfony/http-client`): the toolkit downloads kits from GitHub with it, but has it as a dev dependency only.
 
 ### TailwindCSS
 

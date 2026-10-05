@@ -1,0 +1,18 @@
+    <twig:Sidebar:Group label="Overview">
+        <twig:Sidebar:Item href="{{ path('app_demo') }}">
+            <twig:block name="icon"><twig:ux:icon name="flowbite:chart-pie-outline" class="size-5" /></twig:block>
+            Dashboard
+        </twig:Sidebar:Item>
+        <twig:Sidebar:Item href="{{ path('app_demo_settings_profile') }}">
+            <twig:block name="icon"><twig:ux:icon name="flowbite:user-outline" class="size-5" /></twig:block>
+            Settings
+        </twig:Sidebar:Item>
+    </twig:Sidebar:Group>
+    <twig:Sidebar:Group label="Pages">
+        {% for route, name in {app_demo_login: 'Login', app_demo_signup: 'Signup', app_demo_forgot_password: 'Forgot password', app_demo_not_found: 'Not found', app_demo_blank: 'Blank'} %}
+            <twig:Sidebar:Item href="{{ path(route) }}">
+                <twig:block name="icon"><twig:ux:icon name="flowbite:inbox-outline" class="size-5" /></twig:block>
+                {{ name }}
+            </twig:Sidebar:Item>
+        {% endfor %}
+    </twig:Sidebar:Group>

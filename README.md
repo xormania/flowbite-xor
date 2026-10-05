@@ -7,7 +7,8 @@ Stimulus controllers, layouts, blocks, a form theme, a theme) for xor's Symfony 
 All behavior lives in Stimulus controllers (no global `initFlowbite()`), so components keep working
 when Live Components re-render them and when Turbo navigates.
 
-> **Status:** Phase 5: `form-theme`, a Symfony form theme that renders rows through `form-field` and controls through the kit's components (demo at `/forms`, pixel parity with hand-written components at `/forms/parity`).
+> **Status:** Phase 6: `layouts` (base, app shell with a permanent sidebar, auth, settings, error, blank) and the blocks `login`, `signup`, `forgot-password`, `dashboard-home`, `settings-profile`, `not-found`, all wired as a small application at `/demo` (sign in with demo@example.com / demo).
+> Phase 5: `form-theme`, a Symfony form theme that renders rows through `form-field` and controls through the kit's components (demo at `/forms`, pixel parity with hand-written components at `/forms/parity`).
 > Phase 4: recipes the official kit lacks: `sidebar`, `navbar`, `drawer`, `toast`, `tooltip`, `breadcrumb`, `page-header`, `stat-card`, `empty-state`, `progress`, `form-field`. A Live Component `data-table` is planned, not built yet.
 > Phase 3: every behavior is a Stimulus controller (no Flowbite JavaScript), checked under Turbo and Live Components in `/lab`. Phase 2: the 22 base recipes of the official `flowbite-4` kit (see [`UPSTREAM.md`](UPSTREAM.md)),
 > plus `theme` (Flowbite's color roles with contrast fixes, checked in CI) and `theme-toggle`.
@@ -21,7 +22,20 @@ when Live Components re-render them and when Turbo navigates.
 
 ## Usage
 
-Recipes are installed into a project with the UX Toolkit (`composer require --dev symfony/ux-toolkit:^3.5`):
+Prepare the project once, in this order, then install recipes with the UX Toolkit:
+
+```bash
+# contrib recipes: twig-tailwind-extra (the `tailwind_classes` filter) registers its bundle through one
+composer config extra.symfony.allow-contrib true
+# regular dependencies before the toolkit: TwigComponentBundle needs TwigBundle, and required only through
+# `--dev symfony/ux-toolkit`, symfony/property-access is dev-only and cache:clear fails ("non-existent service
+# property_accessor")
+composer require symfony/twig-bundle symfony/ux-twig-component
+# http-client: the toolkit downloads the kit from GitHub with it
+composer require --dev symfony/ux-toolkit:^3.5 symfony/http-client
+```
+
+Then install recipes:
 
 ```bash
 # from main
@@ -31,7 +45,7 @@ php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-x
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version>
 ```
 
-Files land in your project, where you own them. Re-running `ux:install` shows a diff and is the update path.
+`ux:install` prints the `composer require` command for the packages the installed recipes need: run it. Files land in your project, where you own them. Re-running `ux:install` is the update path: it asks before overwriting each file you already have.
 Project setup (Tailwind, Flowbite, theme) is described in [`INSTALL.md`](INSTALL.md).
 
 ## Targets

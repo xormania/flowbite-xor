@@ -1,0 +1,89 @@
+{%- props
+    ## string The page title, the page's `h1`.
+    title = 'Dashboard',
+    ## string|null A line under the title.
+    description = 'An overview of the last 30 days.',
+    ## array<int,array<string,string>> The key figures: `{label, value, trend: 'up'|'down'|null, change, period}`.
+    stats = [
+        {label: 'Revenue', value: '$48,250', trend: 'up', change: '12%', period: 'vs last month'},
+        {label: 'Orders', value: '1,284', trend: 'up', change: '4.1%', period: 'vs last month'},
+        {label: 'Refunds', value: '$1,920', trend: 'down', change: '3.4%', period: 'vs last month'},
+    ],
+    ## array<int,array<string,string|int>> The bars of the "Sales by channel" card: `{label, value}` with a value from 0 to 100.
+    channels = [
+        {label: 'Online store', value: 64},
+        {label: 'Marketplaces', value: 23},
+        {label: 'Retail', value: 13},
+    ],
+    ## array<int,array<string,string>> The "Recent activity" entries: `{text, time}`.
+    activity = [
+        {text: 'Order #1042 shipped to Lyon', time: '2 h ago'},
+        {text: 'New customer: Ada Lovelace', time: '5 h ago'},
+        {text: 'Refund issued for order #1031', time: 'Yesterday'},
+    ],
+    ## array<int,array<string,string>> The "Recent orders" table rows: `{id, customer, status: 'paid'|'pending'|'refunded', total}`.
+    orders = [
+        {id: '#1042', customer: 'Bonnie Green', status: 'paid', total: '$320.00'},
+        {id: '#1041', customer: 'Jese Leos', status: 'pending', total: '$84.50'},
+        {id: '#1040', customer: 'Thomas Lean', status: 'paid', total: '$1,200.00'},
+        {id: '#1039', customer: 'Lana Byrd', status: 'refunded', total: '$45.00'},
+    ]
+-%}
+{%- set _status_variant = {paid: 'success', pending: 'warning', refunded: 'gray'} -%}
+<div {{ attributes.defaults({class: 'space-y-6'|tailwind_classes}) }}>
+    {%- set _actions %}{##- Buttons on the right of the page header. -#}{% block actions %}{% endblock %}{% endset %}
+    <twig:PageHeader :title="title" :description="description">
+        <twig:block name="actions">{{ _actions }}</twig:block>
+    </twig:PageHeader>
+    <div class="grid gap-4 sm:grid-cols-3">
+        {%- for stat in stats %}
+            <twig:StatCard :label="stat.label" :value="stat.value" :trend="stat.trend|default(null)" :change="stat.change|default(null)" :period="stat.period|default(null)" />
+        {%- endfor %}
+    </div>
+    <div class="grid gap-4 lg:grid-cols-2">
+        <twig:Card>
+            <twig:Card:Header><twig:Card:Title as="h2" class="text-lg">Sales by channel</twig:Card:Title></twig:Card:Header>
+            <twig:Card:Content class="space-y-5">
+                {%- for channel in channels %}
+                    <twig:Progress :value="channel.value" :label="channel.label" showValue meter />
+                {%- endfor %}
+            </twig:Card:Content>
+        </twig:Card>
+        <twig:Card>
+            <twig:Card:Header><twig:Card:Title as="h2" class="text-lg">Recent activity</twig:Card:Title></twig:Card:Header>
+            <twig:Card:Content>
+                <ul class="divide-y divide-default">
+                    {%- for entry in activity %}
+                        <li class="flex items-center justify-between gap-4 py-3 text-sm first:pt-0 last:pb-0">
+                            <span class="text-heading">{{ entry.text }}</span>
+                            <span class="shrink-0 text-body">{{ entry.time }}</span>
+                        </li>
+                    {%- endfor %}
+                </ul>
+            </twig:Card:Content>
+        </twig:Card>
+    </div>
+    <div role="region" aria-label="Recent orders" tabindex="0" class="relative overflow-x-auto rounded-base border border-default bg-neutral-primary-soft shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-medium">
+        <twig:Table>
+            <twig:Table:Caption>Recent orders</twig:Table:Caption>
+            <twig:Table:Header class="border-t">
+                <twig:Table:Row>
+                    <twig:Table:Head>Order</twig:Table:Head>
+                    <twig:Table:Head>Customer</twig:Table:Head>
+                    <twig:Table:Head>Status</twig:Table:Head>
+                    <twig:Table:Head class="text-end">Total</twig:Table:Head>
+                </twig:Table:Row>
+            </twig:Table:Header>
+            <twig:Table:Body>
+                {%- for order in orders %}
+                    <twig:Table:Row>
+                        <twig:Table:Head scope="row" class="font-medium whitespace-nowrap text-heading">{{ order.id }}</twig:Table:Head>
+                        <twig:Table:Cell>{{ order.customer }}</twig:Table:Cell>
+                        <twig:Table:Cell><twig:Badge :variant="_status_variant[order.status]|default('gray')">{{ order.status|capitalize }}</twig:Badge></twig:Table:Cell>
+                        <twig:Table:Cell class="text-end">{{ order.total }}</twig:Table:Cell>
+                    </twig:Table:Row>
+                {%- endfor %}
+            </twig:Table:Body>
+        </twig:Table>
+    </div>
+</div>
