@@ -1,8 +1,9 @@
 name: CI
 
+# Every push runs CI (so a branch is green before its PR opens); pull_request runs only for forks,
+# whose pushes do not reach this repository, to avoid running everything twice.
 on:
     push:
-        branches: [main]
     pull_request:
     workflow_dispatch:
 
@@ -21,6 +22,7 @@ env:
 jobs:
     lint-kit:
         name: Lint kit
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v7
@@ -59,6 +61,7 @@ jobs:
 
     demo:
         name: Demo + Playwright
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v7
