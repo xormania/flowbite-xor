@@ -7,9 +7,15 @@ Stimulus controllers, layouts, blocks, a form theme, a theme) for xor's Symfony 
 All behavior lives in Stimulus controllers (no global `initFlowbite()`), so components keep working
 when Live Components re-render them and when Turbo navigates.
 
-> **Status:** Phase 2: the 22 base recipes of the official `flowbite-4` kit (see [`UPSTREAM.md`](UPSTREAM.md)),
+> **Status:** Phase 3: every behavior is a Stimulus controller (no Flowbite JavaScript), checked under Turbo and Live Components in `/lab`. Phase 2: the 22 base recipes of the official `flowbite-4` kit (see [`UPSTREAM.md`](UPSTREAM.md)),
 > plus `theme` (Flowbite's color roles with contrast fixes, checked in CI) and `theme-toggle`.
 > The build plan is [`docs/PLAN.md`](docs/PLAN.md).
+
+## Turbo and Live Components
+
+- No global `initFlowbite()`: each recipe's Stimulus controller connects to new markup (Turbo visits, Turbo Frames, Live re-renders) and cleans up when it leaves.
+- Verified in `demo` `/lab` (`tests/e2e/lab.*.spec.ts`): a dropdown stays open and working while its Live Component re-renders, a `<dialog>` stays modal across Live re-renders (and a closed one stays closed), dropdowns keep working in re-sorted Live rows and in reloaded Turbo Frames, and a Live Component inside a `data-turbo-permanent` element keeps its state and stays live.
+- `data-turbo-permanent` keeps the node, not its scroll position: a permanent element that must keep its scroll restores it from its controller.
 
 ## Usage
 
