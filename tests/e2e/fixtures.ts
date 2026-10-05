@@ -1,9 +1,13 @@
+import { fileURLToPath } from 'node:url';
 import { test as base, expect } from '@playwright/test';
+
+const PLACEHOLDER_IMAGE = fileURLToPath(new URL('./examples/placeholder.png', import.meta.url));
 
 type CollectedError = { message: string; httpStatus?: number; url?: string };
 
 /**
  * Every test fails on a console error, an uncaught page error, or a failed (>= 400) request.
+ * Requests leaving the demo are blocked (images get a local placeholder), as in the examples suite.
  *
  * A test expecting an HTTP error (e.g. a 404 page) allows exactly that response with
  * `allowHttpError(/url regexp/, status)`: the response itself and Chromium's matching
@@ -11,9 +15,15 @@ type CollectedError = { message: string; httpStatus?: number; url?: string };
  */
 export const test = base.extend<{ allowHttpError: (url: RegExp, status: number) => void }>({
     allowHttpError: [
-        async ({ page }, use) => {
+        async ({ page, baseURL }, use) => {
             const errors: CollectedError[] = [];
             const allowed: { url: RegExp; status: number }[] = [];
+            const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
+
+            await page.route(
+                (url) => !isLocal(url.href),
+                (route) => ('image' === route.request().resourceType() ? route.fulfill({ path: PLACEHOLDER_IMAGE }) : route.abort()),
+            );
 
             page.on('console', (message) => {
                 if (message.type() !== 'error') {
@@ -32,7 +42,11 @@ export const test = base.extend<{ allowHttpError: (url: RegExp, status: number) 
                     errors.push({ message: `http ${response.status()}: ${response.url()}`, httpStatus: response.status(), url: response.url() });
                 }
             });
-            page.on('requestfailed', (request) => errors.push({ message: `requestfailed: ${request.url()} ${request.failure()?.errorText}` }));
+            page.on('requestfailed', (request) => {
+                if (isLocal(request.url())) {
+                    errors.push({ message: `requestfailed: ${request.url()} ${request.failure()?.errorText}` });
+                }
+            });
 
             await use((url, status) => allowed.push({ url, status }));
 

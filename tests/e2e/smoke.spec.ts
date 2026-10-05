@@ -1,9 +1,10 @@
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test, expect } from './fixtures';
 
 // Recipes as the UX Toolkit discovers them: "<dir>/manifest.json" at depth 1 of the kit root.
-const kitRoot = join(__dirname, '..', '..');
+const kitRoot = fileURLToPath(new URL('../..', import.meta.url));
 const recipes = readdirSync(kitRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && existsSync(join(kitRoot, entry.name, 'manifest.json')))
     .map((entry) => entry.name)
