@@ -17,7 +17,7 @@ inside the current kit). Copies stay byte-identical unless a row below says othe
 | `icon.svg` | Phase 0 | byte-identical |
 | `INSTALL.md` | Phase 0 | adapted, see below |
 
-**Recipes: no deviations.** The copied screenshots are the visual-regression baseline: the demo renders
+**Recipes: byte-identical except the two manifest fixes below.** The copied screenshots are the visual-regression baseline: the demo renders
 every README example like upstream's preview app (`demo/templates/preview.html.twig`) and Playwright
 compares it in upstream's browser image, `mcr.microsoft.com/playwright:v1.58.2-noble` (217/217 tests
 pass, all 200 PNGs). Demo-side support copied from upstream (not part of the kit):
@@ -29,6 +29,8 @@ pass, all 200 PNGs). Demo-side support copied from upstream (not part of the kit
 
 | File | Change | Reason | Upstream PR |
 |------|--------|--------|-------------|
+| `modal/manifest.json` | Declares `"recipe": ["button"]` | `Modal:Content` renders `<twig:Button>` (close button, on by default), so `ux:install modal` alone installed a modal that fails to render | candidate (upstream bug) |
+| `pagination/manifest.json` | Declares `"recipe": ["button"]` | every `Pagination:Link` renders `<twig:Button>`, so `ux:install pagination` alone failed to render | candidate (upstream bug) |
 | `INSTALL.md` | Intro names this kit and shows the `ux:install --kit=https://github.com/xormania/flowbite-xor` command, instead of "not every Flowbite component is available in this kit…" | It is this kit's install page | n/a (kit-specific) |
 
 ## Toolkit findings
