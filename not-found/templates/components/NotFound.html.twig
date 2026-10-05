@@ -1,0 +1,22 @@
+{%- props
+    ## int|string The status code shown above the title.
+    status = 404,
+    ## string The title, the page's `h1`.
+    title = 'Page not found',
+    ## string The explanation under the title.
+    message = 'Sorry, we can’t find the page you’re looking for. It may have moved or never existed.',
+    ## string|null The link of the main action.
+    homeHref = '/',
+    ## string The label of the main action.
+    homeLabel = 'Back to the homepage'
+-%}
+<div {{ attributes.defaults({class: 'mx-auto max-w-md text-center'|tailwind_classes}) }}>
+    <p class="text-sm font-semibold text-fg-brand">{{ status }}</p>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight text-heading">{{ title }}</h1>
+    <p class="mt-4 text-body">{{ message }}</p>
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        {%- if homeHref %}<twig:Button as="a" href="{{ homeHref }}">{{ homeLabel }}</twig:Button>{% endif -%}
+        {##- More actions next to the main one, e.g. a link to support. -#}
+        {%- block actions %}{% endblock -%}
+    </div>
+</div>

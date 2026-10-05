@@ -1,0 +1,40 @@
+{%- props
+    ## Symfony\Component\Form\FormView The profile form; every field renders through the form theme.
+    form,
+    ## string The name shown next to the avatar.
+    name,
+    ## string|null The email shown under the name.
+    email = null,
+    ## string|null The avatar image; without one, the initials of the name.
+    avatarSrc = null,
+    ## string The card title.
+    title = 'Profile',
+    ## string The line under the title.
+    description = 'This information appears on your public profile.',
+    ## string The label of the submit button.
+    submitLabel = 'Save changes'
+-%}
+<div {{ attributes.defaults({class: 'w-full'|tailwind_classes}) }}>
+    <twig:Card>
+        <twig:Card:Header>
+            <twig:Card:Title as="h2" class="text-lg">{{ title }}</twig:Card:Title>
+            <p class="mt-1 text-sm text-body">{{ description }}</p>
+        </twig:Card:Header>
+        <twig:Card:Content>
+            <div class="mb-6 flex items-center gap-4">
+                <twig:Avatar class="size-14">
+                    {%- if avatarSrc %}<twig:Avatar:Image src="{{ avatarSrc }}" alt="" />{% endif -%}
+                    <twig:Avatar:Fallback>{{ name|split(' ')|map((part) => part|first)|slice(0, 2)|join|upper }}</twig:Avatar:Fallback>
+                </twig:Avatar>
+                <div class="min-w-0">
+                    <p class="truncate font-medium text-heading">{{ name }}</p>
+                    {%- if email %}<p class="truncate text-sm text-body">{{ email }}</p>{% endif -%}
+                </div>
+            </div>
+            {{ form_start(form) }}
+                {{ form_widget(form) }}
+                <twig:Button type="submit">{{ submitLabel }}</twig:Button>
+            {{ form_end(form) }}
+        </twig:Card:Content>
+    </twig:Card>
+</div>
