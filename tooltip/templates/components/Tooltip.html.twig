@@ -1,0 +1,20 @@
+{%- props
+    ## string The tooltip text.
+    content,
+    ## 'top'|'bottom'|'left'|'right' Where the tooltip opens; it flips to the opposite side when it does not fit.
+    placement = 'top',
+    ## string Unique identifier, used for the tooltip's id.
+    id = 'tooltip-' ~ random()
+-%}
+<span
+    data-tooltip-placement-value="{{ placement }}"
+    {{ attributes.defaults({
+        class: 'relative inline-flex'|tailwind_classes,
+        'data-controller': 'tooltip',
+        'data-action': 'mouseenter->tooltip#show mouseleave->tooltip#hide focusin->tooltip#show focusout->tooltip#hide keydown.esc->tooltip#hide',
+    }) }}
+>
+    {##- The element the tooltip describes, a focusable control such as a `Button`. -#}
+    {%- block content %}{% endblock -%}
+    <span id="{{ id }}" role="tooltip" data-tooltip-target="tooltip" hidden class="pointer-events-none absolute z-50 w-max max-w-xs rounded-base bg-dark px-3 py-2 text-sm font-medium text-white shadow-xs">{{ content }}</span>
+</span>

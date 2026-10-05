@@ -1,0 +1,44 @@
+{%- props
+    ## 'info'|'success'|'warning'|'danger' The kind of message, shown by the icon and color.
+    variant = 'info',
+    ## int Milliseconds before the toast dismisses itself, 0 to keep it until closed. Paused while hovered or focused.
+    timeout = 5000,
+    ## string The accessible name of the close button.
+    closeLabel = 'Close'
+-%}
+{%- set style = html_cva(
+    base: 'pointer-events-auto flex w-full items-start gap-3 rounded-base border border-default bg-neutral-primary-soft p-4 text-sm text-body shadow-lg transition-opacity duration-300',
+    variants: {variant: {info: '', success: '', warning: '', danger: ''}},
+) -%}
+{%- set icon = html_cva(
+    base: 'inline-flex size-8 shrink-0 items-center justify-center rounded-base',
+    variants: {
+        variant: {
+            info: 'bg-brand-softer text-fg-brand-strong',
+            success: 'bg-success-soft text-fg-success-strong',
+            warning: 'bg-warning-soft text-fg-warning',
+            danger: 'bg-danger-soft text-fg-danger-strong',
+        },
+    },
+) -%}
+{%- set icons = {info: 'info-circle-solid', success: 'check-circle-solid', warning: 'exclamation-circle-solid', danger: 'close-circle-solid'} -%}
+<div
+    {%- if variant == 'danger' %} role="alert"{% endif %}
+    data-toast-timeout-value="{{ timeout }}"
+    {{ attributes.defaults({
+        class: style.apply({variant: variant})|tailwind_classes,
+        'data-controller': 'toast',
+        'data-action': 'mouseenter->toast#pause mouseleave->toast#resume focusin->toast#pause focusout->toast#resume',
+    }) }}
+>
+    <span class="{{ icon.apply({variant: variant}) }}">
+        <twig:ux:icon name="flowbite:{{ icons[variant] }}" class="size-5" aria-hidden="true" />
+    </span>
+    <div class="min-w-0 flex-1 pt-1.5">
+        {##- The message. -#}
+        {%- block content %}{% endblock -%}
+    </div>
+    <button type="button" aria-label="{{ closeLabel }}" data-action="toast#close" class="-m-1.5 inline-flex size-8 shrink-0 items-center justify-center rounded-base text-body hover:bg-neutral-secondary-medium hover:text-heading focus:outline-none focus:ring-2 focus:ring-brand-medium">
+        <twig:ux:icon name="flowbite:close-outline" class="size-4" aria-hidden="true" />
+    </button>
+</div>

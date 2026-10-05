@@ -1,0 +1,13 @@
+{%- props
+    ## string|null The heading of the group, hidden while the sidebar is collapsed.
+    label = null
+-%}
+<div {{ attributes }}>
+    {%- if label %}
+        <p class="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-body-subtle group-data-collapsed/sidebar:sr-only">{{ label }}</p>
+    {%- endif %}
+    <ul class="space-y-1">
+        {##- The group's `Sidebar:Item`s. -#}
+        {%- block content %}{% endblock -%}
+    </ul>
+</div>
