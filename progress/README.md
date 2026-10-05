@@ -20,4 +20,4 @@ A bar showing how far a task has come.
 <twig:Progress value="45" label="Upload" showValue variant="brand | success | danger | warning" size="sm | default | lg" />
 ```
 
-Without a `label`, give the bar an accessible name: `<twig:Progress value="45" aria-label="Upload" />` names the wrapper, so pass a `label` whenever you can.
+Without a visible `label`, name the bar with `aria-label` or `aria-labelledby`: `<twig:Progress value="45" aria-label="Upload" />` puts it on the `progressbar` element.

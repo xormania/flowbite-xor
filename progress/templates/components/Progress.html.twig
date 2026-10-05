@@ -20,6 +20,9 @@
     variants: {variant: {brand: 'bg-brand', success: 'bg-success', danger: 'bg-danger', warning: 'bg-warning'}},
 ) -%}
 {%- set _label_id = label ? 'progress-' ~ random() : null -%}
+{#- the progressbar element, not the wrapper, carries the accessible name -#}
+{%- set _aria_label = attributes.render('aria-label') -%}
+{%- set _aria_labelledby = attributes.render('aria-labelledby') -%}
 <div {{ attributes.defaults({class: 'w-full'|tailwind_classes}) }}>
     {%- if label %}
         <div class="mb-1 flex justify-between text-sm font-medium text-heading">
@@ -27,7 +30,7 @@
             {%- if showValue %}<span>{{ _value|round }}%</span>{% endif %}
         </div>
     {%- endif %}
-    <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ _value }}"{% if _label_id %} aria-labelledby="{{ _label_id }}"{% endif %} class="{{ track.apply({size: size}) }}">
+    <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ _value }}"{% if _label_id or _aria_labelledby %} aria-labelledby="{{ _label_id ?: _aria_labelledby }}"{% elseif _aria_label %} aria-label="{{ _aria_label }}"{% endif %} class="{{ track.apply({size: size}) }}">
         <div class="{{ bar.apply({variant: variant}) }}" style="width: {{ _value }}%"></div>
     </div>
 </div>
