@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ name }} — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig') }}
+    {{ component(component) }}
+{% endblock %}

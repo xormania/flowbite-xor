@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}permanent-plus-live ({{ page }}) — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'permanent-plus-live'}) }}
+    <div id="lab-permanent-live" data-turbo-permanent class="rounded-base border border-default p-3">
+        <twig:Lab:PermanentCounter />
+    </div>
+    <h2 class="mt-4 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    <a href="{{ path('app_lab_permanent_plus_live', {page: page == 'one' ? 'two' : 'one'}) }}" class="mt-2 inline-block text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a>
+{% endblock %}

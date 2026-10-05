@@ -1,0 +1,23 @@
+<div {{ attributes }}>
+    <p>Actions: <span data-testid="renders">{{ renders }}</span></p>
+    <twig:Button variant="outline" data-action="live#action" data-live-action-param="rerender">Re-render from the page</twig:Button>
+    <twig:Modal id="live">
+        <twig:Modal:Trigger>
+            <twig:Button {{ ...modal_trigger_attrs }}>Open modal</twig:Button>
+        </twig:Modal:Trigger>
+        <twig:Modal:Content>
+            <twig:Modal:Header>
+                <twig:Modal:Title>Live modal</twig:Modal:Title>
+            </twig:Modal:Header>
+            <twig:Modal:Body>
+                <p class="text-body">Rendered <span data-testid="modal-renders">{{ renders }}</span> time(s) after an action.</p>
+            </twig:Modal:Body>
+            <twig:Modal:Footer>
+                <twig:Button data-action="live#action" data-live-action-param="rerender">Re-render from the modal</twig:Button>
+                <twig:Modal:Close>
+                    <twig:Button variant="outline" {{ ...modal_close_attrs }}>Done</twig:Button>
+                </twig:Modal:Close>
+            </twig:Modal:Footer>
+        </twig:Modal:Content>
+    </twig:Modal>
+</div>
