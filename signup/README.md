@@ -23,7 +23,7 @@ final class RegistrationType extends AbstractType
         $builder
             ->add('name', TextType::class, ['constraints' => [new NotBlank()]])
             ->add('email', EmailType::class, ['constraints' => [new NotBlank(), new Email()]])
-            ->add('plainPassword', PasswordType::class, ['label' => 'Password', 'help' => 'At least 12 characters.', 'constraints' => [new Length(min: 12)]])
+            ->add('plainPassword', PasswordType::class, ['label' => 'Password', 'help' => 'At least 12 characters.', 'constraints' => [new NotBlank(), new Length(min: 12)]])
             ->add('terms', CheckboxType::class, ['label' => 'I accept the terms', 'mapped' => false, 'constraints' => [new IsTrue()]]);
     }
 }
@@ -47,10 +47,13 @@ public function register(Request $request): Response
 }
 ```
 
+The page below extends the `layouts` recipe's `auth.html.twig` (`ux:install layouts`); extend your own base template otherwise.
+
 ```twig
 {# templates/registration/register.html.twig #}
 {% extends 'layouts/auth.html.twig' %}
 
+{% block title %}Create an account{% endblock %}
 {% block content %}
     <twig:SignupForm :form="form" loginHref="{{ path('app_login') }}" />
 {% endblock %}

@@ -65,10 +65,13 @@ security:
                 enable_csrf: true
 ```
 
+The page below extends the `layouts` recipe's `auth.html.twig` (`ux:install layouts`); extend your own base template otherwise.
+
 ```twig
 {# templates/security/login.html.twig #}
 {% extends 'layouts/auth.html.twig' %}
 
+{% block title %}Sign in{% endblock %}
 {% block content %}
     <twig:LoginForm :form="form" :error="error" forgotPasswordHref="{{ path('app_forgot_password') }}" signupHref="{{ path('app_register') }}" />
 {% endblock %}

@@ -36,10 +36,13 @@ public function request(Request $request): Response
 }
 ```
 
+The page below extends the `layouts` recipe's `auth.html.twig` (`ux:install layouts`); extend your own base template otherwise.
+
 ```twig
 {# templates/reset_password/request.html.twig #}
 {% extends 'layouts/auth.html.twig' %}
 
+{% block title %}Forgot your password?{% endblock %}
 {% block content %}
     <twig:ForgotPasswordForm :form="form" :sent="sent" loginHref="{{ path('app_login') }}" />
 {% endblock %}

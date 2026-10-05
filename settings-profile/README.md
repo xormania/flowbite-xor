@@ -34,10 +34,13 @@ public function profile(Request $request): Response
 }
 ```
 
+The page below extends the `layouts` recipe's `settings.html.twig` (`ux:install layouts`); extend your own base template otherwise.
+
 ```twig
 {# templates/settings/profile.html.twig #}
 {% extends 'layouts/settings.html.twig' %}
 
+{% block title %}Settings{% endblock %}
 {% block page_title %}Settings{% endblock %}
 {% block settings_content %}
     <twig:SettingsProfile :form="form" name="{{ app.user.name }}" email="{{ app.user.email }}" />

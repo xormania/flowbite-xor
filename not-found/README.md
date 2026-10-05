@@ -14,6 +14,8 @@ The content of a 404 (or any error) page: status, title, explanation and a way b
 
 Symfony renders `templates/bundles/TwigBundle/Exception/error404.html.twig` for a 404 in production (preview it in dev at `/_error/404`):
 
+The page below extends the `layouts` recipe's `error.html.twig` (`ux:install layouts`); extend your own base template otherwise.
+
 ```twig
 {# templates/bundles/TwigBundle/Exception/error404.html.twig #}
 {% extends 'layouts/error.html.twig' %}
