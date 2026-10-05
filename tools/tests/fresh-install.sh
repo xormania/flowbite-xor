@@ -2,12 +2,12 @@
 # Phase 6 acceptance: on a fresh Symfony skeleton, `ux:install dashboard-home` (plus `layouts`) from this
 # kit, as GitHub's archive gives it, yields a working dashboard page.
 #
-#   tools/tests/fresh-install.sh            # PHP=… COMPOSER=… to use other binaries
+#   tools/tests/fresh-install.sh            # PHP=… COMPOSER_BIN=… to use other binaries
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 php="${PHP:-php}"
-composer="${COMPOSER:-composer}"
+composer="${COMPOSER_BIN:-composer}"
 symfony_version="${SYMFONY_VERSION:-7.4.*}"
 toolkit_version="${UX_TOOLKIT_VERSION:-3.5.1}"
 port="${PORT:-8100}"
@@ -20,7 +20,13 @@ app="$work/app"
 $composer create-project --no-interaction --no-progress "symfony/skeleton:$symfony_version" "$app"
 cd "$app"
 $composer config platform.php "$($php -r 'echo PHP_VERSION;')"
-$composer require --no-interaction --no-progress symfony/twig-bundle symfony/asset-mapper symfony/stimulus-bundle symfony/http-client
+# as README.md says: tales-from-a-dev/twig-tailwind-extra (the `tailwind_classes` filter of every
+# recipe) registers its bundle through a contrib recipe
+$composer config extra.symfony.allow-contrib true
+# symfony/ux-twig-component first, as a regular dependency: required only through `--dev symfony/ux-toolkit`,
+# its symfony/property-access is dev-only, so FrameworkBundle leaves property_access off while Flex enables
+# TwigComponentBundle in every environment, and cache:clear fails ("non-existent service property_accessor").
+$composer require --no-interaction --no-progress symfony/twig-bundle symfony/asset-mapper symfony/stimulus-bundle symfony/http-client "symfony/ux-twig-component:^3.5"
 $composer require --no-interaction --no-progress --dev "symfony/ux-toolkit:$toolkit_version"
 
 kit="vendor/symfony/ux-toolkit/kits/flowbite-xor-local"
@@ -37,9 +43,9 @@ echo "Composer packages suggested by ux:install: $packages"
 # shellcheck disable=SC2086
 $composer require --no-interaction --no-progress $packages
 
-# no network for icons: render the page without them
+# a deterministic check: no Iconify API calls, missing icons render nothing
 mkdir -p config/packages
-printf 'ux_icons:\n    ignore_not_found: true\n' > config/packages/ux_icons.yaml
+printf 'ux_icons:\n    ignore_not_found: true\n    iconify:\n        on_demand: false\n' > config/packages/ux_icons.yaml
 
 mkdir -p src/Controller templates/dashboard
 cat > src/Controller/DashboardController.php <<'PHP'
