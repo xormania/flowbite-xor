@@ -35,12 +35,32 @@ A Symfony UX Toolkit kit: `manifest.json` at the root, one recipe per top-level 
   `node_modules/`, Playwright output (`test-results/`, `playwright-report/`).
 - **Commits:** Conventional Commits (`feat(sidebar): …`, `chore(demo): …`). One PR per plan phase.
 
+## Adding a recipe
+
+1. Create `<recipe>/manifest.json`: `type` (`component`, or `block` for a page section), `name` (the
+   component name), `copy-files`, and `dependencies` (`recipe` for kit recipes it uses, `composer` for
+   packages: `tailwind_classes` needs `tales-from-a-dev/twig-tailwind-extra`, `html_cva` needs
+   `twig/html-extra`, components need `symfony/ux-twig-component:^3.5`). Copy the `$schema` line from
+   another recipe.
+2. Add the files under the paths `copy-files` maps: `templates/components/<Name>.html.twig` (parts in
+   `templates/components/<Name>/`), `assets/controllers/<snake>_controller.js` for behavior.
+3. Write `README.md`: `# Title`, a one-line summary, then a ```` ```twig {"preview":true} ```` example,
+   `## Installation` with `::: installation`, `## Usage`, more examples under `##`/`###` headings. Every
+   ```` ```twig {…} ```` block is a demo preview and a screenshot test.
+4. `tools/sync-demo`, then open `/r/<recipe>` and `/preview/<recipe>/<example>?theme=dark` in the demo.
+5. Record the screenshots (`npx playwright test --project=examples --update-snapshots`, browser in Docker),
+   review them, and commit them with the recipe.
+6. Behavior gets a spec in `tests/e2e/` (a `/lab` page when it must survive Turbo or Live re-renders);
+   new color pairs go in `tools/contrast/pairs.json`.
+7. Add the recipe to the index in `README.md`, commit, and lint the exported kit (below).
+
 ## Commands
 
 ```bash
 tools/sync-demo                 # copy every recipe into demo/ (like ux:install --force); idempotent, deletes nothing
 tools/tests/sync-demo.sh        # proves sync-demo == ux:install (needs demo/vendor)
 node tools/contrast/check.mjs   # theme contrast gate; kit.css and theme/assets/styles/flowbite-xor.css stay identical
+tools/tests/fresh-install.sh    # fresh skeleton + ux:install dashboard-home from the exported kit renders (PHP=… COMPOSER_BIN=…)
 
 # lint the kit as users download it
 tmp=$(mktemp -d) && git archive HEAD | tar -x -C "$tmp" && demo/vendor/bin/ux-toolkit-kit-lint "$tmp"
