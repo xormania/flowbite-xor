@@ -1,0 +1,12 @@
+{
+    "type": "component",
+    "name": "Widget",
+    "copy-files": {
+        "assets/": "assets/",
+        "templates/": "templates/",
+        "config/": "config/packages/"
+    },
+    "dependencies": {
+        "recipe": ["gadget"]
+    }
+}

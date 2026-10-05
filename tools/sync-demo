@@ -1,0 +1,122 @@
+#!/usr/bin/env php
+<?php
+
+/*
+ * Copies every recipe of the kit into the demo app, the way `ux:install --force` would:
+ * each "<recipe>/manifest.json" found at depth 1 of the kit root, each "copy-files"
+ * entry "<source dir>/" => "<destination dir>/", every file below the source directory
+ * (dot files and dot directories skipped, like the toolkit's Finder) copied to the same
+ * relative path below the destination directory.
+ *
+ * Idempotent: files already identical are left alone. Deletes nothing.
+ * Dependency-free on purpose, so it runs before `composer install`.
+ *
+ * Usage: tools/sync-demo [--kit=<kit root>] [--target=<app dir>] [--dry-run]
+ */
+
+$options = getopt('', ['kit:', 'target:', 'dry-run', 'help']);
+if (isset($options['help'])) {
+    fwrite(STDOUT, "Usage: tools/sync-demo [--kit=<kit root>] [--target=<app dir>] [--dry-run]\n");
+    exit(0);
+}
+
+$kitDir = realpath($options['kit'] ?? dirname(__DIR__));
+$targetDir = $options['target'] ?? dirname(__DIR__).'/demo';
+$dryRun = isset($options['dry-run']);
+
+if (false === $kitDir || !is_file($kitDir.'/manifest.json')) {
+    fail(sprintf('No kit manifest found at "%s".', ($options['kit'] ?? dirname(__DIR__)).'/manifest.json'));
+}
+if (!is_dir($targetDir)) {
+    fail(sprintf('Target directory "%s" does not exist.', $targetDir));
+}
+$targetDir = realpath($targetDir);
+
+$manifests = glob($kitDir.'/*/manifest.json') ?: [];
+sort($manifests, SORT_STRING);
+
+$stats = ['copied' => 0, 'unchanged' => 0];
+foreach ($manifests as $manifestPath) {
+    $recipeDir = dirname($manifestPath);
+    $recipe = basename($recipeDir);
+
+    try {
+        $manifest = json_decode(file_get_contents($manifestPath), true, flags: JSON_THROW_ON_ERROR);
+    } catch (JsonException $e) {
+        fail(sprintf('Recipe "%s": invalid manifest.json (%s).', $recipe, $e->getMessage()));
+    }
+
+    foreach ($manifest['copy-files'] ?? [] as $source => $destination) {
+        assertSafeRelativePath($recipe, $source);
+        assertSafeRelativePath($recipe, $destination);
+
+        $sourceDir = $recipeDir.'/'.trim($source, '/');
+        if (!is_dir($sourceDir)) {
+            fail(sprintf('Recipe "%s": copy-files source "%s" is not a directory.', $recipe, $source));
+        }
+
+        foreach (listFiles($sourceDir) as $relativePath) {
+            $from = $sourceDir.'/'.$relativePath;
+            $to = $targetDir.'/'.trim($destination, '/').'/'.$relativePath;
+            $to = str_replace('//', '/', $to);
+
+            if (is_file($to) && file_get_contents($to) === file_get_contents($from)) {
+                ++$stats['unchanged'];
+                continue;
+            }
+
+            fwrite(STDOUT, sprintf("%s %s -> %s\n", $dryRun ? '[dry-run]' : '[copy]', substr($from, strlen($kitDir) + 1), substr($to, strlen($targetDir) + 1)));
+            if (!$dryRun) {
+                if (!is_dir(dirname($to)) && !mkdir(dirname($to), 0777, true) && !is_dir(dirname($to))) {
+                    fail(sprintf('Unable to create directory "%s".', dirname($to)));
+                }
+                if (!copy($from, $to)) {
+                    fail(sprintf('Unable to copy "%s" to "%s".', $from, $to));
+                }
+            }
+            ++$stats['copied'];
+        }
+    }
+}
+
+fwrite(STDOUT, sprintf("%d recipe(s), %d file(s) %s, %d unchanged.\n", count($manifests), $stats['copied'], $dryRun ? 'to copy' : 'copied', $stats['unchanged']));
+
+/**
+ * Files below $dir, as paths relative to it, sorted; dot files and dot directories are skipped.
+ *
+ * @return list<string>
+ */
+function listFiles(string $dir): array
+{
+    $files = [];
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveCallbackFilterIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+            static fn (SplFileInfo $file): bool => !str_starts_with($file->getFilename(), '.'),
+        ),
+    );
+    foreach ($iterator as $file) {
+        if ($file->isFile()) {
+            $files[] = substr($file->getPathname(), strlen($dir) + 1);
+        }
+    }
+    sort($files, SORT_STRING);
+
+    return $files;
+}
+
+/**
+ * Same rules as the toolkit's RecipeManifest: relative paths only, no ".." segment.
+ */
+function assertSafeRelativePath(string $recipe, string $path): void
+{
+    if ('' === $path || '/' === $path[0] || preg_match('#^[a-zA-Z]:[\\\\/]#', $path) || in_array('..', preg_split('#[\\\\/]+#', $path), true)) {
+        fail(sprintf('Recipe "%s": copy-files path "%s" must be relative and must not contain "..".', $recipe, $path));
+    }
+}
+
+function fail(string $message): never
+{
+    fwrite(STDERR, 'sync-demo: '.$message."\n");
+    exit(1);
+}
