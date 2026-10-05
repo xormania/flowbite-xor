@@ -59,6 +59,23 @@ jobs:
               run: |
                   "$RUNNER_TEMP/toolkit/vendor/bin/ux-toolkit-kit-debug" "$GITHUB_WORKSPACE"
 
+    fresh-install:
+        name: Fresh install
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  tools: composer:v2
+                  coverage: none
+
+            # Phase 6 acceptance: `ux:install dashboard-home` on a fresh skeleton yields a working page
+            - name: ux:install dashboard-home + layouts on a fresh Symfony skeleton
+              run: tools/tests/fresh-install.sh
+
     contrast:
         name: Contrast
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
