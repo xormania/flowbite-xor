@@ -34,3 +34,40 @@ test('a toast pauses while hovered and closes from its button', async ({ page })
     await second.getByRole('button', { name: 'Close' }).click();
     await expect(second).toBeHidden();
 });
+
+test('a toast stays paused while it is still hovered or focused', async ({ page }) => {
+    await page.goto('/lab/turbo-stream-toast');
+    const region = page.getByRole('region', { name: 'Notifications' });
+
+    await page.getByRole('button', { name: 'Notify' }).click();
+    const toast = region.locator('[data-controller="toast"]', { hasText: 'Notification 1 sent.' });
+    const close = toast.getByRole('button', { name: 'Close' });
+    await close.hover();
+    await close.focus();
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(2000);
+    await expect(toast).toBeVisible();
+
+    await toast.hover();
+    await page.getByLabel('Timeout (ms)').focus();
+    await page.waitForTimeout(2000);
+    await expect(toast).toBeVisible();
+
+    await page.mouse.move(0, 0);
+    await expect(toast).toBeHidden({ timeout: 4000 });
+});
+
+test('a toast in the permanent region still dismisses itself after a Turbo visit', async ({ page }) => {
+    await page.goto('/lab/turbo-stream-toast');
+    const region = page.getByRole('region', { name: 'Notifications' });
+
+    await page.getByLabel('Timeout (ms)').fill('2000');
+    await page.getByRole('button', { name: 'Notify' }).click();
+    const toast = region.locator('[data-controller="toast"]', { hasText: 'Notification 1 sent.' });
+    await expect(toast).toBeVisible();
+
+    await page.getByRole('link', { name: 'Go to turbo-nav' }).click();
+    await expect(page.getByTestId('page')).toHaveText('Page one');
+    await expect(toast).toBeVisible();
+    await expect(toast).toBeHidden({ timeout: 4000 });
+});
