@@ -41,18 +41,18 @@
     {%- set _row_attr = row_attr|merge({class: row_attr.class|default(row_class|default('mb-6'))}) -%}
     {%- if 'fieldset' == _row_kind -%}
         {%- set _row_attr = _describedby ? _row_attr|merge({'aria-describedby': _describedby}) : _row_attr -%}
-        <twig:FormField as="fieldset" for="{{ id }}" :label="_label" :help="_help" :error="_errors" :required="required" {{ ..._row_attr }}>
+        <twig:FormField as="fieldset" for="{{ id }}" :label="_label" :labelAttr="label_attr" :help="_help" :helpAttr="help_attr" :error="_errors" :required="required" {{ ..._row_attr }}>
             {{- form_widget(form) -}}
         </twig:FormField>
     {%- elseif 'check' == _row_kind -%}
-        <twig:FormField for="{{ id }}" :help="_help" :error="_errors" {{ ..._row_attr }}>
+        <twig:FormField for="{{ id }}" :help="_help" :helpAttr="help_attr" :error="_errors" {{ ..._row_attr }}>
             <div class="flex items-center gap-2">
                 {{- form_widget(form, {attr: _control_aria}) -}}
-                {{- form_label(form, null, {label_attr: {class: 'select-none'}}) -}}
+                {{- form_label(form, null, {label_attr: label_attr|merge({class: (label_attr.class|default('') ~ ' select-none')|trim})}) -}}
             </div>
         </twig:FormField>
     {%- else -%}
-        <twig:FormField for="{{ id }}" :label="_label" :help="_help" :error="_errors" :required="required" {{ ..._row_attr }}>
+        <twig:FormField for="{{ id }}" :label="_label" :labelAttr="label_attr" :help="_help" :helpAttr="help_attr" :error="_errors" :required="required" {{ ..._row_attr }}>
             {{- form_widget(form, {attr: _control_aria}) -}}
         </twig:FormField>
     {%- endif -%}

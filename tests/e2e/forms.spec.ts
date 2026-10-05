@@ -86,3 +86,12 @@ test('a valid submit redirects with a success message', async ({ page }) => {
     await expect(page.getByText('Account created.')).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('');
 });
+
+test('label_attr and help_attr reach the row label and help', async ({ page }) => {
+    await page.goto('/forms');
+    await expect(page.locator('label[for="demo_website"]')).toHaveAttribute('title', 'Your public site');
+    await expect(page.getByTestId('website-help')).toHaveText('Shown on your profile.');
+    await expect(page.getByTestId('website-help')).toHaveAttribute('id', 'demo_website_help');
+    await expect(page.getByTestId('terms-label')).toHaveAttribute('for', 'demo_terms');
+    await expect(page.getByTestId('terms-label')).toHaveClass(/\bselect-none\b/);
+});

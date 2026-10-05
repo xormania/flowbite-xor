@@ -41,6 +41,9 @@ final class DemoType extends AbstractType
             ])
             ->add('website', UrlType::class, [
                 'required' => false,
+                'help' => 'Shown on your profile.',
+                'label_attr' => ['title' => 'Your public site'],
+                'help_attr' => ['data-testid' => 'website-help'],
                 'default_protocol' => null,
                 'attr' => ['placeholder' => 'https://example.com'],
                 'constraints' => [new Assert\Url(requireTld: true)],
@@ -75,6 +78,7 @@ final class DemoType extends AbstractType
             ])
             ->add('terms', CheckboxType::class, [
                 'label' => 'I accept the terms',
+                'label_attr' => ['data-testid' => 'terms-label'],
                 'constraints' => [new Assert\IsTrue(message: 'You must accept the terms.')],
             ])
             ->add('save', SubmitType::class, ['label' => 'Create account']);
