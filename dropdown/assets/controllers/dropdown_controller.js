@@ -1,190 +1,279 @@
 import { Controller } from '@hotwired/stimulus';
-import { Dropdown } from 'flowbite';
 
+/**
+ * Opens a `Dropdown` menu on click or hover, places it next to its trigger and handles the keyboard.
+ *
+ * It replaces Flowbite's `Dropdown` (and its Popper dependency) with the same behavior: the content
+ * toggles `hidden`/`block` and `aria-hidden`, closes on a click outside, follows its trigger on scroll
+ * and resize while open, flips to the opposite side when it does not fit, and is shifted back into the
+ * viewport along the trigger. Every listener is removed when it closes or disconnects.
+ *
+ * @target trigger        The button opening the menu.
+ * @target content        The menu, positioned next to the trigger.
+ * @value  placement      Where the menu opens: `top`, `bottom`, `left`, `right`, optionally with `-start` or `-end`.
+ * @value  triggerType    What opens the menu: `click` or `hover`.
+ * @value  open           Whether the menu is open when the controller connects.
+ * @value  delay          The delay before a hover opens or closes the menu, in milliseconds.
+ * @value  offsetDistance The gap between the trigger and the menu, in pixels.
+ */
 export default class extends Controller {
-    dropdown = null;
     static targets = ['trigger', 'content'];
     static values = {
-        placement: String,
-        triggerType: String,
+        placement: { type: String, default: 'bottom' },
+        triggerType: { type: String, default: 'click' },
         open: Boolean,
-        delay: Number,
-        offsetDistance: Number,
+        delay: { type: Number, default: 300 },
+        offsetDistance: { type: Number, default: 10 },
     };
 
     connect() {
-        const options = {
-            placement: this.placementValue,
-            triggerType: this.triggerTypeValue,
-            delay: this.delayValue,
-            offsetDistance: this.offsetDistanceValue,
-        };
-        this.dropdown = new Dropdown(this.contentTarget, this.triggerTarget, options);
-        this.dropdown.updateOnShow(() => {
-            this.triggerTarget.setAttribute('aria-expanded', 'true');
-        });
-        this.dropdown.updateOnHide(() => {
-            this.triggerTarget.setAttribute('aria-expanded', 'false');
-        });
+        this.visible = false;
+        this.timeouts = new Set();
+        this.listeners = [];
 
-        this._onTriggerKeydown = this._handleTriggerKeydown.bind(this);
-        this._onContentKeydown = this._handleContentKeydown.bind(this);
-        this.triggerTarget.addEventListener('keydown', this._onTriggerKeydown);
-        this.contentTarget.addEventListener('keydown', this._onContentKeydown);
+        const on = (target, type, handler, options) => {
+            target.addEventListener(type, handler, options);
+            this.listeners.push(() => target.removeEventListener(type, handler, options));
+        };
+
+        if ('hover' === this.triggerTypeValue) {
+            on(this.triggerTarget, 'click', () => this.toggle());
+            on(this.triggerTarget, 'mouseenter', () => this.later(() => this.show()));
+            on(this.contentTarget, 'mouseenter', () => this.show());
+            const hideUnlessHovered = () => this.later(() => this.contentTarget.matches(':hover') || this.hide());
+            on(this.triggerTarget, 'mouseleave', hideUnlessHovered);
+            on(this.contentTarget, 'mouseleave', hideUnlessHovered);
+        } else if ('none' !== this.triggerTypeValue) {
+            on(this.triggerTarget, 'click', () => this.toggle());
+        }
+        on(this.triggerTarget, 'keydown', (event) => this.handleTriggerKeydown(event));
+        on(this.contentTarget, 'keydown', (event) => this.handleContentKeydown(event));
 
         if (this.openValue) {
-            this.dropdown.show();
+            this.show();
         }
     }
 
     disconnect() {
-        this.triggerTarget.removeEventListener('keydown', this._onTriggerKeydown);
-        this.contentTarget.removeEventListener('keydown', this._onContentKeydown);
-        this.dropdown?.destroy();
-        this.dropdown = null;
+        this.hide({ restoreFocus: false, silent: true });
+        this.listeners.forEach((remove) => remove());
+        this.timeouts.forEach((id) => clearTimeout(id));
     }
 
-    _getMenuItems() {
-        // Get menuitems belonging to this menu level only (not nested submenu contents).
-        // Items can be: li > a[role="menuitem"] (Item) or li > div[data-controller] > button[role="menuitem"] (SubTrigger)
-        const items = [];
-        for (const item of this.contentTarget.querySelectorAll('[role="menuitem"]')) {
-            if (item.closest('[data-dropdown-target="content"]') === this.contentTarget) {
-                items.push(item);
+    later(callback) {
+        const id = setTimeout(() => {
+            this.timeouts.delete(id);
+            callback();
+        }, this.delayValue);
+        this.timeouts.add(id);
+    }
+
+    toggle() {
+        this.visible ? this.hide({ restoreFocus: false }) : this.show();
+    }
+
+    show() {
+        if (this.visible) {
+            return;
+        }
+        this.visible = true;
+        this.contentTarget.classList.remove('hidden');
+        this.contentTarget.classList.add('block');
+        this.contentTarget.removeAttribute('aria-hidden');
+        this.triggerTarget.setAttribute('aria-expanded', 'true');
+
+        this.onClickOutside = (event) => {
+            if (!this.contentTarget.contains(event.target) && !this.triggerTarget.contains(event.target)) {
+                this.hide({ restoreFocus: false });
             }
+        };
+        this.onReposition = () => this.position();
+        document.addEventListener('click', this.onClickOutside, true);
+        window.addEventListener('scroll', this.onReposition, true);
+        window.addEventListener('resize', this.onReposition);
+
+        this.position();
+    }
+
+    hide({ restoreFocus = false, silent = false } = {}) {
+        if (!this.visible && !silent) {
+            return;
         }
-        return items;
-    }
-
-    _focusItem(index) {
-        const items = this._getMenuItems();
-        if (items.length === 0) return;
-        const i = ((index % items.length) + items.length) % items.length;
-        items[i].focus();
-    }
-
-    _focusFirstItem() {
-        this._focusItem(0);
-    }
-
-    _focusLastItem() {
-        this._focusItem(-1);
-    }
-
-    _show(focusFirst = true) {
-        this.dropdown.show();
-        if (focusFirst) {
-            // Small delay to ensure the content is visible before focusing
-            requestAnimationFrame(() => this._focusFirstItem());
+        this.visible = false;
+        document.removeEventListener('click', this.onClickOutside, true);
+        window.removeEventListener('scroll', this.onReposition, true);
+        window.removeEventListener('resize', this.onReposition);
+        if (silent) {
+            return;
+        }
+        this.contentTarget.classList.remove('block');
+        this.contentTarget.classList.add('hidden');
+        this.contentTarget.setAttribute('aria-hidden', 'true');
+        this.triggerTarget.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) {
+            this.triggerTarget.focus();
         }
     }
 
-    _hide() {
-        this.dropdown.hide();
-        this.triggerTarget.focus();
+    /**
+     * Places the content like Popper does for Flowbite (absolute, `translate(x, y)`, offset, flip,
+     * shift along the trigger within the viewport), so menus land on the same pixels.
+     */
+    position() {
+        const content = this.contentTarget;
+        // absolute first: the size to place is the menu's own (w-fit), not the width it takes in flow
+        Object.assign(content.style, { position: 'absolute', inset: '0px auto auto 0px', margin: '0px' });
+        const [side, align = 'center'] = (this.placementValue || 'bottom').split('-');
+        const reference = this.triggerTarget.getBoundingClientRect();
+        const size = { width: content.offsetWidth, height: content.offsetHeight };
+        const viewport = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
+        const vertical = 'top' === side || 'bottom' === side;
+        const opposite = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
+
+        const place = (s) => {
+            const point = { x: 0, y: 0 };
+            if (vertical) {
+                point.y = 'bottom' === s ? reference.bottom + this.offsetDistanceValue : reference.top - size.height - this.offsetDistanceValue;
+                point.x = 'start' === align ? reference.left : 'end' === align ? reference.right - size.width : reference.left + reference.width / 2 - size.width / 2;
+            } else {
+                point.x = 'right' === s ? reference.right + this.offsetDistanceValue : reference.left - size.width - this.offsetDistanceValue;
+                point.y = 'start' === align ? reference.top : 'end' === align ? reference.bottom - size.height : reference.top + reference.height / 2 - size.height / 2;
+            }
+            return point;
+        };
+        const overflows = (s, point) =>
+            ({ top: -point.y, bottom: point.y + size.height - viewport.height, left: -point.x, right: point.x + size.width - viewport.width })[s] > 0;
+
+        let finalSide = side;
+        let point = place(side);
+        if (overflows(side, point) && !overflows(opposite[side], place(opposite[side]))) {
+            finalSide = opposite[side];
+            point = place(finalSide);
+        }
+
+        // shift along the trigger to stay in the viewport, without leaving the trigger
+        const axis = vertical ? 'x' : 'y';
+        const length = vertical ? size.width : size.height;
+        const [refStart, refEnd] = vertical ? [reference.left, reference.right] : [reference.top, reference.bottom];
+        const limit = vertical ? viewport.width : viewport.height;
+        point[axis] = Math.min(Math.max(point[axis], 0), limit - length);
+        point[axis] = Math.min(Math.max(point[axis], refStart - length), refEnd);
+
+        // viewport coordinates -> coordinates of the content's containing block
+        const parent = content.offsetParent;
+        let origin = { x: -window.scrollX, y: -window.scrollY };
+        if (parent && parent !== document.body && parent !== document.documentElement) {
+            const rect = parent.getBoundingClientRect();
+            origin = { x: rect.left + parent.clientLeft - parent.scrollLeft, y: rect.top + parent.clientTop - parent.scrollTop };
+        }
+        const dpr = window.devicePixelRatio || 1;
+        const round = (value) => Math.round(value * dpr) / dpr || 0;
+
+        content.style.transform = `translate(${round(point.x - origin.x)}px, ${round(point.y - origin.y)}px)`;
+        content.dataset.popperPlacement = 'center' === align ? finalSide : `${finalSide}-${align}`;
     }
 
-    _handleTriggerKeydown(event) {
-        // If this trigger is a SubTrigger (role="menuitem"), arrow keys should be
-        // handled by the parent menu for navigation, not by this submenu's trigger.
-        const isSubTrigger = this.triggerTarget.getAttribute('role') === 'menuitem';
+    getMenuItems() {
+        // menu items of this level only, not those of nested submenus
+        return [...this.contentTarget.querySelectorAll('[role="menuitem"]')].filter(
+            (item) => item.closest('[data-dropdown-target="content"]') === this.contentTarget
+        );
+    }
+
+    focusItem(index) {
+        const items = this.getMenuItems();
+        if (0 === items.length) {
+            return;
+        }
+        items[((index % items.length) + items.length) % items.length].focus();
+    }
+
+    open(focusIndex) {
+        this.show();
+        requestAnimationFrame(() => this.focusItem(focusIndex));
+    }
+
+    handleTriggerKeydown(event) {
+        // a SubTrigger is a menu item of its parent menu, which handles its arrow keys
+        const isSubTrigger = 'menuitem' === this.triggerTarget.getAttribute('role');
 
         switch (event.key) {
             case 'ArrowDown':
-                if (isSubTrigger) return;
-                if (!this.dropdown.isVisible()) {
-                    event.preventDefault();
-                    this._show(true);
-                }
-                break;
             case 'ArrowUp':
-                if (isSubTrigger) return;
-                if (!this.dropdown.isVisible()) {
+                if (!isSubTrigger && !this.visible) {
                     event.preventDefault();
-                    this.dropdown.show();
-                    requestAnimationFrame(() => this._focusLastItem());
+                    this.open('ArrowDown' === event.key ? 0 : -1);
                 }
                 break;
             case 'Enter':
             case ' ':
-                if (!this.dropdown.isVisible()) {
+                if (!this.visible) {
                     event.preventDefault();
-                    this._show(true);
+                    this.open(0);
                 }
                 break;
             case 'Escape':
-                if (this.dropdown.isVisible()) {
+                if (this.visible) {
                     event.preventDefault();
-                    this._hide();
+                    this.hide({ restoreFocus: true });
                 }
                 break;
         }
     }
 
-    _handleContentKeydown(event) {
-        // Only handle if the focused element belongs to this menu level
-        const items = this._getMenuItems();
-        const currentIndex = items.indexOf(document.activeElement);
-        if (currentIndex === -1) return;
-
-        // Stop propagation to prevent parent dropdown controllers from intercepting
+    handleContentKeydown(event) {
+        const items = this.getMenuItems();
+        const current = items.indexOf(document.activeElement);
+        if (-1 === current) {
+            return;
+        }
+        // keep parent menus from handling the same key
         event.stopPropagation();
 
         switch (event.key) {
             case 'ArrowDown':
                 event.preventDefault();
-                this._focusItem(currentIndex + 1);
+                this.focusItem(current + 1);
                 break;
             case 'ArrowUp':
                 event.preventDefault();
-                this._focusItem(currentIndex - 1);
+                this.focusItem(current - 1);
                 break;
             case 'Home':
                 event.preventDefault();
-                this._focusFirstItem();
+                this.focusItem(0);
                 break;
             case 'End':
                 event.preventDefault();
-                this._focusLastItem();
+                this.focusItem(-1);
                 break;
             case 'Escape':
                 event.preventDefault();
-                this._hide();
+                this.hide({ restoreFocus: true });
                 break;
             case 'Tab':
-                this._hide();
+                this.hide({ restoreFocus: true });
                 break;
             case 'ArrowRight':
-                // If focused on a SubTrigger, open the submenu
-                if (document.activeElement.getAttribute('aria-haspopup') === 'menu') {
+                if ('menu' === document.activeElement.getAttribute('aria-haspopup')) {
                     event.preventDefault();
                     document.activeElement.click();
-                    // Focus first item in the submenu after it opens
                     requestAnimationFrame(() => {
-                        const subContent = document.activeElement
+                        document.activeElement
                             ?.closest('[data-controller="dropdown"]')
-                            ?.querySelector('[data-dropdown-target="content"]');
-                        if (subContent) {
-                            const firstItem = subContent.querySelector('[role="menuitem"]');
-                            if (firstItem) firstItem.focus();
-                        }
+                            ?.querySelector('[data-dropdown-target="content"] [role="menuitem"]')
+                            ?.focus();
                     });
                 }
                 break;
-            case 'ArrowLeft':
-                // If inside a submenu, close it and return focus to the SubTrigger
-                this._closeParentSubmenu(event);
+            case 'ArrowLeft': {
+                const parentMenu = this.element.closest('li[role="none"]')?.closest('[data-controller="dropdown"]');
+                if (parentMenu && parentMenu !== this.element) {
+                    event.preventDefault();
+                    this.hide({ restoreFocus: true });
+                }
                 break;
-        }
-    }
-
-    _closeParentSubmenu(event) {
-        // Check if this controller is a submenu (nested inside another dropdown)
-        const parentDropdown = this.element.closest('li[role="none"]')?.closest('[data-controller="dropdown"]');
-        if (parentDropdown && parentDropdown !== this.element) {
-            event.preventDefault();
-            this._hide();
-            // The _hide() already focuses our trigger, which is the SubTrigger in the parent menu
+            }
         }
     }
 }
