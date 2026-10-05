@@ -1,0 +1,17 @@
+{% extends 'layouts/app.html.twig' %}
+
+{##- The settings layout: the secondary navigation and the panels. -#}
+{% block content %}
+    <div class="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <nav aria-label="{##- The accessible name of the settings navigation. -#}{% block settings_nav_label %}Settings{% endblock %}">
+            <ul class="flex gap-1 overflow-x-auto lg:flex-col">
+                {##- The settings sections: `<li><a href="…" aria-current="page">…</a></li>` with the classes shown in the README. -#}
+                {%- block settings_nav %}{% endblock -%}
+            </ul>
+        </nav>
+        <div class="min-w-0 space-y-6">
+            {##- The section's panels, e.g. the `settings-profile` block. -#}
+            {%- block settings_content %}{% endblock -%}
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale|default('en') }}">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{##- The page title. -#}{% block title %}{% endblock %}</title>
+        {#- Sets the theme before the first paint (the theme-toggle recipe's no-flash snippet). -#}
+        <script>
+            try {
+                const theme = localStorage.getItem('theme');
+                document.documentElement.classList.toggle('dark', 'dark' === theme || ('light' !== theme && matchMedia('(prefers-color-scheme: dark)').matches));
+            } catch (e) {}
+        </script>
+        <style>.turbo-progress-bar { height: 3px; background-color: var(--color-brand); }</style>
+        {##- Extra tags in the head: meta, favicon, preloads. -#}
+        {%- block head %}{% endblock -%}
+        {##- Stylesheets not imported by the importmap entrypoint. -#}
+        {%- block stylesheets %}{% endblock -%}
+        {##- The scripts; by default the `app` importmap entrypoint, reloaded by Turbo when it changes. -#}
+        {%- block javascripts %}
+            {{ importmap('app', {'data-turbo-track': 'reload'}) }}
+        {% endblock -%}
+    </head>
+    <body class="{##- Classes of the body. -#}{% block body_class %}min-h-svh bg-neutral-primary text-body antialiased{% endblock %}">
+        {##- The page. -#}
+        {%- block body %}{% endblock -%}
+    </body>
+</html>
