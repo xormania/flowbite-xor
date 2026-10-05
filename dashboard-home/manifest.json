@@ -8,6 +8,7 @@
     },
     "dependencies": {
         "recipe": [
+            "layouts",
             "page-header",
             "stat-card",
             "card",

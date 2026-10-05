@@ -14,7 +14,7 @@ A dashboard home: page header, key figures, two cards and a table of recent orde
 
 ## Usage
 
-It renders with sample data, so a page shows up right after `ux:install dashboard-home`:
+It renders with sample data, and the recipe installs the `layouts` recipe too, so a page shows up right after `ux:install dashboard-home`:
 
 ```php
 // src/Controller/DashboardController.php

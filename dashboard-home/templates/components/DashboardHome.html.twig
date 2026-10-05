@@ -45,7 +45,7 @@
             <twig:Card:Header><twig:Card:Title as="h2" class="text-lg">Sales by channel</twig:Card:Title></twig:Card:Header>
             <twig:Card:Content class="space-y-5">
                 {%- for channel in channels %}
-                    <twig:Progress :value="channel.value" :label="channel.label" showValue />
+                    <twig:Progress :value="channel.value" :label="channel.label" showValue meter />
                 {%- endfor %}
             </twig:Card:Content>
         </twig:Card>
@@ -63,7 +63,7 @@
             </twig:Card:Content>
         </twig:Card>
     </div>
-    <div class="relative overflow-x-auto rounded-base border border-default bg-neutral-primary-soft shadow-xs">
+    <div role="region" aria-label="Recent orders" tabindex="0" class="relative overflow-x-auto rounded-base border border-default bg-neutral-primary-soft shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-medium">
         <twig:Table>
             <twig:Table:Caption>Recent orders</twig:Table:Caption>
             <twig:Table:Header class="border-t">
