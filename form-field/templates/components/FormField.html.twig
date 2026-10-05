@@ -1,28 +1,36 @@
 {%- props
-    ## string The id of the control, which the label points to and the help/error ids derive from.
+    ## string The id of the control (or of the group), which the label points to and the help/error ids derive from (`<for>_help`, `<for>_error`, as in Symfony forms).
     for,
     ## string|null The visible label.
     label = null,
-    ## string|null A hint below the control, its id is `<for>-help`.
+    ## string|null A hint below the control.
     help = null,
-    ## string|null An error message below the control, its id is `<for>-error`.
+    ## string|string[]|null An error message, or several, below the control.
     error = null,
     ## boolean Whether the field is required (adds a marker to the label).
-    required = false
+    required = false,
+    ## 'div'|'fieldset' A `fieldset` (with the label as its `legend`) groups several controls, such as radios.
+    as = 'div'
 -%}
-<div {{ attributes.defaults({class: 'w-full'|tailwind_classes}) }}>
+{%- set _errors = error is iterable ? error : (error is null or error is same as('') ? [] : [error]) -%}
+{%- set _label_tag = as == 'fieldset' ? 'legend' : 'label' -%}
+<{{ as }} {{ attributes.defaults({class: 'w-full min-w-0'|tailwind_classes}) }}>
     {%- if label %}
-        <label for="{{ for }}" class="mb-2.5 block text-sm font-medium text-heading">
+        <{{ _label_tag }}{% if as != 'fieldset' %} for="{{ for }}"{% endif %} class="mb-2.5 block text-sm font-medium text-heading">
             {{- label -}}
             {%- if required %}<span class="ms-0.5 text-fg-danger-strong" aria-hidden="true">*</span>{% endif -%}
-        </label>
+        </{{ _label_tag }}>
     {%- endif %}
     {##- The control: an `Input`, `Select`, `Textarea`… with `id` set to `for`, and `aria-describedby`/`aria-invalid` as needed. -#}
     {%- block content %}{% endblock -%}
     {%- if help %}
-        <p id="{{ for }}-help" class="mt-2.5 text-sm text-body">{{ help }}</p>
+        <p id="{{ for }}_help" class="mt-2.5 text-sm text-body">{{ help }}</p>
     {%- endif %}
-    {%- if error %}
-        <p id="{{ for }}-error" class="mt-2.5 text-sm text-fg-danger-strong">{{ error }}</p>
+    {%- if _errors|length == 1 %}
+        <p id="{{ for }}_error" class="mt-2.5 text-sm text-fg-danger-strong">{{ _errors|first }}</p>
+    {%- elseif _errors|length > 1 %}
+        <ul id="{{ for }}_error" class="mt-2.5 list-inside list-disc space-y-1 text-sm text-fg-danger-strong">
+            {%- for message in _errors %}<li>{{ message }}</li>{% endfor -%}
+        </ul>
     {%- endif %}
-</div>
+</{{ as }}>
