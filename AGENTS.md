@@ -27,6 +27,10 @@ A Symfony UX Toolkit kit: `manifest.json` at the root, one recipe per top-level 
 - **CSS order.** `flowbite.min.css` loads after Tailwind's utilities and wins ties: a variant it lacks loses to a base
   utility it has (`flex max-md:hidden` stays `flex`), and its `max-w-2xl` is 16rem. Raise the variant's specificity
   or use `!`, and check the computed style (see `UPSTREAM.md` → *Toolkit findings*).
+- **Twig inside components.** In a component's content (`<twig:X>…</twig:X>`), `block('name')` and `{% block %}`
+  belong to the component: reach the surrounding template's blocks with `block(outerBlocks.name)`.
+- **Turbo forms.** A submitted form answers with a redirect (303) when it succeeds and 422 when it shows errors;
+  Turbo Drive rejects a 200.
 - **Never commit** `demo/vendor/`, `demo/var/`, `demo/public/assets/`, `demo/assets/vendor/`,
   `node_modules/`, Playwright output (`test-results/`, `playwright-report/`).
 - **Commits:** Conventional Commits (`feat(sidebar): …`, `chore(demo): …`). One PR per plan phase.
