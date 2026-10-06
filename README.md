@@ -205,6 +205,9 @@ unchecked. On top of escaping, the components check what shapes their markup:
   names and values: a name cannot add another attribute. Otherwise they render as given, an `on…` handler or an
   `href` included. URLs given as attributes are not checked, as in the official kit: the `href` of `Button` or `Badge`
   with `as="a"`, of `Dropdown:Item` and of `Pagination:Link`, and the `src` of `Avatar:Image`. Check those yourself.
+- **Content Security Policy.** The components print no inline script, style or event handler, so they work under a
+  strict policy (nonces and `'strict-dynamic'`, no `'unsafe-inline'`). The layouts print their inline script and the
+  importmap with your nonces: see *Content Security Policy* in [`layouts/README.md`](layouts/README.md).
 
 `tests/e2e/hostile-props.spec.ts` renders each of these props with hostile values and checks what the browser parses.
 

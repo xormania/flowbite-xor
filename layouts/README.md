@@ -29,7 +29,7 @@ The recipe copies six templates to `templates/layouts/`. Extend one from a page:
 
 | Layout | For | Blocks |
 |--------|-----|--------|
-| `base.html.twig` | every other layout: meta, the `theme-toggle` snippet that sets the theme before the first paint, the `app` importmap entrypoint with `data-turbo-track="reload"`, the Turbo progress bar in the brand color, the `ToastRegion` and flash messages as toasts | `title`, `head`, `stylesheets`, `javascripts`, `body_class`, `toasts`, `body` |
+| `base.html.twig` | every other layout: meta, the `theme-toggle` snippet that sets the theme before the first paint, the `app` importmap entrypoint with `data-turbo-track="reload"`, the `ToastRegion` and flash messages as toasts, Content Security Policy nonces (below). The Turbo progress bar takes the brand color from the `theme` recipe | `title`, `head`, `stylesheets`, `javascripts`, `body_class`, `toasts`, `body` |
 | `app.html.twig` | the application: `Sidebar` (`data-turbo-permanent`, so it keeps its scroll and collapsed state across Turbo visits), `Navbar` with the menu button for small screens, `PageHeader` | `brand`, `sidebar`, `navbar_search`, `navbar_actions` (theme toggle by default), `page_title`, `page_description`, `page_before`, `page_actions`, `content` |
 | `auth.html.twig` | login, signup, password reset: a centered column | `brand`, `content` |
 | `settings.html.twig` | settings pages: the app shell with a secondary navigation and panels | `settings_nav`, `settings_nav_label`, `settings_content` (and the `app` blocks) |
@@ -47,3 +47,38 @@ Fill `settings_nav` with one link per settings page. The link of the current rou
 ```
 
 Flash messages added with `$this->addFlash('success', '…')` (also `warning`, `danger`, anything else as `info`) appear as toasts on the next page, whatever its layout, Turbo visit or not.
+
+## Content Security Policy
+
+`base.html.twig` has one inline script, the theme snippet, and `importmap()` prints three more. Under a Content
+Security Policy that restricts scripts, they need the page's nonce, and Turbo needs a style nonce for the `<style>` of
+its progress bar, which it adds to every page. Set `csp_script_nonce` and `csp_style_nonce`, as Twig globals or as
+variables of the page, to a string or to a `Stringable` returning the current request's nonce. The layout prints the
+script nonce on its script and on the `importmap()` scripts, and the style nonce in `<meta name="csp-nonce">`, where
+Turbo reads it; unset or empty, it prints no nonce. With
+[NelmioSecurityBundle](https://github.com/nelmio/NelmioSecurityBundle), write the two `set` lines at the top of
+`<head>` in your copy of `base.html.twig` this way:
+
+```twig
+{%- set csp_script_nonce = csp_nonce('script') -%}
+{%- set csp_style_nonce = csp_nonce('style') -%}
+```
+
+A policy these layouts work with:
+
+```
+script-src 'nonce-{script nonce}' 'strict-dynamic'; style-src 'self' 'nonce-{style nonce}'; object-src 'none'; base-uri 'none'
+```
+
+- `'strict-dynamic'` lets the nonced importmap scripts load the modules, the `<link rel="modulepreload">` ones
+  included (they carry no nonce), and the `data:` modules that import CSS. Browsers ignore `'unsafe-inline'` in a
+  policy with a nonce: it does not help.
+- Turbo also gives the nonce of `<meta name="csp-nonce">` to the scripts it runs from fetched HTML. The layout puts
+  the style nonce there: keep the script nonce a different one.
+- With a nonce per request, a Turbo visit keeps the policy of the page first loaded. Turbo compares `<head>` elements
+  without their nonce, so the layout's scripts are not run again. An inline `<script>` in `<body>` would be, with a
+  nonce the policy does not know, and Turbo reports the inline `<style>` of every page it fetches: the layouts have
+  none, the progress bar takes the brand color from the `theme` recipe's stylesheet.
+- The components print no inline script, style or event handler: `Avatar:Image` is shown by its controller, and
+  `Progress` sizes its bar without a `style` attribute. Style attributes you write yourself need
+  `style-src-attr 'unsafe-inline'`, or `'unsafe-hashes'` with their hashes.

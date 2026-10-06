@@ -29,4 +29,9 @@ Add this snippet to `<head>`, before any stylesheet, so the theme is set before 
 </script>
 ```
 
+Under a Content Security Policy that restricts scripts, give the script the page's nonce: `<script nonce="…">`,
+for example `<script nonce="{{ csp_nonce('script') }}">` with NelmioSecurityBundle. Browsers ignore
+`'unsafe-inline'` in a policy that has a nonce. The `layouts` recipe prints its `csp_script_nonce` there (see its
+README).
+
 Turbo Drive keeps the `<html>` element between visits, so the theme persists across navigations; the controller reconnects on every page and keeps `aria-pressed` in sync.

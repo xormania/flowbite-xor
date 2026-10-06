@@ -236,3 +236,9 @@
         @apply bg-neutral-primary;
     }
 }
+
+/* Turbo Drive's progress bar in the brand color (layouts recipe). Unlayered and loaded after the <style> that Turbo
+   adds at the top of <head>, it overrides Turbo's own color. */
+.turbo-progress-bar {
+    background-color: var(--color-brand);
+}
