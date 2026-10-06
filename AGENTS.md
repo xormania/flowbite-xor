@@ -6,9 +6,10 @@ Instructions for coding agents working on this repository, a Symfony UX Toolkit 
   standard. The same rules apply to people.
 - Recipes copied from the official `flowbite-4` kit stay byte-identical; every deviation gets a row in
   [`UPSTREAM.md`](UPSTREAM.md).
-- Behavior lives in Stimulus controllers only: no `import 'flowbite'`, no global init.
+- Behavior lives in Stimulus controllers only: no `import 'flowbite'`, no `initFlowbite()`.
 - Run the checks in `CONTRIBUTING.md` that cover your change before pushing; CI runs all of them.
 - Never update screenshot baselines as a side effect, and never commit `demo/vendor/`, `demo/var/`,
-  `node_modules/` or Playwright output.
+  `demo/public/assets/`, `demo/assets/vendor/`, `node_modules/` or Playwright output (`test-results/`,
+  `playwright-report/`).
 - Commits and pull requests: plain words, the `type(scope): what changes` format, the pull request template,
   no AI attribution lines.

@@ -6,15 +6,15 @@ and pull request standard.
 
 ## Repository layout
 
-| Path | In `ux:install` downloads | |
+| Path | In the `ux:install` download | What it is |
 |------|---------------------------|---|
 | `manifest.json`, `INSTALL.md`, `kit.css`, `kit.js`, `icon.svg`, `<recipe>/` (minus `<recipe>/tests/`), `README.md`, `LICENSE`, `NOTICE` | yes | the kit, its readme and license |
-| `demo/` | no | Symfony app showing every recipe, plus Turbo/Live scenario pages (`/lab`) and a small application (`/demo`) |
+| `demo/` | no | a Symfony app showing every recipe (`/r/<recipe>`), test pages for Turbo and Live Components (`/lab`), and a small application made of the layouts and blocks (`/demo`) |
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
 | `tools/tests/` | no | `sync-demo` parity with `ux:install`; install of the exported kit on a fresh Symfony skeleton |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
-| `docs/`, `.github/` | no | the snippet for projects' `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI, the pull request template |
+| `docs/`, `.github/` | no | a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI, the pull request template |
 
 `ux:install` downloads GitHub's archive of the whole repository; `export-ignore` in `.gitattributes` keeps
 everything else out of it (the demo, tests, tools, and repository files such as this one, `AGENTS.md` and
@@ -22,14 +22,20 @@ everything else out of it (the demo, tests, tools, and repository files such as 
 
 ## Setup
 
-Requires PHP 8.4, Composer, Node.js and Docker (Playwright's browser runs in the official kit's test image, so screenshots
-match the committed baselines).
+Requires PHP 8.4, Composer, Node.js (CI uses 22) and Docker. Playwright's browser runs in Docker, in the same
+`mcr.microsoft.com/playwright` image as the Symfony UX Toolkit's own tests, so screenshots match the committed
+baselines.
 
 ```bash
-tools/sync-demo                                     # copy every recipe into demo/ (idempotent, deletes nothing)
-(cd demo && composer install && php bin/console tailwind:build)
+tools/sync-demo                                     # copy every recipe into demo/ (safe to re-run; deletes nothing)
+(cd demo && composer install && php bin/console tailwind:build && php bin/console asset-map:compile)
 npm ci
 ```
+
+To look at the demo, run `php -S 127.0.0.1:8000 -t demo/public` and open http://127.0.0.1:8000. PHP's built-in
+server only serves the compiled CSS and JavaScript in `demo/public/assets/`: after changing a recipe, run
+`tools/sync-demo` and the two `bin/console` commands again. `tools/sync-demo` never deletes: remove a renamed or
+deleted recipe file from `demo/` yourself.
 
 ## Checks
 
@@ -38,34 +44,54 @@ CI runs all of them on every push.
 ```bash
 # lint the kit as users download it (git archive exports committed files only: commit first)
 tmp=$(mktemp -d) && git archive HEAD | tar -x -C "$tmp" && demo/vendor/bin/ux-toolkit-kit-lint "$tmp"
-demo/vendor/bin/ux-toolkit-kit-debug .              # what the toolkit sees
+demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its files and dependencies: check yours
 
-node tools/contrast/check.mjs                       # theme contrast; kit.css and theme/assets/styles/flowbite-xor.css stay identical
-tools/tests/sync-demo.sh                            # sync-demo copies what ux:install copies (needs demo/vendor)
-tools/tests/fresh-install.sh                        # fresh skeleton + ux:install dashboard-home and signup (PHP=… COMPOSER_BIN=…)
-npx playwright test                                 # smoke, Turbo/Live lab, axe on every demo page, README screenshots, recipe specs
+node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
+cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
+tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
+tools/tests/fresh-install.sh                        # a new Symfony app installs dashboard-home and signup from the last commit (PHP=…, COMPOSER_BIN=…: other binaries)
+npx playwright test                                 # every browser test: see below
 ```
 
-Playwright starts `php -S` on `demo/public` and the browser container unless they already listen on :8000 and
-:3000. The demo renders one README example alone at `/preview/<recipe>/<example>?theme=light|dark`; `/r/<recipe>`
-shows all of a recipe's examples.
+`npx playwright test` runs two projects; pick one with `--project=smoke` or `--project=examples`.
+
+- `smoke` runs the specs in `tests/e2e/`: the demo pages, the forms, the `/lab` pages for Turbo and Live
+  Components, and an axe accessibility scan of every demo page (no serious or critical issue).
+- `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
+  runs the official kit's recipe specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`).
+
+Playwright starts the demo (`php -S 127.0.0.1:8000 -t demo/public`) and the browser container, unless something
+already listens on ports 8000 and 3000. The demo shows all of a recipe's examples at `/r/<recipe>`, and one example
+alone at `/preview/<recipe>/<example>?theme=light` (or `dark`). `<example>` is the slug of the heading above the
+example: `default` for the one under the title, with `-2`, `-3`… added when a heading repeats.
 
 ## Conventions
 
-- **Copied recipes stay byte-identical** to the `symfony/ux` commit pinned in [`UPSTREAM.md`](UPSTREAM.md). Every
-  deviation gets a row there (file, change, reason, upstream status).
-- **Behavior in Stimulus only.** No `import 'flowbite'` and no global init. Controllers: idempotent `connect()`,
-  full cleanup in `disconnect()`, no global state, no `DOMContentLoaded`/`turbo:load` listeners.
-- **Recipe format** (checked by `ux-toolkit-kit-lint`): `manifest.json` with `type` and `name`; `README.md`
-  opening with `# Title` then a one-line summary; `{% props %}` documented with `##`; blocks documented with
-  `{##- … -#}`; root element `attributes.defaults({...|tailwind_classes})`; variants with `html_cva`.
-- **Naming.** Recipe folders lower-kebab (`stat-card`), components PascalCase (`StatCard`, parts
-  `StatCard:Trend`), controllers `snake_controller.js` ↔ kebab identifier. Copied recipe and controller names stay
-  unchanged.
+- **Copied recipes stay byte-identical.** The 22 recipes copied from the official `flowbite-4` kit (listed in
+  [`UPSTREAM.md`](UPSTREAM.md)) match the `symfony/ux` commit pinned there. Every change to them gets a row in its
+  *Deviations* table: file, change, reason, upstream PR.
+- **Behavior in Stimulus only.** No `import 'flowbite'` and no `initFlowbite()`. A controller's `connect()` must work
+  when it runs again on the same element, since Turbo and Live Components reconnect controllers. `disconnect()` undoes
+  everything `connect()` set up. No global state, and no `DOMContentLoaded` or `turbo:load` listeners.
+- **Recipe format** (checked by `ux-toolkit-kit-lint`):
+  - `manifest.json` with `type` and `name`;
+  - `README.md` opening with `# Title`, then a one-line summary;
+  - each prop in `{% props %}` preceded by a `## <type> <description>` line, and each `{% block %}` preceded by a
+    `{##- <description> -#}` comment (see `stat-card/templates/components/StatCard.html.twig`);
+  - root element `attributes.defaults({...|tailwind_classes})`, variants with `html_cva`;
+  - a controller's `@target`, `@value` and `@action` comment tags, if it has any, match its code.
+- **Naming.** Recipe folders in lower kebab case (`stat-card`), components in PascalCase (`StatCard`, parts
+  `Sidebar:Item`), controller files in snake case and used in kebab case (`theme_toggle_controller.js`,
+  `data-controller="theme-toggle"`). Copied recipe and controller names stay unchanged.
 - **Colors** only through the theme's role utilities (`bg-brand`, `text-heading`, `border-default`…).
-- **CSS order.** `flowbite.min.css` loads after Tailwind's utilities and wins ties: a variant it lacks loses to a
-  base utility it has (`flex max-md:hidden` stays `flex`), and its `max-w-2xl` is 16rem. Raise the variant's
-  specificity or use `!`, and check the computed style.
+- **CSS order.** `flowbite.min.css` loads after Tailwind's utilities, so when both define a class, Flowbite's copy
+  wins.
+  - A variant class that Flowbite does not define loses to a plain class that it does: in `flex max-md:hidden` the
+    element stays `flex`. Write `max-md:hidden!`, or make the variant more specific
+    (`max-md:not-data-mobile-open:hidden`).
+  - Flowbite's `max-w-2xl` is 16rem, not 42rem: do not use it.
+
+  Check the computed style in the browser. Details are under *Toolkit findings* in `UPSTREAM.md`.
 - **Twig inside components.** In a component's content (`<twig:X>…</twig:X>`), `block('name')` and `{% block %}`
   belong to the component: reach the surrounding template's blocks with `block(outerBlocks.name)`.
 - **Turbo forms.** A submitted form answers with a redirect (303) when it succeeds and 422 when it shows errors;
@@ -75,35 +101,57 @@ shows all of a recipe's examples.
 
 ## Adding a recipe
 
-1. Create `<recipe>/manifest.json`: `type` (`component`, or `block` for a page section), `name` (the component
-   name), `copy-files`, and `dependencies`: `recipe` for the kit recipes it uses, `composer` for the packages its
-   templates need. `tailwind_classes` needs `tales-from-a-dev/twig-tailwind-extra:^1.3.0`,
-   `twig/html-extra:^3.24.0` and `symfony/ux-twig-component:^3.5`; `html_cva` needs `twig/html-extra` and
-   `twig/extra-bundle`; icons need `symfony/ux-icons` (the lint's `composer.symbol-undeclared` warning names a
-   missing one). Copy the `$schema` line from one of this kit's own recipes (`stat-card`): the copied ones carry
-   a path that only resolves in `symfony/ux`. No shell metacharacters in constraints (`^7.4|^8.0`): `ux:install`
-   prints them in a command users paste.
-2. Add the files under the paths `copy-files` maps: `templates/components/<Name>.html.twig` (parts in
-   `templates/components/<Name>/`), `assets/controllers/<snake>_controller.js` for behavior.
-3. Write `README.md`: `# Title`, a one-line summary, then a ```` ```twig {"preview":true} ```` example,
-   `## Installation` with `::: installation`, `## Usage`, more examples under `##`/`###` headings. Every
-   ```` ```twig {…} ```` block is a demo preview and a screenshot test.
-4. `tools/sync-demo` and `(cd demo && php bin/console tailwind:build)` (the demo's CSS only holds the classes it has
-   seen), then open `/r/<recipe>` and `/preview/<recipe>/<example>?theme=dark` in the demo.
+1. Create `<recipe>/manifest.json`. Copy the `$schema` line from one of this kit's own recipes (`stat-card`): the
+   copied ones carry a path that only resolves in `symfony/ux`. Then set:
+   - `type`: `component`, or `block` for a page section;
+   - `name`: the component name (`StatCard`);
+   - `copy-files`: `{"templates/": "templates/"}`, plus `"assets/": "assets/"` when the recipe has a controller;
+   - `dependencies`: `recipe` lists the kit recipes it uses, `composer` the packages its templates need.
+     `tailwind_classes` needs `tales-from-a-dev/twig-tailwind-extra:^1.3.0`, `twig/html-extra:^3.24.0` and
+     `symfony/ux-twig-component:^3.5`; `html_cva` needs `twig/html-extra` and `twig/extra-bundle`; icons need
+     `symfony/ux-icons`. The lint's `composer.symbol-undeclared` warning names a missing one.
+
+   Give a package no constraint (`symfony/form`) or a single range (`^3.5`), never `^7.4|^8.0`: `ux:install` prints
+   the constraints in a `composer require` command users paste, and the shell reads `|` as a pipe.
+2. Add the files: the component in `<recipe>/templates/components/<Name>.html.twig`, each part `<Name>:<Part>` in
+   `<recipe>/templates/components/<Name>/<Part>.html.twig`, and a controller in
+   `<recipe>/assets/controllers/<snake_name>_controller.js` (`theme_toggle_controller.js` for `theme-toggle`).
+3. Write `<recipe>/README.md` in this order: `# Title`, a one-line summary, a first example, `## Installation` holding
+   only the line `::: installation` (the toolkit replaces it with the install steps), `## Usage`, then more examples
+   under `##` or `###` headings. Open each example with ```` ```twig {"preview":true} ````: the demo renders it and
+   Playwright screenshots it in light and dark. A plain ```` ```twig ```` block is shown as code only.
+4. Run `tools/sync-demo`, then `(cd demo && php bin/console tailwind:build && php bin/console asset-map:compile)`: the
+   demo's CSS only holds the classes it has seen, and the demo serves the compiled files. Start the demo (see *Setup*)
+   and open `/r/<recipe>` and `/preview/<recipe>/<example>?theme=dark`.
    - Icons: Iconify on demand is off in the demo, so import each icon the recipe uses
      (`(cd demo && php bin/console ux:icons:import flowbite:<name>)`) and commit it under `demo/assets/icons/`.
    - A block that takes a Symfony form gets one for its previews in `demo/src/Kit/PreviewForms.php`.
-5. Record the screenshots (below), review them, and commit them with the recipe.
-6. Behavior gets a spec in `tests/e2e/` (a `/lab` page when it must survive Turbo or Live re-renders); new color
-   pairs go in `tools/contrast/pairs.json`.
-7. Add the recipe to the index in `README.md` and an entry to `CHANGELOG.md`, commit, and run the checks.
+5. Record the recipe's screenshots with `npx playwright test --project=examples --update-snapshots=missing`. It writes
+   only the baselines that do not exist yet, as `<recipe>/tests/screenshots/<example>-light.png` and `-dark.png`.
+   Look at each one, and add them to the same commit as the recipe.
+6. A recipe with a controller gets a Playwright spec in `tests/e2e/`. If the behavior must survive Turbo visits,
+   frames or streams, or Live Component re-renders, test it on a `/lab` page:
+   - add the scenario to `SCENARIOS`, with a route, in `demo/src/Controller/LabController.php`;
+   - add its template to `demo/templates/lab/`;
+   - write the spec as `tests/e2e/lab.<scenario>.spec.ts`;
+   - add its path to `labPages` in `tests/e2e/a11y.spec.ts`.
+
+   If the recipe puts a text, icon or bar color on a background that `tools/contrast/pairs.json` does not cover yet,
+   add a row there: `fg`, `bg`, `min` (4.5 for text, 3 for icons, bars and focus rings) and `usage`.
+7. Add a row for the recipe to the matching table under *Recipes* in `README.md` (mark it ✦ if it ships a Stimulus
+   controller), and an entry to `CHANGELOG.md` (see *Changelog*). Commit, then run the checks that cover a new
+   recipe: the kit lint, `ux-toolkit-kit-debug`, `node tools/contrast/check.mjs` if you added pairs, and
+   `npx playwright test`. CI runs all of them.
 
 ## Screenshots
 
-`<recipe>/tests/screenshots/*.png` are the visual-regression baseline (byte-identical upstream copies for the
-copied recipes). Never update them as a side effect: a visual change is a deliberate commit made with
-`npx playwright test --project=examples --update-snapshots` (browser in Docker, same image as CI), reviewed, and
-logged in `UPSTREAM.md` when it touches a copied recipe.
+`<recipe>/tests/screenshots/*.png` are the baselines Playwright compares screenshots with. For the copied recipes
+they come from the official kit, and `UPSTREAM.md` lists the few that changed. Never update them as a side effect. A
+visual change is a commit of its own:
+
+1. Run `npx playwright test --project=examples --update-snapshots`. It rewrites every baseline that differs.
+2. Keep only the files you meant to change (check `git status`), and review them.
+3. Add a row to `UPSTREAM.md` when a copied recipe's baseline changes.
 
 ## Commits and pull requests
 
@@ -115,16 +163,24 @@ logged in `UPSTREAM.md` when it touches a copied recipe.
 
 Examples: `feat(stat-card): show the trend as text`, `fix(layouts): every layout shows flash messages`.
 
-**Pull request:** one topic; the title in the commit subject format; the description follows
-[the template](.github/pull_request_template.md) (What, Why, Checks). Plain words throughout, no AI attribution
-lines (`Co-Authored-By`, "Generated with" footers). Pull requests are merged with a merge commit (no squash, no
-rebase).
+**Pull request:** one topic, with a title in the commit subject format. The description follows
+[the template](.github/pull_request_template.md):
+
+- *What* lists the changes.
+- *Why* gives the problem or the goal.
+- *Checks* says whether CI passed on the last commit and what you verified by hand.
+
+Use plain words throughout, and no AI attribution lines (`Co-Authored-By`, "Generated with" footers). Pull requests
+are merged with a merge commit (no squash, no rebase), so every commit of the branch lands on `main`: each one
+follows the commit standard above.
 
 **Changelog:** a user-visible change (a recipe added, changed or removed, a fix users notice) gets an entry under
-`## [Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md), in the pull request that makes it.
+`## [Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md), in the pull request that makes it: one line naming the recipe,
+under `### Added`, `### Changed`, `### Fixed` or `### Removed`, as Keep a Changelog does.
 
 ## Releases
 
 Versions are git tags `X.Y.Z` ([Semantic Versioning](https://semver.org/)) without a `v`: the toolkit cannot
-install a `v` tag (see `UPSTREAM.md`). A release moves the `Unreleased` entries of `CHANGELOG.md` under the new
-version and its date, then tags the merge commit on `main`.
+install a `v` tag (see `UPSTREAM.md`). A release is a pull request that moves the entries under
+`## [Unreleased]` in `CHANGELOG.md` to a new `## [X.Y.Z] - YYYY-MM-DD` section. Once it is merged, tag that pull
+request's merge commit on `main` as `X.Y.Z`.

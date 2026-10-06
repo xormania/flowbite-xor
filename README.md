@@ -1,31 +1,41 @@
 # flowbite-xor
 
 A [Symfony UX Toolkit](https://symfony.com/bundles/ux-toolkit/current/index.html) kit built on the free
-[Flowbite](https://flowbite.com/) v4 library and Tailwind CSS v4: copy-in recipes (a theme, Twig components,
-Stimulus controllers, a form theme, layouts and blocks) for xor's Symfony projects.
+[Flowbite](https://flowbite.com/) v4 library and Tailwind CSS v4. A kit is a set of recipes. A recipe (not a
+Symfony Flex recipe) is one thing you install with `php bin/console ux:install`: the theme, a Twig component and
+its Stimulus controller, the form theme, the page layouts, or a block, a ready-made part of a page such as a
+login card or a dashboard.
 
 `ux:install` copies a recipe's files into your project, where you own them. Every behavior is a Stimulus
 controller (no Flowbite JavaScript, no global `initFlowbite()`), so components keep working when Turbo
-navigates and when Live Components re-render them. Every change to the files copied from the official
-`flowbite-4` kit is listed in [`UPSTREAM.md`](UPSTREAM.md).
+navigates and when Live Components re-render them.
+
+22 components are copied from the UX Toolkit's official `flowbite-4` kit, which loads Flowbite's JavaScript.
+This kit replaces that JavaScript with its own Stimulus controllers, fixes the contrast of some theme colors, and
+adds components, a form theme, layouts and blocks. [`UPSTREAM.md`](UPSTREAM.md) lists every change to the copied
+files.
 
 ## Install
 
 Requires PHP 8.4 or later with the `zip` extension (the toolkit unpacks GitHub's archive of the kit).
-Prepare the project once, in this order:
+On a new project (`composer create-project symfony/skeleton`), run these once, in this order:
 
 ```bash
-# contrib recipes: twig-tailwind-extra (the `tailwind_classes` filter) registers its bundle through one
+# 1. Allow Flex contrib recipes. Every component uses the `tailwind_classes` Twig filter, and a contrib
+#    recipe enables its bundle (tales-from-a-dev/twig-tailwind-extra).
 composer config extra.symfony.allow-contrib true
-# regular dependencies before the toolkit: TwigComponentBundle needs TwigBundle, and required only through
-# `--dev symfony/ux-toolkit`, symfony/property-access is dev-only and cache:clear fails ("non-existent service
-# property_accessor")
+# 2. Twig and Twig components as regular dependencies. If they only come in with the toolkit (a dev
+#    dependency), cache:clear fails with "non-existent service property_accessor".
 composer require symfony/twig-bundle symfony/ux-twig-component
-# http-client: the toolkit downloads the kit from GitHub with it
+# 3. The toolkit, and the HTTP client it downloads the kit with.
 composer require --dev symfony/ux-toolkit:^3.5 symfony/http-client
+# 4. AssetMapper and StimulusBundle: the layouts load the `app` importmap entrypoint, and StimulusBundle
+#    loads the recipes' controllers from assets/controllers/.
+composer require symfony/asset-mapper symfony/stimulus-bundle
 ```
 
-Then set up Tailwind, Flowbite's stylesheet and the theme as [`INSTALL.md`](INSTALL.md) says, and install recipes:
+Then set up Tailwind CSS, Flowbite's stylesheet and the `theme` recipe as the *Tailwind CSS* and *Installation*
+sections of [`INSTALL.md`](INSTALL.md) say (its *Symfony* steps are the commands above). After that, install recipes:
 
 ```bash
 # from main
@@ -35,48 +45,62 @@ php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-x
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version>
 ```
 
-`ux:install` installs the recipes a recipe depends on and prints the `composer require` command for the
-packages they need: run it. `ux:install dashboard-home`, for instance, brings the layouts and every component
-the dashboard uses, and renders a working page on a fresh skeleton; so does a form block like `signup`,
-through the form theme (both checked in CI).
+`ux:install` also installs the recipes a recipe depends on. It then prints the commands that install the
+packages they need: run the `composer require` one. The `importmap:require` and `npm install` lines are for
+Flowbite's stylesheet, already installed if you followed INSTALL.md. `ux:install dashboard-home`, for instance,
+brings the layouts and every component the dashboard uses, but not the `theme`. Its README shows the controller
+and template that render it.
+
+### Icons
+
+The recipes show icons from the `flowbite` set of [UX Icons](https://symfony.com/bundles/ux-icons/current/index.html).
+An icon that is not in `assets/icons/` is downloaded from the Iconify API the first time a page shows it, which
+needs `symfony/http-client`. Before you deploy, save the icons in the project and commit them:
+
+```bash
+php bin/console ux:icons:lock
+```
+
+Run it again when your templates use new icons.
 
 ## Recipes
 
-✦ ships a Stimulus controller. Each recipe's README has its examples, props and usage.
+Recipes marked ✦ come with a Stimulus controller, copied to `assets/controllers/` and loaded by StimulusBundle.
+Each recipe's README has its examples, props and usage.
 
 ### Theme
 
 | Recipe | |
 |---|---|
-| [`theme`](theme/README.md) | The Flowbite color roles (light and dark) with this kit's contrast fixes, as one stylesheet for `assets/styles/app.css`. |
+| [`theme`](theme/README.md) | Flowbite's color roles, with this kit's contrast fixes, as one stylesheet to import in `assets/styles/app.css`. A role is a named color with a light and a dark value, used as a utility: `bg-brand`, `text-heading`, `border-default`. |
 | [`theme-toggle`](theme-toggle/README.md) ✦ | A button switching between the light and dark themes, remembered in `localStorage` and following the system preference until the user chooses. |
 
-### Components from the official kit
+### Components from the official `flowbite-4` kit
 
 | Recipe | |
 |---|---|
-| [`alert`](alert/README.md) ✦ | The alert component can be used to provide information to your users such as success or error messages, but also highlighted information complementing the normal flow of paragraphs and headers on a page. |
-| [`avatar`](avatar/README.md) | Use the avatar component to show a visual representation of a user profile using an image element or SVG object based on multiple styles and sizes |
-| [`badge`](badge/README.md) | The badge component can be used to complement other elements such as buttons or text elements as a label or to show the count of a given data, such as the number of comments for an article or how much time has passed by since a comment has been made. |
-| [`button`](button/README.md) | Use the button component inside forms, as links, social login, payment options with support for multiple styles, colors, sizes, gradients, and shadows |
-| [`button-group`](button-group/README.md) | The button group component from Flowbite can be used to stack together multiple buttons and links inside a single element. |
-| [`card`](card/README.md) | Use these responsive card components to show data entries and information to your users in multiple forms and contexts such as for your blog, application, user profiles, and more. |
-| [`checkbox`](checkbox/README.md) | The checkbox component can be used to receive one or more selected options from the user in the form of a square box available in multiple styles, sizes, colors, and variants coded with the utility classes from Tailwind CSS and with support for dark mode. |
-| [`dropdown`](dropdown/README.md) ✦ | The dropdown component can be used to show a list of menu items when clicking on an element such as a button and hiding it when focusing outside of the triggering element. |
-| [`indicator`](indicator/README.md) | Use the indicator component to show a number count, account status, or as a loading label positioned relative to the parent component coded with Tailwind CSS |
-| [`input`](input/README.md) | The input field is an important part of the form element that can be used to create interactive controls to accept data from the user based on multiple input types, such as text, email, number, password, URL, phone number, and more. |
-| [`kbd`](kbd/README.md) | The KBD (Keyboard) component can be used to indicate a textual user input from the keyboard inside other elements such as in text, tables, cards, and more. |
+| [`alert`](alert/README.md) ✦ | A message for information, success, a warning or an error, optionally dismissible. |
+| [`avatar`](avatar/README.md) | A user's picture, with a fallback, in several sizes, round or with rounded corners. |
+| [`badge`](badge/README.md) | A small label or count next to other content, such as a number of comments. |
+| [`button`](button/README.md) | A button, or a link that looks like one, in several colors, sizes and styles. |
+| [`button-group`](button-group/README.md) | Several buttons or links joined into one control. |
+| [`card`](card/README.md) | A box grouping related content: text, images, a form. |
+| [`checkbox`](checkbox/README.md) | A square box to select one or more options. |
+| [`dropdown`](dropdown/README.md) ✦ | A menu that opens from a button and closes when the user clicks or focuses outside it. |
+| [`indicator`](indicator/README.md) | A dot or number placed on another element: a status, a count, a loading label. |
+| [`input`](input/README.md) | A single-line field for any input type: text, email, number, password, URL… |
+| [`kbd`](kbd/README.md) | A keyboard key or shortcut shown in text. |
 | [`label`](label/README.md) | A text element that identifies form controls and other content. |
-| [`modal`](modal/README.md) ✦ | Use the modal component to show interactive dialogs and notifications to your website users available in multiple sizes, colors, and styles |
-| [`pagination`](pagination/README.md) | Use the Tailwind CSS pagination element to indicate a series of content across various pages based on multiple styles and sizes |
-| [`radio`](radio/README.md) | The radio component can be used to allow the user to choose a single option from one or more available options coded with the utility classes from Tailwind CSS and available in multiple styles, variants, and colors and support dark mode. |
-| [`select`](select/README.md) | Get started with the select component to allow the user to choose from one or more options from a dropdown list based on multiple styles, sizes, and variants |
-| [`skeleton`](skeleton/README.md) | Use the skeleton component to indicate a loading status with placeholder elements that look very similar to the type of content that is being loaded such as paragraphs, heading, images, videos, and more. |
-| [`spinner`](spinner/README.md) | An indicator that can be used to show a loading state. |
-| [`table`](table/README.md) | Use the table component to show text, images, links, and other elements inside a structured set of data made up of rows and columns of table cells |
-| [`tabs`](tabs/README.md) ✦ | Use the following default tabs component example to show a list of links that the user can navigate from on your website. |
-| [`textarea`](textarea/README.md) | The textarea component is a multi-line text field input that can be used to receive longer chunks of text from the user in the form of a comment box, description field, and more. |
-| [`toggle`](toggle/README.md) | Use the toggle component to switch between a binary state of true or false using a single click available in multiple sizes, variants, and colors |
+| [`modal`](modal/README.md) ✦ | A dialog over the page, as a native `<dialog>`, with a close button. |
+| [`pagination`](pagination/README.md) | Links to the pages of a long list. |
+| [`radio`](radio/README.md) | A round button to choose one option among several. |
+| [`select`](select/README.md) | A list to choose one or more options. |
+| [`skeleton`](skeleton/README.md) | Placeholders shaped like the content that is loading. |
+| [`spinner`](spinner/README.md) | A spinning indicator for a loading state. |
+| [`table`](table/README.md) | Rows and columns of data. |
+| [`tabs`](tabs/README.md) ✦ | Tabs that switch between panels, in a row or a column. |
+| [`textarea`](textarea/README.md) | A multi-line text field, for a comment or a description. |
+| [`toggle`](toggle/README.md) | A switch for an on/off setting. |
 
 ### Components added by this kit
 
@@ -91,7 +115,7 @@ through the form theme (both checked in CI).
 | [`sidebar`](sidebar/README.md) ✦ | The app's main navigation: grouped links with icons and counts, collapsible to icons, opened over the page on small screens. |
 | [`stat-card`](stat-card/README.md) | A key figure with its label and, optionally, how it changed over a period. |
 | [`toast`](toast/README.md) ✦ | Short-lived notifications in a fixed region, added on page load or by Turbo Streams, dismissed after a timeout or by the user. |
-| [`tooltip`](tooltip/README.md) ✦ | A short label shown while a control is hovered or focused, also announced as its description. |
+| [`tooltip`](tooltip/README.md) ✦ | A short text shown while a control is hovered or focused, also announced as its description. |
 
 ### Forms
 
@@ -104,9 +128,14 @@ through the form theme (both checked in CI).
 
 | Recipe | |
 |---|---|
-| [`layouts`](layouts/README.md) | Page layouts to extend: an app shell with sidebar and navbar, a centered auth ground, settings, errors and a blank page. |
+| [`layouts`](layouts/README.md) | Page layouts to extend: an app shell with sidebar and navbar, a centered column for login, signup and password reset, settings, errors and a blank page. |
 
 ### Blocks
+
+A block is a ready-made part of a page, built from the components above. Each one is a Twig component with
+its own name: `dashboard-home` renders as `<twig:DashboardHome>`, `login` as `<twig:LoginForm>`, `signup` as
+`<twig:SignupForm>`, `forgot-password` as `<twig:ForgotPasswordForm>`, `settings-profile` as
+`<twig:SettingsProfile>` and `not-found` as `<twig:NotFound>`.
 
 | Recipe | |
 |---|---|
@@ -128,28 +157,31 @@ the recipe from the newer version with `--force`:
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version> --force
 ```
 
-`--force` replaces every file of the recipe. Without it, the command asks about each existing file, but a "yes"
-replaces only files older than the kit's commit: a file you edited, or any file of a fresh clone, is kept even
-though the command lists it as installed. Review the result with `git diff` and bring back your own changes where
-you need them (`git checkout -p`). Pinning a version installs the same files on every machine.
+`--force` replaces every file of the recipe and of every recipe it depends on: `ux:install dashboard-home --force`
+also replaces the layouts and every component the dashboard uses. Without it, the command asks about each existing
+file of those recipes, but a "yes" replaces only files older than the kit's commit: a file you edited, or any file
+of a fresh clone, is kept even though the command lists it as installed. Review the result with `git diff` and
+bring back your own changes where you need them (`git checkout -p`). Pinning a version installs the same files on
+every machine.
 
 ## Turbo and Live Components
 
-Rules the recipes follow, verified by the Playwright specs against the demo's `/lab` pages
-(`tests/e2e/lab.*.spec.ts`) and its `/demo` app:
+How the recipes behave with Turbo and Live Components, and what your own pages and controllers must do:
 
 - **Stimulus only.** A controller connects to new markup (Turbo visits, Turbo Frames, Live re-renders,
   Turbo Streams) and cleans up everything in `disconnect()`: a dropdown stays open through a Live re-render,
   a `<dialog>` (modal, drawer) stays modal, tooltips and dropdowns keep working in re-sorted Live rows.
 - **`data-turbo-permanent` keeps the node, not its scroll.** The sidebar restores its scroll position and
   collapsed state itself; the app layout scrolls the document, which Turbo restores on Back/Forward.
-- **A Live Component inside a `data-turbo-permanent` element keeps its state and stays live** (verified,
-  so no rule against it).
-- **Toasts go through Turbo Streams.** The toast region is permanent: render flash messages with
-  `<twig:Toast:Stream>` (the `layouts` recipe does it in `templates/layouts/base.html.twig`, so every kit layout
-  shows flash messages), never inside the region.
-- **Forms answer 303 or 422.** A submitted form redirects (303) when it succeeds and answers 422 with its
-  errors; Turbo Drive rejects a 200.
+- **Live Components work inside a `data-turbo-permanent` element**: they keep their state and stay live.
+- **Toasts go through Turbo Streams.** The toast region (`<twig:ToastRegion>`, `id="toasts"`) is
+  `data-turbo-permanent`: on a Turbo visit, Turbo keeps the region already on screen and drops the new page's copy,
+  with any toast written inside it. Render each toast with `<twig:Toast:Stream>` instead, in the page or in a Turbo
+  Stream response. The `layouts` recipe does this for flash messages in `templates/layouts/base.html.twig`, so
+  every kit layout shows them.
+- **Your form controllers answer 303 or 422.** Turbo Drive rejects a 200 after a form submit. On success,
+  redirect with `$this->redirectToRoute('…', [], Response::HTTP_SEE_OTHER)` (the default is 302). On errors,
+  render the form with `$this->render(…, ['form' => $form])`, which answers 422 when the submitted form is invalid.
 - **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a
   Turbo Frame (`id="stock-{{ row.id }}"`): its generated id would change on every re-render.
 
@@ -160,21 +192,22 @@ which the toolkit then cannot find. Install one with `--kit=https://github.com/x
 without a version, `ux:install` downloads `main`, the latest work. [`CHANGELOG.md`](CHANGELOG.md) lists what
 each version changes.
 
-## Targets
+## Requirements
 
 | | |
 |---|---|
 | Symfony UX Toolkit | ^3.5 (blocks need 3.5) |
-| PHP | ≥ 8.4 (required by the toolkit) |
-| Symfony | 7.4 LTS (demo app); toolkit supports ^7.4 \| ^8.0 |
-| Assets | AssetMapper (Encore: npm dependencies declared) |
+| PHP | ≥ 8.4 (required by the toolkit), with the `zip` extension |
+| Symfony | 7.4 LTS, the version CI tests; the toolkit also allows 8.x |
+| Assets | AssetMapper. With Webpack Encore, override the layouts' `stylesheets` and `javascripts` blocks: they load the `app` importmap entrypoint |
 | Tailwind CSS | 4.x |
 | Flowbite | 4.x |
 
 ## Coding agents
 
-Paste [`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md) into your project's `AGENTS.md` or
-`CLAUDE.md`: it tells agents to use the kit's components, theme roles and icons, and how they behave with Turbo.
+Paste the block in [`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md) into your project's
+`AGENTS.md` or `CLAUDE.md`: it tells agents to use the kit's components, color roles and icons, and how they
+behave with Turbo.
 
 ## Contributing
 

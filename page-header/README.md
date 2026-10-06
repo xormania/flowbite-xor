@@ -23,3 +23,5 @@ The top of a page: its title, a short description and the page's actions.
     <twig:block name="actions">…</twig:block>
 </twig:PageHeader>
 ```
+
+The `layouts` recipe's `app.html.twig` renders a `PageHeader` from its `page_title`, `page_description`, `page_before` and `page_actions` blocks: pages that extend it fill those blocks instead.

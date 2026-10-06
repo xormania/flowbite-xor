@@ -1,6 +1,6 @@
 # Tooltip
 
-A short label shown while a control is hovered or focused, also announced as its description.
+A short text shown while a control is hovered or focused, also announced as its description.
 
 ```twig {"preview":true}
 <div class="flex gap-4 pt-12">
@@ -29,4 +29,4 @@ A short label shown while a control is hovered or focused, also announced as its
 
 Wrap a focusable element: the tooltip opens on hover and on keyboard focus, closes on Escape, and the element gets `aria-describedby`. Tooltips only describe; never put the only label of an icon button in one (give the button an `aria-label`).
 
-Inside a Live Component or a Turbo Frame, pass a stable `id` (e.g. `id="stock-{{ row.id }}"`) so a re-render keeps the same tooltip id.
+Without `id`, the tooltip gets a random one, which changes on every render. Inside a Live Component or a Turbo Frame, pass a stable `id` (e.g. `id="stock-{{ row.id }}"`) so a re-render keeps the same tooltip id.
