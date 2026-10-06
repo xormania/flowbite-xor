@@ -68,7 +68,8 @@ npx playwright test                                 # every browser test: see be
 `npx playwright test` runs two projects; pick one with `--project=smoke` or `--project=examples`.
 
 - `smoke` runs the specs in `tests/e2e/`: the demo pages, the forms, the `/lab` pages for Turbo and Live
-  Components, and an axe accessibility scan of every demo page (no serious or critical issue).
+  Components, the components given hostile prop values (`hostile-props.spec.ts`), and an axe accessibility scan of
+  every demo page (no serious or critical issue).
 - `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
   runs the official kit's recipe specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`).
 
