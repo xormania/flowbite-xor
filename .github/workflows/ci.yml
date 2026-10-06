@@ -2,7 +2,8 @@ name: CI
 
 # Every push to a branch runs CI (so a branch is green before its PR opens); pull_request runs only for forks,
 # whose pushes do not reach this repository, to avoid running everything twice. Tag pushes do not run it: release.yml
-# checks a release's install before tagging it.
+# checks a release's install before tagging it. Actions are pinned by commit; Dependabot proposes their updates
+# (.github/dependabot.yml).
 on:
     push:
         branches: ['**']
@@ -28,9 +29,9 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - uses: shivammathur/setup-php@v2
+            - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
               with:
                   php-version: ${{ env.PHP_VERSION }}
                   tools: composer:v2
@@ -68,9 +69,9 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - uses: shivammathur/setup-php@v2
+            - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
               with:
                   php-version: ${{ env.PHP_VERSION }}
                   tools: composer:v2
@@ -86,7 +87,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 20
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             # the kit as users get it: GitHub's archive of this commit, installed in a fresh Symfony Docker project on
             # the latest Symfony
@@ -102,9 +103,9 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - uses: actions/setup-node@v7
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
                   node-version: 22
                   cache: npm
@@ -131,18 +132,18 @@ jobs:
             matrix:
                 shard: [1, 2, 3]
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - uses: actions/setup-node@v7
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
                   node-version: 22
                   cache: npm
 
             # The demo runs in Symfony Docker (demo/compose.yaml): FrankenPHP in worker mode, PHP 8.5
-            - uses: docker/setup-buildx-action@v4
+            - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
             - name: Build the demo image
-              uses: docker/bake-action@v7
+              uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
               with:
                   source: ./demo                # bake's working directory: compose files and build context in demo/
                   files: |
@@ -198,7 +199,7 @@ jobs:
               working-directory: demo
               run: docker compose logs php
 
-            - uses: actions/upload-artifact@v7
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               if: failure()
               with:
                   name: playwright-report-${{ matrix.shard }}
