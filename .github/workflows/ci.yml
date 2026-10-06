@@ -112,9 +112,14 @@ jobs:
               run: cmp kit.css theme/assets/styles/flowbite-xor.css
 
     demo:
-        name: Demo + Playwright
+        name: Demo + Playwright (${{ matrix.shard }}/3)
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
+        # the browser suite is most of CI's time: three shards, each with its own demo and browser
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3]
         steps:
             - uses: actions/checkout@v7
 
@@ -176,7 +181,7 @@ jobs:
             - name: Playwright (smoke + every README example + upstream recipe specs)
               env:
                   DEMO_URL: https://localhost
-              run: npx playwright test
+              run: npx playwright test --shard=${{ matrix.shard }}/3
 
             - name: Demo logs
               if: failure()
@@ -186,7 +191,7 @@ jobs:
             - uses: actions/upload-artifact@v7
               if: failure()
               with:
-                  name: playwright-report
+                  name: playwright-report-${{ matrix.shard }}
                   path: |
                       playwright-report/
                       test-results/
