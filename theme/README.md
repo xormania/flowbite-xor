@@ -8,7 +8,7 @@ The Flowbite color roles (light and dark) with this kit's contrast fixes, as one
 
 ## Usage
 
-The recipe copies `assets/styles/flowbite-xor.css`: Flowbite's theme (`@theme` roles, `.dark` overrides, `@custom-variant dark`) with every role checked for contrast. Import it after Tailwind and Flowbite's base styles in `assets/styles/app.css`:
+The recipe copies `assets/styles/flowbite-xor.css`, Flowbite's theme with every color role checked for contrast. A role is a named color used through utilities such as `bg-brand`, `text-heading` or `border-default`. The file defines the roles (`@theme`), their dark values (`.dark`) and the `dark:` variant (`@custom-variant dark`). Import it after Tailwind and Flowbite's stylesheet in `assets/styles/app.css`:
 
 ```css
 @import "tailwindcss";
@@ -29,4 +29,4 @@ Dark mode is class based: the `.dark` overrides and the `dark:` variant apply be
 
 ### Contrast
 
-Text roles reach 4.5:1 on the grounds they are meant for, and the focus ring 3:1, in both themes. The kit checks a list of pairs in CI (`tools/contrast/pairs.json`). Keep small `fg-brand` text off `brand-soft` grounds: in dark mode that pair is below 4.5:1, so use `fg-brand-strong` there.
+In both themes, text roles reach a contrast of 4.5:1 on the backgrounds they are meant for, and the focus ring 3:1. The kit's repository checks [these pairs](https://github.com/xormania/flowbite-xor/blob/main/tools/contrast/pairs.json) on every change. Keep small `fg-brand` text off `brand-soft` backgrounds: in dark mode that pair is below 4.5:1, so use `fg-brand-strong` there.

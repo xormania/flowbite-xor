@@ -14,7 +14,7 @@ A card asking for an email address to send a password reset link, then confirmin
 
 ## Usage
 
-The block applies the form theme (`form/flowbite_layout.html.twig`, from the `form-theme` recipe) to its form itself: no `twig.form_themes` setting is needed.
+`ForgotPasswordForm` applies the form theme (`form/flowbite_layout.html.twig`, from the `form-theme` recipe) to its own form, so you do not need a `twig.form_themes` setting.
 
 ```php
 // src/Controller/ResetPasswordController.php

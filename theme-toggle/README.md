@@ -18,7 +18,7 @@ A button switching between the light and dark themes, remembered in `localStorag
 
 ### No flash on load
 
-Add this snippet to `<head>`, before any stylesheet, so the theme is set before the first paint (the controller only connects after the page has rendered). Keep its key in sync with `storageKey`:
+Add this snippet to `<head>`, before any stylesheet, so the theme is set before the first paint (the controller only connects after the page has rendered). The `layouts` recipe's `base.html.twig` already has it. If you change `storageKey`, change `'theme'` in the snippet too:
 
 ```html
 <script>

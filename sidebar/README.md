@@ -44,6 +44,6 @@ The app's main navigation: grouped links with icons and counts, collapsible to i
 </twig:Sidebar>
 ```
 
-- **Active item:** `route` compares with `app.current_route`, `:active` forces it; otherwise the controller marks the item whose link matches the current URL, which also keeps a `data-turbo-permanent` sidebar right across Turbo visits.
-- **Turbo:** add `data-turbo-permanent` (the sidebar has an `id`) to keep it, its collapsed state and its scroll position across visits.
-- **Small screens:** the sidebar is hidden; the `Navbar` toggle (or any `sidebar:toggle` window event) opens it over the page, Escape closes it.
+- **Active item:** on every page, Turbo visits included, the controller marks the item whose link has the current URL's path. `route` also marks it on the server, before the controller connects. `:active` forces the state and turns the URL matching off for the whole sidebar, so do not use it in a `data-turbo-permanent` sidebar: Turbo keeps the first page's sidebar, and its forced state with it.
+- **Turbo:** add `data-turbo-permanent` to keep the sidebar, its collapsed state and its scroll position across visits. Turbo needs an `id` for this; the sidebar always has one (`sidebar` by default).
+- **Small screens:** the sidebar is hidden. The `Navbar` menu button opens it over the page, and Escape closes it. To open it from another button, dispatch a `sidebar:toggle` event on `window` with the sidebar's id: `window.dispatchEvent(new CustomEvent('sidebar:toggle', {detail: {id: 'sidebar'}}))`.

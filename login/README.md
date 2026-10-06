@@ -14,9 +14,9 @@ A sign-in card rendering a Symfony login form through the form theme, with the l
 
 ## Usage
 
-The block applies the form theme (`form/flowbite_layout.html.twig`, from the `form-theme` recipe) to its form itself: no `twig.form_themes` setting is needed.
+`LoginForm` applies the form theme (`form/flowbite_layout.html.twig`, from the `form-theme` recipe) to its own form, so you do not need a `twig.form_themes` setting.
 
-The form posts to `form_login`, so its fields keep the names the authenticator reads: `_username`, `_password`, `_remember_me` and the `_csrf_token` checked with the `authenticate` id.
+The form posts back to the login page, which the `security.yaml` below sets as the firewall's `check_path`: Symfony's `form_login` authenticator reads it there. So the fields keep the names `form_login` expects: `_username`, `_password`, `_remember_me`, and a `_csrf_token` checked against the `authenticate` token id.
 
 ```php
 // src/Form/LoginType.php
@@ -41,6 +41,8 @@ final class LoginType extends AbstractType
     }
 }
 ```
+
+`_remember_me` only works when the firewall has a `remember_me` section, and the `security.yaml` below has none: add one, or drop the field. `LoginForm` shows the checkbox only when the form has it.
 
 ```php
 // src/Controller/SecurityController.php
@@ -79,4 +81,4 @@ The page below extends the `layouts` recipe's `auth.html.twig` (`ux:install layo
 {% endblock %}
 ```
 
-Drop `_remember_me` if the firewall has no `remember_me` section.
+`forgotPasswordHref` and `signupHref` are optional: without one, its link is left out. The routes above are those of the `forgot-password` and `signup` READMEs.

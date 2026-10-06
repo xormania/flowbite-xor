@@ -41,4 +41,6 @@ A panel sliding over one side of the page, for navigation, filters or details, a
 </twig:Drawer>
 ```
 
+Spread `drawer_trigger_attrs` on the element that opens the drawer, inside `Drawer:Trigger`, and `drawer_close_attrs` on any element that closes it, inside `Drawer:Close`. `Drawer:Content` also shows a close button in its corner; `:showCloseButton="false"` removes it. The `<dialog>` element's id is `drawer-<id>`.
+
 A modal drawer traps focus and makes the page inert (native `showModal()`); Escape or a click on the backdrop closes it. With `:modal="false"` the page stays usable and Escape still closes the drawer while focus is inside it.

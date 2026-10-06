@@ -25,7 +25,7 @@ A labelled form control with its help text and error message, wired by id (used 
 </twig:FormField>
 ```
 
-The component lays the field out and gives the help and error their ids (`<for>_help`, `<for>_error`, the scheme of Symfony forms); the control references them with `aria-describedby` and sets `aria-invalid` when there is an error. `error` also takes a list of messages.
+The component lays out the label, help and error, and gives the help and the error their ids: `<for>_help` and `<for>_error`, as Symfony forms do. It does not change the control. Set these on the control yourself: `id` equal to `for`, `aria-describedby` with the two ids, and `aria-invalid="true"` when there is an error. `error` also takes a list of messages.
 
 Group several controls (radios, checkboxes) with `as="fieldset"`: the label becomes the `legend`.
 

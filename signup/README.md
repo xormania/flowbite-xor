@@ -14,7 +14,7 @@ A registration card rendering a Symfony form through the form theme.
 
 ## Usage
 
-The block applies the form theme (`form/flowbite_layout.html.twig`, from the `form-theme` recipe) to its form itself: no `twig.form_themes` setting is needed.
+`SignupForm` applies the form theme (`form/flowbite_layout.html.twig`, from the `form-theme` recipe) to its own form, so you do not need a `twig.form_themes` setting. It renders every field of the form, in order.
 
 ```php
 // src/Form/RegistrationType.php

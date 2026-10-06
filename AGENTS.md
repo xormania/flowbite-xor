@@ -1,61 +1,15 @@
-# AGENTS.md — working on flowbite-xor
+# AGENTS.md
 
-Rules for agents (and humans) changing this repository. The build plan, [`docs/PLAN.md`](docs/PLAN.md),
-is the source of truth; its §1 decisions are settled.
+Instructions for coding agents working on this repository, a Symfony UX Toolkit kit.
 
-## What this repository is
-
-A Symfony UX Toolkit kit: `manifest.json` at the root, one recipe per top-level directory holding a
-`manifest.json`. `demo/`, `tools/`, `tests/`, `docs/` and `.github/` are not part of the kit and are
-`export-ignore`d (see `.gitattributes`); keep any new non-kit path out of the archive the same way.
-
-## Rules
-
-- **Byte-identical copies.** Recipes copied from `symfony/ux` `src/Toolkit/kits/flowbite-4` stay
-  byte-identical to the commit pinned in `UPSTREAM.md`. Every deviation gets a row in `UPSTREAM.md`
-  (file, change, reason, upstream PR).
-- **Behavior in Stimulus only.** No `import 'flowbite'` global init in recipes. Controllers: idempotent
-  `connect()`, full cleanup in `disconnect()`, no global state, no `DOMContentLoaded`/`turbo:load`.
-- **Recipe conventions** (checked by `ux-toolkit-kit-lint`): `manifest.json` with `type` and `name`,
-  `README.md` opening with `# Title` then a one-line summary, `{% props %}` documented with `##`,
-  blocks documented with `{##- … -#}`, root element `attributes.defaults({...|tailwind_classes})`,
-  variants with `html_cva`.
-- **Naming.** Recipe folders lower-kebab (`stat-card`), components PascalCase (`StatCard`, parts
-  `StatCard:Trend`), controllers `snake_controller.js` ↔ kebab identifier. Official recipe and
-  controller names stay unchanged.
-- **Colors** only through Flowbite role utilities (`bg-brand`, `text-heading`, `border-default`…).
-- **CSS order.** `flowbite.min.css` loads after Tailwind's utilities and wins ties: a variant it lacks loses to a base
-  utility it has (`flex max-md:hidden` stays `flex`), and its `max-w-2xl` is 16rem. Raise the variant's specificity
-  or use `!`, and check the computed style (see `UPSTREAM.md` → *Toolkit findings*).
-- **Twig inside components.** In a component's content (`<twig:X>…</twig:X>`), `block('name')` and `{% block %}`
-  belong to the component: reach the surrounding template's blocks with `block(outerBlocks.name)`.
-- **Turbo forms.** A submitted form answers with a redirect (303) when it succeeds and 422 when it shows errors;
-  Turbo Drive rejects a 200.
-- **Never commit** `demo/vendor/`, `demo/var/`, `demo/public/assets/`, `demo/assets/vendor/`,
-  `node_modules/`, Playwright output (`test-results/`, `playwright-report/`).
-- **Commits:** Conventional Commits (`feat(sidebar): …`, `chore(demo): …`). One PR per plan phase.
-
-## Commands
-
-```bash
-tools/sync-demo                 # copy every recipe into demo/ (like ux:install --force); idempotent, deletes nothing
-tools/tests/sync-demo.sh        # proves sync-demo == ux:install (needs demo/vendor)
-node tools/contrast/check.mjs   # theme contrast gate; kit.css and theme/assets/styles/flowbite-xor.css stay identical
-
-# lint the kit as users download it
-tmp=$(mktemp -d) && git archive HEAD | tar -x -C "$tmp" && demo/vendor/bin/ux-toolkit-kit-lint "$tmp"
-demo/vendor/bin/ux-toolkit-kit-debug .   # what the toolkit sees
-
-(cd demo && composer install && php bin/console tailwind:build)
-npx playwright test             # smoke + lab (Turbo/Live) + axe on every demo page + README screenshots + recipe specs (needs Docker)
-```
-
-`git archive` exports committed files only: commit before linting.
-
-## Screenshots
-
-`<recipe>/tests/screenshots/*.png` are the visual-regression baseline (byte-identical upstream copies
-for base recipes). Never update them as a side effect: a visual change is a deliberate commit made
-with `npx playwright test --project=examples --update-snapshots` (browser in Docker, same image as CI),
-reviewed, and logged in `UPSTREAM.md` when it touches a copied recipe. Icons used by recipes are
-committed under `demo/assets/icons/` (Iconify on-demand is off in the demo).
+- Follow [`CONTRIBUTING.md`](CONTRIBUTING.md): conventions, adding a recipe, checks, commit and pull request
+  standard. The same rules apply to people.
+- Recipes copied from the official `flowbite-4` kit stay byte-identical; every deviation gets a row in
+  [`UPSTREAM.md`](UPSTREAM.md).
+- Behavior lives in Stimulus controllers only: no `import 'flowbite'`, no `initFlowbite()`.
+- Run the checks in `CONTRIBUTING.md` that cover your change before pushing; CI runs all of them.
+- Never update screenshot baselines as a side effect, and never commit `demo/vendor/`, `demo/var/`,
+  `demo/public/assets/`, `demo/assets/vendor/`, `node_modules/` or Playwright output (`test-results/`,
+  `playwright-report/`).
+- Commits and pull requests: plain words, the `type(scope): what changes` format, the pull request template,
+  no AI attribution lines.
