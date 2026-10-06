@@ -13,3 +13,8 @@
 # Repository docs, not part of the kit
 /CONTRIBUTING.md export-ignore
 /CHANGELOG.md export-ignore
+/AGENTS.md export-ignore
+/UPSTREAM.md export-ignore
+/.editorconfig export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore

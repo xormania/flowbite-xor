@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes to flowbite-xor. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and versions follow [Semantic Versioning](https://semver.org/) as git tags (`vX.Y.Z`).
+and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y.Z`, no `v`).
 
 ## [Unreleased]
 

@@ -7,8 +7,8 @@ on the project how to use the kit's recipes.
 ## UI: flowbite-xor
 
 The UI is built from the [flowbite-xor](https://github.com/xormania/flowbite-xor) Symfony UX Toolkit kit.
-Its recipes are copied into `templates/components/`, `templates/layouts/`, `templates/form/` and
-`assets/controllers/`; we own those files.
+Its recipes are copied into `templates/components/`, `templates/layouts/`, `templates/form/`,
+`assets/controllers/` and `assets/styles/flowbite-xor.css` (the theme's color roles); we own those files.
 
 - **Use the kit's components, not raw Flowbite HTML.** `<twig:Button>`, `<twig:Modal>`, `<twig:Dropdown>`,
   `<twig:Toast>`, `<twig:FormField>`… A missing one is installed with
@@ -36,6 +36,9 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
 - **Layouts:** pages extend `layouts/app.html.twig` (or `auth`, `settings`, `error`, `blank`). Inside a
   component's content (`<twig:Card>…</twig:Card>`), `block('x')` means the component's block: reach the
   page's own blocks with `block(outerBlocks.x)`.
-- **Stable ids inside Live Components and Turbo Frames**: give a `<twig:Tooltip>` (or any component with a
-  generated id) an explicit `id`, e.g. `id="stock-{{ row.id }}"`.
+- **Stable ids inside Live Components and Turbo Frames**: give a `<twig:Tooltip>` an explicit `id`, e.g.
+  `id="stock-{{ row.id }}"`; its generated id would change on every re-render.
+- **CSS order:** Flowbite's stylesheet loads after Tailwind's utilities and wins ties, so a responsive variant it
+  does not ship loses to a base class it does (`flex max-md:hidden` stays `flex`, `hidden xl:flex` stays
+  hidden). Mark the variant important (`max-md:hidden!`) and check the computed style.
 ````

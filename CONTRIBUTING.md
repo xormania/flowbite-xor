@@ -8,7 +8,7 @@ and pull request standard.
 
 | Path | In `ux:install` downloads | |
 |------|---------------------------|---|
-| `manifest.json`, `INSTALL.md`, `kit.css`, `kit.js`, `icon.svg`, `<recipe>/` (minus `<recipe>/tests/`) | yes | the kit |
+| `manifest.json`, `INSTALL.md`, `kit.css`, `kit.js`, `icon.svg`, `<recipe>/` (minus `<recipe>/tests/`), `README.md`, `LICENSE`, `NOTICE` | yes | the kit, its readme and license |
 | `demo/` | no | Symfony app showing every recipe, plus Turbo/Live scenario pages (`/lab`) and a small application (`/demo`) |
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
@@ -17,7 +17,8 @@ and pull request standard.
 | `docs/`, `.github/` | no | the snippet for projects' `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI, the pull request template |
 
 `ux:install` downloads GitHub's archive of the whole repository; `export-ignore` in `.gitattributes` keeps
-everything but the kit out of it. Keep any new non-kit path out of the archive the same way.
+everything else out of it (the demo, tests, tools, and repository files such as this one, `AGENTS.md` and
+`UPSTREAM.md`). Keep any new path out of the archive the same way unless users need it.
 
 ## Setup
 
@@ -75,17 +76,23 @@ shows all of a recipe's examples.
 ## Adding a recipe
 
 1. Create `<recipe>/manifest.json`: `type` (`component`, or `block` for a page section), `name` (the component
-   name), `copy-files`, and `dependencies` (`recipe` for kit recipes it uses, `composer` for packages:
-   `tailwind_classes` needs `tales-from-a-dev/twig-tailwind-extra`, `html_cva` needs `twig/html-extra`,
-   components need `symfony/ux-twig-component:^3.5`). Copy the `$schema` line from another recipe. No shell
-   metacharacters in constraints (`^7.4|^8.0`): `ux:install` prints them in a command users paste.
+   name), `copy-files`, and `dependencies`: `recipe` for the kit recipes it uses, `composer` for the packages its
+   templates need. `tailwind_classes` needs `tales-from-a-dev/twig-tailwind-extra:^1.3.0`,
+   `twig/html-extra:^3.24.0` and `symfony/ux-twig-component:^3.5`; `html_cva` needs `twig/html-extra` and
+   `twig/extra-bundle`; icons need `symfony/ux-icons` (the lint's `composer.symbol-undeclared` warning names a
+   missing one). Copy the `$schema` line from one of this kit's own recipes (`stat-card`): the copied ones carry
+   a path that only resolves in `symfony/ux`. No shell metacharacters in constraints (`^7.4|^8.0`): `ux:install`
+   prints them in a command users paste.
 2. Add the files under the paths `copy-files` maps: `templates/components/<Name>.html.twig` (parts in
    `templates/components/<Name>/`), `assets/controllers/<snake>_controller.js` for behavior.
 3. Write `README.md`: `# Title`, a one-line summary, then a ```` ```twig {"preview":true} ```` example,
    `## Installation` with `::: installation`, `## Usage`, more examples under `##`/`###` headings. Every
    ```` ```twig {…} ```` block is a demo preview and a screenshot test.
-4. `tools/sync-demo`, then open `/r/<recipe>` and `/preview/<recipe>/<example>?theme=dark` in the demo. Icons the
-   recipe uses go under `demo/assets/icons/` (Iconify on demand is off in the demo).
+4. `tools/sync-demo` and `(cd demo && php bin/console tailwind:build)` (the demo's CSS only holds the classes it has
+   seen), then open `/r/<recipe>` and `/preview/<recipe>/<example>?theme=dark` in the demo.
+   - Icons: Iconify on demand is off in the demo, so import each icon the recipe uses
+     (`(cd demo && php bin/console ux:icons:import flowbite:<name>)`) and commit it under `demo/assets/icons/`.
+   - A block that takes a Symfony form gets one for its previews in `demo/src/Kit/PreviewForms.php`.
 5. Record the screenshots (below), review them, and commit them with the recipe.
 6. Behavior gets a spec in `tests/e2e/` (a `/lab` page when it must survive Turbo or Live re-renders); new color
    pairs go in `tools/contrast/pairs.json`.
@@ -118,5 +125,6 @@ rebase).
 
 ## Releases
 
-Versions are git tags `vX.Y.Z` ([Semantic Versioning](https://semver.org/)). A release moves the `Unreleased`
-entries of `CHANGELOG.md` under the new version and its date, then tags the merge commit on `main`.
+Versions are git tags `X.Y.Z` ([Semantic Versioning](https://semver.org/)) without a `v`: the toolkit cannot
+install a `v` tag (see `UPSTREAM.md`). A release moves the `Unreleased` entries of `CHANGELOG.md` under the new
+version and its date, then tags the merge commit on `main`.

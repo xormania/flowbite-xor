@@ -11,6 +11,7 @@ navigates and when Live Components re-render them. Every change to the files cop
 
 ## Install
 
+Requires PHP 8.4 or later with the `zip` extension (the toolkit unpacks GitHub's archive of the kit).
 Prepare the project once, in this order:
 
 ```bash
@@ -30,7 +31,7 @@ Then set up Tailwind, Flowbite's stylesheet and the theme as [`INSTALL.md`](INST
 # from main
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor
 
-# from a release tag, branch or commit SHA (no "/" allowed: use the SHA for branches like feat/x)
+# from a release tag (`0.1.0`), a branch, or a full 40-character commit SHA (no "/": use the SHA for feat/x)
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version>
 ```
 
@@ -120,11 +121,17 @@ A Live Component `data-table` (sortable, paginated) is planned, not built yet.
 
 ## Updating
 
-Recipes are copies you own, so an update is a change you review like any other. Commit first, then re-run
-`ux:install <recipe>` against the newer kit version: for each file that already exists it asks before
-overwriting (`--force` overwrites them all, `--no-interaction` keeps them all). Review the result with
-`git diff` and keep your own changes where you need them. Pin a version with `--kit=…:<tag>` to install
-the same files on every machine.
+Recipes are copies you own, so an update is a change you review like any other. Commit first, then reinstall
+the recipe from the newer version with `--force`:
+
+```bash
+php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version> --force
+```
+
+`--force` replaces every file of the recipe. Without it, the command asks about each existing file, but a "yes"
+replaces only files older than the kit's commit: a file you edited, or any file of a fresh clone, is kept even
+though the command lists it as installed. Review the result with `git diff` and bring back your own changes where
+you need them (`git checkout -p`). Pinning a version installs the same files on every machine.
 
 ## Turbo and Live Components
 
@@ -139,16 +146,19 @@ Rules the recipes follow, verified by the Playwright specs against the demo's `/
 - **A Live Component inside a `data-turbo-permanent` element keeps its state and stays live** (verified,
   so no rule against it).
 - **Toasts go through Turbo Streams.** The toast region is permanent: render flash messages with
-  `<twig:Toast:Stream>` (every layout does, from `base.html.twig`), never inside the region.
+  `<twig:Toast:Stream>` (the `layouts` recipe does it in `templates/layouts/base.html.twig`, so every kit layout
+  shows flash messages), never inside the region.
 - **Forms answer 303 or 422.** A submitted form redirects (303) when it succeeds and answers 422 with its
   errors; Turbo Drive rejects a 200.
-- **Stable ids in re-rendered markup.** Give a tooltip (or any component with a generated id) an explicit
-  `id` inside a Live Component or a Turbo Frame.
+- **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a
+  Turbo Frame (`id="stock-{{ row.id }}"`): its generated id would change on every re-render.
 
 ## Versioning
 
-Versions are git tags `vX.Y.Z`: install one with `--kit=https://github.com/xormania/flowbite-xor:v0.1.0`.
-Without a version, `ux:install` downloads `main`, the latest work.
+Versions are git tags `X.Y.Z`, without a `v`: GitHub names the archive of a `v1.2.3` tag `flowbite-xor-1.2.3`,
+which the toolkit then cannot find. Install one with `--kit=https://github.com/xormania/flowbite-xor:<version>`;
+without a version, `ux:install` downloads `main`, the latest work. [`CHANGELOG.md`](CHANGELOG.md) lists what
+each version changes.
 
 ## Targets
 
