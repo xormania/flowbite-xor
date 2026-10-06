@@ -82,7 +82,8 @@ npx playwright test                                 # every browser test: see be
   runs the official kit's recipe specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`). It fails
   on a committed screenshot that no test compares (`baselines.spec.ts`).
 
-Every test of both projects fails on a console error, a failed request or a Content Security Policy violation.
+Every test of both projects blocks requests leaving the demo, and fails on a console error, a page error, a local
+request that fails or answers >= 400, or a Content Security Policy violation (`tests/e2e/fixtures.ts`).
 The demo enforces a strict policy (`demo/src/EventListener/SecurityHeadersListener.php`): scripts and styles run
 only with the request's nonces, which the layouts print (`layouts/README.md`), and no inline event handler or style
 attribute runs, except the few style attributes of README examples it lists.
