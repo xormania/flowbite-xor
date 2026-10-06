@@ -21,7 +21,8 @@
         },
     },
 ) -%}
-{%- set icons = {info: 'info-circle-solid', success: 'check-circle-solid', warning: 'exclamation-circle-solid', danger: 'close-circle-solid'} -%}
+{#- full icon names, so `ux:icons:lock` finds them -#}
+{%- set icons = {info: 'flowbite:info-circle-solid', success: 'flowbite:check-circle-solid', warning: 'flowbite:exclamation-circle-solid', danger: 'flowbite:close-circle-solid'} -%}
 <div
     {%- if variant == 'danger' %} role="alert"{% endif %}
     data-toast-timeout-value="{{ timeout }}"
@@ -32,7 +33,7 @@
     }) }}
 >
     <span class="{{ icon.apply({variant: variant}) }}">
-        <twig:ux:icon name="flowbite:{{ icons[variant] }}" class="size-5" aria-hidden="true" />
+        <twig:ux:icon name="{{ icons[variant] }}" class="size-5" aria-hidden="true" />
     </span>
     <div class="min-w-0 flex-1 pt-1.5">
         {##- The message. -#}

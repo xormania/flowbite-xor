@@ -18,7 +18,7 @@
             {%- if change %}
                 <span class="inline-flex items-center gap-0.5 font-medium {{ trend == 'down' ? 'text-fg-danger' : (trend == 'up' ? 'text-fg-success' : 'text-heading') }}">
                     {%- if trend %}
-                        <twig:ux:icon name="flowbite:arrow-{{ trend }}-outline" class="size-4" aria-hidden="true" />
+                        <twig:ux:icon name="{{ {up: 'flowbite:arrow-up-outline', down: 'flowbite:arrow-down-outline'}[trend] }}" class="size-4" aria-hidden="true" />
                         <span class="sr-only">{{ trend == 'up' ? 'Increased by' : 'Decreased by' }}</span>
                     {%- endif %}
                     {{ change }}
