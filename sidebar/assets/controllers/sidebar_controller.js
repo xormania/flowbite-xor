@@ -10,7 +10,7 @@ import { Controller } from '@hotwired/stimulus';
  *
  * @target toggle      The collapse button, kept in sync through `aria-expanded` and its label.
  * @target scroll      The scrolling navigation, whose position survives Turbo visits.
- * @target item        The item links; the one matching the current URL gets `aria-current="page"`.
+ * @target item        The item links; the one matching the current URL's path gets `aria-current="page"`, never a `#…` link.
  * @value  storageKey  The `localStorage` key of the collapsed state.
  * @action toggle      Collapses or expands the sidebar and saves the state.
  * @action rememberScroll Remembers the navigation's scroll position, restored on reconnect.
@@ -99,7 +99,9 @@ export default class extends Controller {
         if (!this.itemTargets.some((item) => item.hasAttribute('data-sidebar-active-fixed'))) {
             const path = window.location.pathname;
             this.itemTargets.forEach((item) => {
-                const isCurrent = new URL(item.href, window.location.href).pathname === path;
+                // a link to a fragment of the page ("#", what Sidebar:Item renders for a rejected URL) is not a page
+                const isFragment = (item.getAttribute('href') ?? '').trim().startsWith('#');
+                const isCurrent = !isFragment && new URL(item.href, window.location.href).pathname === path;
                 isCurrent ? item.setAttribute('aria-current', 'page') : item.removeAttribute('aria-current');
             });
         }
