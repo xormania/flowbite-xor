@@ -5,11 +5,11 @@
  * - gotoExample('<kit>/<recipe>/<example>') opens this demo's /preview/<recipe>/<example>
  *   (the kit segment, e.g. "flowbite-4" in upstream specs, is ignored);
  * - screenshot names drop the kit segment: <recipe>/tests/screenshots/<file>.png;
- * - a Content Security Policy violation fails the test too (the demo enforces a strict policy).
+ * - the page checks are the smoke project's (tests/e2e/fixtures.ts guardPage()): a Content Security Policy
+ *   violation (the demo enforces a strict policy) and a failed local request fail the test too.
  */
-import { fileURLToPath } from 'node:url';
 import { expect, test as base, type Page } from '@playwright/test';
-import { recordCspViolations } from '../fixtures';
+import { guardPage } from '../fixtures';
 
 export type Theme = 'light' | 'dark';
 
@@ -23,7 +23,6 @@ type GotoExampleOptions = {
 type Fixtures = {
     gotoExample: (path: string, options?: GotoExampleOptions) => Promise<void>;
     failOnPageErrors: void;
-    blockExternalRequests: void;
     /** The status the page's own document is expected to answer with (e.g. 404 for an error page). */
     documentStatus: number;
 };
@@ -39,7 +38,6 @@ export const screenshotAnnotation = (name: string[]) => ({
 });
 
 const FIXED_TIME = new Date('2026-03-15T10:00:00Z');
-const PLACEHOLDER_IMAGE = fileURLToPath(new URL('./placeholder.png', import.meta.url));
 
 /** '<kit>/<recipe>/<example>' or '<recipe>/<example>' => ['<recipe>', '<example>'] */
 const recipeAndExample = (path: string): [string, string] => {
@@ -52,55 +50,16 @@ const recipeAndExample = (path: string): [string, string] => {
 const recipeName = (recipe: string): string => recipe.split('/').pop() as string;
 
 export const test = base.extend<Fixtures>({
-    // Remote images change and load at their own pace: screenshots show a local placeholder instead.
-    blockExternalRequests: [
-        async ({ page, baseURL }, use) => {
-            await page.route(
-                (url) => !url.href.startsWith(`${baseURL}/`),
-                (route) => {
-                    if ('image' === route.request().resourceType()) {
-                        return route.fulfill({ path: PLACEHOLDER_IMAGE });
-                    }
-
-                    return route.abort();
-                }
-            );
-
-            await use();
-        },
-        { auto: true },
-    ],
-
     documentStatus: [200, { option: true }],
 
+    // tests/e2e/fixtures.ts guardPage(): remote requests blocked (remote images change and load at their own pace:
+    // screenshots show a local placeholder), and the same failures as the smoke project
     failOnPageErrors: [
         async ({ page, baseURL, documentStatus }, use) => {
-            const errors: string[] = [];
-            const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
-            // the demo enforces a strict Content Security Policy: no example may need 'unsafe-inline'
-            const cspViolations = await recordCspViolations(page);
-
-            page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
-            page.on('console', (message) => {
-                const url = message.location().url;
-                if ('error' !== message.type() || (url && !isLocal(url))) {
-                    return;
-                }
-                if (url === page.url() && message.text().startsWith(`Failed to load resource: the server responded with a status of ${documentStatus} `)) {
-                    return;
-                }
-                errors.push(`console.error: ${message.text()}`);
-            });
-            page.on('response', (response) => {
-                const expected = response.request().isNavigationRequest() && response.status() === documentStatus;
-                if (response.status() >= 400 && isLocal(response.url()) && !expected) {
-                    errors.push(`HTTP ${response.status()}: ${response.url()}`);
-                }
-            });
-
+            const guard = await guardPage(page, baseURL);
+            guard.allowHttpError('document', documentStatus);
             await use();
-
-            expect([...errors, ...cspViolations.map((violation) => `csp: ${violation}`)]).toEqual([]);
+            guard.check();
         },
         { auto: true },
     ],

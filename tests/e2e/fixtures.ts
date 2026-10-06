@@ -29,60 +29,82 @@ export async function recordCspViolations(page: Page): Promise<string[]> {
 }
 
 /**
- * Every test fails on a console error, an uncaught page error, a Content Security Policy violation, or a failed
- * (>= 400) request. Requests leaving the demo are blocked (images get a local placeholder), as in the examples suite.
+ * The checks every test of both projects runs. Requests leaving the demo are blocked (images get a local placeholder),
+ * and the test fails on a console error, an uncaught page error, a Content Security Policy violation, or a local
+ * request that fails or answers >= 400.
  *
- * A test expecting an HTTP error (e.g. a 404 page) allows exactly that response with
- * `allowHttpError(/url regexp/, status)`: the response itself and Chromium's matching
- * "Failed to load resource" console message are dropped, nothing else.
+ * `allowHttpError(url, status)` accepts exactly that response, `url` being a RegExp or 'document' (the page's own
+ * document, in the main frame): the response itself and Chromium's matching "Failed to load resource" console message
+ * are dropped, nothing else.
  */
-export const test = base.extend<{ allowHttpError: (url: RegExp, status: number) => void }>({
-    allowHttpError: [
-        async ({ page, baseURL }, use) => {
-            const errors: CollectedError[] = [];
-            const allowed: { url: RegExp; status: number }[] = [];
-            const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
-            const cspViolations = await recordCspViolations(page);
+export async function guardPage(page: Page, baseURL: string | undefined) {
+    const errors: CollectedError[] = [];
+    const allowed: { url: RegExp | 'document'; status: number }[] = [];
+    const documents = new Set<string>(); // the URLs the main frame navigated to
+    const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
+    const cspViolations = await recordCspViolations(page);
 
-            await page.route(
-                (url) => !isLocal(url.href),
-                (route) => ('image' === route.request().resourceType() ? route.fulfill({ path: PLACEHOLDER_IMAGE }) : route.abort()),
-            );
+    await page.route(
+        (url) => !isLocal(url.href),
+        (route) => ('image' === route.request().resourceType() ? route.fulfill({ path: PLACEHOLDER_IMAGE }) : route.abort()),
+    );
 
-            page.on('console', (message) => {
-                if (message.type() !== 'error') {
-                    return;
-                }
-                const failedLoad = message.text().match(/^Failed to load resource: the server responded with a status of (\d+)/);
-                errors.push({
-                    message: `console: ${message.text()}`,
-                    httpStatus: failedLoad ? Number(failedLoad[1]) : undefined,
-                    url: failedLoad ? message.location().url : undefined,
-                });
-            });
-            page.on('pageerror', (error) => errors.push({ message: `pageerror: ${error.message}` }));
-            page.on('response', (response) => {
-                if (response.status() >= 400) {
-                    errors.push({ message: `http ${response.status()}: ${response.url()}`, httpStatus: response.status(), url: response.url() });
-                }
-            });
-            page.on('requestfailed', (request) => {
-                // Turbo 8 prefetches a link on hover and cancels the request when the pointer leaves it
-                const cancelledPrefetch = 'prefetch' === request.headers()['x-sec-purpose'] && 'net::ERR_ABORTED' === request.failure()?.errorText;
-                if (isLocal(request.url()) && !cancelledPrefetch) {
-                    errors.push({ message: `requestfailed: ${request.url()} ${request.failure()?.errorText}` });
-                }
-            });
+    page.on('request', (request) => {
+        if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
+            documents.add(request.url());
+        }
+    });
+    page.on('console', (message) => {
+        const url = message.location().url;
+        // a blocked request leaving the demo logs its failure at its own URL
+        if ('error' !== message.type() || (url && !isLocal(url))) {
+            return;
+        }
+        const failedLoad = message.text().match(/^Failed to load resource: the server responded with a status of (\d+)/);
+        errors.push({
+            message: `console: ${message.text()}`,
+            httpStatus: failedLoad ? Number(failedLoad[1]) : undefined,
+            url: failedLoad ? url : undefined,
+        });
+    });
+    page.on('pageerror', (error) => errors.push({ message: `pageerror: ${error.message}` }));
+    page.on('response', (response) => {
+        if (response.status() >= 400 && isLocal(response.url())) {
+            errors.push({ message: `http ${response.status()}: ${response.url()}`, httpStatus: response.status(), url: response.url() });
+        }
+    });
+    page.on('requestfailed', (request) => {
+        // Turbo 8 prefetches a link on hover and cancels the request when the pointer leaves it
+        const cancelledPrefetch = 'prefetch' === request.headers()['x-sec-purpose'] && 'net::ERR_ABORTED' === request.failure()?.errorText;
+        if (isLocal(request.url()) && !cancelledPrefetch) {
+            errors.push({ message: `requestfailed: ${request.url()} ${request.failure()?.errorText}` });
+        }
+    });
 
-            await use((url, status) => allowed.push({ url, status }));
+    const isAllowed = ({ httpStatus, url }: CollectedError) =>
+        undefined !== httpStatus &&
+        undefined !== url &&
+        allowed.some((a) => a.status === httpStatus && ('document' === a.url ? documents.has(url) : a.url.test(url)));
 
-            const isAllowed = ({ httpStatus, url }: CollectedError) =>
-                undefined !== httpStatus && undefined !== url && allowed.some((a) => a.status === httpStatus && a.url.test(url));
+    return {
+        allowHttpError: (url: RegExp | 'document', status: number) => void allowed.push({ url, status }),
+        check: () => {
             const unexpected = [
                 ...errors.filter((error) => !isAllowed(error)).map(({ message }) => message),
                 ...cspViolations.map((violation) => `csp: ${violation}`),
             ];
             expect(unexpected, 'console errors, page errors, CSP violations or failed requests').toEqual([]);
+        },
+    };
+}
+
+/** The checks of guardPage() on every test; a test expecting an HTTP error allows it with `allowHttpError`. */
+export const test = base.extend<{ allowHttpError: (url: RegExp, status: number) => void }>({
+    allowHttpError: [
+        async ({ page, baseURL }, use) => {
+            const guard = await guardPage(page, baseURL);
+            await use(guard.allowHttpError);
+            guard.check();
         },
         { auto: true },
     ],

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect, turboVisitDone } from './fixtures';
 
 test('a toast pushed by a Turbo Stream appears, dismisses itself and leaves focus alone', async ({ page }) => {
     await page.goto('/lab/turbo-stream-toast');
@@ -68,6 +68,7 @@ test('a toast in the permanent region still dismisses itself after a Turbo visit
 
     await page.getByRole('link', { name: 'Go to turbo-nav' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page one');
+    await turboVisitDone(page);
     await expect(toast).toBeVisible();
     await expect(toast).toBeHidden({ timeout: 4000 });
 });

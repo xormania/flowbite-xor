@@ -3,16 +3,8 @@
  * README example of every recipe, in light and dark, and compares it with
  * <recipe>/tests/screenshots/<example>-<theme>.png.
  */
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { examples } from '../inventory';
 import { expect, screenshotAnnotation, test, themes } from './fixtures';
-
-type Example = { recipe: string; id: string };
-
-const demoDir = fileURLToPath(new URL('../../../demo', import.meta.url));
-// PHP_BINARY lets a machine without PHP 8.4 on its PATH point at another binary or wrapper.
-const output = execFileSync(process.env.PHP_BINARY ?? 'php', ['bin/console', 'app:examples'], { cwd: demoDir, encoding: 'utf8' });
-const examples: Example[] = JSON.parse(output);
 
 for (const { recipe, id } of examples) {
     for (const theme of themes) {

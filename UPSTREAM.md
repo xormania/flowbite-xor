@@ -20,8 +20,8 @@ inside the current kit). Copies stay byte-identical unless a row below says othe
 
 **Recipes: byte-identical except the files under *Deviations*.** The copied screenshots are the visual-regression baseline: the demo renders
 every README example like upstream's preview app (`demo/templates/preview.html.twig`) and Playwright
-compares it in upstream's browser image, `mcr.microsoft.com/playwright:v1.58.2-noble` (217/217 tests
-pass, all 200 PNGs). Demo-side support copied from upstream (not part of the kit):
+compares it in upstream's browser image, `mcr.microsoft.com/playwright:v1.58.2-noble`
+(`tests/e2e/examples/baselines.spec.ts` fails on a screenshot no test compares). Demo-side support copied from upstream (not part of the kit):
 `demo/assets/icons/{flowbite,tabler}/*.svg` (from `src/Toolkit/tests/Fixtures/icons`) and
 `tests/e2e/examples/{fixtures.ts,examples.spec.ts,placeholder.png}` (ported from
 `src/Toolkit/assets/test/browser`).
