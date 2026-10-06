@@ -6,8 +6,8 @@ Stimulus controllers, a form theme, layouts and blocks) for xor's Symfony projec
 
 `ux:install` copies a recipe's files into your project, where you own them. Every behavior is a Stimulus
 controller (no Flowbite JavaScript, no global `initFlowbite()`), so components keep working when Turbo
-navigates and when Live Components re-render them. The build plan is [`docs/PLAN.md`](docs/PLAN.md);
-every change to the files copied from the official `flowbite-4` kit is listed in [`UPSTREAM.md`](UPSTREAM.md).
+navigates and when Live Components re-render them. Every change to the files copied from the official
+`flowbite-4` kit is listed in [`UPSTREAM.md`](UPSTREAM.md).
 
 ## Install
 
@@ -171,7 +171,7 @@ Without a version, `ux:install` downloads `main`, the latest work.
 | `tools/contrast/` | no | WCAG contrast gate for the theme's color roles |
 | `tools/tests/` | no | `sync-demo` parity with `ux:install`; fresh-skeleton install of the exported kit |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
-| `docs/`, `.github/` | no | plan, the snippet for projects' `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI |
+| `docs/`, `.github/` | no | the snippet for projects' `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), how the kit was planned ([`docs/PLAN.md`](docs/PLAN.md)), CI |
 
 `ux:install` downloads GitHub's archive of the whole repository; `.gitattributes` `export-ignore`
 keeps everything but the kit out of it.

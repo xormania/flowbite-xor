@@ -1,7 +1,7 @@
 # AGENTS.md — working on flowbite-xor
 
-Rules for agents (and humans) changing this repository. The build plan, [`docs/PLAN.md`](docs/PLAN.md),
-is the source of truth; its §1 decisions are settled.
+Rules for agents (and humans) changing this repository. [`docs/PLAN.md`](docs/PLAN.md) records how the kit
+was planned and why (the targets, the decisions and their reasons); follow its decisions unless a change is agreed.
 
 ## What this repository is
 
@@ -33,7 +33,7 @@ A Symfony UX Toolkit kit: `manifest.json` at the root, one recipe per top-level 
   Turbo Drive rejects a 200.
 - **Never commit** `demo/vendor/`, `demo/var/`, `demo/public/assets/`, `demo/assets/vendor/`,
   `node_modules/`, Playwright output (`test-results/`, `playwright-report/`).
-- **Commits:** Conventional Commits (`feat(sidebar): …`, `chore(demo): …`). One PR per plan phase.
+- **Commits:** Conventional Commits (`feat(sidebar): …`, `chore(demo): …`). One PR per topic.
 
 ## Adding a recipe
 

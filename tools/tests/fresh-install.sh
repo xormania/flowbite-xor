@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 6 acceptance: on a fresh Symfony skeleton, `ux:install dashboard-home` (which brings `layouts`) from this
+# On a fresh Symfony skeleton, `ux:install dashboard-home` (which brings `layouts`) from this
 # kit, as GitHub's archive gives it, yields a working dashboard page; `ux:install signup` yields a form rendered
 # through the form theme without any `twig.form_themes` setting.
 #

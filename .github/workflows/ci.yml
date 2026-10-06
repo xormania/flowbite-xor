@@ -72,7 +72,7 @@ jobs:
                   tools: composer:v2
                   coverage: none
 
-            # Phase 6 acceptance: `ux:install dashboard-home` on a fresh skeleton yields a working page
+            # a fresh Symfony skeleton, set up as README.md says: `ux:install` of a page block and a form block works
             - name: ux:install dashboard-home on a fresh Symfony skeleton
               run: tools/tests/fresh-install.sh
 

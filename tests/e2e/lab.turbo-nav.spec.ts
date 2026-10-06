@@ -14,7 +14,7 @@ test('a data-turbo-permanent panel is kept across Turbo visits (not its scroll) 
     await turboVisitDone(page);
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
     // Turbo moves the same node into the new page, but Chromium resets the scroll of a re-inserted
-    // element: a permanent element that must keep its scroll restores it itself (sidebar controller, phase 4).
+    // element: a permanent element that must keep its scroll restores it itself (sidebar controller).
     expect(await panel.evaluate((element) => [(element as any).__marker, element.scrollTop])).toEqual(['kept', 0]);
 
     await page.getByRole('button', { name: 'Toggle dark mode' }).click();
