@@ -11,6 +11,7 @@ and pull request standard.
 | `manifest.json`, `INSTALL.md`, `kit.css`, `kit.js`, `icon.svg`, `<recipe>/` (minus `<recipe>/tests/`), `README.md`, `LICENSE`, `NOTICE` | yes | the kit, its readme and license |
 | `demo/` | no | a Symfony app showing every recipe (`/r/<recipe>`), test pages for Turbo and Live Components (`/lab`), and a small application made of the layouts and blocks (`/demo`) |
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
+| `tools/demo-php` | no | runs PHP in the demo's container, for the Playwright specs (`DEMO_URL`) |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
 | `tools/tests/` | no | `sync-demo` parity with `ux:install`; install of the exported kit on a fresh Symfony skeleton |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
@@ -22,24 +23,35 @@ everything else out of it (the demo, tests, tools, and repository files such as 
 
 ## Setup
 
-Requires PHP 8.4, Composer, Node.js (CI uses 22) and Docker. Playwright's browser runs in Docker, in the same
-`mcr.microsoft.com/playwright` image as the Symfony UX Toolkit's own tests, so screenshots match the committed
-baselines.
+The demo runs in [Symfony Docker](https://github.com/dunglas/symfony-docker): FrankenPHP in worker mode, PHP 8.5,
+HTTPS. You need Docker and Node.js (CI uses 22); no PHP on your machine. Playwright's browser also runs in Docker,
+in the same `mcr.microsoft.com/playwright` image as the Symfony UX Toolkit's own tests, so screenshots match the
+committed baselines.
 
 ```bash
-tools/sync-demo                                     # copy every recipe into demo/ (safe to re-run; deletes nothing)
-(cd demo && composer install && php bin/console tailwind:build && php bin/console asset-map:compile)
-npm ci
+cd demo
+docker compose up --wait                            # builds the image the first time, then installs the Composer packages
+docker compose exec php php ../tools/sync-demo      # copy every recipe into demo/ (safe to re-run; deletes nothing)
+docker compose exec php bin/console tailwind:build  # add --watch to rebuild the CSS as you edit
+cd .. && npm ci
 ```
 
-To look at the demo, run `php -S 127.0.0.1:8000 -t demo/public` and open http://127.0.0.1:8000. PHP's built-in
-server only serves the compiled CSS and JavaScript in `demo/public/assets/`: after changing a recipe, run
-`tools/sync-demo` and the two `bin/console` commands again. `tools/sync-demo` never deletes: remove a renamed or
-deleted recipe file from `demo/` yourself.
+Open https://localhost (the demo listens on this machine only) and accept the certificate of Caddy's local
+authority. The container sees the whole repository in `/app` and runs the demo from `/app/demo`, as on disk;
+FrankenPHP restarts its workers when a file changes. After changing a recipe, run `tools/sync-demo` and
+`tailwind:build` again. `tools/sync-demo` never deletes: remove a renamed or deleted recipe file from `demo/`
+yourself. `docker compose down` stops the demo.
+
+Without Docker, with PHP 8.4 or later and Composer: run `tools/sync-demo`, then
+`(cd demo && composer install && php bin/console tailwind:build && php bin/console asset-map:compile)`, and serve
+the demo with `php -S 127.0.0.1:8000 -t demo/public`. PHP's built-in server only serves the compiled CSS and
+JavaScript in `demo/public/assets/`, so compile again after each change.
 
 ## Checks
 
-CI runs all of them on every push.
+CI runs all of them on every push. The PHP ones run on your machine as shown, or in the container: prefix them with
+`docker compose exec php` from `demo/`, with paths relative to `demo/`
+(`docker compose exec php bash ../tools/tests/sync-demo.sh`).
 
 ```bash
 # lint the kit as users download it (git archive exports committed files only: commit first)
@@ -60,8 +72,9 @@ npx playwright test                                 # every browser test: see be
 - `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
   runs the official kit's recipe specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`).
 
-Playwright starts the demo (`php -S 127.0.0.1:8000 -t demo/public`) and the browser container, unless something
-already listens on ports 8000 and 3000. The demo shows all of a recipe's examples at `/r/<recipe>`, and one example
+Against the Docker demo, run `DEMO_URL=https://localhost npx playwright test`: the specs then run PHP in the
+container (`tools/demo-php`). Without `DEMO_URL`, Playwright serves the demo itself with `php -S 127.0.0.1:8000`.
+Either way it starts the browser container, unless something already listens on port 3000. The demo shows all of a recipe's examples at `/r/<recipe>`, and one example
 alone at `/preview/<recipe>/<example>?theme=light` (or `dark`). `<example>` is the slug of the heading above the
 example: `default` for the one under the title, with `-2`, `-3`… added when a heading repeats.
 
