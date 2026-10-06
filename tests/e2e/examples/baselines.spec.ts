@@ -7,8 +7,8 @@ import { join } from 'node:path';
 import { demoPages, examples, recipes, root, viewports } from '../inventory';
 import { expect, test, themes } from './fixtures';
 
-/** The files of a recipe's directory (e.g. 'tests'), none when it does not exist. */
-const files = (recipe: string, dir: string): string[] => (existsSync(join(root, recipe, dir)) ? readdirSync(join(root, recipe, dir)) : []);
+/** The files of `<top>/<dir>` (e.g. 'alert/tests'), none when it does not exist. */
+const files = (top: string, dir: string): string[] => (existsSync(join(root, top, dir)) ? readdirSync(join(root, top, dir)) : []);
 
 test('every screenshot in <recipe>/tests/screenshots has a test', () => {
     const expected = new Set([
@@ -27,11 +27,14 @@ test('every screenshot in <recipe>/tests/screenshots has a test', () => {
         }
     }
 
-    const committed = recipes.flatMap((recipe) =>
-        files(recipe, 'tests/screenshots')
-            .filter((file) => file.endsWith('.png'))
-            .map((file) => `${recipe}/${file}`),
-    );
+    // every top-level <dir>/tests/screenshots, also of a directory that is no longer a recipe
+    const committed = readdirSync(root, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .flatMap((entry) =>
+            files(entry.name, 'tests/screenshots')
+                .filter((file) => file.endsWith('.png'))
+                .map((file) => `${entry.name}/${file}`),
+        );
 
     expect(committed.filter((name) => !expected.has(name)), 'screenshots no test compares').toEqual([]);
 });
