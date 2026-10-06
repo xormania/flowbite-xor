@@ -221,5 +221,11 @@ under `### Added`, `### Changed`, `### Fixed` or `### Removed`, as Keep a Change
 
 Versions are git tags `X.Y.Z` ([Semantic Versioning](https://semver.org/)) without a `v`: the toolkit cannot
 install a `v` tag (see `UPSTREAM.md`). A release is a pull request that moves the entries under
-`## [Unreleased]` in `CHANGELOG.md` to a new `## [X.Y.Z] - YYYY-MM-DD` section. Once it is merged, tag that pull
-request's merge commit on `main` as `X.Y.Z`.
+`## [Unreleased]` in `CHANGELOG.md` to a new `## [X.Y.Z] - YYYY-MM-DD` section and updates the compare links at
+the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor version,
+*Removed* or anything that breaks an installed recipe a major version (a minor one while the version is `0.x`).
+
+Once the pull request is merged, `.github/workflows/release.yml` does the rest: it tags the merge commit `X.Y.Z`,
+checks that the tag installs from GitHub in a fresh Symfony Docker project (`tools/tests/docker-install.sh`), and
+publishes a GitHub Release with the section as its notes. If it fails, fix the cause and re-run it: it skips what is
+already done.
