@@ -75,3 +75,17 @@ Behavior of the toolkit itself that this repository works around, with candidate
 | `symfony/ux-toolkit` has `symfony/http-client` in `require-dev` only, but needs it to download a kit from GitHub (`--kit=https://github.com/…`): `You must install "symfony/http-client"`. And `symfony/ux-twig-component` does not require `symfony/twig-bundle`, which its bundle needs (`The TwigBundle is not registered`). | README and INSTALL.md: require them with the toolkit and before it; the fresh-install check does. | candidate: the toolkit docs |
 | `GitHubRegistry` downloads `archive/<version>.zip` and expects the folder inside to be `<repo>-<version>`. GitHub names it after the full commit SHA for a short SHA, and drops the `v` of a `v1.2.3` tag, so `--kit=…:v1.2.3` and short SHAs fail ("Unable to extract the archive"). Same on `main`. Found in review. | Release tags without a `v` (`0.1.0`); the README asks for full SHAs. | candidate: find the extracted folder instead of guessing its name |
 | Symfony 7.4: the route cache depends on the compiled container through a `FileResource` (`filemtime <= timestamp`, one-second resolution), and `routing.controllers` (`AttributeServicesLoader`) adds no resource for the list of controllers. When `cache:clear`'s own boot rebuilds the container in the same second as the previous build, it takes the "Cache is fresh" branch and keeps the old routes: a controller added in that second answers 404 (the welcome page). Found by the fresh-install check, which failed once in two runs. | `tools/tests/fresh-install.sh` deletes `var/cache` and runs `cache:warmup`. | Symfony, not the toolkit; not reported yet |
+
+## Symfony Docker (demo only)
+
+`demo/Dockerfile`, `demo/compose.yaml`, `demo/compose.override.yaml`, `demo/.dockerignore` and `demo/frankenphp/`
+come from [`dunglas/symfony-docker`](https://github.com/dunglas/symfony-docker) `main` at
+[`4227566`](https://github.com/dunglas/symfony-docker/tree/422756611d61e0108600ed7ec1370ec677d0e8d0), with the
+FrankenPHP 1.13 (Mercure 1.0) changes of its open pull request
+[#969](https://github.com/dunglas/symfony-docker/pull/969): `frankenphp/Caddyfile` (an `issuer` block,
+`protocol_version_compatibility 8`) and `MERCURE_EXTRA_DIRECTIVES: playground`. Without them, current FrankenPHP
+images refuse the template's Mercure configuration. Update with the template's own tool (`template-sync`).
+
+| File | Change | Reason |
+|------|--------|--------|
+| `demo/compose.override.yaml` | mounts the repository at `/kit` and sets `KIT_DIR=/kit` | the demo reads the kit's recipes and READMEs (`app.kit_dir`), and `tools/sync-demo` runs in the container |
