@@ -36,10 +36,11 @@ docker compose exec php bin/console tailwind:build  # add --watch to rebuild the
 cd .. && npm ci
 ```
 
-Open https://localhost and accept the certificate of Caddy's local authority. The container sees the whole
-repository in `/app` and runs the demo from `/app/demo`, as on disk; FrankenPHP restarts its workers when a file
-changes. After changing a recipe, run `tools/sync-demo` and `tailwind:build` again. `tools/sync-demo` never deletes:
-remove a renamed or deleted recipe file from `demo/` yourself. `docker compose down` stops the demo.
+Open https://localhost (the demo listens on this machine only) and accept the certificate of Caddy's local
+authority. The container sees the whole repository in `/app` and runs the demo from `/app/demo`, as on disk;
+FrankenPHP restarts its workers when a file changes. After changing a recipe, run `tools/sync-demo` and
+`tailwind:build` again. `tools/sync-demo` never deletes: remove a renamed or deleted recipe file from `demo/`
+yourself. `docker compose down` stops the demo.
 
 Without Docker, with PHP 8.4 or later and Composer: run `tools/sync-demo`, then
 `(cd demo && composer install && php bin/console tailwind:build && php bin/console asset-map:compile)`, and serve
