@@ -33,7 +33,28 @@ A Symfony UX Toolkit kit: `manifest.json` at the root, one recipe per top-level 
   Turbo Drive rejects a 200.
 - **Never commit** `demo/vendor/`, `demo/var/`, `demo/public/assets/`, `demo/assets/vendor/`,
   `node_modules/`, Playwright output (`test-results/`, `playwright-report/`).
-- **Commits:** Conventional Commits (`feat(sidebar): …`, `chore(demo): …`). One PR per topic.
+- **Commits and pull requests** follow the standard below.
+
+## Commits and pull requests
+
+**Commit subject:** `type(scope): what changes`, in plain words, at most 72 characters, no trailing period.
+
+- `type`: `feat` (new recipe or behavior), `fix`, `docs`, `test`, `ci`, `chore` (tooling, dependencies).
+- `scope`: the recipe (`sidebar`, `form-theme`) or the area (`demo`, `ci`, `tools`); left out when several apply.
+- Body, when the subject is not enough: why, and what was checked.
+
+Examples: `feat(stat-card): show the trend as text`, `fix(layouts): every layout shows flash messages`.
+
+**Pull request title:** the same format, for the change as a whole. One topic per pull request.
+
+**Pull request description**, three sections:
+
+- `## What`: the changes, as a short list.
+- `## Why`: the problem or the goal.
+- `## Checks`: CI on the head commit, and anything verified by hand.
+
+Plain words throughout: no internal plan references (phase numbers, decision ids), no AI attribution lines
+(`Co-Authored-By`, "Generated with" footers). Pull requests are merged with a merge commit (no squash, no rebase).
 
 ## Adding a recipe
 
