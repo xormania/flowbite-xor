@@ -47,6 +47,12 @@ Without Docker, with PHP 8.4 or later and Composer: run `tools/sync-demo`, then
 the demo with `php -S 127.0.0.1:8000 -t demo/public`. PHP's built-in server only serves the compiled CSS and
 JavaScript in `demo/public/assets/`, so compile again after each change.
 
+The demo trusts the repository it serves. It compiles every `{"preview":true}` README example as a Twig template and
+runs it with the app's services, and shows the result in its own origin, where the previews' frames share the
+pages' cookies and storage. README examples are code: review them as such, and never run the demo on a kit, a
+branch or a pull request you do not trust. Sandboxing the preview frames does not help: it stops their Stimulus
+controllers. Previewing untrusted code would need a separate origin and container.
+
 ## Checks
 
 CI runs all of them on every push. The PHP ones run on your machine as shown, or in the container: prefix them with
