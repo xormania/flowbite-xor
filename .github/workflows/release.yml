@@ -1,9 +1,9 @@
 name: Release
 
 # A release pull request moves CHANGELOG.md's Unreleased entries to "## [X.Y.Z] - date" (CONTRIBUTING.md, Releases).
-# Once it is merged, for each version heading without a GitHub Release, this tags the merge commit that added the
-# heading (unless the tag exists), checks that the tag installs from GitHub in a fresh Symfony Docker project, and
-# publishes the Release with the version's notes. A failed run can be re-run: it picks up where it stopped.
+# Once it is merged, for each version heading without a GitHub Release, this checks that the merge commit that added
+# the heading installs from GitHub in a fresh Symfony Docker project, tags it (unless the tag exists), and publishes
+# the Release with the version's notes. A failed run can be re-run: it picks up where it stopped.
 on:
     push:
         branches: [main]
@@ -25,7 +25,8 @@ jobs:
         permissions:
             contents: write
         steps:
-            - uses: actions/checkout@v7
+            # pinned by commit: this job can write tags and releases
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   fetch-depth: 0 # the history and the tags: which commit added a version heading, which tags exist
 
@@ -50,17 +51,19 @@ jobs:
                   git config user.name 'github-actions[bot]'
                   git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
                   for version in $VERSIONS; do
-                      if ! git rev-parse -q --verify "refs/tags/$version" > /dev/null; then
+                      if git rev-parse -q --verify "refs/tags/$version" > /dev/null; then
+                          # tagged by hand or by an earlier run: check the install of the tag
+                          KIT_REF="$version" tools/tests/docker-install.sh
+                      else
                           # the first commit on main that adds the heading: the release pull request's merge commit
                           commit="$(git log --first-parent --diff-merges=first-parent --reverse --format=%H -S"## [$version]" -- CHANGELOG.md | head -1)"
                           [ -n "$commit" ] || { echo "::error::no commit on main adds the heading of $version"; exit 1; }
-                          echo "$version: tagging $(git log -1 --format='%h %s' "$commit")"
+                          echo "$version: $(git log -1 --format='%h %s' "$commit")"
+                          # check the install of the commit from GitHub before any tag makes it a version
+                          KIT_REF="$commit" tools/tests/docker-install.sh
                           git tag -a "$version" "$commit" -m "flowbite-xor $version"
                           git push origin "refs/tags/$version"
                       fi
-
-                      # tags pushed with this token start no other workflow: check the install of the tag here
-                      KIT_REF="$version" tools/tests/docker-install.sh
 
                       # the version's section of CHANGELOG.md, without its heading
                       awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && (/^## \[/ || /^\[[^]]+\]: /) {exit} on' CHANGELOG.md > notes.md
