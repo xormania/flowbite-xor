@@ -1,0 +1,81 @@
+name: Release
+
+# A release pull request moves CHANGELOG.md's Unreleased entries to "## [X.Y.Z] - date" (CONTRIBUTING.md, Releases).
+# Once it is merged and CI has passed on main, for each version heading without a GitHub Release, this checks that
+# the merge commit that added the heading installs from GitHub in a fresh Symfony Docker project, tags it (unless the
+# tag exists), and publishes the Release with the version's notes. A failed run can be re-run: it picks up where it
+# stopped.
+on:
+    workflow_run:
+        workflows: [CI]
+        types: [completed]
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+jobs:
+    release:
+        name: Tag and publish new versions
+        # only after CI passed on a push to main of this repository; a manual run only on main
+        if: >-
+            github.event_name == 'workflow_run'
+            && github.event.workflow_run.conclusion == 'success'
+            && github.event.workflow_run.event == 'push'
+            && github.event.workflow_run.head_branch == 'main'
+            && github.event.workflow_run.head_repository.full_name == github.repository
+            || github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            # pinned by commit: this job can write tags and releases
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  # the commit CI passed on (a manual run: main)
+                  ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+                  fetch-depth: 0 # the history and the tags: which commit added a version heading, which tags exist
+
+            - name: Find the versions without a release
+              id: versions
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  versions=
+                  while read -r version; do
+                      gh release view "$version" > /dev/null 2>&1 || versions="$versions $version"
+                  done < <(grep -oP '^## \[\K[0-9]+\.[0-9]+\.[0-9]+(?=\])' CHANGELOG.md)
+                  echo "versions=${versions# }" >> "$GITHUB_OUTPUT"
+                  echo "To release: ${versions:- none}"
+
+            - name: Tag, check the install, publish
+              if: steps.versions.outputs.versions != ''
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  VERSIONS: ${{ steps.versions.outputs.versions }}
+              run: |
+                  git config user.name 'github-actions[bot]'
+                  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+                  for version in $VERSIONS; do
+                      if git rev-parse -q --verify "refs/tags/$version" > /dev/null; then
+                          # tagged by hand or by an earlier run: check the install of the tag
+                          KIT_REF="$version" tools/tests/docker-install.sh
+                      else
+                          # the first commit on main that adds the heading: the release pull request's merge commit
+                          commit="$(git log --first-parent --diff-merges=first-parent --reverse --format=%H -S"## [$version]" -- CHANGELOG.md | head -1)"
+                          [ -n "$commit" ] || { echo "::error::no commit on main adds the heading of $version"; exit 1; }
+                          echo "$version: $(git log -1 --format='%h %s' "$commit")"
+                          # check the install of the commit from GitHub before any tag makes it a version
+                          KIT_REF="$commit" tools/tests/docker-install.sh
+                          git tag -a "$version" "$commit" -m "flowbite-xor $version"
+                          git push origin "refs/tags/$version"
+                      fi
+
+                      # the version's section of CHANGELOG.md, without its heading
+                      awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && (/^## \[/ || /^\[[^]]+\]: /) {exit} on' CHANGELOG.md > notes.md
+                      gh release create "$version" --verify-tag --title "$version" --notes-file notes.md
+                  done
