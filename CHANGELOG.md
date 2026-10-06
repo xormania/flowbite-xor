@@ -5,6 +5,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-06
+
 ### Added
 
 - `theme`: Flowbite's color roles for light and dark, with contrast fixes.
@@ -19,3 +21,6 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   with help text and errors it renders each row with.
 - `layouts`: base, app (sidebar, navbar, page header, toasts), auth, settings, error and blank.
 - Blocks: `dashboard-home`, `login`, `signup`, `forgot-password`, `settings-profile`, `not-found`.
+
+[Unreleased]: https://github.com/xormania/flowbite-xor/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/xormania/flowbite-xor/releases/tag/0.1.0
