@@ -225,7 +225,7 @@ install a `v` tag (see `UPSTREAM.md`). A release is a pull request that moves th
 the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor version,
 *Removed* or anything that breaks an installed recipe a major version (a minor one while the version is `0.x`).
 
-Once the pull request is merged, `.github/workflows/release.yml` does the rest: it checks that the merge commit
-installs from GitHub in a fresh Symfony Docker project (`tools/tests/docker-install.sh`), tags it `X.Y.Z`, and
-publishes a GitHub Release with the section as its notes. If it fails, fix the cause and re-run it: it skips what is
-already done.
+Once the pull request is merged and CI has passed on `main`, `.github/workflows/release.yml` does the rest: it
+checks that the merge commit installs from GitHub in a fresh Symfony Docker project
+(`tools/tests/docker-install.sh`), tags it `X.Y.Z`, and publishes a GitHub Release with the section as its notes. If
+it fails, fix the cause and re-run it: it skips what is already done.

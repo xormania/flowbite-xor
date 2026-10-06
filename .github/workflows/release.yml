@@ -1,12 +1,14 @@
 name: Release
 
 # A release pull request moves CHANGELOG.md's Unreleased entries to "## [X.Y.Z] - date" (CONTRIBUTING.md, Releases).
-# Once it is merged, for each version heading without a GitHub Release, this checks that the merge commit that added
-# the heading installs from GitHub in a fresh Symfony Docker project, tags it (unless the tag exists), and publishes
-# the Release with the version's notes. A failed run can be re-run: it picks up where it stopped.
+# Once it is merged and CI has passed on main, for each version heading without a GitHub Release, this checks that
+# the merge commit that added the heading installs from GitHub in a fresh Symfony Docker project, tags it (unless the
+# tag exists), and publishes the Release with the version's notes. A failed run can be re-run: it picks up where it
+# stopped.
 on:
-    push:
-        branches: [main]
+    workflow_run:
+        workflows: [CI]
+        types: [completed]
     workflow_dispatch:
 
 permissions:
@@ -19,8 +21,14 @@ concurrency:
 jobs:
     release:
         name: Tag and publish new versions
-        # a manual run can target any branch or tag: release only what is on main
-        if: github.ref == 'refs/heads/main'
+        # only after CI passed on a push to main of this repository; a manual run only on main
+        if: >-
+            github.event_name == 'workflow_run'
+            && github.event.workflow_run.conclusion == 'success'
+            && github.event.workflow_run.event == 'push'
+            && github.event.workflow_run.head_branch == 'main'
+            && github.event.workflow_run.head_repository.full_name == github.repository
+            || github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
         permissions:
             contents: write
@@ -28,6 +36,8 @@ jobs:
             # pinned by commit: this job can write tags and releases
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
+                  # the commit CI passed on (a manual run: main)
+                  ref: ${{ github.event.workflow_run.head_sha || github.sha }}
                   fetch-depth: 0 # the history and the tags: which commit added a version heading, which tags exist
 
             - name: Find the versions without a release
