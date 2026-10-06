@@ -34,6 +34,11 @@ composer require --dev symfony/ux-toolkit:^3.5 symfony/http-client
 composer require symfony/asset-mapper symfony/stimulus-bundle
 ```
 
+With [Symfony Docker](https://github.com/dunglas/symfony-docker), run every `composer` and `php bin/console`
+command of this README and of INSTALL.md inside the container, from the project directory:
+`docker compose exec php composer …` and `docker compose exec php bin/console …`. Its PHP image has the `zip`
+extension. CI installs the kit this way, in a fresh Symfony Docker project.
+
 Then set up Tailwind CSS, Flowbite's stylesheet and the `theme` recipe as the *Tailwind CSS* and *Installation*
 sections of [`INSTALL.md`](INSTALL.md) say (its *Symfony* steps are the commands above). After that, install recipes:
 
@@ -225,7 +230,7 @@ each version changes.
 |---|---|
 | Symfony UX Toolkit | ^3.5 (blocks need 3.5) |
 | PHP | ≥ 8.4 (required by the toolkit), with the `zip` extension |
-| Symfony | 7.4 LTS, the version CI tests; the toolkit also allows 8.x |
+| Symfony | 7.4 LTS and 8.1: CI installs the kit on both (8.1 in a fresh Symfony Docker project), and the demo and its browser tests run on 8.1 |
 | Assets | AssetMapper. With Webpack Encore, override the layouts' `stylesheets` and `javascripts` blocks: they load the `app` importmap entrypoint |
 | Tailwind CSS | 4.x |
 | Flowbite | 4.x |
