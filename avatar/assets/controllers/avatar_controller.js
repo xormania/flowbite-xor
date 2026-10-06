@@ -16,6 +16,11 @@ export default class extends Controller {
         }
     }
 
+    disconnect() {
+        // back to the markup's state (image hidden, fallback shown): connect() shows a loaded image again
+        this.hide();
+    }
+
     show() {
         this.element.classList.remove('hidden');
         this.fallback()?.classList.add('hidden');
