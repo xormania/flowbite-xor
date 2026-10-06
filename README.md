@@ -216,7 +216,7 @@ unchecked. On top of escaping, the components check what shapes their markup:
 
 `tests/e2e/hostile-props.spec.ts` renders each of these props with hostile values and checks what the browser parses.
 The kit's demo enforces a strict Content Security Policy, and every browser test fails on a violation. Report a
-vulnerability privately: see [`SECURITY.md`](SECURITY.md).
+vulnerability privately: see [`SECURITY.md`](https://github.com/xormania/flowbite-xor/blob/main/SECURITY.md).
 
 ## Versioning
 
