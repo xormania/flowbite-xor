@@ -161,51 +161,15 @@ Without a version, `ux:install` downloads `main`, the latest work.
 | Tailwind CSS | 4.x |
 | Flowbite | 4.x |
 
-## Repository layout
+## Coding agents
 
-| Path | In `ux:install` downloads | |
-|------|---------------------------|---|
-| `manifest.json`, `INSTALL.md`, `kit.css`, `kit.js`, `icon.svg`, `<recipe>/` (minus `<recipe>/tests/`) | yes | the kit |
-| `demo/` | no | Symfony app showing every recipe, plus Turbo/Live scenario pages (`/lab`) |
-| `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
-| `tools/contrast/` | no | WCAG contrast gate for the theme's color roles |
-| `tools/tests/` | no | `sync-demo` parity with `ux:install`; fresh-skeleton install of the exported kit |
-| `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
-| `docs/`, `.github/` | no | the snippet for projects' `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), how the kit was planned ([`docs/PLAN.md`](docs/PLAN.md)), CI |
+Paste [`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md) into your project's `AGENTS.md` or
+`CLAUDE.md`: it tells agents to use the kit's components, theme roles and icons, and how they behave with Turbo.
 
-`ux:install` downloads GitHub's archive of the whole repository; `.gitattributes` `export-ignore`
-keeps everything but the kit out of it.
+## Contributing
 
-## Development
-
-Requires PHP 8.4, Composer, Node.js and Docker (Playwright's browser runs in upstream's image, so
-screenshots match the committed baselines).
-
-```bash
-tools/sync-demo                                   # copy recipes into demo/
-(cd demo && composer install && php bin/console tailwind:build)
-npm ci
-npx playwright test                               # smoke + every README example (light/dark) + recipe specs
-tools/tests/fresh-install.sh                      # fresh skeleton + ux:install dashboard-home renders
-```
-
-Playwright starts `php -S` on `demo/public` and the browser container unless they already listen on
-:8000 and :3000. The demo renders one example alone at `/preview/<recipe>/<example>?theme=light|dark`;
-`/r/<recipe>` shows all of a recipe's examples. Screenshots live in `<recipe>/tests/screenshots/`;
-update them only deliberately: `npx playwright test --project=examples --update-snapshots`.
-
-Check the theme's contrast (both themes, pairs in `tools/contrast/pairs.json`):
-
-```bash
-node tools/contrast/check.mjs
-```
-
-Lint the kit as users download it (`ux-toolkit-kit-lint` reports non-recipe directories such as
-`demo/` as errors, so lint the exported tree):
-
-```bash
-tmp=$(mktemp -d) && git archive HEAD | tar -x -C "$tmp" && demo/vendor/bin/ux-toolkit-kit-lint "$tmp"
-```
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the repository layout, the checks and the conventions, and
+[`CHANGELOG.md`](CHANGELOG.md) for what changed.
 
 ## License
 
