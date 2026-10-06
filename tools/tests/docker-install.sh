@@ -36,6 +36,8 @@ cd "$app"
 # `demo` directive, as in UPSTREAM.md's Symfony Docker section
 cp "$root/demo/frankenphp/Caddyfile" frankenphp/Caddyfile
 sed -i '/MERCURE_EXTRA_DIRECTIVES/d' compose.override.yaml
+# the demo's compose.yaml: the template's, with its ports published on loopback only
+cp "$root/demo/compose.yaml" compose.yaml
 
 docker compose build --pull
 # the first start creates the Symfony project (the template's entrypoint)
