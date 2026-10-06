@@ -1,0 +1,80 @@
+name: Pages
+
+# The demo's showcase as a static site on GitHub Pages: the index, every recipe page and every README example in both
+# themes, rendered by `bin/console app:export-static`, with the /demo application's pages. release.yml calls it once
+# it has published a version; a manual run builds main.
+on:
+    workflow_call:
+        inputs:
+            ref:
+                description: The commit to build the site from
+                type: string
+                required: true
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: pages
+    cancel-in-progress: false
+
+jobs:
+    build:
+        name: Build the site
+        # a manual run only on main (from release.yml, the event is release.yml's own)
+        if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        # every console command without debug, from composer's cache:clear on, so the assets compile with Stimulus's
+        # debug logging off (a compiled asset is cached whatever the debug mode)
+        env:
+            APP_DEBUG: '0'
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ inputs.ref || github.sha }}
+                  fetch-depth: 0 # the tags: the latest release goes in the install commands
+            - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+              with:
+                  php-version: '8.4'
+                  tools: composer
+                  coverage: none
+            - name: Copy the recipes into the demo
+              run: php tools/sync-demo
+            - name: Install the demo
+              working-directory: demo
+              run: composer install --no-interaction --no-progress
+            - name: Build the CSS and compile the assets
+              working-directory: demo
+              run: |
+                  bin/console tailwind:build --minify
+                  bin/console asset-map:compile
+            - name: Save the pages
+              working-directory: demo
+              run: |
+                  # release tags only (X.Y.Z): the install commands name the release only when the site is one
+                  match='[0-9]*.[0-9]*.[0-9]*'
+                  bin/console app:export-static ../_site \
+                      --base-path="/${GITHUB_REPOSITORY#*/}" \
+                      --release="$(git describe --tags --exact-match --match "$match" 2>/dev/null || true)" \
+                      --latest-release="$(git describe --tags --abbrev=0 --match "$match" 2>/dev/null || true)" \
+                      --commit="$(git rev-parse --short HEAD)"
+            - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+              with:
+                  path: _site
+
+    deploy:
+        name: Deploy
+        needs: build
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        permissions:
+            pages: write
+            id-token: write
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - id: deployment
+              uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

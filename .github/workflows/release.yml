@@ -3,8 +3,8 @@ name: Release
 # A release pull request moves CHANGELOG.md's Unreleased entries to "## [X.Y.Z] - date" (CONTRIBUTING.md, Releases).
 # Once it is merged and CI has passed on main, for each version heading without a GitHub Release, this checks that
 # the merge commit that added the heading installs from GitHub in a fresh Symfony Docker project, tags it (unless the
-# tag exists), and publishes the Release with the version's notes. A failed run can be re-run: it picks up where it
-# stopped.
+# tag exists), and publishes the Release with the version's notes, then the gallery (pages.yml). A failed run can be
+# re-run: it picks up where it stopped.
 on:
     workflow_run:
         workflows: [CI]
@@ -26,6 +26,8 @@ jobs:
             && github.event.workflow_run.head_repository.full_name == github.repository
             || github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
+        outputs:
+            versions: ${{ steps.versions.outputs.versions }}
         # one release at a time; on the job, so that the skipped runs (CI on other branches and pull requests) never
         # take the place of a pending one
         concurrency:
@@ -80,3 +82,15 @@ jobs:
                       awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {on=1; next} on && (/^## \[/ || /^\[[^]]+\]: /) {exit} on' CHANGELOG.md > notes.md
                       gh release create "$version" --verify-tag --title "$version" --notes-file notes.md
                   done
+
+    pages:
+        name: Publish the gallery
+        needs: release
+        if: needs.release.outputs.versions != ''
+        permissions:
+            contents: read
+            pages: write
+            id-token: write
+        uses: ./.github/workflows/pages.yml
+        with:
+            ref: ${{ github.event.workflow_run.head_sha || github.sha }}

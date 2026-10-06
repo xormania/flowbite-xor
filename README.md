@@ -10,6 +10,9 @@ login card or a dashboard.
 controller (no Flowbite JavaScript, no global `initFlowbite()`), so components keep working when Turbo
 navigates and when Live Components re-render them.
 
+**Gallery:** <https://xormania.github.io/flowbite-xor/> shows every recipe and every example of its README, in light
+and dark, with its code and its install command. It is a static copy of the demo app, published with each release.
+
 22 components are copied from the UX Toolkit's official `flowbite-4` kit, which loads Flowbite's JavaScript.
 This kit replaces that JavaScript with its own Stimulus controllers, fixes the contrast of some theme colors, and
 adds components, a form theme, layouts and blocks. [`UPSTREAM.md`](UPSTREAM.md) lists every change to the copied
