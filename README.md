@@ -80,7 +80,7 @@ Each recipe's README has its examples, props and usage.
 | Recipe | |
 |---|---|
 | [`alert`](alert/README.md) ✦ | A message for information, success, a warning or an error, optionally dismissible. |
-| [`avatar`](avatar/README.md) | A user's picture, with a fallback, in several sizes, round or with rounded corners. |
+| [`avatar`](avatar/README.md) ✦ | A user's picture, with a fallback, in several sizes, round or with rounded corners. |
 | [`badge`](badge/README.md) | A small label or count next to other content, such as a number of comments. |
 | [`button`](button/README.md) | A button, or a link that looks like one, in several colors, sizes and styles. |
 | [`button-group`](button-group/README.md) | Several buttons or links joined into one control. |
