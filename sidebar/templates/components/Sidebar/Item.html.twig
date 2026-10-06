@@ -1,5 +1,5 @@
 {%- props
-    ## string The link.
+    ## string The link. A URL other than relative, http(s), mailto or tel renders `#`.
     href,
     ## string|null A route name: the item is active when it is the current route (`app.current_route`).
     route = null,
@@ -8,9 +8,11 @@
     ## string|int|null A count or label shown at the end of the item.
     badge = null
 -%}
+{#- a link prop keeps a relative, http(s), mailto or tel URL, read as browsers read it (case, leading spaces and C0 controls, tabs and newlines anywhere); any other renders "#" -#}
+{%- set _href = (href ~ '')|replace({"\t": '', "\n": '', "\r": ''})|trim("\x00..\x20", 'left') matches '/^(?:(?:https?|mailto|tel):|(?![a-z][a-z0-9+.-]*:))/i' ? href ~ '' : '#' -%}
 {%- set _active = active ?? (route is not null and app.current_route == route) -%}
 <li>
-    <a href="{{ href }}"
+    <a href="{{ _href }}"
        data-sidebar-target="item"
        {%- if _active %} aria-current="page"{% endif %}
        {%- if active is not null %} data-sidebar-active-fixed{% endif %}

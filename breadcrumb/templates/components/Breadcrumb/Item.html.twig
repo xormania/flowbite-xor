@@ -1,11 +1,13 @@
 {%- props
-    ## string|null The link of the level; without one the item is the current page.
+    ## string|null The link of the level; without one the item is the current page. A URL other than relative, http(s), mailto or tel renders `#`.
     href = null
 -%}
+{#- a link prop keeps a relative, http(s), mailto or tel URL, read as browsers read it (case, leading spaces and C0 controls, tabs and newlines anywhere); any other renders "#" -#}
+{%- set _href = (href ~ '')|replace({"\t": '', "\n": '', "\r": ''})|trim("\x00..\x20", 'left') matches '/^(?:(?:https?|mailto|tel):|(?![a-z][a-z0-9+.-]*:))/i' ? href ~ '' : '#' -%}
 <li {{ attributes.defaults({class: 'inline-flex items-center gap-1 md:gap-2'|tailwind_classes}) }}>
     <twig:ux:icon name="flowbite:chevron-right-outline" class="size-4 text-body-subtle [li:first-child>&]:hidden" aria-hidden="true" />
     {%- if href is not null %}
-        <a href="{{ href }}" class="inline-flex items-center gap-1.5 rounded text-body hover:text-fg-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-medium">
+        <a href="{{ _href }}" class="inline-flex items-center gap-1.5 rounded text-body hover:text-fg-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-medium">
             {##- The label of the level, optionally with a leading icon. -#}
             {%- block content %}{% endblock -%}
         </a>
