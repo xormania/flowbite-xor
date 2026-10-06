@@ -68,10 +68,16 @@ npx playwright test                                 # every browser test: see be
 `npx playwright test` runs two projects; pick one with `--project=smoke` or `--project=examples`.
 
 - `smoke` runs the specs in `tests/e2e/`: the demo pages, the forms, the `/lab` pages for Turbo and Live
-  Components, the components given hostile prop values (`hostile-props.spec.ts`), and an axe accessibility scan of
-  every demo page (no serious or critical issue).
+  Components, the components given hostile prop values (`hostile-props.spec.ts`), the demo's security headers and
+  Content Security Policy (`csp.spec.ts`), and an axe accessibility scan of every demo page (no serious or critical
+  issue).
 - `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
   runs the official kit's recipe specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`).
+
+Every test of both projects fails on a console error, a failed request or a Content Security Policy violation.
+The demo enforces a strict policy (`demo/src/EventListener/SecurityHeadersListener.php`): scripts and styles run
+only with the request's nonces, which the layouts print (`layouts/README.md`), and no inline event handler or style
+attribute runs, except the few style attributes of README examples it lists.
 
 Against the Docker demo, run `DEMO_URL=https://localhost npx playwright test`: the specs then run PHP in the
 container (`tools/demo-php`). Without `DEMO_URL`, Playwright serves the demo itself with `php -S 127.0.0.1:8000`.
@@ -87,6 +93,12 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
 - **Behavior in Stimulus only.** No `import 'flowbite'` and no `initFlowbite()`. A controller's `connect()` must work
   when it runs again on the same element, since Turbo and Live Components reconnect controllers. `disconnect()` undoes
   everything `connect()` set up. No global state, and no `DOMContentLoaded` or `turbo:load` listeners.
+- **No inline code.** Recipes print no `<style>` element and no `style="…"` or `on…="…"` attribute, and an inline
+  `<script>` only in the layouts' `<head>`, with `csp_script_nonce`. A Content Security Policy blocks inline code
+  without its nonce, no nonce covers an attribute, and with a nonce per request Turbo reports the `<style>` of every
+  page it fetches. Behavior goes in a controller, CSS in the theme, and a size computed from data in an attribute
+  other than `style` (`Progress` draws its bar as an `<svg width>`). The demo's policy fails the browser tests on a
+  violation (*Checks*).
 - **Props that shape markup are checked** (README, *Security*). A tag prop (`as`) is lower-cased and kept only when
   it is one of the tags its `##` line lists, right after `{% props %}`:
   `{%- set as = as|lower in ['div', 'a'] ? as|lower : 'div' -%}`. An attribute name taken from data is escaped with

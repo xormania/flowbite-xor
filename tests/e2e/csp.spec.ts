@@ -1,0 +1,140 @@
+import type { APIResponse, Page, Response } from '@playwright/test';
+import { test, expect } from './fixtures';
+
+/*
+ * The demo's browser hardening headers and its enforced Content Security Policy
+ * (demo/src/EventListener/SecurityHeadersListener.php). The fixtures fail every test on a policy violation, so the
+ * whole suite runs the kit under this policy; these tests check the policy itself, and what a blocked inline script
+ * or style would silently break: the theme before the first paint, Turbo's progress bar, the Progress bars.
+ */
+const pages = ['/', '/r/button', '/preview/button/default?theme=light', '/preview/dropdown/default?theme=light', '/demo', '/demo/login', '/lab/live-table'];
+
+type Policy = Map<string, string[]>;
+
+function policyOf(response: Response | APIResponse | null): Policy {
+    const header = response?.headers()['content-security-policy'] ?? '';
+
+    return new Map(header.split(';').map((directive) => directive.trim().split(/\s+/)).filter(([name]) => name).map(([name, ...sources]) => [name, sources]));
+}
+
+function nonceOf(sources: string[] | undefined): string {
+    const nonces = (sources ?? []).filter((source) => /^'nonce-[\w-]+'$/.test(source));
+    expect(nonces, `one nonce in ${sources?.join(' ')}`).toHaveLength(1);
+
+    return nonces[0].slice("'nonce-".length, -1);
+}
+
+async function gotoAndCheckPolicy(page: Page, path: string): Promise<{ script: string; style: string; policy: Policy }> {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(200);
+    const headers = response!.headers();
+    expect(headers['x-content-type-options']).toBe('nosniff');
+    // not no-referrer: same-origin POSTs would send `Origin: null`, which the stateless CSRF check rejects
+    expect(headers['referrer-policy']).toBe('same-origin');
+    expect(headers['permissions-policy']).toContain('camera=()');
+    expect(headers['content-security-policy-report-only']).toBeUndefined();
+
+    const policy = policyOf(response);
+    expect(policy.get('frame-ancestors')).toEqual(["'self'"]);
+    expect(policy.get('object-src')).toEqual(["'none'"]);
+    expect(policy.get('base-uri')).toEqual(["'none'"]);
+    expect(policy.get('form-action')).toEqual(["'self'"]);
+    const scriptSources = policy.get('script-src');
+    expect(scriptSources).toHaveLength(2);
+    expect(scriptSources).toContain("'strict-dynamic'");
+    const styleSources = policy.get('style-src');
+    expect(styleSources).toHaveLength(2);
+    expect(styleSources).toContain("'self'");
+
+    return { script: nonceOf(scriptSources), style: nonceOf(styleSources), policy };
+}
+
+for (const path of pages) {
+    test(`${path} answers with the hardening headers and a nonce-based policy its scripts carry`, async ({ page }) => {
+        const { script, style, policy } = await gotoAndCheckPolicy(page, path);
+        expect(script).not.toEqual(style);
+        // style attributes: none at all, except the README examples' few, by hash, on their previews
+        if (path.startsWith('/preview/')) {
+            expect(policy.get('style-src-attr')?.[0]).toBe("'unsafe-hashes'");
+            expect(policy.get('style-src-attr')?.slice(1).every((source) => /^'sha256-[\w+/]+=*'$/.test(source))).toBe(true);
+        } else {
+            expect(policy.has('style-src-attr')).toBe(false);
+        }
+
+        const inPage = await page.evaluate(() => ({
+            scripts: [...document.scripts].map((element) => element.nonce),
+            meta: (document.querySelector('meta[name="csp-nonce"]') as HTMLElement | null)?.nonce,
+        }));
+        expect(inPage.scripts.length).toBeGreaterThan(0);
+        expect(new Set(inPage.scripts)).toEqual(new Set([script]));
+        expect(inPage.meta).toBe(style);
+    });
+}
+
+test('every response gets its own nonces', async ({ page }) => {
+    const first = await gotoAndCheckPolicy(page, '/demo/login');
+    const second = await gotoAndCheckPolicy(page, '/demo/login');
+    expect(second.script).not.toEqual(first.script);
+    expect(second.style).not.toEqual(first.style);
+});
+
+test.describe('system in dark mode', () => {
+    test.use({ colorScheme: 'dark' });
+
+    test('the layout sets the theme before the first paint', async ({ page }) => {
+        await page.addInitScript(() => {
+            new MutationObserver((_, observer) => {
+                if (document.body) {
+                    (window as any).__darkAtFirstBody = document.documentElement.classList.contains('dark');
+                    observer.disconnect();
+                }
+            }).observe(document, { childList: true, subtree: true });
+        });
+        // the auth layout has no theme toggle: only the inline script sets the theme
+        await page.goto('/demo/login');
+        expect(await page.evaluate(() => (window as any).__darkAtFirstBody)).toBe(true);
+    });
+});
+
+test("Turbo's progress bar gets its style and the brand color", async ({ page }) => {
+    await page.goto('/demo/login');
+    await page.waitForFunction(() => 'Turbo' in window);
+    const bar = await page.evaluate(() => {
+        const element = document.createElement('div');
+        element.className = 'turbo-progress-bar';
+        const brand = document.createElement('div');
+        brand.className = 'bg-brand';
+        document.body.append(element, brand);
+        const style = getComputedStyle(element);
+
+        return { position: style.position, height: style.height, color: style.backgroundColor, brand: getComputedStyle(brand).backgroundColor };
+    });
+    // position and height come from Turbo's own <style>, which needs the nonce of <meta name="csp-nonce">
+    expect(bar.position).toBe('fixed');
+    expect(bar.height).toBe('3px');
+    expect(bar.color).toBe(bar.brand);
+});
+
+test('the Progress bars keep their width', async ({ page }) => {
+    await page.goto('/demo');
+    const bars = await page.locator('[role="meter"], [role="progressbar"]').evaluateAll((tracks) =>
+        tracks.map((track) => ({
+            value: Number(track.getAttribute('aria-valuenow')),
+            width: (100 * track.firstElementChild!.getBoundingClientRect().width) / track.getBoundingClientRect().width,
+        })),
+    );
+    expect(bars.length).toBeGreaterThan(0);
+    for (const { value, width } of bars) {
+        expect(width).toBeCloseTo(value, 0);
+    }
+});
+
+test("Symfony's error page keeps the hardening headers without the script and style policy", async ({ page, allowHttpError }) => {
+    allowHttpError(/\/r\/does-not-exist$/, 404);
+    const response = await page.goto('/r/does-not-exist');
+    expect(response?.status()).toBe(404);
+    expect(response?.headers()['x-content-type-options']).toBe('nosniff');
+    // in debug, Symfony also removes the whole header from its error page
+    expect(policyOf(response).has('script-src')).toBe(false);
+    expect(policyOf(response).has('style-src')).toBe(false);
+});

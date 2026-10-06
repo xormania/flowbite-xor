@@ -40,6 +40,11 @@
         </aside>
         <section>
             <h2 class="text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+            {# Its controller shows the picture: after a Turbo visit, the picture has often loaded before it connects. #}
+            <twig:Avatar class="mt-2">
+                <twig:Avatar:Image src="https://flowbite.com/docs/images/people/profile-picture-5.jpg" alt="Lab user" />
+                <twig:Avatar:Fallback>LU</twig:Avatar:Fallback>
+            </twig:Avatar>
             <a href="{{ path('app_lab_turbo_nav', {page: page == 'one' ? 'two' : 'one'}) }}" class="mt-2 inline-block text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a>
             <form method="post" action="{{ path('app_lab_turbo_nav_save') }}" class="mt-4">
                 <twig:Button type="submit" variant="outline" size="sm">Save settings</twig:Button>

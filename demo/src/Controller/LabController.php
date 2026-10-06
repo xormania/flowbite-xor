@@ -25,7 +25,7 @@ final class LabController extends AbstractController
         'live-table' => 'A Live table re-sorting rows that hold Dropdowns and Tooltips.',
         'live-form' => 'A form rendered by the form theme in a Live Component: changed fields are validated on the server, focus and typed values survive the re-render.',
         'live-drawer' => 'A modal Drawer across Live re-renders, and a non-modal Drawer beside the page.',
-        'turbo-nav' => 'Turbo Drive visits between two pages: a data-turbo-permanent Sidebar keeps its scroll, collapsed state and current item, the theme persists, a flash toast is not duplicated.',
+        'turbo-nav' => 'Turbo Drive visits between two pages: a data-turbo-permanent Sidebar keeps its scroll, collapsed state and current item, the theme persists, a flash toast is not duplicated, an Avatar shows its picture.',
         'turbo-stream-toast' => 'A form whose Turbo Stream response appends a Toast to the region: it appears, pauses while hovered, dismisses itself, and focus stays put.',
         'turbo-frame-detail' => 'A list and a detail Turbo Frame holding a Dropdown, reloaded several times.',
         'permanent-plus-live' => 'A Live Component inside a data-turbo-permanent element across Turbo visits.',

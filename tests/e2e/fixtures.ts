@@ -6,8 +6,31 @@ const PLACEHOLDER_IMAGE = fileURLToPath(new URL('./examples/placeholder.png', im
 type CollectedError = { message: string; httpStatus?: number; url?: string };
 
 /**
- * Every test fails on a console error, an uncaught page error, or a failed (>= 400) request.
- * Requests leaving the demo are blocked (images get a local placeholder), as in the examples suite.
+ * Records every Content Security Policy violation of the page and its frames. The demo enforces a strict policy
+ * (demo/src/EventListener/SecurityHeadersListener.php): a violation means some markup needs `'unsafe-inline'`.
+ * Chromium also logs each one as a console error.
+ */
+export async function recordCspViolations(page: Page): Promise<string[]> {
+    const violations: string[] = [];
+    await page.exposeBinding('__recordCspViolation', (_source, violation: string) => void violations.push(violation));
+    await page.addInitScript(() => {
+        document.addEventListener(
+            'securitypolicyviolation',
+            (event) => {
+                const blocked = event.blockedURI || 'inline';
+                const sample = event.sample ? `: ${event.sample}` : '';
+                (window as any).__recordCspViolation(`${event.effectiveDirective} blocked ${blocked} on ${event.documentURI}${sample}`);
+            },
+            true,
+        );
+    });
+
+    return violations;
+}
+
+/**
+ * Every test fails on a console error, an uncaught page error, a Content Security Policy violation, or a failed
+ * (>= 400) request. Requests leaving the demo are blocked (images get a local placeholder), as in the examples suite.
  *
  * A test expecting an HTTP error (e.g. a 404 page) allows exactly that response with
  * `allowHttpError(/url regexp/, status)`: the response itself and Chromium's matching
@@ -19,6 +42,7 @@ export const test = base.extend<{ allowHttpError: (url: RegExp, status: number) 
             const errors: CollectedError[] = [];
             const allowed: { url: RegExp; status: number }[] = [];
             const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
+            const cspViolations = await recordCspViolations(page);
 
             await page.route(
                 (url) => !isLocal(url.href),
@@ -54,8 +78,11 @@ export const test = base.extend<{ allowHttpError: (url: RegExp, status: number) 
 
             const isAllowed = ({ httpStatus, url }: CollectedError) =>
                 undefined !== httpStatus && undefined !== url && allowed.some((a) => a.status === httpStatus && a.url.test(url));
-            const unexpected = errors.filter((error) => !isAllowed(error)).map(({ message }) => message);
-            expect(unexpected, 'console errors, page errors or failed requests').toEqual([]);
+            const unexpected = [
+                ...errors.filter((error) => !isAllowed(error)).map(({ message }) => message),
+                ...cspViolations.map((violation) => `csp: ${violation}`),
+            ];
+            expect(unexpected, 'console errors, page errors, CSP violations or failed requests').toEqual([]);
         },
         { auto: true },
     ],
