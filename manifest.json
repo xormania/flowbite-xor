@@ -7,7 +7,7 @@
     "color": "hsl(221,79%,48%)",
     "icon": "icon.svg",
     "dependencies": {
-        "npm": ["flowbite"],
-        "importmap": ["flowbite/dist/flowbite.min.css"]
+        "npm": ["flowbite@^4.0.2"],
+        "importmap": ["flowbite/dist/flowbite.min.css@^4.0.2"]
     }
 }

@@ -24,11 +24,13 @@ The kit needs PHP 8.4 or later with the `zip` extension, Tailwind CSS v4 and Flo
 
 ```
 # With AssetMapper
-php bin/console importmap:require flowbite/dist/flowbite.min.css
+php bin/console importmap:require "flowbite/dist/flowbite.min.css@^4.0.2"
 
 # With npm
-npm install flowbite
+npm install "flowbite@^4.0.2"
 ```
+
+The kit is tested with Flowbite 4. `importmap:update` ignores the version constraint and would install Flowbite's latest version, even a new major: to update the stylesheet, run the `importmap:require` command above again.
 
 2. Install the `theme` recipe. It copies `assets/styles/flowbite-xor.css`: Flowbite's color roles (named colors with a light and a dark value, used as `bg-brand`, `text-heading`, `border-default`…), with this kit's contrast fixes. Then make `assets/styles/app.css` start with these imports, in this order (Flowbite's stylesheet after Tailwind, the theme last):
 

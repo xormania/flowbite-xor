@@ -13,7 +13,7 @@ The recipe copies `assets/styles/flowbite-xor.css`, Flowbite's theme with every 
 ```css
 @import "tailwindcss";
 
-/* AssetMapper: `php bin/console importmap:require flowbite/dist/flowbite.min.css` downloads it to assets/vendor */
+/* AssetMapper: `php bin/console importmap:require "flowbite/dist/flowbite.min.css@^4.0.2"` downloads it to assets/vendor */
 @import "../vendor/flowbite/dist/flowbite.min.css";
 /* Webpack Encore: @import "flowbite/dist/flowbite.min.css"; */
 
