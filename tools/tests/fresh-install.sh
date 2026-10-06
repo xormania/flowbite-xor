@@ -21,7 +21,7 @@ app="$work/app"
 $composer create-project --no-interaction --no-progress "symfony/skeleton:$symfony_version" "$app"
 cd "$app"
 $composer config platform.php "$($php -r 'echo PHP_VERSION;')"
-# README.md's "prepare the project once", command for command:
+# README.md's install steps, command for command:
 # - contrib recipes: tales-from-a-dev/twig-tailwind-extra (the `tailwind_classes` filter of every recipe) registers
 #   its bundle through one
 # - symfony/ux-twig-component as a regular dependency, with TwigBundle (its bundle needs it): required only through
@@ -29,10 +29,10 @@ $composer config platform.php "$($php -r 'echo PHP_VERSION;')"
 #   off while Flex enables TwigComponentBundle in every environment, and cache:clear fails ("non-existent service
 #   property_accessor")
 # - symfony/http-client with the toolkit, which downloads kits from GitHub with it
+# - AssetMapper (the layouts' importmap entrypoint) and StimulusBundle (it loads the recipes' controllers)
 $composer config extra.symfony.allow-contrib true
 $composer require --no-interaction --no-progress symfony/twig-bundle "symfony/ux-twig-component:^3.5"
 $composer require --no-interaction --no-progress --dev "symfony/ux-toolkit:$toolkit_version" symfony/http-client
-# the front end: AssetMapper (the layouts' importmap entrypoint) and Stimulus (the recipes' controllers)
 $composer require --no-interaction --no-progress symfony/asset-mapper symfony/stimulus-bundle
 
 kit="vendor/symfony/ux-toolkit/kits/flowbite-xor-local"
