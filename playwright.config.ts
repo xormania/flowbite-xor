@@ -9,7 +9,15 @@ const { version } = require('@playwright/test/package.json');
 const isCI = !!process.env.CI;
 const root = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.DEMO_PORT ?? 8000);
-const baseURL = `http://127.0.0.1:${port}`;
+/*
+ * DEMO_URL points the tests at a demo already running, e.g. https://localhost from Docker (demo/compose.yaml);
+ * the specs then run PHP in its container. Without it, Playwright serves the demo with PHP's built-in server.
+ */
+const demoURL = process.env.DEMO_URL?.replace(/\/$/, '');
+const baseURL = demoURL ?? `http://127.0.0.1:${port}`;
+if (demoURL) {
+    process.env.PHP_BINARY ??= join(root, 'tools/demo-php');
+}
 
 /*
  * The browser runs in the same Docker image as upstream's toolkit tests (symfony/ux
@@ -60,6 +68,8 @@ export default defineConfig({
 
     use: {
         baseURL,
+        // Caddy's local certificate authority signs https://localhost
+        ignoreHTTPSErrors: !!demoURL,
         connectOptions: { wsEndpoint: 'ws://127.0.0.1:3000/', exposeNetwork: '<loopback>' },
         trace: 'retain-on-failure',
     },
@@ -83,13 +93,17 @@ export default defineConfig({
     ],
 
     webServer: [
-        {
-            // Serves the demo with PHP's built-in server; reuses one already listening.
-            command: `php -S 127.0.0.1:${port} -t demo/public`,
-            url: baseURL,
-            reuseExistingServer: true,
-            timeout: 30_000,
-        },
+        ...(demoURL
+            ? []
+            : [
+                  {
+                      // Serves the demo with PHP's built-in server; reuses one already listening.
+                      command: `php -S 127.0.0.1:${port} -t demo/public`,
+                      url: baseURL,
+                      reuseExistingServer: true,
+                      timeout: 30_000,
+                  },
+              ]),
         {
             command: browserServer,
             url: 'http://127.0.0.1:3000/',

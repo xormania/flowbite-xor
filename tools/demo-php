@@ -1,0 +1,4 @@
+#!/bin/sh
+# Runs PHP in the demo's Docker container (demo/compose.yaml), from demo/ as the working directory, for
+# commands the Playwright specs run when the demo is served from Docker (DEMO_URL).
+exec docker compose --project-directory "$(dirname "$0")/../demo" exec -T php php "$@"
