@@ -16,7 +16,17 @@ export SYMFONY_VERSION="${SYMFONY_VERSION:-8.1.*}"
 template_commit=422756611d61e0108600ed7ec1370ec677d0e8d0
 work="$(mktemp -d)"
 app="$work/app"
-cleanup() { if [ -f "$app/compose.yaml" ]; then (cd "$app" && docker compose down -v --remove-orphans > /dev/null 2>&1) || true; fi; }
+cleanup() {
+    if [ -f "$app/compose.yaml" ]; then
+        (
+            cd "$app"
+            docker compose down -v --remove-orphans > /dev/null 2>&1
+            # the container created most project files as root: delete them from a container too
+            docker compose run --rm --no-deps -T --entrypoint find php /app -mindepth 1 -delete > /dev/null 2>&1
+        ) || true
+    fi
+    rm -rf "$work" || true
+}
 trap cleanup EXIT
 
 git clone --quiet https://github.com/dunglas/symfony-docker "$app"
