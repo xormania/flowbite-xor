@@ -185,6 +185,29 @@ How the recipes behave with Turbo and Live Components, and what your own pages a
 - **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a
   Turbo Frame (`id="stock-{{ row.id }}"`): its generated id would change on every re-render.
 
+## Security
+
+Twig escapes what the components print, but escaping checks neither a tag name nor a URL. Props and attributes are
+template input: give them values your code chose (constants, `path()`, `url()`), never request or stored user data
+unchecked. On top of escaping, the components check what shapes their markup:
+
+- **Tags.** An `as` prop renders only the tags its component lists: `Button` `button`, `a`; `Badge` `div`, `span`,
+  `a`; `Avatar:GroupCount` `div`, `a`, `button`; `Card:Title` `span`, `div`, `p`, `h1`–`h6`; `Dropdown:Item` `a`,
+  `button`; `FormField` `div`, `fieldset`. Any other value renders the default tag, without an error:
+  `<twig:Button as="label">` is a `button`.
+- **Link props.** The links of this kit's own recipes (`Breadcrumb:Item` and `Sidebar:Item` `href`, `LoginForm`
+  `forgotPasswordHref` and `signupHref`, `ForgotPasswordForm` and `SignupForm` `loginHref`, `NotFound` `homeHref`)
+  keep a relative, `http(s)`, `mailto` or `tel` URL, read as browsers read it (in any case, after leading spaces and
+  control characters, with tabs and newlines inside). Any other scheme, `javascript:` and `data:` but also `sms:` or
+  an app's `slack://`, silently renders `#`, and a sidebar item linking to `#` is never marked as the current page.
+  The value is printed as text, even a `Markup` one (`|raw`).
+- **Attributes.** Attributes given to a component, and `FormField`'s `labelAttr` and `helpAttr`, render with escaped
+  names and values: a name cannot add another attribute. Otherwise they render as given, an `on…` handler or an
+  `href` included. URLs given as attributes are not checked, as in the official kit: the `href` of `Button` or `Badge`
+  with `as="a"`, of `Dropdown:Item` and of `Pagination:Link`, and the `src` of `Avatar:Image`. Check those yourself.
+
+`tests/e2e/hostile-props.spec.ts` renders each of these props with hostile values and checks what the browser parses.
+
 ## Versioning
 
 Versions are git tags `X.Y.Z`, without a `v`: GitHub names the archive of a `v1.2.3` tag `flowbite-xor-1.2.3`,

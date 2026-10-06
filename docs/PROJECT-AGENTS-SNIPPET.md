@@ -38,6 +38,10 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
 - **Layouts:** pages extend `layouts/app.html.twig` (or `auth`, `settings`, `error`, `blank`). Inside a
   component's content (`<twig:Card>…</twig:Card>`), `block('x')` means the component's block: reach the
   page's own blocks with `block(outerBlocks.x)`.
+- **Props and attributes are trusted input.** Give `as`, attribute names and URLs values the code chose
+  (constants, `path()`, `url()`), never request or user data unchecked. `as` falls back to the component's default
+  tag, and the kit's link props (`Sidebar:Item href`, `LoginForm forgotPasswordHref`…) render `#` for a URL that is
+  not relative, http(s), mailto or tel; an `href` or `src` given as an attribute is not checked.
 - **Stable ids inside Live Components and Turbo Frames**: give a `<twig:Tooltip>` an explicit `id`, e.g.
   `id="stock-{{ row.id }}"`; its generated id would change on every re-render.
 - **CSS order:** `flowbite.min.css` is imported after Tailwind and has its own copies of common utilities

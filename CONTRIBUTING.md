@@ -87,6 +87,12 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
 - **Behavior in Stimulus only.** No `import 'flowbite'` and no `initFlowbite()`. A controller's `connect()` must work
   when it runs again on the same element, since Turbo and Live Components reconnect controllers. `disconnect()` undoes
   everything `connect()` set up. No global state, and no `DOMContentLoaded` or `turbo:load` listeners.
+- **Props that shape markup are checked** (README, *Security*). A tag prop (`as`) is lower-cased and kept only when
+  it is one of the tags its `##` line lists, right after `{% props %}`:
+  `{%- set as = as|lower in ['div', 'a'] ? as|lower : 'div' -%}`. An attribute name taken from data is escaped with
+  `|e('html_attr_relaxed')`. A link prop goes through the scheme guard of
+  `breadcrumb/templates/components/Breadcrumb/Item.html.twig`, and the template prints the guarded variable. Add each
+  new one to `demo/src/Command/HostilePropsCommand.php`, which `tests/e2e/hostile-props.spec.ts` checks.
 - **Recipe format** (checked by `ux-toolkit-kit-lint`):
   - `manifest.json` with `type` and `name`;
   - `README.md` opening with `# Title`, then a one-line summary;
