@@ -1,0 +1,23 @@
+# Weekly update pull requests, one per ecosystem: the GitHub Actions (pinned by commit, with the version in a comment)
+# and the npm packages of the Playwright tests. CI runs on each; nothing merges on its own.
+version: 2
+updates:
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: weekly
+      commit-message:
+          prefix: ci
+      groups:
+          actions:
+              patterns: ['*']
+
+    - package-ecosystem: npm
+      directory: /
+      schedule:
+          interval: weekly
+      commit-message:
+          prefix: chore
+      groups:
+          npm:
+              patterns: ['*']

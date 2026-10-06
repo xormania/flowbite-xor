@@ -15,6 +15,7 @@
 /CHANGELOG.md export-ignore
 /AGENTS.md export-ignore
 /UPSTREAM.md export-ignore
+/SECURITY.md export-ignore
 /.editorconfig export-ignore
 /.gitignore export-ignore
 /.gitattributes export-ignore
