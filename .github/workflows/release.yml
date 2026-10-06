@@ -14,10 +14,6 @@ on:
 permissions:
     contents: read
 
-concurrency:
-    group: release
-    cancel-in-progress: false
-
 jobs:
     release:
         name: Tag and publish new versions
@@ -30,6 +26,11 @@ jobs:
             && github.event.workflow_run.head_repository.full_name == github.repository
             || github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
+        # one release at a time; on the job, so that the skipped runs (CI on other branches and pull requests) never
+        # take the place of a pending one
+        concurrency:
+            group: release
+            cancel-in-progress: false
         permissions:
             contents: write
         steps:
