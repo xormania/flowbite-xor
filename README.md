@@ -225,7 +225,7 @@ each version changes.
 |---|---|
 | Symfony UX Toolkit | ^3.5 (blocks need 3.5) |
 | PHP | ≥ 8.4 (required by the toolkit), with the `zip` extension |
-| Symfony | 7.4 LTS, the version CI tests; the toolkit also allows 8.x |
+| Symfony | 7.4 LTS and 8.1, the versions CI installs the kit on (8.1 in a fresh [Symfony Docker](https://github.com/dunglas/symfony-docker) project) |
 | Assets | AssetMapper. With Webpack Encore, override the layouts' `stylesheets` and `javascripts` blocks: they load the `app` importmap entrypoint |
 | Tailwind CSS | 4.x |
 | Flowbite | 4.x |

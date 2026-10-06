@@ -76,6 +76,21 @@ jobs:
             - name: ux:install dashboard-home on a fresh Symfony skeleton
               run: tools/tests/fresh-install.sh
 
+    docker-install:
+        name: Fresh install (Symfony Docker, from GitHub)
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            # the kit as users get it: GitHub's archive of this commit (of the tag, on a tag push), installed in a
+            # fresh Symfony Docker project on the latest Symfony
+            - name: ux:install from GitHub in a fresh Symfony Docker project
+              env:
+                  KIT_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+                  KIT_REF: ${{ github.ref_type == 'tag' && github.ref_name || github.event.pull_request.head.sha || github.sha }}
+              run: tools/tests/docker-install.sh
+
     contrast:
         name: Contrast
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
