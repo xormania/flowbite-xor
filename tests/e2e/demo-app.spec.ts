@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { test, expect } from './fixtures';
+import { test, expect, turboVisitDone } from './fixtures';
 
 test('the login block signs in through form_login and shows the authentication error', async ({ page }) => {
     await page.goto('/demo/login');
@@ -73,10 +73,18 @@ test('the app layout scrolls the document, so the keyboard scrolls it and Turbo 
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
     await expect(page.locator('#sidebar')).toBeInViewport();
 
-    await page.evaluate(() => window.scrollTo(0, 300));
+    // Chromium animates the keyboard scroll: let it stop, so it does not move the position set next
+    await page.evaluate(() => new Promise<void>((resolve) => {
+        let last = -1;
+        const check = () => (window.scrollY === last ? resolve() : ((last = window.scrollY), setTimeout(check, 100)));
+        check();
+    }));
+    await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(300);
     await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
     await page.goBack();
+    await turboVisitDone(page);
     await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(300);
 });

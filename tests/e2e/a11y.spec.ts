@@ -31,6 +31,9 @@ const pages = [
     ...examples.flatMap(({ recipe, id }) => ['light', 'dark'].map((theme) => `/preview/${recipe}/${id}?theme=${theme}`)),
 ];
 
+// independent pages: run them in parallel, and let --shard split this file between CI's shards
+test.describe.configure({ mode: 'parallel' });
+
 for (const path of pages) {
     test(`a11y ${path}`, async ({ page }) => {
         await page.goto(path);
