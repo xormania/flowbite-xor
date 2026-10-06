@@ -230,4 +230,8 @@ the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* 
 Once the pull request is merged and CI has passed on `main`, `.github/workflows/release.yml` does the rest: it
 checks that the merge commit installs from GitHub in a fresh Symfony Docker project
 (`tools/tests/docker-install.sh`), tags it `X.Y.Z`, and publishes a GitHub Release with the section as its notes. If
-it fails, fix the cause and re-run it: it skips what is already done.
+it fails, fix the cause and re-run it: it skips what is already done. If GitHub refuses the workflow's tag push
+("refusing to allow a GitHub App to create or update workflow … without `workflows` permission", as for `0.1.0`,
+whose commit's workflows differed from `main`'s), push the tag by hand
+(`git tag -a X.Y.Z <merge commit> -m "flowbite-xor X.Y.Z" && git push origin X.Y.Z`) and re-run the workflow: it
+checks the tag and publishes the Release.
