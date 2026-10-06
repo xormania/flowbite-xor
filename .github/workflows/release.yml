@@ -19,6 +19,8 @@ concurrency:
 jobs:
     release:
         name: Tag and publish new versions
+        # a manual run can target any branch or tag: release only what is on main
+        if: github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
         permissions:
             contents: write
