@@ -1,4 +1,4 @@
-{# Same page as symfony/ux apps/toolkit/templates/preview.html.twig, with this app's importmap entrypoint. #}
+{# Same page as symfony/ux apps/toolkit/templates/preview.html.twig, with this app's importmap entrypoint and Content Security Policy nonces. #}
 <!DOCTYPE html>
 <html lang="en" class="{{ theme == 'dark' ? 'dark' }}" data-bs-theme="{{ theme }}">
     <head>
@@ -6,7 +6,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{{ title }}</title>
         <link rel="icon" href="data:,">
-        <style>
+        <meta name="csp-nonce" nonce="{{ csp_style_nonce }}">
+        <style nonce="{{ csp_style_nonce }}">
             body {
                 {% if is_block %}
                     display: block; margin: 0; width: 100%;
@@ -15,7 +16,7 @@
                 {% endif %}
             }
         </style>
-        {{ importmap('app') }}
+        {{ importmap('app', {nonce: csp_script_nonce ~ ''}) }}
     </head>
     <body>{{ html|raw }}</body>
 </html>

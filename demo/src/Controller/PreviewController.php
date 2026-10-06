@@ -15,6 +15,9 @@ use Twig\Environment;
 /**
  * Renders one README example of a recipe alone on a page, like the UX Toolkit's own preview app
  * (symfony/ux apps/toolkit), so screenshots can be compared with the upstream ones.
+ *
+ * The example is Twig code from the repository, compiled and run with the app's services: trusted code
+ * (CONTRIBUTING.md, *Setup*). A request only picks a recipe and an example among those KitReader finds.
  */
 final class PreviewController extends AbstractController
 {

@@ -5,8 +5,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}flowbite-xor demo{% endblock %}</title>
         <link rel="icon" href="data:,">
+        {# The request's Content Security Policy nonces, as the layouts recipe prints them (Turbo gives this one to the <style> of its progress bar). #}
+        <meta name="csp-nonce" nonce="{{ csp_style_nonce }}">
         {# No-flash theme snippet from the theme-toggle recipe README: sets the theme before the first paint. #}
-        <script>
+        <script nonce="{{ csp_script_nonce }}">
             try {
                 const theme = localStorage.getItem('theme');
                 document.documentElement.classList.toggle('dark', 'dark' === theme || ('light' !== theme && matchMedia('(prefers-color-scheme: dark)').matches));
@@ -16,7 +18,7 @@
         {% endblock %}
 
         {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
+            {% block importmap %}{{ importmap('app', {nonce: csp_script_nonce ~ ''}) }}{% endblock %}
         {% endblock %}
     </head>
     <body class="min-h-screen bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">

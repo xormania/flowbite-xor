@@ -8,12 +8,12 @@ The Flowbite color roles (light and dark) with this kit's contrast fixes, as one
 
 ## Usage
 
-The recipe copies `assets/styles/flowbite-xor.css`, Flowbite's theme with every color role checked for contrast. A role is a named color used through utilities such as `bg-brand`, `text-heading` or `border-default`. The file defines the roles (`@theme`), their dark values (`.dark`) and the `dark:` variant (`@custom-variant dark`). Import it after Tailwind and Flowbite's stylesheet in `assets/styles/app.css`:
+The recipe copies `assets/styles/flowbite-xor.css`, Flowbite's theme with every color role checked for contrast. A role is a named color used through utilities such as `bg-brand`, `text-heading` or `border-default`. The file defines the roles (`@theme`), their dark values (`.dark`) and the `dark:` variant (`@custom-variant dark`), and gives Turbo Drive's progress bar the brand color. Import it after Tailwind and Flowbite's stylesheet in `assets/styles/app.css`:
 
 ```css
 @import "tailwindcss";
 
-/* AssetMapper: `php bin/console importmap:require flowbite/dist/flowbite.min.css` downloads it to assets/vendor */
+/* AssetMapper: `php bin/console importmap:require "flowbite/dist/flowbite.min.css@^4.0.2"` downloads it to assets/vendor */
 @import "../vendor/flowbite/dist/flowbite.min.css";
 /* Webpack Encore: @import "flowbite/dist/flowbite.min.css"; */
 

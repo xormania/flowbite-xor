@@ -2,6 +2,10 @@ twig:
     file_name_pattern: '*.twig'
     # the form-theme recipe, copied by tools/sync-demo
     form_themes: ['form/flowbite_layout.html.twig']
+    globals:
+        # the request's Content Security Policy nonces, which the layouts print (layouts/README.md)
+        csp_script_nonce: '@app.csp_nonce.script'
+        csp_style_nonce: '@app.csp_nonce.style'
 
 when@test:
     twig:

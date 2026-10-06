@@ -5,9 +5,11 @@
     title = 'Create an account',
     ## string The label of the submit button.
     submitLabel = 'Create account',
-    ## string|null The link to the login page.
+    ## string|null The link to the login page. A URL other than relative, http(s), mailto or tel renders `#`.
     loginHref = null
 -%}
+{#- a link prop keeps a relative, http(s), mailto or tel URL, read as browsers read it (case, leading spaces and C0 controls, tabs and newlines anywhere); any other renders "#" -#}
+{%- set _login_href = (loginHref ~ '')|replace({"\t": '', "\n": '', "\r": ''})|trim("\x00..\x20", 'left') matches '/^(?:(?:https?|mailto|tel):|(?![a-z][a-z0-9+.-]*:))/i' ? loginHref ~ '' : '#' -%}
 {#- the block renders its form through the form-theme recipe, whatever twig.form_themes says -#}
 {%- form_theme form 'form/flowbite_layout.html.twig' -%}
 <div {{ attributes.defaults({class: 'w-full'|tailwind_classes}) }}>
@@ -22,7 +24,7 @@
             {{ form_end(form) }}
         </twig:Card:Content>
         {%- if loginHref %}
-            <p class="mt-6 text-center text-sm text-body">Already have an account? <a href="{{ loginHref }}" class="font-medium text-fg-brand underline hover:no-underline">Sign in</a></p>
+            <p class="mt-6 text-center text-sm text-body">Already have an account? <a href="{{ _login_href }}" class="font-medium text-fg-brand underline hover:no-underline">Sign in</a></p>
         {%- endif %}
     </twig:Card>
 </div>

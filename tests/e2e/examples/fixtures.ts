@@ -4,10 +4,12 @@
  * baselines copied into <recipe>/tests/screenshots/. Differences:
  * - gotoExample('<kit>/<recipe>/<example>') opens this demo's /preview/<recipe>/<example>
  *   (the kit segment, e.g. "flowbite-4" in upstream specs, is ignored);
- * - screenshot names drop the kit segment: <recipe>/tests/screenshots/<file>.png.
+ * - screenshot names drop the kit segment: <recipe>/tests/screenshots/<file>.png;
+ * - a Content Security Policy violation fails the test too (the demo enforces a strict policy).
  */
 import { fileURLToPath } from 'node:url';
 import { expect, test as base, type Page } from '@playwright/test';
+import { recordCspViolations } from '../fixtures';
 
 export type Theme = 'light' | 'dark';
 
@@ -75,6 +77,8 @@ export const test = base.extend<Fixtures>({
         async ({ page, baseURL, documentStatus }, use) => {
             const errors: string[] = [];
             const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
+            // the demo enforces a strict Content Security Policy: no example may need 'unsafe-inline'
+            const cspViolations = await recordCspViolations(page);
 
             page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
             page.on('console', (message) => {
@@ -96,7 +100,7 @@ export const test = base.extend<Fixtures>({
 
             await use();
 
-            expect(errors).toEqual([]);
+            expect([...errors, ...cspViolations.map((violation) => `csp: ${violation}`)]).toEqual([]);
         },
         { auto: true },
     ],

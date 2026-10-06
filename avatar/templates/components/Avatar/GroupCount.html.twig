@@ -1,7 +1,8 @@
 {%- props
-    ## string The avatar group tag.
+    ## 'div'|'a'|'button' The avatar group tag; any other value renders a `div`.
     as = 'div'
 -%}
+{%- set as = as|lower in ['div', 'a', 'button'] ? as|lower : 'div' -%}
 
 <{{ as }}
     {{ attributes.defaults({

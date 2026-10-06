@@ -7,9 +7,10 @@
     shape = 'rounded',
     ## 'none'|'bordered' The badge border.
     border = 'none',
-    ## 'div' The HTML tag to render.
+    ## 'div'|'span'|'a' The HTML tag to render; any other value renders a `div`.
     as = 'div'
 -%}
+{%- set as = as|lower in ['div', 'span', 'a'] ? as|lower : 'div' -%}
 {%- set style = html_cva(
     base: 'inline-flex items-center justify-center font-medium',
     variants: {

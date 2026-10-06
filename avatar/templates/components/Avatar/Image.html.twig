@@ -1,5 +1,4 @@
 <img
     data-avatar-image
-    onload="this.classList.remove('hidden'); this.closest('.group\\/avatar')?.querySelector('[data-avatar-fallback]')?.classList.add('hidden');"
-    {{ attributes.defaults({class: 'hidden rounded-[inherit] aspect-square size-full object-cover'|tailwind_classes, alt: ''}) }}
+    {{ attributes.defaults({class: 'hidden rounded-[inherit] aspect-square size-full object-cover'|tailwind_classes, alt: '', 'data-controller': 'avatar', 'data-action': 'load->avatar#show error->avatar#hide'}) }}
 />
