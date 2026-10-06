@@ -215,7 +215,8 @@ unchecked. On top of escaping, the components check what shapes their markup:
   importmap with your nonces: see *Content Security Policy* in [`layouts/README.md`](layouts/README.md).
 
 `tests/e2e/hostile-props.spec.ts` renders each of these props with hostile values and checks what the browser parses.
-The kit's demo enforces a strict Content Security Policy, and every browser test fails on a violation.
+The kit's demo enforces a strict Content Security Policy, and every browser test fails on a violation. Report a
+vulnerability privately: see [`SECURITY.md`](SECURITY.md).
 
 ## Versioning
 
