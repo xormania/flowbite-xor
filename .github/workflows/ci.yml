@@ -1,9 +1,11 @@
 name: CI
 
-# Every push runs CI (so a branch is green before its PR opens); pull_request runs only for forks,
-# whose pushes do not reach this repository, to avoid running everything twice.
+# Every push to a branch runs CI (so a branch is green before its PR opens); pull_request runs only for forks,
+# whose pushes do not reach this repository, to avoid running everything twice. Tag pushes do not run it: release.yml
+# checks a release's install before tagging it.
 on:
     push:
+        branches: ['**']
     pull_request:
     workflow_dispatch:
 
@@ -24,6 +26,7 @@ jobs:
         name: Lint kit
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
+        timeout-minutes: 10
         steps:
             - uses: actions/checkout@v7
 
@@ -63,6 +66,7 @@ jobs:
         name: Fresh install
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
+        timeout-minutes: 10
         steps:
             - uses: actions/checkout@v7
 
@@ -80,21 +84,23 @@ jobs:
         name: Fresh install (Symfony Docker, from GitHub)
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
+        timeout-minutes: 20
         steps:
             - uses: actions/checkout@v7
 
-            # the kit as users get it: GitHub's archive of this commit (of the tag, on a tag push), installed in a
-            # fresh Symfony Docker project on the latest Symfony
+            # the kit as users get it: GitHub's archive of this commit, installed in a fresh Symfony Docker project on
+            # the latest Symfony
             - name: ux:install from GitHub in a fresh Symfony Docker project
               env:
                   KIT_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-                  KIT_REF: ${{ github.ref_type == 'tag' && github.ref_name || github.event.pull_request.head.sha || github.sha }}
+                  KIT_REF: ${{ github.event.pull_request.head.sha || github.sha }}
               run: tools/tests/docker-install.sh
 
     contrast:
         name: Contrast
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
+        timeout-minutes: 10
         steps:
             - uses: actions/checkout@v7
 
@@ -115,7 +121,11 @@ jobs:
         name: Demo + Playwright (${{ matrix.shard }}/3)
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
-        # the browser suite is most of CI's time: three shards, each with its own demo and browser
+        timeout-minutes: 25
+        # the browser suite is most of CI's time: three shards, each with its own demo and browser (shard 1 writes the
+        # image cache the others read)
+        env:
+            XDEBUG_MODE: 'off' # compose.override.yaml enables Xdebug's develop mode by default; the tests do not use it
         strategy:
             fail-fast: false
             matrix:
@@ -143,7 +153,7 @@ jobs:
                   set: |
                       *.cache-from=type=gha,scope=demo-${{ github.ref }}
                       *.cache-from=type=gha,scope=demo-refs/heads/main
-                      *.cache-to=type=gha,scope=demo-${{ github.ref }},mode=max
+                      ${{ matrix.shard == 1 && format('*.cache-to=type=gha,scope=demo-{0},mode=max', github.ref) || '' }}
 
             - name: Start the demo (composer install on first start)
               working-directory: demo
