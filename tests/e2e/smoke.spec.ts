@@ -1,34 +1,13 @@
-import { readdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { test, expect } from './fixtures';
+import { recipes } from './inventory';
 
-// Recipes as the UX Toolkit discovers them: "<dir>/manifest.json" at depth 1 of the kit root.
-const kitRoot = fileURLToPath(new URL('../..', import.meta.url));
-const recipes = readdirSync(kitRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && existsSync(join(kitRoot, entry.name, 'manifest.json')))
-    .map((entry) => entry.name)
-    .sort();
+// Every page answering 200 with its heading: a11y.spec.ts, which opens each of them.
 
 test('the index lists every recipe of the kit', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Flowbite xor');
     await expect(page.getByTestId('recipe-count')).toHaveText(`(${recipes.length})`);
     await expect(page.getByTestId('recipe-list').getByRole('link')).toHaveText(recipes);
-});
-
-for (const recipe of recipes) {
-    test(`/r/${recipe} renders`, async ({ page }) => {
-        const response = await page.goto(`/r/${recipe}`);
-        expect(response?.status()).toBe(200);
-        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    });
-}
-
-test('/lab renders', async ({ page }) => {
-    const response = await page.goto('/lab');
-    expect(response?.status()).toBe(200);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Lab');
 });
 
 test('links navigate with Turbo Drive (no full page load)', async ({ page }) => {

@@ -79,7 +79,8 @@ npx playwright test                                 # every browser test: see be
   Content Security Policy (`csp.spec.ts`), and an axe accessibility scan of every demo page (no serious or critical
   issue).
 - `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
-  runs the official kit's recipe specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`).
+  runs the official kit's recipe specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`). It fails
+  on a committed screenshot that no test compares (`baselines.spec.ts`).
 
 Every test of both projects fails on a console error, a failed request or a Content Security Policy violation.
 The demo enforces a strict policy (`demo/src/EventListener/SecurityHeadersListener.php`): scripts and styles run
