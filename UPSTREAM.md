@@ -12,13 +12,13 @@ inside the current kit). Copies stay byte-identical unless a row below says othe
 
 | File | Notes |
 |------|-------|
-| 22 recipes: `alert` `avatar` `badge` `button` `button-group` `card` `checkbox` `dropdown` `indicator` `input` `kbd` `label` `modal` `pagination` `radio` `select` `skeleton` `spinner` `table` `tabs` `textarea` `toggle` (templates, controllers, READMEs, `tests/*.spec.ts`, `tests/screenshots/*.png`) | byte-identical (`diff -r` clean) |
+| 22 recipes: `alert` `avatar` `badge` `button` `button-group` `card` `checkbox` `dropdown` `indicator` `input` `kbd` `label` `modal` `pagination` `radio` `select` `skeleton` `spinner` `table` `tabs` `textarea` `toggle` (templates, controllers, READMEs, `tests/*.spec.ts`, `tests/screenshots/*.png`) | byte-identical (`diff -r` clean) except the files under *Deviations* |
 | `kit.css` | the contrast fixes below; `theme/assets/styles/flowbite-xor.css` is the same file |
 | `kit.js` | no `import 'flowbite'`, see below |
 | `icon.svg` | byte-identical |
 | `INSTALL.md` | adapted, see below |
 
-**Recipes: byte-identical except the two manifest fixes below.** The copied screenshots are the visual-regression baseline: the demo renders
+**Recipes: byte-identical except the files under *Deviations*.** The copied screenshots are the visual-regression baseline: the demo renders
 every README example like upstream's preview app (`demo/templates/preview.html.twig`) and Playwright
 compares it in upstream's browser image, `mcr.microsoft.com/playwright:v1.58.2-noble` (217/217 tests
 pass, all 200 PNGs). Demo-side support copied from upstream (not part of the kit):
@@ -39,6 +39,11 @@ pass, all 200 PNGs). Demo-side support copied from upstream (not part of the kit
 | `kit.css` | dark `success-strong` → emerald-800 (was emerald-700) | Keeps the success button hover darker than dark `success` (now emerald-700) | candidate |
 | `button/templates/components/Button.html.twig` | `outline-success`/`outline-warning`/`outline-danger` text: `text-success`/`text-warning`/`text-danger` → `text-fg-success`/`text-fg-warning`/`text-fg-danger` | One token can't serve both white text on a solid button (needs a dark ground) and colored text on the dark page (needs a light color). The outline labels now use the `fg-*` text roles (dark: 5.5:1 / 9.3:1 / 5.4:1; `text-danger` was 3.3:1) | candidate |
 | `button/tests/screenshots/outline-buttons-{light,dark}.png` | Re-generated | Outline labels use the `fg-*` roles (above) | n/a (follows the template) |
+| `button/templates/components/Button.html.twig` | `as` is lower-cased and kept only when it is `button` or `a`; any other value renders a `button`. The `##` line lists the accepted tags | `<{{ as }}` escapes HTML but does not check a tag name: `as="img src=x onerror=…"` rendered a working event handler and `as="script"` ran the content. Every README example and demo page renders the same HTML, so no screenshot changes | candidate (flowbite-4 and shadcn; bootstrap already guards its tags this way) |
+| `badge/templates/components/Badge.html.twig` | The same check of `as`: `div`, `span` or `a`, otherwise `div` | As for `Button` above | candidate |
+| `avatar/templates/components/Avatar/GroupCount.html.twig` | The same check of `as`: `div`, `a` or `button`, otherwise `div` | As for `Button` above | candidate |
+| `card/templates/components/Card/Title.html.twig` | The same check of `as`: `span`, `div`, `p` or `h1`–`h6`, otherwise `span` | As for `Button` above | candidate |
+| `dropdown/templates/components/Dropdown/Item.html.twig` | The same check of `as`: `a` or `button`, otherwise `a` (an upper-case `BUTTON` now also gets `type="button"`) | As for `Button` above | candidate |
 | `modal/tests/screenshots/{default-open,opened-by-default,opened-by-default-open-after-move}-{light,dark}.png` | Re-generated | The open modal autofocuses its primary button: its focus ring is now the visible blue-500 (`kit.css` `brand-medium` above). No other screenshot changed | n/a (follows `kit.css`) |
 | `alert/assets/controllers/alert_controller.js` | Rewritten without `import { Dismiss } from 'flowbite'` | The kit ships no Flowbite JavaScript: behavior lives in Stimulus controllers. Same target and action, same fade (`transition-opacity duration-300 ease-out opacity-0`, then `hidden` after 300 ms); timer cleared in `disconnect()`. Upstream specs and screenshots unchanged | candidate |
 | `dropdown/assets/controllers/dropdown_controller.js` | Rewritten without `import { Dropdown } from 'flowbite'` (and Popper) | The kit ships no Flowbite JavaScript. Same targets, values and keyboard handling. Placement reproduces Popper's (absolute + `translate`, offset, flip, shift along the trigger), so the open-dropdown screenshots match upstream's. Every listener is removed on close/disconnect | candidate |

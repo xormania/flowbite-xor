@@ -5,9 +5,10 @@
     size = 'default',
     ## 'rounded'|'pill' The badge shape.
     shape = 'rounded',
-    ## 'button' The HTML tag to render.
+    ## 'button'|'a' The HTML tag to render; any other value renders a `button`.
     as = 'button'
 -%}
+{%- set as = as|lower in ['button', 'a'] ? as|lower : 'button' -%}
 {%- set style = html_cva(
     base: 'inline-flex items-center justify-center box-border border border-transparent font-medium focus:ring-4 focus:outline-none shadow-xs',
     variants: {

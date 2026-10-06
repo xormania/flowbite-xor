@@ -9,13 +9,14 @@
     error = null,
     ## boolean Whether the field is required (adds a marker to the label).
     required = false,
-    ## 'div'|'fieldset' A `fieldset` (with the label as its `legend`) groups several controls, such as radios.
+    ## 'div'|'fieldset' A `fieldset` (with the label as its `legend`) groups several controls, such as radios; any other value renders a `div`.
     as = 'div',
     ## array<string,string|bool> Extra attributes for the label (or legend), e.g. `{class: 'sr-only'}`.
     labelAttr = {},
     ## array<string,string|bool> Extra attributes for the help text.
     helpAttr = {}
 -%}
+{%- set as = as|lower in ['div', 'fieldset'] ? as|lower : 'div' -%}
 {%- set _errors = error is iterable ? error : (error is null or error is same as('') ? [] : [error]) -%}
 {%- set _label_tag = as == 'fieldset' ? 'legend' : 'label' -%}
 <{{ as }} {{ attributes.defaults({class: 'w-full min-w-0'|tailwind_classes}) }}>

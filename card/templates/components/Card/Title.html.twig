@@ -1,7 +1,8 @@
 {%- props
-    ## string The HTML tag used to render the title.
+    ## 'span'|'div'|'p'|'h1'|'h2'|'h3'|'h4'|'h5'|'h6' The HTML tag used to render the title; any other value renders a `span`.
     as = 'span'
 -%}
+{%- set as = as|lower in ['span', 'div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] ? as|lower : 'span' -%}
 <{{ as }}
     {{ attributes.defaults({
         class: 'text-2xl font-semibold tracking-tight text-heading leading-8'|tailwind_classes,
