@@ -18,9 +18,10 @@ use Symfony\Component\HttpKernel\KernelEvents;
  *   included. Images may come from https URLs: README examples show remote pictures.
  * - `Referrer-Policy: same-origin`, not `no-referrer`: browsers then send `Origin: null` on a same-origin POST, and
  *   the stateless CSRF check of the login, logout and forms (config/packages/csrf.yaml) needs the origin.
- * - Symfony's own pages print inline code without a nonce: error pages and the `_` routes (`/_error/{code}`) get the
- *   policy without its script and style part. In debug, Symfony's ErrorListener also removes the header from error
- *   pages after this listener; a web debug toolbar (WebProfilerBundle, not installed) would add its own nonces to it.
+ * - Symfony's own pages print inline code without a nonce: error pages and the `_` routes (`/_error/{code}`) get only
+ *   the directives that do not restrict scripts, styles or images. In debug, Symfony's ErrorListener also removes the
+ *   header from error pages after this listener; a web debug toolbar (WebProfilerBundle, not installed) would add
+ *   its own nonces to it.
  * - AssetMapper's dev server answers `/assets/` before this listener: those JavaScript and CSS files get no headers,
  *   which only documents need.
  */
@@ -29,8 +30,6 @@ final class SecurityHeadersListener
     private const SYMFONY_PAGE = '_app_symfony_page';
 
     private const POLICY = [
-        'default-src' => "'self'",
-        'img-src' => "'self' data: https:",
         'object-src' => "'none'",
         'base-uri' => "'none'",
         'form-action' => "'self'",
@@ -75,6 +74,8 @@ final class SecurityHeadersListener
         $policy = self::POLICY;
         $route = (string) $request->attributes->get('_route');
         if (!$request->attributes->get(self::SYMFONY_PAGE) && !str_starts_with($route, '_')) {
+            $policy['default-src'] = "'self'";
+            $policy['img-src'] = "'self' data: https:";
             $policy['script-src'] = "'nonce-{$this->scriptNonce}' 'strict-dynamic'";
             $policy['style-src'] = "'self' 'nonce-{$this->styleNonce}'";
             if ('app_preview' === $route) {

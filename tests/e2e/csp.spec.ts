@@ -129,12 +129,21 @@ test('the Progress bars keep their width', async ({ page }) => {
     }
 });
 
-test("Symfony's error page keeps the hardening headers without the script and style policy", async ({ page, allowHttpError }) => {
+test("Symfony's error pages keep the hardening headers without a policy on scripts and styles", async ({ page, allowHttpError }) => {
+    // an exception's page; in debug, Symfony also removes the whole header from it
     allowHttpError(/\/r\/does-not-exist$/, 404);
-    const response = await page.goto('/r/does-not-exist');
-    expect(response?.status()).toBe(404);
-    expect(response?.headers()['x-content-type-options']).toBe('nosniff');
-    // in debug, Symfony also removes the whole header from its error page
-    expect(policyOf(response).has('script-src')).toBe(false);
-    expect(policyOf(response).has('style-src')).toBe(false);
+    // the error page preview of the dev environment, an ordinary response
+    allowHttpError(/\/_error\/404$/, 404);
+    for (const path of ['/r/does-not-exist', '/_error/404']) {
+        const response = await page.goto(path);
+        expect(response?.status()).toBe(404);
+        expect(response?.headers()['x-content-type-options']).toBe('nosniff');
+        const policy = policyOf(response);
+        for (const directive of ['default-src', 'script-src', 'style-src']) {
+            expect(policy.has(directive), `${path}: ${directive}`).toBe(false);
+        }
+    }
+    expect(policyOf(await page.goto('/_error/404')).get('frame-ancestors')).toEqual(["'self'"]);
+    // Symfony's inline styles apply
+    expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
 });
