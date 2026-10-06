@@ -131,7 +131,7 @@ jobs:
 
             - name: Sync recipes into the demo
               working-directory: demo
-              run: docker compose exec -T php php /kit/tools/sync-demo
+              run: docker compose exec -T php php ../tools/sync-demo
 
             - name: The synced demo matches what is committed
               run: |
@@ -149,7 +149,7 @@ jobs:
 
             - name: sync-demo copies what ux:install copies
               working-directory: demo
-              run: docker compose exec -T php bash /kit/tools/tests/sync-demo.sh
+              run: docker compose exec -T php bash ../tools/tests/sync-demo.sh
 
             # The browser runs in upstream's Playwright image (see playwright.config.ts), so the
             # screenshots compare with the baselines copied from symfony/ux.

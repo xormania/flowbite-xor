@@ -31,15 +31,15 @@ committed baselines.
 ```bash
 cd demo
 docker compose up --wait                            # builds the image the first time, then installs the Composer packages
-docker compose exec php php /kit/tools/sync-demo    # copy every recipe into demo/ (safe to re-run; deletes nothing)
+docker compose exec php php ../tools/sync-demo      # copy every recipe into demo/ (safe to re-run; deletes nothing)
 docker compose exec php bin/console tailwind:build  # add --watch to rebuild the CSS as you edit
 cd .. && npm ci
 ```
 
-Open https://localhost and accept the certificate of Caddy's local authority. Inside the container, the demo is in
-`/app` and the whole repository in `/kit`; FrankenPHP restarts its workers when a file changes. After changing a
-recipe, run `tools/sync-demo` and `tailwind:build` again. `tools/sync-demo` never deletes: remove a renamed or
-deleted recipe file from `demo/` yourself. `docker compose down` stops the demo.
+Open https://localhost and accept the certificate of Caddy's local authority. The container sees the whole
+repository in `/app` and runs the demo from `/app/demo`, as on disk; FrankenPHP restarts its workers when a file
+changes. After changing a recipe, run `tools/sync-demo` and `tailwind:build` again. `tools/sync-demo` never deletes:
+remove a renamed or deleted recipe file from `demo/` yourself. `docker compose down` stops the demo.
 
 Without Docker, with PHP 8.4 or later and Composer: run `tools/sync-demo`, then
 `(cd demo && composer install && php bin/console tailwind:build && php bin/console asset-map:compile)`, and serve
@@ -49,7 +49,8 @@ JavaScript in `demo/public/assets/`, so compile again after each change.
 ## Checks
 
 CI runs all of them on every push. The PHP ones run on your machine as shown, or in the container: prefix them with
-`docker compose exec php` from `demo/`, with paths under `/kit` (`docker compose exec php bash /kit/tools/tests/sync-demo.sh`).
+`docker compose exec php` from `demo/`, with paths relative to `demo/`
+(`docker compose exec php bash ../tools/tests/sync-demo.sh`).
 
 ```bash
 # lint the kit as users download it (git archive exports committed files only: commit first)

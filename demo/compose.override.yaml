@@ -6,17 +6,18 @@ services:
     build:
       context: .
       target: frankenphp_dev
+    # flowbite-xor: the whole repository, so the demo sits in /app/demo as it does on disk; it reads the kit
+    # from its parent directory, and its stylesheet imports the kit's files by relative path
+    working_dir: /app/demo
     volumes:
-      - ./:/app
-      # flowbite-xor: the kit's repository, read by the demo (KIT_DIR) and by tools/sync-demo
-      - ../:/kit
+      - ../:/app
       - ./frankenphp/Caddyfile:/etc/frankenphp/Caddyfile:ro
       - ./frankenphp/conf.d/20-app.dev.ini:/usr/local/etc/php/app.conf.d/20-app.dev.ini:ro
       # Keep var/ off the bind-mount for faster I/O on Mac/Windows; comment to inspect from the host.
-      - /app/var
+      - /app/demo/var
       # If you develop on Mac or Windows you can remove the vendor/ directory
       #  from the bind-mount for better performance by enabling the next line:
-      #- /app/vendor
+      #- /app/demo/vendor
     environment:
       FRANKENPHP_WORKER_CONFIG: watch
       FRANKENPHP_SITE_CONFIG: hot_reload
@@ -24,7 +25,8 @@ services:
       # See https://xdebug.org/docs/all_settings#mode
       XDEBUG_MODE: "${XDEBUG_MODE:-develop}"
       APP_ENV: "${APP_ENV:-dev}"
-      KIT_DIR: /kit
+      # flowbite-xor: the demo's public directory (frankenphp/Caddyfile)
+      SERVER_ROOT: /app/demo/public
     extra_hosts:
       # Ensure that host.docker.internal is correctly defined on Linux
       - host.docker.internal:host-gateway

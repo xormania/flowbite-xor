@@ -88,4 +88,5 @@ images refuse the template's Mercure configuration. Update with the template's o
 
 | File | Change | Reason |
 |------|--------|--------|
-| `demo/compose.override.yaml` | mounts the repository at `/kit` and sets `KIT_DIR=/kit` | the demo reads the kit's recipes and READMEs (`app.kit_dir`), and `tools/sync-demo` runs in the container |
+| `demo/compose.override.yaml` | mounts the whole repository at `/app` and runs the demo from `/app/demo` (`working_dir`, the `var/` volume, `SERVER_ROOT`) | the demo reads the kit from its parent directory (`app.kit_dir`), its stylesheet imports `kit.css` and scans the kit by relative path, and `tools/sync-demo` runs in the container |
+| `demo/frankenphp/Caddyfile` | `root {$SERVER_ROOT:/app/public}` (was `root /app/public`) | the demo's public directory is `/app/demo/public` in development; the image keeps `/app/public` |

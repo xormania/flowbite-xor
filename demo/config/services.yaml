@@ -7,10 +7,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
-    # Root of the kit showcased by this demo: the repository root, or KIT_DIR (set in the Docker container,
-    # where the repository is mounted at /kit).
-    app.kit_dir: '%env(default:app.kit_dir_default:KIT_DIR)%'
-    app.kit_dir_default: '%kernel.project_dir%/..'
+    # Root of the kit showcased by this demo (the repository root).
+    app.kit_dir: '%kernel.project_dir%/..'
 
 services:
     # default configuration for services in *this* file

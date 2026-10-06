@@ -21,7 +21,7 @@
 		}
 	}
 
-	root /app/public
+	root {$SERVER_ROOT:/app/public}
 	encode zstd br gzip
 
 	mercure {
