@@ -103,19 +103,35 @@ jobs:
         steps:
             - uses: actions/checkout@v7
 
-            - uses: shivammathur/setup-php@v2
-              with:
-                  php-version: ${{ env.PHP_VERSION }}
-                  tools: composer:v2
-                  coverage: none
-
             - uses: actions/setup-node@v7
               with:
                   node-version: 22
                   cache: npm
 
+            # The demo runs in Symfony Docker (demo/compose.yaml): FrankenPHP in worker mode, PHP 8.5
+            - uses: docker/setup-buildx-action@v4
+
+            - name: Build the demo image
+              uses: docker/bake-action@v7
+              with:
+                  source: ./demo                # bake's working directory: compose files and build context in demo/
+                  files: |
+                      compose.yaml
+                      compose.override.yaml
+                  load: true
+                  pull: true
+                  set: |
+                      *.cache-from=type=gha,scope=demo-${{ github.ref }}
+                      *.cache-from=type=gha,scope=demo-refs/heads/main
+                      *.cache-to=type=gha,scope=demo-${{ github.ref }},mode=max
+
+            - name: Start the demo (composer install on first start)
+              working-directory: demo
+              run: docker compose up --wait --no-build
+
             - name: Sync recipes into the demo
-              run: tools/sync-demo
+              working-directory: demo
+              run: docker compose exec -T php php /kit/tools/sync-demo
 
             - name: The synced demo matches what is committed
               run: |
@@ -125,26 +141,15 @@ jobs:
                       exit 1
                   fi
 
-            - name: Get Composer cache directory
-              id: composer-cache
-              run: echo "dir=$(composer config --global cache-files-dir)" >> "$GITHUB_OUTPUT"
-
-            - uses: actions/cache@v6
-              with:
-                  path: ${{ steps.composer-cache.outputs.dir }}
-                  key: composer-${{ runner.os }}-${{ hashFiles('demo/composer.lock') }}
-                  restore-keys: composer-${{ runner.os }}-
-
-            - name: Install the demo
+            - name: Check the demo and build its CSS
               working-directory: demo
               run: |
-                  composer validate --no-check-publish --strict     # also fails on a stale composer.lock
-                  composer install --no-interaction --no-progress   # auto-scripts: cache:clear, importmap:install
-                  php bin/console tailwind:build
-                  php bin/console asset-map:compile
+                  docker compose exec -T php composer validate --no-check-publish --strict   # also fails on a stale composer.lock
+                  docker compose exec -T php bin/console tailwind:build
 
             - name: sync-demo copies what ux:install copies
-              run: tools/tests/sync-demo.sh
+              working-directory: demo
+              run: docker compose exec -T php bash /kit/tools/tests/sync-demo.sh
 
             # The browser runs in upstream's Playwright image (see playwright.config.ts), so the
             # screenshots compare with the baselines copied from symfony/ux.
@@ -154,7 +159,14 @@ jobs:
                   docker pull "mcr.microsoft.com/playwright:v$(node -p "require('@playwright/test/package.json').version")-noble"
 
             - name: Playwright (smoke + every README example + upstream recipe specs)
+              env:
+                  DEMO_URL: https://localhost
               run: npx playwright test
+
+            - name: Demo logs
+              if: failure()
+              working-directory: demo
+              run: docker compose logs php
 
             - uses: actions/upload-artifact@v7
               if: failure()
