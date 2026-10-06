@@ -1,10 +1,11 @@
 import type { Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, turboVisitDone } from './fixtures';
 
 /*
  * `Avatar:Image` starts hidden behind its `Avatar:Fallback`: the avatar controller shows it once it has loaded, also
  * when it loaded before the controller connected, and shows the fallback again when it fails. The README examples
- * and the turbo-nav lab page load remote pictures, which the fixtures answer with a local placeholder.
+ * and the turbo-nav lab page load remote pictures, which the fixtures answer with a local placeholder. Routing
+ * requests turns the browser's HTTP cache off, so no test here loads a picture from it.
  */
 const PICTURE = /\/profile-picture-5\.jpg$/;
 
@@ -18,13 +19,26 @@ async function expectImagesShown(page: Page, count: number): Promise<void> {
     }
 }
 
-test('shows the image instead of the fallback once it has loaded, also from the cache', async ({ page }) => {
+test('shows the image instead of the fallback once it has loaded', async ({ page }) => {
     await page.goto('/preview/avatar/default?theme=light');
     await expectImagesShown(page, 2);
+});
 
-    // the cached image may be complete before the controller connects
-    await page.reload();
+test('shows an image that loaded before the controller connected', async ({ page }) => {
+    await page.goto('/preview/avatar/default?theme=light');
     await expectImagesShown(page, 2);
+    const avatar = page.locator('.group\\/avatar').first();
+    const image = avatar.locator('img');
+
+    // disconnecting puts the markup's state back: image hidden, fallback shown
+    await image.evaluate((element) => element.removeAttribute('data-controller'));
+    await expect(image).toBeHidden();
+    await expect(avatar.locator('[data-avatar-fallback]')).toBeVisible();
+
+    // the image is complete when the controller connects again: no load event follows
+    await image.evaluate((element) => element.setAttribute('data-controller', 'avatar'));
+    await expect(image).toBeVisible();
+    await expect(avatar.locator('[data-avatar-fallback]')).toBeHidden();
 });
 
 test('shows the picture of a page reached by a Turbo visit or restored from its cache', async ({ page }) => {
@@ -35,14 +49,15 @@ test('shows the picture of a page reached by a Turbo visit or restored from its 
     await expect(fallback).toBeHidden();
     await page.evaluate(() => ((window as any).__sameDocument = true));
 
-    // the picture is cached: it may be complete before the controller connects
     await page.getByRole('link', { name: 'Go to page two' }).click();
     await expect(page.getByTestId('page')).toHaveText('Page two');
+    await turboVisitDone(page);
     await expect(picture).toBeVisible();
     await expect(fallback).toBeHidden();
 
     await page.goBack();
     await expect(page.getByTestId('page')).toHaveText('Page one');
+    await turboVisitDone(page);
     await expect(picture).toBeVisible();
     await expect(fallback).toBeHidden();
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
