@@ -1,0 +1,5 @@
+# a deterministic check: no Iconify API calls, missing icons render nothing
+ux_icons:
+    ignore_not_found: true
+    iconify:
+        on_demand: false
