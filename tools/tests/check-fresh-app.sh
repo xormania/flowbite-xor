@@ -2,7 +2,7 @@
 # Checks the app that fresh-install.sh and docker-install.sh build from tools/tests/fixtures/fresh-app: `/` renders
 # the dashboard through the layouts, `/register` renders the signup form through the form theme (no
 # `twig.form_themes` setting: the block applies the theme itself), `/orders` renders a DataTable whose PHP classes
-# ux:install copied into src/, and all answer 200.
+# ux:install copied into src/, `/live-orders` a DataTableLive that answers a Live action, and all answer 200.
 #
 #   tools/tests/check-fresh-app.sh <base URL> [curl option…]
 set -euo pipefail
@@ -53,3 +53,16 @@ grep -qE 'id="orders-row-2"' <<< "$page" \
 grep -qE 'href="/orders\?sort=number&amp;dir=desc&amp;f%5Bstatus%5D=paid"' <<< "$page" \
     || { echo "FAIL: the orders table page links lose the sort or the filter" >&2; exit 1; }
 echo "ok: the orders DataTable renders from the recipe's PHP (HTTP 200)"
+
+# the data-table-live recipe's PHP works as a Live Component: the page renders it, and its `goTo` action, sent as the
+# live controller sends it (tools/tests/live-action.php), answers with the requested page
+page="$(fetch /live-orders "$@")"
+grep -qE 'data-live-name-value="LiveOrders"' <<< "$page" \
+    || { echo "FAIL: the live orders table is not a Live Component" >&2; exit 1; }
+body="$("${PHP:-php}" "$(dirname "$0")/live-action.php" "$work/page.html" '{"page":"2"}')"
+status="$(curl -s "$@" -o "$work/action.html" -w '%{http_code}' -X POST "$base/_components/LiveOrders/goTo" \
+    -H 'Accept: application/vnd.live-component+html' -H 'X-Requested-With: XMLHttpRequest' --data-urlencode "data=$body")"
+[ "$status" = 200 ] || { echo "FAIL: the live orders table's goTo action answered $status" >&2; exit 1; }
+grep -qE 'Showing <span[^>]*>11–20</span> of <span[^>]*>25</span>' "$work/action.html" \
+    || { echo "FAIL: the live orders table's goTo action did not render page 2" >&2; exit 1; }
+echo "ok: the live orders DataTableLive renders and answers a Live action (HTTP 200)"

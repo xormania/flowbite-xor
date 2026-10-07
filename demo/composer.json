@@ -43,7 +43,8 @@
     "autoload": {
         "psr-4": {
             "App\\": "src/",
-            "App\\FlowbiteXor\\DataTable\\": "../data-table/src/FlowbiteXor/DataTable/"
+            "App\\FlowbiteXor\\DataTable\\": "../data-table/src/FlowbiteXor/DataTable/",
+            "App\\FlowbiteXor\\DataTableLive\\": "../data-table-live/src/FlowbiteXor/DataTableLive/"
         }
     },
     "autoload-dev": {

@@ -30,6 +30,10 @@ final class LabController extends AbstractController
         'turbo-stream-toast' => 'A form whose Turbo Stream response appends a Toast to the region: it appears, pauses while hovered, dismisses itself, and focus stays put.',
         'turbo-frame-detail' => 'A list and a detail Turbo Frame holding a Dropdown, reloaded several times.',
         'permanent-plus-live' => 'A Live Component inside a data-turbo-permanent element across Turbo visits.',
+        'data-table-live' => 'A Live DataTable: its state in the URL across Turbo visits and Back, rows selected across pages, values the table does not accept normalized.',
+        'data-table-live-frame' => 'A Live DataTable inside a Turbo Frame that reloads: the reloaded table is live again.',
+        'data-table-live-permanent' => 'A Live DataTable inside a data-turbo-permanent element: it keeps its state across Turbo visits.',
+        'data-table-live-stream' => 'A Live DataTable replaced and updated by Turbo Streams: it reconnects and starts from the server state.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -122,5 +126,40 @@ final class LabController extends AbstractController
             'table' => $orders->handleRequest($request),
             'description' => self::SCENARIOS['data-table-frame'],
         ]);
+    }
+
+    #[Route('/data-table-live', name: 'app_lab_data_table_live')]
+    public function dataTableLive(): Response
+    {
+        return $this->render('lab/data_table_live.html.twig', ['description' => self::SCENARIOS['data-table-live']]);
+    }
+
+    #[Route('/data-table-live-frame', name: 'app_lab_data_table_live_frame')]
+    public function dataTableLiveFrame(Request $request): Response
+    {
+        return $this->render('lab/data_table_live_frame.html.twig', [
+            'description' => self::SCENARIOS['data-table-live-frame'],
+            'load' => $request->query->getInt('load'),
+        ]);
+    }
+
+    #[Route('/data-table-live-permanent/{page}', name: 'app_lab_data_table_live_permanent', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    public function dataTableLivePermanent(string $page): Response
+    {
+        return $this->render('lab/data_table_live_permanent.html.twig', ['page' => $page, 'description' => self::SCENARIOS['data-table-live-permanent']]);
+    }
+
+    #[Route('/data-table-live-stream', name: 'app_lab_data_table_live_stream', methods: ['GET', 'POST'])]
+    public function dataTableLiveStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/data_table_live_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/data_table_live_stream.html.twig', ['description' => self::SCENARIOS['data-table-live-stream']]);
     }
 }

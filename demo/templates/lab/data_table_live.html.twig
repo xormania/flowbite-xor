@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}data-table-live — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'data-table-live'}) }}
+    <p class="mb-4"><a href="{{ path('app_lab_turbo_nav', {page: 'two'}) }}" class="text-fg-brand hover:underline">Leave the table</a></p>
+    <twig:OrdersTable tableId="orders" label="Orders">
+        <twig:block name="cell_number"><span data-testid="order-number">{{ row.number }}</span></twig:block>
+        <twig:block name="selection_actions"><span data-testid="selected-ids" class="text-body">{{ this.selectedIds|join(',') }}</span></twig:block>
+    </twig:OrdersTable>
+{% endblock %}

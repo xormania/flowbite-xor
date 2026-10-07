@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}data-table-live-permanent ({{ page }}) — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'data-table-live-permanent'}) }}
+    <div id="lab-permanent-table" data-turbo-permanent class="rounded-base border border-default p-3">
+        <twig:OrdersTable tableId="kept" label="Kept orders">
+            <twig:block name="cell_number"><span data-testid="order-number">{{ row.number }}</span></twig:block>
+        </twig:OrdersTable>
+    </div>
+    <h2 class="mt-4 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    <a href="{{ path('app_lab_data_table_live_permanent', {page: page == 'one' ? 'two' : 'one'}) }}" class="mt-2 inline-block text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a>
+{% endblock %}

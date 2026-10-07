@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}data-table-live-frame — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'data-table-live-frame'}) }}
+    <turbo-frame id="live-table-frame">
+        <p class="mb-4">Frame load <span data-testid="frame-load">{{ load }}</span> · <a href="{{ path('app_lab_data_table_live_frame', {load: load + 1}) }}" class="text-fg-brand hover:underline">Reload the frame</a></p>
+        <twig:OrdersTable tableId="framed" label="Framed orders">
+            <twig:block name="cell_number"><span data-testid="order-number">{{ row.number }}</span></twig:block>
+        </twig:OrdersTable>
+    </turbo-frame>
+{% endblock %}

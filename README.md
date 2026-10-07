@@ -116,6 +116,7 @@ Each recipe's README has its examples, props and usage.
 |---|---|
 | [`breadcrumb`](breadcrumb/README.md) | A trail of links showing where the current page sits in the site hierarchy. |
 | [`data-table`](data-table/README.md) | A server-driven table: search, filters, sortable columns, page size and pages in a Turbo Frame, with Back and Forward through each state. Copies PHP classes into `src/FlowbiteXor/`. |
+| [`data-table-live`](data-table-live/README.md) | `data-table` as a Live Component: search while typing, filters, sorting, pages and row selection for bulk actions, its state in the URL. Copies PHP classes into `src/FlowbiteXor/`. |
 | [`drawer`](drawer/README.md) ✦ | A panel sliding over one side of the page, for navigation, filters or details, as a native `<dialog>`. |
 | [`empty-state`](empty-state/README.md) | What a list or page shows when it has nothing yet, with a way forward. |
 | [`navbar`](navbar/README.md) ✦ | The bar on top of the app: brand, search, actions, and the menu button opening the sidebar on small screens. |
@@ -154,8 +155,6 @@ its own name: `dashboard-home` renders as `<twig:DashboardHome>`, `login` as `<t
 | [`forgot-password`](forgot-password/README.md) | A card asking for an email address to send a password reset link, then confirming it was sent. |
 | [`settings-profile`](settings-profile/README.md) | A profile settings card: avatar, name and a Symfony form rendered through the form theme. |
 | [`not-found`](not-found/README.md) | The content of a 404 (or any error) page: status, title, explanation and a way back. |
-
-A Live Component version of `data-table`, with row selection, is planned.
 
 ## Updating
 

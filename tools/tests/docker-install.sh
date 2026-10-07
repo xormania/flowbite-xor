@@ -51,13 +51,14 @@ x composer require --no-interaction --no-progress symfony/twig-bundle "symfony/u
 x composer require --no-interaction --no-progress --dev "symfony/ux-toolkit:$toolkit_version" symfony/http-client
 x composer require --no-interaction --no-progress symfony/asset-mapper symfony/stimulus-bundle
 
-for recipe in dashboard-home signup data-table; do
+# each recipe's printed `composer require` runs before the next recipe installs (see fresh-install.sh)
+for recipe in dashboard-home signup data-table data-table-live; do
     x bin/console ux:install "$recipe" --kit="https://github.com/$repository:$ref" --no-interaction > "$work/install-$recipe.log" 2>&1 \
         || { cat "$work/install-$recipe.log"; echo "FAIL: ux:install $recipe"; exit 1; }
-done
-grep -h '^ *\$ composer require ' "$work"/install-*.log | sed 's/^ *\$ composer //' | while IFS= read -r arguments; do
-    echo "ux:install suggested: composer $arguments"
-    x sh -c "composer $arguments --no-interaction --no-progress" < /dev/null
+    grep -h '^ *\$ composer require ' "$work/install-$recipe.log" | sed 's/^ *\$ composer //' | while IFS= read -r arguments; do
+        echo "ux:install $recipe suggested: composer $arguments"
+        x sh -c "composer $arguments --no-interaction --no-progress" < /dev/null
+    done
 done
 
 # the app a user writes (tools/tests/fixtures/fresh-app); the container owns the project files

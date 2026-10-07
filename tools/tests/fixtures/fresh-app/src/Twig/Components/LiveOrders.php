@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Twig\Components;
+
+use App\FlowbiteXor\DataTable\Column;
+use App\FlowbiteXor\DataTable\TableQuery;
+use App\FlowbiteXor\DataTable\TableResult;
+use App\FlowbiteXor\DataTableLive\AbstractLiveDataTable;
+use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+
+#[AsLiveComponent(name: 'LiveOrders', template: 'components/DataTableLive.html.twig')]
+final class LiveOrders extends AbstractLiveDataTable
+{
+    public function columns(): array
+    {
+        return [Column::make('number', 'Order')->sortable()];
+    }
+
+    protected function loadPage(TableQuery $query): TableResult
+    {
+        $rows = [];
+        for ($id = 1; $id <= 25; ++$id) {
+            $rows[] = ['id' => $id, 'number' => \sprintf('#%04d', $id)];
+        }
+        if ('desc' === $query->direction) {
+            $rows = array_reverse($rows);
+        }
+
+        return new TableResult(\array_slice($rows, $query->offset(), $query->pageSize), \count($rows));
+    }
+}

@@ -39,15 +39,16 @@ kit="vendor/symfony/ux-toolkit/kits/flowbite-xor-local"
 mkdir -p "$kit"
 git -C "$root" archive HEAD | tar -x -C "$kit"
 
-for recipe in dashboard-home signup data-table; do
+# the installer prints the Composer packages a recipe needs: run each printed command through a shell, as a user pasting
+# it would (a constraint such as `^7.4|^8.0` would pipe the line into another command), before the next recipe (a
+# recipe's PHP in src/ can need its packages to boot the app, e.g. data-table-live's Live Component)
+for recipe in dashboard-home signup data-table data-table-live; do
     $php bin/console ux:install "$recipe" --kit=flowbite-xor-local --no-interaction > "install-$recipe.log" 2>&1 \
         || { cat "install-$recipe.log"; echo "FAIL: ux:install $recipe"; exit 1; }
-done
-# the installer prints the Composer packages the installed recipes need: run each printed command through a shell,
-# as a user pasting it would (a constraint such as `^7.4|^8.0` would pipe the line into another command)
-grep -h '^ *\$ composer require ' install-*.log | sed 's/^ *\$ composer //' | while IFS= read -r arguments; do
-    echo "ux:install suggested: composer $arguments"
-    sh -c "$composer $arguments --no-interaction --no-progress" < /dev/null
+    grep -h '^ *\$ composer require ' "install-$recipe.log" | sed 's/^ *\$ composer //' | while IFS= read -r arguments; do
+        echo "ux:install $recipe suggested: composer $arguments"
+        sh -c "$composer $arguments --no-interaction --no-progress" < /dev/null
+    done
 done
 
 # the app a user writes: a dashboard page and a registration page (tools/tests/fixtures/fresh-app)
