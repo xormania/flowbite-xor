@@ -51,7 +51,7 @@ x composer require --no-interaction --no-progress symfony/twig-bundle "symfony/u
 x composer require --no-interaction --no-progress --dev "symfony/ux-toolkit:$toolkit_version" symfony/http-client
 x composer require --no-interaction --no-progress symfony/asset-mapper symfony/stimulus-bundle
 
-for recipe in dashboard-home signup data-table; do
+for recipe in dashboard-home signup data-table data-table-live; do
     x bin/console ux:install "$recipe" --kit="https://github.com/$repository:$ref" --no-interaction > "$work/install-$recipe.log" 2>&1 \
         || { cat "$work/install-$recipe.log"; echo "FAIL: ux:install $recipe"; exit 1; }
 done
