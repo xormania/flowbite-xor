@@ -96,6 +96,7 @@ select[aria-invalid='true'] + .ts-wrapper.focus,
     background-color: var(--color-brand-softer);
     color: var(--color-fg-brand-strong);
     font-size: 0.75rem;
+    line-height: 1rem;
     font-weight: 500;
 }
 

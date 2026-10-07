@@ -8,9 +8,19 @@ const control = (page: Page, name: string) => page.locator('.ts-wrapper').getByR
 // the options of Tom Select's listbox (the hidden <select>'s own options are in the accessibility tree too)
 const listbox = async (page: Page, control: Locator) => page.locator(`#${await control.getAttribute('aria-controls')}`);
 const pick = async (page: Page, control: Locator, typed: string, option: string) => {
-    await control.click();
-    await control.pressSequentially(typed);
-    await (await listbox(page, control)).getByRole('option', { name: option, exact: true }).click();
+    const list = await listbox(page, control);
+    // UX Autocomplete rebuilds Tom Select when the <select> changes (remote results arriving, a Live re-render), which
+    // drops what was typed: type again until the list shows the search applied (Tom Select applies it after a delay,
+    // and a pick before that would be reopened)
+    await expect(async () => {
+        // click the field's box, as people do: with a chosen value, a single field moves its search input off-screen
+        await control.locator('xpath=ancestor::div[contains(@class, "ts-control")]').click();
+        await control.fill('');
+        await page.keyboard.type(typed);
+        await expect(control).toHaveValue(typed, { timeout: 1000 });
+        await expect(list.locator('.highlight').first()).toBeVisible({ timeout: 1000 });
+    }).toPass();
+    await list.getByRole('option', { name: option, exact: true }).click();
     // leave the field, so its list does not cover the next one: a multiple field keeps it open, and search results
     // arriving late open it again while the field has the focus
     await control.press('Escape');
@@ -49,7 +59,7 @@ test('the component outside a form creates a value from what is typed', async ({
     await page.goto('/lab/autocomplete');
     const fruit = control(page, 'Fruit (outside a form)');
     await fruit.click();
-    await fruit.pressSequentially('kiwi');
+    await page.keyboard.type('kiwi');
     // Tom Select's "Add …" entry has no option role
     const create = (await listbox(page, fruit)).locator('.create');
     await expect(create).toHaveText('Add kiwi...');
