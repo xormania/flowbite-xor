@@ -39,7 +39,7 @@ kit="vendor/symfony/ux-toolkit/kits/flowbite-xor-local"
 mkdir -p "$kit"
 git -C "$root" archive HEAD | tar -x -C "$kit"
 
-for recipe in dashboard-home signup; do
+for recipe in dashboard-home signup data-table; do
     $php bin/console ux:install "$recipe" --kit=flowbite-xor-local --no-interaction > "install-$recipe.log" 2>&1 \
         || { cat "install-$recipe.log"; echo "FAIL: ux:install $recipe"; exit 1; }
 done
