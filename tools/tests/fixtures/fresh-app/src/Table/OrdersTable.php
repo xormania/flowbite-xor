@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Table;
+
+use App\FlowbiteXor\DataTable\AbstractDataTable;
+use App\FlowbiteXor\DataTable\Column;
+use App\FlowbiteXor\DataTable\Filter;
+use App\FlowbiteXor\DataTable\TableQuery;
+use App\FlowbiteXor\DataTable\TableResult;
+
+final class OrdersTable extends AbstractDataTable
+{
+    public function columns(): array
+    {
+        return [Column::make('number', 'Order')->sortable(), Column::make('status', 'Status')];
+    }
+
+    public function filters(): array
+    {
+        return [Filter::choice('status', 'Status', ['paid' => 'Paid', 'pending' => 'Pending'])];
+    }
+
+    protected function loadPage(TableQuery $query): TableResult
+    {
+        $rows = [];
+        for ($id = 1; $id <= 25; ++$id) {
+            $rows[] = ['id' => $id, 'number' => \sprintf('#%04d', $id), 'status' => 0 === $id % 2 ? 'paid' : 'pending'];
+        }
+        if (isset($query->filters['status'])) {
+            $rows = array_values(array_filter($rows, static fn (array $row): bool => $row['status'] === $query->filters['status']));
+        }
+        if ('desc' === $query->direction) {
+            $rows = array_reverse($rows);
+        }
+
+        return new TableResult(\array_slice($rows, $query->offset(), $query->pageSize), \count($rows));
+    }
+}

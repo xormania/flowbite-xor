@@ -5,6 +5,11 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ## [Unreleased]
 
+### Added
+
+- `data-table`: a server-driven table (search, filters, sortable columns, page size, pages) in a Turbo Frame, with
+  the PHP classes a table extends (`AbstractDataTable`) copied into `src/FlowbiteXor/DataTable/`.
+
 ## [0.1.0] - 2026-10-06
 
 ### Added

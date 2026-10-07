@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}data-table-frame — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'data-table-frame'}) }}
+    <p class="mb-4"><a href="{{ path('app_lab_turbo_nav', {page: 'two'}) }}" class="text-fg-brand hover:underline">Leave the table</a></p>
+    <twig:DataTable :table="table" id="orders" label="Orders">
+        <twig:block name="cell_number"><span data-testid="order-number">{{ row.number }}</span></twig:block>
+    </twig:DataTable>
+{% endblock %}

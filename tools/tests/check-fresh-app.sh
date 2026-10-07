@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Checks the app that fresh-install.sh and docker-install.sh build from tools/tests/fixtures/fresh-app: `/` renders
 # the dashboard through the layouts, `/register` renders the signup form through the form theme (no
-# `twig.form_themes` setting: the block applies the theme itself), and both answer 200.
+# `twig.form_themes` setting: the block applies the theme itself), `/orders` renders a DataTable whose PHP classes
+# ux:install copied into src/, and all answer 200.
 #
 #   tools/tests/check-fresh-app.sh <base URL> [curl option…]
 set -euo pipefail
@@ -39,3 +40,16 @@ grep -oE '<label[^>]*>' <<< "$page" | grep 'for="form_email"' | grep -q 'text-he
 grep -qE '<p id="form_plainPassword_help"[^>]*>[[:space:]]*At least 12 characters' <<< "$page" \
     || { echo "FAIL: the signup password help is not FormField's" >&2; exit 1; }
 echo "ok: the signup form renders through the form theme (HTTP 200)"
+
+# the data-table recipe's PHP (src/FlowbiteXor/DataTable/) works in the app: the table reads its page, sort and filter
+# from the URL, and its links keep them
+page="$(fetch '/orders?page=2&sort=number&dir=desc&f%5Bstatus%5D=paid' "$@")"
+grep -qE 'Showing <span[^>]*>11–12</span> of <span[^>]*>12</span>' <<< "$page" \
+    || { echo "FAIL: the orders table does not show its second page of paid orders" >&2; exit 1; }
+grep -qE '<turbo-frame[^>]*id="orders"[^>]*data-turbo-action="advance"' <<< "$page" \
+    || { echo "FAIL: the orders table is not in its Turbo Frame" >&2; exit 1; }
+grep -qE 'id="orders-row-2"' <<< "$page" \
+    || { echo "FAIL: the orders table rows have no stable ids" >&2; exit 1; }
+grep -qE 'href="/orders\?sort=number&amp;dir=desc&amp;f%5Bstatus%5D=paid"' <<< "$page" \
+    || { echo "FAIL: the orders table page links lose the sort or the filter" >&2; exit 1; }
+echo "ok: the orders DataTable renders from the recipe's PHP (HTTP 200)"

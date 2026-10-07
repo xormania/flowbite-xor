@@ -28,6 +28,12 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   one already on screen, so toasts rendered inside it on a later page are dropped. Render
   `<twig:Toast:Stream>` in the page body (every kit layout does it for flash messages) or in a Turbo Stream
   response.
+- **Lists of records: `ux:install data-table`**, then one class per table extending
+  `App\FlowbiteXor\DataTable\AbstractDataTable` with `columns()` and `loadPage(TableQuery): TableResult`; the
+  controller passes `$table->handleRequest($request)` to `<twig:DataTable :table="table" id="…" />`. The query is
+  already checked: sort by `$query->sortField`, never by a raw request value. Custom cells go in
+  `<twig:block name="cell_<key>">` (not `{% block %}`, which does not compile `<twig:…>` inside a component).
+  Keep `src/FlowbiteXor/` as the recipe installed it.
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the
   position yourself, as the kit's `Sidebar` does.
