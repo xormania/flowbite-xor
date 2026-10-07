@@ -11,6 +11,9 @@ final class TableQuery
 {
     public const SEARCH_MAX_LENGTH = 100;
 
+    /** The highest page a query asks for: a larger one would overflow the offset; fetch() then loads the last page. */
+    public const PAGE_MAX = 1_000_000;
+
     /**
      * @param array<string, string> $filters filter key => chosen value
      */
@@ -60,6 +63,7 @@ final class TableQuery
         $direction = \in_array($direction, ['asc', 'desc'], true) ? $direction : 'asc';
 
         $page = filter_var($values['page'] ?? null, \FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $page = false === $page ? 1 : min($page, self::PAGE_MAX);
 
         $pageSizes = $table->pageSizes();
         $pageSize = filter_var($values['pageSize'] ?? null, \FILTER_VALIDATE_INT);
@@ -71,14 +75,14 @@ final class TableQuery
             $sort,
             null === $sort ? null : $columns[$sort]->sortField,
             $direction,
-            false === $page ? 1 : $page,
+            $page,
             $pageSize,
         );
     }
 
     public function withPage(int $page): self
     {
-        return new self($this->search, $this->filters, $this->sort, $this->sortField, $this->direction, max(1, $page), $this->pageSize);
+        return new self($this->search, $this->filters, $this->sort, $this->sortField, $this->direction, max(1, min($page, self::PAGE_MAX)), $this->pageSize);
     }
 
     /**

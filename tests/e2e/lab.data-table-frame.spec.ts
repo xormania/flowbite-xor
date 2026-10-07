@@ -81,6 +81,11 @@ test('a URL with values the table does not accept renders a valid table', async 
     await expect(page.getByRole('link', { name: 'Page 6' })).toHaveAttribute('aria-current', 'page');
 });
 
+test('a page number too large for an offset shows the last page', async ({ page }) => {
+    await page.goto('/lab/data-table-frame?page=9223372036854775807');
+    await expect(status(page)).toHaveText('Showing 51–57 of 57');
+});
+
 test('a search matching nothing shows the empty state', async ({ page }) => {
     await page.goto('/lab/data-table-frame?q=nobody');
     await expect(page.getByRole('heading', { name: 'No matching rows' })).toBeVisible();
