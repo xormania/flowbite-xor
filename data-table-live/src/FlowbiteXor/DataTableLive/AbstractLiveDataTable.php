@@ -124,6 +124,16 @@ abstract class AbstractLiveDataTable extends AbstractDataTable
     #[PreReRender]
     public function prepare(): void
     {
+        $this->selectedIds = array_values(array_unique(array_map('strval', array_filter($this->selectedIds, 'is_scalar'))));
+
+        // an action that read the page (selectPage) loaded it already: render that page, not a second read of it
+        $loaded = $this->view?->query;
+        if (null !== $loaded && $loaded->search === $this->search && $loaded->filters === $this->filterValues
+            && $loaded->sort === $this->sort && $loaded->direction === $this->direction
+            && $loaded->page === $this->page && $loaded->pageSize === $this->pageSize) {
+            return;
+        }
+
         [$query, $result] = $this->fetch(TableQuery::fromValues([
             'search' => $this->search,
             'filters' => $this->filterValues,
@@ -139,7 +149,6 @@ abstract class AbstractLiveDataTable extends AbstractDataTable
         $this->direction = $query->direction;
         $this->page = $query->page;
         $this->pageSize = $query->pageSize;
-        $this->selectedIds = array_values(array_unique(array_map('strval', array_filter($this->selectedIds, 'is_scalar'))));
         $this->view = new DataTableView($this, $query, $result, '');
     }
 
