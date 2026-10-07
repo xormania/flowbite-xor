@@ -81,3 +81,29 @@ test('the trigger does not submit a surrounding form', async ({ page }) => {
     await page.getByRole('button', { name: 'Dimensions' }).click();
     await expect(page.locator('body')).not.toHaveAttribute('data-submitted', 'yes');
 });
+
+test('opening skips hidden controls, and a canceled popover:focus leaves the focus to the page', async ({ page }) => {
+    await page.goto(preview('default'));
+    const trigger = page.getByRole('button', { name: 'Dimensions' });
+    await trigger.click();
+    await expect(page.getByRole('dialog', { name: 'Dimensions' })).toBeHidden();
+    // a hidden button and a button in a hidden part, both before the first field
+    await page.evaluate(() => {
+        const dialog = document.querySelector('[role="dialog"]')!;
+        const hidden = document.createElement('button');
+        hidden.hidden = true;
+        hidden.textContent = 'Hidden';
+        const part = document.createElement('div');
+        part.hidden = true;
+        part.innerHTML = '<button>In a hidden part</button>';
+        dialog.prepend(hidden, part);
+    });
+    await trigger.click();
+    await expect(page.getByLabel('Width')).toBeFocused();
+
+    await trigger.click();
+    await page.evaluate(() => document.addEventListener('popover:focus', (event) => event.preventDefault()));
+    await trigger.click();
+    await expect(page.getByRole('dialog', { name: 'Dimensions' })).toBeVisible();
+    await expect(trigger).toBeFocused();
+});

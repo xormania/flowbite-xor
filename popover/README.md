@@ -53,6 +53,8 @@ Free content anchored to a button: text, links or a small form, in a non-modal d
 - Popovers with the same `name` close each other.
 - `open` renders it open, without taking the focus.
 - `Popover:Content` takes `label` for the dialog's name; without it, the trigger's text names it.
+- Before moving the focus, the popover dispatches a cancelable `popover:focus` event: a controller of yours that
+  places the focus itself (`data-action="popover:focus->picker#focusDay"`) cancels it, and the popover stays open.
 
 Popover or dropdown: use `dropdown` for a menu of actions (`role="menu"`, arrow keys between items), `popover` for
 anything else next to a control.

@@ -8,6 +8,8 @@ import { Controller } from '@hotwired/stimulus';
  * each other. The open state is the `open` value, an attribute, so Live Components keep it across
  * re-renders; before Turbo caches the page, an open popover closes, so Back never restores it open.
  * The document listeners exist only while it is open, and are removed when it closes or disconnects.
+ * Before moving the focus, it dispatches a cancelable `popover:focus` on its element (detail: `content`):
+ * cancel it to place the focus yourself; the popover stays open.
  *
  * @target trigger        The button opening the popover.
  * @target content        The dialog, positioned next to the trigger.
@@ -58,14 +60,15 @@ export default class extends Controller {
             window.dispatchEvent(new CustomEvent('popover:open', { detail: { name: this.nameValue, source: this.element } }));
         }
         const content = this.contentTarget;
-        if (this.dispatch('show', { detail: { content }, cancelable: true }).defaultPrevented) {
+        // `popover:focus`, cancelable: a controller placing the focus itself (a date picker on its day) cancels it
+        if (this.dispatch('focus', { detail: { content }, cancelable: true }).defaultPrevented) {
             return;
         }
+        // the first control actually rendered: a hidden one (or one in a hidden part) cannot take the focus
+        const first = (selector) => [...content.querySelectorAll(selector)].find((element) => element.getClientRects().length > 0);
         const focusable =
-            content.querySelector('[autofocus]:not([disabled])') ??
-            content.querySelector(
-                'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
-            );
+            first('[autofocus]:not([disabled])') ??
+            first('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])');
         (focusable ?? content).focus();
     }
 
