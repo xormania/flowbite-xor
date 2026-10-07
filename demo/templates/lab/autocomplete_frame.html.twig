@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}autocomplete-frame — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'autocomplete-frame'}) }}
+    <turbo-frame id="autocomplete-frame">
+        <p class="mb-4">Frame load <span data-testid="frame-load">{{ load }}</span> · <a href="{{ path('app_lab_autocomplete_frame', {load: load + 1}) }}" class="text-fg-brand hover:underline">Reload the frame</a></p>
+        <label for="framed-fruit" class="mb-2 block text-sm font-medium text-heading">Fruit</label>
+        <twig:Autocomplete id="framed-fruit" name="fruit">
+            <option value="">Choose a fruit</option>
+            <option value="apple">Apple</option>
+            <option value="banana">Banana</option>
+        </twig:Autocomplete>
+    </turbo-frame>
+{% endblock %}
