@@ -67,8 +67,8 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
-git ls-files '*/src/*.php' | grep -v '^demo/' | xargs -n1 php -l   # the syntax of the recipes' PHP
-phpstan analyse --level=8 --autoload-file=demo/vendor/autoload.php demo/src/FlowbiteXor demo/src/Demo   # PHPStan on the synced PHP (any install of it; CI pins one)
+find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
+phpstan analyse --level=8 --autoload-file=demo/vendor/autoload.php data-table/src demo/src/Demo   # PHPStan (any install of it; CI pins one)
 tools/tests/fresh-install.sh                        # a new Symfony app installs dashboard-home, signup and data-table from the last commit (PHP=…, COMPOSER_BIN=…: other binaries)
 KIT_REF=<pushed commit SHA or tag> tools/tests/docker-install.sh   # the same in a new Symfony Docker project (Symfony 8.1), kit downloaded from GitHub
 npx playwright test                                 # every browser test: see below
@@ -141,7 +141,9 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
   Turbo Drive rejects a 200.
 - **PHP in recipes.** A recipe may ship PHP classes, in `<recipe>/src/FlowbiteXor/<Recipe>/`: `ux:install` copies
   them into the app's `src/` unchanged, so their namespace is `App\FlowbiteXor\<Recipe>` (Symfony's default root
-  namespace, and apart from the app's own classes). Apps extend them; the classes themselves stay generic. The kit
+  namespace, and apart from the app's own classes). Apps extend them; the classes themselves stay generic. The demo
+  autoloads them from the recipe (a `psr-4` line per recipe in `demo/composer.json`), so it boots before
+  `tools/sync-demo` has copied them: add that line with a new recipe's PHP. The kit
   lint does not read PHP: CI checks its syntax and runs PHPStan at level 8 on it (*Kit PHP* job), and the
   fresh-install tests run it in a new app. The README documents the PHP contract by hand: the generated API section
   covers Twig props and Stimulus controllers only.

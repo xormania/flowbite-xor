@@ -82,9 +82,11 @@ jobs:
             # The kit lint does not look at PHP: a recipe's PHP (copied into src/ by ux:install) is checked here.
             - name: Syntax
               run: |
-                  files="$(git ls-files '*/src/*.php' | grep -v '^demo/')"
-                  echo "$files"
-                  for file in $files; do php -l "$file"; done
+                  for manifest in */manifest.json; do
+                      if [ -d "${manifest%/manifest.json}/src" ]; then echo "${manifest%/manifest.json}/src"; fi
+                  done > "$RUNNER_TEMP/php-dirs"
+                  cat "$RUNNER_TEMP/php-dirs"
+                  find $(cat "$RUNNER_TEMP/php-dirs") -name '*.php' -print0 | xargs -0 -n1 php -l
 
             # PHPStan reads the classes the kit's PHP uses (Symfony) from the demo's dependencies, and also checks the
             # demo's table built on it; it is installed in a scratch directory so the demo's lock file stays as is.
@@ -94,12 +96,11 @@ jobs:
                   mkdir "$RUNNER_TEMP/phpstan" && cd "$RUNNER_TEMP/phpstan"
                   composer require --no-interaction --no-progress "phpstan/phpstan:${PHPSTAN_VERSION}"
 
-            # The recipes' PHP as an app has it: copied into demo/src/FlowbiteXor/, where the demo's autoloader finds it.
+            # The demo's autoloader maps App\FlowbiteXor\… to the recipes' own src/ (demo/composer.json).
             - name: PHPStan
               run: |
-                  php tools/sync-demo > /dev/null
                   "$RUNNER_TEMP/phpstan/vendor/bin/phpstan" analyse --no-progress --level=8 \
-                      --autoload-file=demo/vendor/autoload.php demo/src/FlowbiteXor demo/src/Demo
+                      --autoload-file=demo/vendor/autoload.php $(cat "$RUNNER_TEMP/php-dirs") demo/src/Demo
 
     fresh-install:
         name: Fresh install
