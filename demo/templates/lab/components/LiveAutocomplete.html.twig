@@ -1,0 +1,10 @@
+<div {{ attributes }}>
+    <div class="max-w-xl">
+        {{ form_start(form, {attr: {'data-model': 'on(change)|*', novalidate: true}}) }}
+            {{ form_row(form.country) }}
+            {{ form_row(form.languages) }}
+            <p class="mb-4 text-sm text-body">Renders: <span data-testid="renders">{{ renders }}</span></p>
+            <twig:Button type="button" variant="secondary" data-action="live#action" data-live-action-param="rerender">Re-render</twig:Button>
+        {{ form_end(form, {render_rest: false}) }}
+    </div>
+</div>
