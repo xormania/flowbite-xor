@@ -1,0 +1,29 @@
+{%- props
+    ## string Unique identifier, the base of the trigger's and the content's ids. Without it, a random one, which changes on every render: pass a stable one inside Live Components and Turbo Frames.
+    id = 'popover-' ~ random(),
+    ## string|null A group name: opening a popover closes the open popovers of the same group.
+    name = null,
+    ## boolean Whether the popover is open on render (it does not take the focus then).
+    open = false,
+    ## 'bottom'|'top'|'left'|'right'|'bottom-start'|'bottom-end'|'top-start'|'top-end'|'left-start'|'left-end'|'right-start'|'right-end' Where the content opens; it flips to the opposite side when it does not fit, and shifts along the trigger to stay in the viewport.
+    placement = 'bottom',
+    ## int The gap between the trigger and the content, in pixels.
+    offsetDistance = 8
+-%}
+{%- do provide('popover.id', id) -%}
+{%- do provide('popover.open', open) -%}
+<div
+    data-state="{{ open ? 'open' : 'closed' }}"
+    data-popover-open-value="{{ open ? 'true' : 'false' }}"
+    data-popover-name-value="{{ name }}"
+    data-popover-placement-value="{{ placement }}"
+    data-popover-offset-distance-value="{{ offsetDistance }}"
+    {{ attributes.defaults({
+        class: 'relative inline-block'|tailwind_classes,
+        'data-controller': 'popover',
+        'data-action': 'popover:open@window->popover#closeIfGrouped keydown.esc->popover#escape focusout->popover#closeOnFocusOut turbo:before-cache@document->popover#closeSilently',
+    }) }}
+>
+    {##- A `Popover:Trigger` and a `Popover:Content`. -#}
+    {%- block content %}{% endblock -%}
+</div>

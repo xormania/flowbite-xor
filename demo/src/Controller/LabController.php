@@ -34,6 +34,9 @@ final class LabController extends AbstractController
         'data-table-live-frame' => 'A Live DataTable inside a Turbo Frame that reloads: the reloaded table is live again.',
         'data-table-live-permanent' => 'A Live DataTable inside a data-turbo-permanent element: it keeps its state across Turbo visits.',
         'data-table-live-stream' => 'A Live DataTable replaced and updated by Turbo Streams: it reconnects and starts from the server state.',
+        'popover-turbo' => 'Popovers across Turbo visits and Back: a plain one, a group, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
+        'popover-stream' => 'A Popover replaced and updated by Turbo Streams.',
+        'live-popover' => 'A Popover open while its Live Component re-renders (action and model change).',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -55,6 +58,7 @@ final class LabController extends AbstractController
     #[Route('/live-table', name: 'app_lab_live_table')]
     #[Route('/live-drawer', name: 'app_lab_live_drawer')]
     #[Route('/live-form', name: 'app_lab_live_form')]
+    #[Route('/live-popover', name: 'app_lab_live_popover')]
     public function live(string $_route): Response
     {
         $name = str_replace('_', '-', substr($_route, \strlen('app_lab_')));
@@ -161,5 +165,29 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/data_table_live_stream.html.twig', ['description' => self::SCENARIOS['data-table-live-stream']]);
+    }
+
+    #[Route('/popover-turbo/{page}', name: 'app_lab_popover_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    public function popoverTurbo(Request $request, string $page): Response
+    {
+        return $this->render('lab/popover_turbo.html.twig', [
+            'page' => $page,
+            'load' => $request->query->getInt('load'),
+            'description' => self::SCENARIOS['popover-turbo'],
+        ]);
+    }
+
+    #[Route('/popover-stream', name: 'app_lab_popover_stream', methods: ['GET', 'POST'])]
+    public function popoverStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/popover_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/popover_stream.html.twig', ['description' => self::SCENARIOS['popover-stream']]);
     }
 }

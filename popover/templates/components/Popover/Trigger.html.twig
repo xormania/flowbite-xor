@@ -1,0 +1,12 @@
+{%- set _popover_id = inject('popover.id') -%}
+{%- set popover_trigger_attrs = {
+    type: 'button',
+    id: _popover_id ~ '-trigger',
+    'data-popover-target': 'trigger',
+    'data-action': 'click->popover#toggle',
+    'aria-haspopup': 'dialog',
+    'aria-expanded': inject('popover.open', false) ? 'true' : 'false',
+    'aria-controls': _popover_id ~ '-content',
+} -%}
+{##- The element opening the popover, usually a `Button` given `{{ ...popover_trigger_attrs }}`. -#}
+{%- block content %}{% endblock -%}

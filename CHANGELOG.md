@@ -7,6 +7,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `popover`: free content anchored to a button, in a non-modal dialog; it closes on Escape, a click outside or when
+  the focus leaves it, and before Turbo caches the page.
 - `data-table-live`: `data-table` as a Live Component (`AbstractLiveDataTable`), with row selection for bulk actions;
   its state is in the URL.
 - `data-table`: a server-driven table (search, filters, sortable columns, page size, pages) in a Turbo Frame, with

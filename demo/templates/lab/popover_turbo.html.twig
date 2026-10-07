@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}popover-turbo ({{ page }}) — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'popover-turbo'}) }}
+    <h2 class="mb-4 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    <p class="mb-6"><a href="{{ path('app_lab_popover_turbo', {page: page == 'one' ? 'two' : 'one'}) }}" class="text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a></p>
+    <div class="flex flex-wrap items-start gap-6">
+        <twig:Popover id="plain" placement="bottom-start">
+            <twig:Popover:Trigger>
+                <twig:Button variant="outline" {{ ...popover_trigger_attrs }}>Details</twig:Button>
+            </twig:Popover:Trigger>
+            <twig:Popover:Content>
+                <p>Order 1042, paid.</p>
+                <a href="#" class="text-fg-brand hover:underline">Open the order</a>
+            </twig:Popover:Content>
+        </twig:Popover>
+        <twig:Popover id="owner" name="details">
+            <twig:Popover:Trigger>
+                <twig:Button variant="outline" {{ ...popover_trigger_attrs }}>Owner</twig:Button>
+            </twig:Popover:Trigger>
+            <twig:Popover:Content label="Owner">Bonnie Green.</twig:Popover:Content>
+        </twig:Popover>
+        <twig:Popover id="status" name="details">
+            <twig:Popover:Trigger>
+                <twig:Button variant="outline" {{ ...popover_trigger_attrs }}>Status</twig:Button>
+            </twig:Popover:Trigger>
+            <twig:Popover:Content label="Status">Paid.</twig:Popover:Content>
+        </twig:Popover>
+        <div id="lab-permanent-popover" data-turbo-permanent class="rounded-base border border-default p-3">
+            <twig:Popover id="kept">
+                <twig:Popover:Trigger>
+                    <twig:Button variant="outline" {{ ...popover_trigger_attrs }}>Kept</twig:Button>
+                </twig:Popover:Trigger>
+                <twig:Popover:Content label="Kept">In a permanent element.</twig:Popover:Content>
+            </twig:Popover>
+        </div>
+    </div>
+    <turbo-frame id="popover-frame" class="mt-8 block">
+        <p class="mb-4">Frame load <span data-testid="frame-load">{{ load }}</span> · <a href="{{ path('app_lab_popover_turbo', {page: page, load: load + 1}) }}" class="text-fg-brand hover:underline">Reload the frame</a></p>
+        <twig:Popover id="framed">
+            <twig:Popover:Trigger>
+                <twig:Button variant="outline" {{ ...popover_trigger_attrs }}>Framed</twig:Button>
+            </twig:Popover:Trigger>
+            <twig:Popover:Content label="Framed">
+                <label for="framed-note" class="mb-2 block text-heading">Note</label>
+                <twig:Input type="text" id="framed-note" />
+            </twig:Popover:Content>
+        </twig:Popover>
+    </turbo-frame>
+{% endblock %}

@@ -44,5 +44,7 @@
         ] },
     { "fg": "brand-medium", "bg": "gray-900", "min": 3, "usage": "focus ring on a gray-900 ground", "themes": [
             "dark"
-        ] }
+        ] },
+    { "fg": "body", "bg": "neutral-primary-medium", "min": 4.5, "usage": "popover and dropdown text" },
+    { "fg": "heading", "bg": "neutral-primary-medium", "min": 4.5, "usage": "popover headings and labels" }
 ]

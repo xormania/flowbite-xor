@@ -1,0 +1,16 @@
+<div {{ attributes }}>
+    <p class="mb-4">Actions: <span data-testid="renders">{{ renders }}</span>, note: <span data-testid="note">{{ note }}</span></p>
+    <twig:Popover id="live">
+        <twig:Popover:Trigger>
+            <twig:Button variant="outline" {{ ...popover_trigger_attrs }}>Edit</twig:Button>
+        </twig:Popover:Trigger>
+        <twig:Popover:Content label="Edit">
+            <div class="space-y-3">
+                <label class="block text-heading">Note
+                    <input type="text" data-model="note" class="mt-1 block w-full rounded-base border border-default-medium bg-neutral-secondary-medium px-2 py-1 text-heading">
+                </label>
+                <twig:Button size="sm" data-action="live#action" data-live-action-param="rerender">Re-render</twig:Button>
+            </div>
+        </twig:Popover:Content>
+    </twig:Popover>
+</div>
