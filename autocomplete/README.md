@@ -79,7 +79,8 @@ public unless you protect it (the `security` option).
 ### Outside a form
 
 `Autocomplete` renders a `Select` with the controller; its content is the options, and every other attribute goes to
-the `<select>`.
+the `<select>`. Give it an `id` and its label a matching `for`, and no `id` on the label: Tom Select names the label
+`<id>-ts-label`, and the hidden `<select>` keeps the label's name through it.
 
 ```twig
 <twig:Autocomplete id="fruit" name="fruit" :options="{create: true}">
