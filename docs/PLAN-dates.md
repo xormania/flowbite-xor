@@ -333,8 +333,10 @@ Each PR is green on its own: lint, debug, contrast, PHP checks where PHP changes
 - A positioning helper shared with `dropdown`/`tooltip`.
 - Turbo 8 refresh morph.
 
-## Open questions
+## Decisions (2026-10-07)
 
-- **Multiple mode with Live.** Live cannot build an array from N `name[]` hidden inputs: each `change` would set one scalar. The options are to support it only in a Live form posted through an action (documented), or to add a JSON-valued single hidden input when `model` is set in multiple mode. The proposal is to document "multiple + Live: use a Live action" for now.
-- **Focus leaving the popover closes it.** This plan closes the popover when focus leaves it (Radix-like; shadcn keeps it open). Confirm.
-- **`turbo:before-cache` action.** Closing an open popover before Turbo caches the page uses a `turbo:before-cache@document` action in markup. The conventions forbid `turbo:load` and `DOMContentLoaded` listeners but say nothing about this one. Confirm it is acceptable, or rely on `connect()` resetting `open` instead.
+1. **Multiple mode with Live:** documented, not built. For several dates inside a Live Component, submit through a Live
+   action; single dates and ranges bind with the `model` prop.
+2. **Focus leaving the popover closes it** (Radix-like), as do Escape and an outside click.
+3. **Before Turbo caches the page**, an open popover closes through a `turbo:before-cache@document->popover#closeSilently`
+   action in the markup (a Stimulus action, removed on disconnect); CONTRIBUTING's conventions name it as allowed.
