@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Demo\OrdersTable;
+use App\Form\AutocompleteDemoType;
 use App\Kit\KitReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -34,6 +35,10 @@ final class LabController extends AbstractController
         'data-table-live-frame' => 'A Live DataTable inside a Turbo Frame that reloads: the reloaded table is live again.',
         'data-table-live-permanent' => 'A Live DataTable inside a data-turbo-permanent element: it keeps its state across Turbo visits.',
         'data-table-live-stream' => 'A Live DataTable replaced and updated by Turbo Streams: it reconnects and starts from the server state.',
+        'autocomplete' => 'Autocomplete fields in a Symfony form (one choice, several, a remote search) and the Autocomplete component outside a form, across Turbo visits and Back.',
+        'autocomplete-frame' => 'An Autocomplete inside a Turbo Frame that reloads.',
+        'autocomplete-stream' => 'An Autocomplete replaced by a Turbo Stream.',
+        'live-autocomplete' => 'Autocomplete fields in a Live form that re-renders.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -55,6 +60,7 @@ final class LabController extends AbstractController
     #[Route('/live-table', name: 'app_lab_live_table')]
     #[Route('/live-drawer', name: 'app_lab_live_drawer')]
     #[Route('/live-form', name: 'app_lab_live_form')]
+    #[Route('/live-autocomplete', name: 'app_lab_live_autocomplete')]
     public function live(string $_route): Response
     {
         $name = str_replace('_', '-', substr($_route, \strlen('app_lab_')));
@@ -161,5 +167,41 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/data_table_live_stream.html.twig', ['description' => self::SCENARIOS['data-table-live-stream']]);
+    }
+
+    #[Route('/autocomplete', name: 'app_lab_autocomplete', methods: ['GET', 'POST'])]
+    public function autocomplete(Request $request): Response
+    {
+        $form = $this->createForm(AutocompleteDemoType::class);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+
+            return $this->redirectToRoute('app_lab_autocomplete', ['submitted' => \sprintf('%s; %s; %s', $data['country'], implode(',', $data['languages']), $data['customer'] ?? '-')], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('lab/autocomplete.html.twig', [
+            'form' => $form,
+            'submitted' => $request->query->getString('submitted'),
+            'description' => self::SCENARIOS['autocomplete'],
+        ], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+
+    #[Route('/autocomplete-frame', name: 'app_lab_autocomplete_frame')]
+    public function autocompleteFrame(Request $request): Response
+    {
+        return $this->render('lab/autocomplete_frame.html.twig', ['load' => $request->query->getInt('load'), 'description' => self::SCENARIOS['autocomplete-frame']]);
+    }
+
+    #[Route('/autocomplete-stream', name: 'app_lab_autocomplete_stream', methods: ['GET', 'POST'])]
+    public function autocompleteStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/autocomplete_stream.stream.html.twig', ['count' => 1]);
+        }
+
+        return $this->render('lab/autocomplete_stream.html.twig', ['description' => self::SCENARIOS['autocomplete-stream']]);
     }
 }

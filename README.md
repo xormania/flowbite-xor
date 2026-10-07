@@ -133,6 +133,7 @@ Each recipe's README has its examples, props and usage.
 |---|---|
 | [`form-theme`](form-theme/README.md) | A Symfony form theme that renders every row through `FormField` and every control through the kit's `Input`, `Select`, `Textarea`, `Checkbox`, `Radio`, `Label` and `Button` components. |
 | [`form-field`](form-field/README.md) | A labelled form control with its help text and error message, wired by id (used by the form theme). |
+| [`autocomplete`](autocomplete/README.md) | Searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme: one choice, several, values typed by the user, options searched on the server. Works through the form theme (`'autocomplete' => true`) and as an `Autocomplete` component outside forms. |
 
 ### Layouts
 

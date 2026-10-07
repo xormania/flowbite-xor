@@ -98,9 +98,9 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
 
 ## Conventions
 
-- **Copied recipes stay byte-identical.** The 22 recipes copied from the official `flowbite-4` kit (listed in
-  [`UPSTREAM.md`](UPSTREAM.md)) match the `symfony/ux` commit pinned there. Every change to them gets a row in its
-  *Deviations* table: file, change, reason, upstream PR.
+- **The official kit is a reference, not a constraint.** The 22 recipes copied from the official `flowbite-4` kit
+  (listed in [`UPSTREAM.md`](UPSTREAM.md)) started from the `symfony/ux` commit pinned there. Change them when this kit
+  needs it; every change gets a row in the *Deviations* table: file, change, reason, upstream PR.
 - **Behavior in Stimulus only.** No `import 'flowbite'` and no `initFlowbite()`. A controller's `connect()` must work
   when it runs again on the same element, since Turbo and Live Components reconnect controllers. `disconnect()` undoes
   everything `connect()` set up. No global state, and no `DOMContentLoaded` or `turbo:load` listeners.

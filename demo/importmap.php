@@ -28,6 +28,18 @@ return [
     '@symfony/ux-live-component' => [
         'path' => './vendor/symfony/ux-live-component/assets/dist/live_controller.js',
     ],
+    '@symfony/ux-autocomplete' => [
+        'path' => './vendor/symfony/ux-autocomplete/assets/dist/controller.js',
+    ],
+    'tom-select' => [
+        'version' => '2.6.2',
+    ],
+    '@orchidjs/sifter' => [
+        'version' => '1.1.0',
+    ],
+    '@orchidjs/unicode-variants' => [
+        'version' => '1.2.2',
+    ],
     'flowbite/dist/flowbite.min.css' => [
         'version' => '4.0.2',
         'type' => 'css',

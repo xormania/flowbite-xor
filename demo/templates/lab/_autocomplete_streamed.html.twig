@@ -1,0 +1,9 @@
+<div id="autocomplete-region" class="max-w-xl">
+    <p class="mb-2 text-sm text-body">Version <span data-testid="stream-count">{{ count }}</span></p>
+    <label for="streamed-fruit" class="mb-2 block text-sm font-medium text-heading">Fruit</label>
+    <twig:Autocomplete id="streamed-fruit" name="fruit">
+        <option value="">Choose a fruit</option>
+        <option value="apple">Apple</option>
+        <option value="banana">Banana</option>
+    </twig:Autocomplete>
+</div>

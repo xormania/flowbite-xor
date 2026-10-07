@@ -7,10 +7,19 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `autocomplete`: searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme, through the
+  form theme (`'autocomplete' => true`) or the `Autocomplete` component.
 - `data-table-live`: `data-table` as a Live Component (`AbstractLiveDataTable`), with row selection for bulk actions;
   its state is in the URL.
 - `data-table`: a server-driven table (search, filters, sortable columns, page size, pages) in a Turbo Frame, with
   the PHP classes a table extends (`AbstractDataTable`) copied into `src/FlowbiteXor/DataTable/`.
+
+### Changed
+
+- `form-theme`: an autocomplete field's hidden `<select>` keeps its label's name (`aria-labelledby`) after Tom Select
+  moves the label to its own input.
+- `AGENTS.md`, `CONTRIBUTING.md`, `UPSTREAM.md`: the official `flowbite-4` kit is a reference, not a constraint;
+  every change to a copied recipe still gets a row in `UPSTREAM.md`.
 
 ## [0.1.0] - 2026-10-06
 

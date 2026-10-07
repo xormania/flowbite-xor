@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}autocomplete — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'autocomplete'}) }}
+    <p class="mb-4"><a href="{{ path('app_lab_turbo_nav', {page: 'two'}) }}" class="text-fg-brand hover:underline">Leave the page</a></p>
+    {% if submitted %}
+        <p class="mb-4 text-sm text-heading" data-testid="submitted">Submitted: {{ submitted }}</p>
+    {% endif %}
+    <div class="grid max-w-xl gap-8">
+        {{ form_start(form, {attr: {novalidate: true}}) }}
+            {{ form_row(form.country) }}
+            {{ form_row(form.languages) }}
+            {{ form_row(form.customer) }}
+            <twig:Button type="submit">Send</twig:Button>
+        {{ form_end(form) }}
+        <div>
+            <label for="fruit" class="mb-2 block text-sm font-medium text-heading">Fruit (outside a form)</label>
+            <twig:Autocomplete id="fruit" name="fruit" :options="{create: true}">
+                <option value="">Choose a fruit</option>
+                <option value="apple">Apple</option>
+                <option value="banana">Banana</option>
+                <option value="cherry">Cherry</option>
+            </twig:Autocomplete>
+        </div>
+    </div>
+{% endblock %}

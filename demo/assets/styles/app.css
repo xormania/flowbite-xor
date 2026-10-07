@@ -6,4 +6,5 @@
 @import "tailwindcss";
 @import "../vendor/flowbite/dist/flowbite.min.css";
 @import "../../../kit.css";
+@import "../../../autocomplete/assets/styles/flowbite-xor-autocomplete.css";
 @source "../../..";

@@ -1,0 +1,28 @@
+{%- props
+    ## string|null The URL answering searches with JSON results (UX Autocomplete's format); without it, the options in the content are searched.
+    url = null,
+    ## int|null The number of characters typed before a remote search starts.
+    minCharacters = null,
+    ## array Tom Select settings, e.g. `{create: true}` to let users add their own values (tags), `{maxItems: 3}`.
+    options = {},
+    ## boolean Whether several values can be chosen.
+    multiple = false
+-%}
+{%- set controller = 'symfony--ux-autocomplete--autocomplete' -%}
+{#- the texts UX Autocomplete's form type sets (in English): override one with its attribute, e.g. `data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value` -#}
+{#- Tom Select points the label at its own input and names the label "<id>-ts-label": aria-labelledby keeps the label's name on the hidden select -#}
+<twig:Select
+    data-symfony--ux-autocomplete--autocomplete-loading-more-text-value="Loading more results..."
+    data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value="No results found"
+    data-symfony--ux-autocomplete--autocomplete-no-more-results-text-value="No more results"
+    data-symfony--ux-autocomplete--autocomplete-create-option-text-value="Add %placeholder%..."
+    {{ ...(multiple ? {multiple: true} : {}) }}
+    {{ ...(attributes.has('id') ? {'aria-labelledby': attributes.all.id ~ '-ts-label'} : {}) }}
+    {{ ...(url ? {('data-' ~ controller ~ '-url-value'): url} : {}) }}
+    {{ ...(minCharacters is not null ? {('data-' ~ controller ~ '-min-characters-value'): minCharacters} : {}) }}
+    {{ ...(options ? {('data-' ~ controller ~ '-tom-select-options-value'): options|json_encode} : {}) }}
+    {{ ...attributes.defaults({'data-controller': controller}) }}
+>
+    {##- The options (`<option>` elements); with `url`, only the selected ones. -#}
+    {{- block(outerBlocks.content) -}}
+</twig:Select>
