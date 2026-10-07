@@ -129,4 +129,9 @@ and Turbo 8 refresh morph.
 ## Done when
 
 Each PR is green in CI (lint, PHP checks, fresh installs, Playwright including CSP and a11y) and follows the pull
-request template. No AI attribution.
+request template.
+
+- Once CI is green on the last commit, post two separate PR comments, exactly `@codex review` and
+  `@codex security review`, with no footer, as on PR #9 and PR #20.
+- Address the findings, push, and request both reviews again once CI is green.
+- Attribution: commits and PRs are xormania's only. No AI attribution lines, footers or co-author trailers.
