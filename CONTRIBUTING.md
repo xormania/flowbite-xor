@@ -68,7 +68,7 @@ node tools/contrast/check.mjs                       # every pair in tools/contra
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 git ls-files '*/src/*.php' | grep -v '^demo/' | xargs -n1 php -l   # the syntax of the recipes' PHP
-phpstan analyse --level=8 --autoload-file=demo/vendor/autoload.php data-table/src demo/src/Demo   # PHPStan (any install of it; CI pins one)
+phpstan analyse --level=8 --autoload-file=demo/vendor/autoload.php demo/src/FlowbiteXor demo/src/Demo   # PHPStan on the synced PHP (any install of it; CI pins one)
 tools/tests/fresh-install.sh                        # a new Symfony app installs dashboard-home, signup and data-table from the last commit (PHP=…, COMPOSER_BIN=…: other binaries)
 KIT_REF=<pushed commit SHA or tag> tools/tests/docker-install.sh   # the same in a new Symfony Docker project (Symfony 8.1), kit downloaded from GitHub
 npx playwright test                                 # every browser test: see below

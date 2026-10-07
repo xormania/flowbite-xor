@@ -86,19 +86,20 @@ jobs:
                   echo "$files"
                   for file in $files; do php -l "$file"; done
 
-            # PHPStan reads the classes the kit's PHP uses (Symfony) from the demo's dependencies, and checks the
-            # demo's table built on them; it is installed in a scratch directory so the demo's lock file stays as is.
+            # PHPStan reads the classes the kit's PHP uses (Symfony) from the demo's dependencies, and also checks the
+            # demo's table built on it; it is installed in a scratch directory so the demo's lock file stays as is.
             - name: Install the demo's dependencies and PHPStan
               run: |
                   (cd demo && composer install --no-interaction --no-progress --no-scripts)
                   mkdir "$RUNNER_TEMP/phpstan" && cd "$RUNNER_TEMP/phpstan"
                   composer require --no-interaction --no-progress "phpstan/phpstan:${PHPSTAN_VERSION}"
 
+            # The recipes' PHP as an app has it: copied into demo/src/FlowbiteXor/, where the demo's autoloader finds it.
             - name: PHPStan
               run: |
+                  php tools/sync-demo > /dev/null
                   "$RUNNER_TEMP/phpstan/vendor/bin/phpstan" analyse --no-progress --level=8 \
-                      --autoload-file=demo/vendor/autoload.php \
-                      $(git ls-files '*/src/*.php' | grep -v '^demo/' | xargs -n1 dirname | sort -u | sed 's#/src/.*#/src#' | sort -u) demo/src/Demo
+                      --autoload-file=demo/vendor/autoload.php demo/src/FlowbiteXor demo/src/Demo
 
     fresh-install:
         name: Fresh install
