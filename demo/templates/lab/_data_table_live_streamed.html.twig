@@ -1,0 +1,4 @@
+<twig:OrdersTable tableId="streamed" label="Streamed orders">
+    <twig:block name="cell_number"><span data-testid="order-number">{{ row.number }}</span></twig:block>
+</twig:OrdersTable>
+<p data-testid="stream-action" class="mt-2 text-sm text-body">{{ action|default('initial') }}</p>

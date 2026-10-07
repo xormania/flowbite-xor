@@ -33,7 +33,11 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   controller passes `$table->handleRequest($request)` to `<twig:DataTable :table="table" id="…" />`. The query is
   already checked: sort by `$query->sortField`, never by a raw request value. Custom cells go in
   `<twig:block name="cell_<key>">` (not `{% block %}`, which does not compile `<twig:…>` inside a component).
-  Keep `src/FlowbiteXor/` as the recipe installed it.
+  Keep `src/FlowbiteXor/` as the recipe installed it. For row selection, bulk actions or search while typing,
+  `ux:install data-table-live`: the same class extends `AbstractLiveDataTable` with
+  `#[AsLiveComponent(name: '…', template: 'components/DataTableLive.html.twig')]`, rendered as
+  `<twig:Name tableId="…" />` with no controller code; a bulk action is a `#[LiveAction]` reading `$this->selectedIds`
+  (browser input: check each id). Back leaves a Live table; the plain one walks its states.
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the
   position yourself, as the kit's `Sidebar` does.
