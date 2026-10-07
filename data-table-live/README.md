@@ -13,7 +13,8 @@ The `data-table` recipe as a Live Component: search while typing, filters, sorta
 Run `ux:install` from your project's root directory: this recipe copies `AbstractLiveDataTable` into
 `src/FlowbiteXor/DataTableLive/` (namespace `App\FlowbiteXor\DataTableLive`), and installs the `data-table` recipe,
 whose classes it extends. If your project's root namespace is not `App`, change the `namespace` and `use` lines of
-those files to match.
+those files to match. Run the `composer require` command `ux:install` prints right away: until
+`symfony/ux-live-component` is installed, the copied class stops the app (and its console) from booting.
 
 ## Usage
 
