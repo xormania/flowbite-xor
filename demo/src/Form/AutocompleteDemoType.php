@@ -29,6 +29,8 @@ final class AutocompleteDemoType extends AbstractType
                 'required' => false,
                 'autocomplete' => true,
                 'help' => 'Choose several.',
+                // a label with its own id: Tom Select keeps it, and the hidden select points at it
+                'label_attr' => ['id' => 'languages-label'],
             ])
             ->add('customer', CustomerAutocompleteField::class);
     }

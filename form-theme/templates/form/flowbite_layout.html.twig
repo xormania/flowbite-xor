@@ -139,8 +139,8 @@
     {%- set _control = 'Select' -%}
     {%- set _control_attr = {multiple: multiple} -%}
     {%- if 'symfony--ux-autocomplete--autocomplete' in (attr['data-controller'] ?? '')|split(' ') and attr['aria-labelledby'] is not defined and label is not same as(false) -%}
-        {#- Tom Select (the autocomplete recipe) points the label at its own input and names it "<id>-ts-label": the hidden select keeps the label's name through it -#}
-        {%- set _control_attr = _control_attr|merge({'aria-labelledby': id ~ '-ts-label'}) -%}
+        {#- Tom Select (the autocomplete recipe) points the label at its own input and names it "<id>-ts-label" unless it has an id: the hidden select keeps the label's name through it -#}
+        {%- set _control_attr = _control_attr|merge({'aria-labelledby': label_attr.id ?? (id ~ '-ts-label')}) -%}
     {%- endif -%}
     {{- block('flowbite_control') -}}
 {%- endblock choice_widget_collapsed -%}
