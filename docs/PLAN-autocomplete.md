@@ -46,9 +46,7 @@ an autocomplete field), Playwright, contrast pairs for the new surfaces.
 
 1. Styling: **replace** Tom Select's default CSS with the recipe's stylesheet (`tom-select.default.css` autoimport off).
 2. Testing: Tom Select's browser behavior is tested **in CI only** (this sandbox cannot reach jsDelivr).
-
-## Open question
-
-- Use outside forms: a `<twig:Autocomplete>` component (props `url`, `minCharacters`, `options`, `multiple`, the rest
-  passed to `Select`) is proposed over documenting the controller's `data-*` attributes; inside Live Components, use
-  the form option.
+3. Use outside forms: a `<twig:Autocomplete>` component (props `url`, `minCharacters`, `options`, `multiple`, the rest
+   passed to `Select`); inside Live Components, the form option.
+4. Tom Select stays (not ported): the hidden `<select>` keeps its label's name through `aria-labelledby`, set by the
+   form theme and the component, rather than a kit Stimulus controller.

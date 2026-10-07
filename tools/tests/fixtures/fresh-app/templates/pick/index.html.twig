@@ -1,0 +1,11 @@
+{% extends 'layouts/auth.html.twig' %}
+{% form_theme form 'form/flowbite_layout.html.twig' %}
+
+{% block title %}Pick{% endblock %}
+{% block content %}
+    {{ form(form) }}
+    <label for="fruit">Fruit</label>
+    <twig:Autocomplete id="fruit" name="fruit" :options="{create: true}">
+        <option value="apple">Apple</option>
+    </twig:Autocomplete>
+{% endblock %}

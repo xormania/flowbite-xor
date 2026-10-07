@@ -159,7 +159,7 @@ select[aria-invalid='true'] + .ts-wrapper.focus,
 }
 
 .ts-dropdown .option.selected {
-    color: var(--color-fg-brand);
+    color: var(--color-fg-brand-strong);
     font-weight: 500;
 }
 
