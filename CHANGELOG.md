@@ -7,6 +7,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `calendar`: pick a date, several dates or a range, with hidden inputs for forms (dispatching `input` and `change`)
+  and a `model` prop for Live Components; invalid dates are ignored, and a range never spans a disabled day.
 - `data-table-live`: `data-table` as a Live Component (`AbstractLiveDataTable`), with row selection for bulk actions;
   its state is in the URL.
 - `data-table`: a server-driven table (search, filters, sortable columns, page size, pages) in a Turbo Frame, with

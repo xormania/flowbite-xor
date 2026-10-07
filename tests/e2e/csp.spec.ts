@@ -7,7 +7,7 @@ import { test, expect } from './fixtures';
  * whole suite runs the kit under this policy; these tests check the policy itself, and what a blocked inline script
  * or style would silently break: the theme before the first paint, Turbo's progress bar, the Progress bars.
  */
-const pages = ['/', '/r/button', '/preview/button/default?theme=light', '/preview/dropdown/default?theme=light', '/demo', '/demo/login', '/lab/live-table'];
+const pages = ['/', '/r/button', '/preview/button/default?theme=light', '/preview/dropdown/default?theme=light', '/demo', '/demo/login', '/lab/live-table', '/lab/calendar-turbo', '/preview/calendar/default?theme=light'];
 
 type Policy = Map<string, string[]>;
 

@@ -16,6 +16,7 @@ type Cases = {
     tags: TagCase[];
     attributes: { expected: Record<string, string>; absent: string[]; html: string };
     urls: UrlCase[];
+    calendar: { html: string };
     sidebar: { path: string; html: string };
 };
 
@@ -187,6 +188,38 @@ test('link props keep only relative, http(s), mailto and tel URLs', async ({ pag
     }
 
     expect(failures).toEqual([]);
+    expect(dialogs).toEqual([]);
+});
+
+test('the Calendar drops dates, modifier names and input attribute names it cannot trust', async ({ page }) => {
+    const dialogs = recordDialogs(page);
+    const found = await parse(page, cases.calendar.html);
+    const root = page.getByTestId('root');
+    // the one real date is kept, as the selection, the hidden input and a disabled day
+    await expect(root).toHaveAttribute('data-calendar-selected-value', '["2026-03-12"]');
+    await expect(root).toHaveAttribute('data-calendar-disabled-value', '["2026-03-12"]');
+    await expect(root).toHaveAttribute('data-calendar-min-date-value', '');
+    const input = page.locator('input[data-calendar-target="input"]');
+    await expect(input).toHaveCount(1);
+    expect(await input.evaluate((node) => Object.fromEntries(node.getAttributeNames().map((name) => [name, node.getAttribute(name)])))).toMatchObject({
+        type: 'hidden',
+        name: 'day',
+        value: '2026-03-12',
+        form: 'booking',
+        'data-test': 'ok',
+        title: 'Hint',
+        'data-flag': '',
+    });
+    // a modifier keeps its own name only, on its real dates
+    await expect(page.locator('[data-day="2026-03-12"][data-booked="true"]')).toHaveCount(1);
+    const names = await page.evaluate(() => [...new Set([...document.querySelectorAll('*')].flatMap((node) => node.getAttributeNames()))]);
+    expect(names.filter((name) => !/^[a-z][a-z0-9_.:-]*$/i.test(name))).toEqual([]);
+    expect(names.filter((name) => ['hidden', 'autofocus'].includes(name) || /^on[a-z]+$/i.test(name))).toEqual(['hidden']);
+    expect(found.handlers).toEqual([]);
+    // the navigation's chevrons are the only <svg>: decorative icons
+    expect(found.elements.filter((element) => UNSAFE_ELEMENTS.includes(element) && 'svg' !== element)).toEqual([]);
+    await expect(page.locator('svg:not([aria-hidden="true"])')).toHaveCount(0);
+    expect(found.ran).toBeNull();
     expect(dialogs).toEqual([]);
 });
 

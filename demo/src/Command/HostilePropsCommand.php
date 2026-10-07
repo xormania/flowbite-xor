@@ -13,7 +13,8 @@ use Twig\TemplateWrapper;
 /**
  * Renders the components whose props shape the markup with hostile and ordinary values, as JSON, for
  * tests/e2e/hostile-props.spec.ts: the `as` tag of six components, the attribute names of FormField's
- * `labelAttr` and `helpAttr`, and the seven link props of the kit's own recipes. Every value is a constant of
+ * `labelAttr` and `helpAttr`, the seven link props of the kit's own recipes, and the Calendar's dates, modifier
+ * names and hidden-input attributes. Every value is a constant of
  * this class, never request data; the spec loads each rendering in the browser and checks what it parsed.
  */
 #[AsCommand('app:hostile-props', description: 'Renders the components with hostile prop values, as JSON')]
@@ -77,6 +78,12 @@ final class HostilePropsCommand
         </twig:Sidebar>
         TWIG;
 
+    /**
+     * A Calendar given dates it must drop (impossible, overflowing, hostile) next to one real date, and modifier
+     * and input attribute names it must drop next to ordinary ones.
+     */
+    private const CALENDAR = '<twig:Calendar name="day" today="2026-03-15" :selected="selected" :month="month" :minDate="month" :disabled="selected" :modifiers="modifiers" :inputAttr="inputAttr" data-testid="root" />';
+
     /** @var array<string, TemplateWrapper> */
     private array $templates = [];
 
@@ -92,6 +99,7 @@ final class HostilePropsCommand
             'tags' => $this->tags(),
             'attributes' => $this->attributes(),
             'urls' => $this->urls(),
+            'calendar' => $this->calendar(),
             'sidebar' => [
                 'path' => self::SIDEBAR_PATH,
                 'html' => $this->render(self::SIDEBAR, ['rejected' => 'javascript:alert(document.domain)', 'current' => self::SIDEBAR_PATH]),
@@ -125,6 +133,22 @@ final class HostilePropsCommand
         }
 
         return $cases;
+    }
+
+    /**
+     * @return array{html: string}
+     */
+    private function calendar(): array
+    {
+        $hostile = ['2026-13-45', '2026-02-30', '2026-3-12', 'x onmouseover=window.__xss=1', '"><svg onload=window.__xss=1>', '2026-03-12'];
+        $names = array_keys(self::LABEL_ATTRIBUTES);
+
+        return ['html' => $this->render(self::CALENDAR, [
+            'selected' => $hostile,
+            'month' => '"><svg onload=window.__xss=1>',
+            'modifiers' => array_fill_keys($names, ['2026-03-12']) + ['booked' => ['2026-03-12', '2026-13-45']],
+            'inputAttr' => self::LABEL_ATTRIBUTES + ['form' => 'booking', 'type' => 'text', 'name' => 'evil', 'value' => 'evil'],
+        ])];
     }
 
     /**
