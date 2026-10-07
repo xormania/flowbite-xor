@@ -1,0 +1,141 @@
+{%- props
+    ## App\FlowbiteXor\DataTable\DataTableView What to render: `$table->handleRequest($request)`.
+    table,
+    ## string The id of the table's Turbo Frame, unique on the page; it also prefixes the rows' ids.
+    id,
+    ## string|null The table's accessible name, also shown as its caption.
+    label = null
+-%}
+{%- set view = table -%}
+{%- set query = view.query -%}
+{#- The cell blocks render here, in the component's own scope: inside the content of the nested Table components below,
+    block() would only see their blocks. -#}
+{%- set cells = {} -%}
+{%- for row in view.result.rows -%}
+    {%- for column in view.table.columns -%}
+        {##- A cell rendered by the page, named `cell_<column key>`, with `row` the current row; without it, the cell shows `row.<column key>`. -#}
+        {%- if block('cell_' ~ column.key) is defined -%}
+            {%- set cells = cells|merge({(view.table.rowId(row) ~ ':' ~ column.key): block('cell_' ~ column.key)}) -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endfor -%}
+<turbo-frame
+    id="{{ id }}"
+    data-turbo-action="advance"
+    {{ attributes.defaults({class: 'block'|tailwind_classes}) }}
+>
+    <form method="get" action="{{ view.path }}" class="mb-4 flex flex-wrap items-end gap-3" role="search" aria-label="{{ label ? label ~ ': search and filters' : 'Search and filters' }}">
+        {%- for name, value in view.hiddenFields %}
+            <input type="hidden" name="{{ name }}" value="{{ value }}">
+        {%- endfor %}
+        <div class="min-w-48 grow">
+            <label for="{{ id }}-search" class="mb-1 block text-sm font-medium text-heading">Search</label>
+            <twig:Input type="search" id="{{ id }}-search" name="{{ view.fieldName('q') }}" value="{{ query.search }}" maxlength="100" class="px-3 py-2.5" />
+        </div>
+        {%- for filter in view.table.filters %}
+            <div>
+                <label for="{{ id }}-filter-{{ filter.key }}" class="mb-1 block text-sm font-medium text-heading">{{ filter.label }}</label>
+                <twig:Select id="{{ id }}-filter-{{ filter.key }}" name="{{ view.fieldName('f', filter.key) }}">
+                    <option value="">All</option>
+                    {%- for value, choice in filter.choices %}
+                        <option value="{{ value }}"{{ (query.filters[filter.key] ?? null) is same as(value ~ '') ? ' selected' }}>{{ choice }}</option>
+                    {%- endfor %}
+                </twig:Select>
+            </div>
+        {%- endfor %}
+        {%- if view.table.pageSizes|length > 1 %}
+            <div>
+                <label for="{{ id }}-size" class="mb-1 block text-sm font-medium text-heading">Rows per page</label>
+                <twig:Select id="{{ id }}-size" name="{{ view.fieldName('size') }}">
+                    {%- for size in view.table.pageSizes %}
+                        <option value="{{ size }}"{{ size == query.pageSize ? ' selected' }}>{{ size }}</option>
+                    {%- endfor %}
+                </twig:Select>
+            </div>
+        {%- endif %}
+        <twig:Button type="submit" variant="secondary">Apply</twig:Button>
+    </form>
+
+    {%- if view.result.rows is empty %}
+        <twig:EmptyState
+            title="{{ view.isFiltered ? 'No matching rows' : 'Nothing here yet' }}"
+            description="{{ view.isFiltered ? 'Change the search or the filters.' : null }}"
+            class="rounded-base border border-default"
+        />
+    {%- else %}
+        <div class="relative w-full overflow-x-auto rounded-base border border-default">
+            <twig:Table {{ ...(label ? {'aria-label': label} : {}) }}>
+                {%- if label %}
+                    <twig:Table:Caption class="sr-only">{{ label }}</twig:Table:Caption>
+                {%- endif %}
+                <twig:Table:Header>
+                    <twig:Table:Row>
+                        {%- for column in view.table.columns %}
+                            {%- set sorted = column.key == query.sort -%}
+                            <twig:Table:Head scope="col" {{ ...(sorted ? {'aria-sort': query.direction == 'asc' ? 'ascending' : 'descending'} : {}) }}>
+                                {%- if column.isSortable() %}
+                                    <a href="{{ view.sortUrl(column) }}" class="inline-flex items-center gap-1 font-medium text-heading hover:underline">
+                                        {{- column.label -}}
+                                        {%- if sorted %}
+                                            <twig:ux:icon name="{{ query.direction == 'asc' ? 'flowbite:arrow-up-outline' : 'flowbite:arrow-down-outline' }}" class="size-3.5" aria-hidden="true" />
+                                        {%- endif -%}
+                                    </a>
+                                {%- else %}
+                                    {{- column.label -}}
+                                {%- endif %}
+                            </twig:Table:Head>
+                        {%- endfor %}
+                    </twig:Table:Row>
+                </twig:Table:Header>
+                <twig:Table:Body>
+                    {%- for row in view.result.rows %}
+                        <twig:Table:Row id="{{ id }}-row-{{ view.table.rowId(row) }}">
+                            {%- for column in view.table.columns %}
+                                <twig:Table:Cell>
+                                    {%- set cell_key = view.table.rowId(row) ~ ':' ~ column.key -%}
+                                    {#- a cell block's output, already escaped when it rendered -#}
+                                    {{- cell_key in cells|keys ? cells[cell_key]|raw : attribute(row, column.key) -}}
+                                </twig:Table:Cell>
+                            {%- endfor %}
+                        </twig:Table:Row>
+                    {%- endfor %}
+                </twig:Table:Body>
+            </twig:Table>
+        </div>
+    {%- endif %}
+
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-body" role="status">
+            {%- if view.result.total > 0 -%}
+                Showing <span class="font-semibold text-heading">{{ view.from }}–{{ view.to }}</span> of <span class="font-semibold text-heading">{{ view.result.total }}</span>
+            {%- else -%}
+                No rows
+            {%- endif -%}
+        </p>
+        {%- if view.pageCount > 1 %}
+            <twig:Pagination aria-label="{{ label ? label ~ ' pages' : 'Pages' }}">
+                <twig:Pagination:Content>
+                    {%- if query.page > 1 %}
+                        <twig:Pagination:Item>
+                            <twig:Pagination:Previous href="{{ view.url({page: query.page - 1}) }}" />
+                        </twig:Pagination:Item>
+                    {%- endif %}
+                    {%- for page in view.pageWindow %}
+                        <twig:Pagination:Item>
+                            {%- if page is null -%}
+                                <span class="flex h-10 items-center px-3 text-sm text-body" aria-hidden="true">…</span>
+                            {%- else -%}
+                                <twig:Pagination:Link href="{{ view.url({page: page}) }}" :active="page == query.page" aria-label="Page {{ page }}">{{ page }}</twig:Pagination:Link>
+                            {%- endif -%}
+                        </twig:Pagination:Item>
+                    {%- endfor %}
+                    {%- if query.page < view.pageCount %}
+                        <twig:Pagination:Item>
+                            <twig:Pagination:Next href="{{ view.url({page: query.page + 1}) }}" />
+                        </twig:Pagination:Item>
+                    {%- endif %}
+                </twig:Pagination:Content>
+            </twig:Pagination>
+        {%- endif %}
+    </div>
+</turbo-frame>

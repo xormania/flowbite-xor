@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Demo\OrdersTable;
 use App\Kit\KitReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,6 +30,7 @@ final class LabController extends AbstractController
         'turbo-stream-toast' => 'A form whose Turbo Stream response appends a Toast to the region: it appears, pauses while hovered, dismisses itself, and focus stays put.',
         'turbo-frame-detail' => 'A list and a detail Turbo Frame holding a Dropdown, reloaded several times.',
         'permanent-plus-live' => 'A Live Component inside a data-turbo-permanent element across Turbo visits.',
+        'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
     private const ITEMS = ['apple' => 'Apple', 'banana' => 'Banana', 'cherry' => 'Cherry'];
@@ -111,5 +113,14 @@ final class LabController extends AbstractController
     public function permanentPlusLive(string $page): Response
     {
         return $this->render('lab/permanent_plus_live.html.twig', ['page' => $page, 'description' => self::SCENARIOS['permanent-plus-live']]);
+    }
+
+    #[Route('/data-table-frame', name: 'app_lab_data_table_frame')]
+    public function dataTableFrame(Request $request, OrdersTable $orders): Response
+    {
+        return $this->render('lab/data_table_frame.html.twig', [
+            'table' => $orders->handleRequest($request),
+            'description' => self::SCENARIOS['data-table-frame'],
+        ]);
     }
 }
