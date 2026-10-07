@@ -9,13 +9,13 @@ and pull request standard.
 | Path | In the `ux:install` download | What it is |
 |------|---------------------------|---|
 | `manifest.json`, `INSTALL.md`, `kit.css`, `kit.js`, `icon.svg`, `<recipe>/` (minus `<recipe>/tests/`), `README.md`, `LICENSE`, `NOTICE` | yes | the kit, its readme and license |
-| `demo/` | no | a Symfony app showing every recipe (`/r/<recipe>`), test pages for Turbo and Live Components (`/lab`), and a small application made of the layouts and blocks (`/demo`) |
+| `demo/` | no | a Symfony app showing every recipe (`/r/<recipe>`), test pages for Turbo and Live Components (`/lab`), and a small application made of the layouts and blocks (`/demo`); `bin/console app:export-static` saves its showcase as the static gallery |
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
 | `tools/demo-php` | no | runs PHP in the demo's container, for the Playwright specs (`DEMO_URL`) |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
 | `tools/tests/` | no | `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
-| `docs/`, `.github/` | no | a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI, CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
+| `docs/`, `.github/` | no | a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
 
 `ux:install` downloads GitHub's archive of the whole repository; `export-ignore` in `.gitattributes` keeps
 everything else out of it (the demo, tests, tools, and repository files such as this one, `AGENTS.md`,
@@ -234,4 +234,6 @@ it fails, fix the cause and re-run it: it skips what is already done. If GitHub 
 ("refusing to allow a GitHub App to create or update workflow … without `workflows` permission", as for `0.1.0`,
 whose commit's workflows differed from `main`'s), push the tag by hand
 (`git tag -a X.Y.Z <merge commit> -m "flowbite-xor X.Y.Z" && git push origin X.Y.Z`) and re-run the workflow: it
-checks the tag and publishes the Release.
+checks the tag and publishes the Release. After a release, it publishes the gallery on GitHub Pages (`pages.yml`);
+if that part fails, use *Re-run failed jobs* (a full re-run finds the release done and skips the gallery), or run
+`pages.yml` by hand on `main`.

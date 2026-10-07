@@ -7,7 +7,8 @@ test('the index lists every recipe of the kit', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Flowbite xor');
     await expect(page.getByTestId('recipe-count')).toHaveText(`(${recipes.length})`);
-    await expect(page.getByTestId('recipe-list').getByRole('link')).toHaveText(recipes);
+    // grouped by type (components, then blocks), each group sorted by name
+    expect((await page.getByTestId('recipe-list').getByRole('link').allTextContents()).sort()).toEqual(recipes);
 });
 
 test('links navigate with Turbo Drive (no full page load)', async ({ page }) => {

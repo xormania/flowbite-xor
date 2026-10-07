@@ -1,46 +1,113 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ recipe.name }} — flowbite-xor{% endblock %}
+{% block title %}{{ recipe.manifest.name }}: flowbite-xor{% endblock %}
 
 {% block body %}
-    <p class="text-sm"><a href="{{ path('app_index') }}" class="hover:underline">Recipes</a> / {{ recipe.name }}</p>
-    <h1 class="mt-2 text-2xl font-bold">{{ recipe.manifest.name }}</h1>
-    {% if recipe.description %}
-        <p class="mt-2 text-gray-600 dark:text-gray-400">{{ recipe.description }}</p>
-    {% endif %}
+    {%- set static_export = app.request.attributes.get('_static_export') -%}
+    {%- set kit_url = kit.manifest.homepage ~ (static_export.release ?? false ? ':' ~ static_export.release : '') -%}
+    {%- set source = kit.manifest.homepage ~ '/tree/' ~ (static_export.commit ?? 'main') ~ '/' ~ recipe.name -%}
+    {%- set is_page = 'block' == recipe.manifest.type.value or 'layouts' == recipe.name -%}
 
-    <dl class="mt-6 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
-        <dt class="font-medium">Type</dt>
-        <dd>{{ recipe.manifest.type.value }}</dd>
-        <dt class="font-medium">Copies</dt>
-        <dd>
-            {% for source, destination in recipe.manifest.copyFiles %}
-                <code>{{ source }}</code> → <code>{{ destination }}</code>{% if not loop.last %}<br>{% endif %}
-            {% else %}
-                nothing
-            {% endfor %}
-        </dd>
-        <dt class="font-medium">Dependencies</dt>
-        <dd>{{ recipe.manifest.dependencies|map(d => d ~ '')|join(', ')|default('none') }}</dd>
-    </dl>
+    <div class="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
+        <nav class="hidden lg:block" aria-label="Recipes">
+            <div class="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto pb-6 text-sm">
+                {% for group in groups %}
+                    <p class="px-2 font-semibold text-heading {{ loop.first ? '' : 'mt-6' }}">{{ group.title }}</p>
+                    <ul class="mt-2 space-y-0.5">
+                        {% for item in group.recipes %}
+                            <li>
+                                {% if item.name == recipe.name %}
+                                    <a href="{{ path('app_recipe', {recipe: item.name}) }}" aria-current="page" class="block rounded-base bg-neutral-tertiary-medium px-2 py-1 font-semibold text-heading">{{ item.name }}</a>
+                                {% else %}
+                                    <a href="{{ path('app_recipe', {recipe: item.name}) }}" class="block rounded-base px-2 py-1 hover:bg-neutral-secondary-medium hover:text-heading">{{ item.name }}</a>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endfor %}
+            </div>
+        </nav>
 
-    <section class="mt-8" aria-labelledby="examples-heading">
-        <h2 id="examples-heading" class="text-lg font-semibold">Examples <span class="text-gray-500" data-testid="example-count">({{ examples|length }})</span></h2>
-        {% for example in examples %}
-            <article class="mt-6" data-testid="example" data-example="{{ example.id }}">
-                <h3 class="font-medium">{{ example.id }}</h3>
-                <div class="mt-2 grid gap-4 md:grid-cols-2">
-                    {% for theme in ['light', 'dark'] %}
-                        <iframe src="{{ path('app_preview', {recipe: recipe.name, example: example.id, theme: theme}) }}"
-                                title="{{ example.id }} ({{ theme }})" loading="lazy"
-                                class="h-72 w-full rounded border border-gray-200 dark:border-gray-800"></iframe>
-                    {% endfor %}
-                </div>
-                <details class="mt-2 text-sm">
-                    <summary>Code</summary>
-                    <pre class="mt-2 overflow-x-auto rounded bg-gray-100 p-3 dark:bg-gray-900"><code>{{ example.code }}</code></pre>
-                </details>
-            </article>
-        {% endfor %}
-    </section>
+        <div>
+            <nav class="text-sm" aria-label="Breadcrumb">
+                <ol class="flex flex-wrap gap-2">
+                    <li><a href="{{ path('app_index') }}#recipes" class="underline hover:text-heading">Recipes</a></li>
+                    <li aria-hidden="true">/</li>
+                    <li><span aria-current="page">{{ recipe.name }}</span></li>
+                </ol>
+            </nav>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+                <h1 class="text-3xl font-bold tracking-tight text-heading">{{ recipe.manifest.name }}</h1>
+                <twig:Badge variant="{{ 'block' == recipe.manifest.type.value ? 'warning' : 'brand' }}">{{ recipe.manifest.type.value }}</twig:Badge>
+            </div>
+            {% if recipe.description %}
+                <p class="mt-3 max-w-3xl text-lg">{{ recipe.description }}</p>
+            {% endif %}
+
+            <div class="mt-8 grid gap-6 xl:grid-cols-2">
+                <section class="min-w-0" aria-labelledby="install-heading">
+                    <h2 id="install-heading" class="font-semibold text-heading">Install</h2>
+                    <pre tabindex="0" class="mt-3 overflow-x-auto rounded-base bg-neutral-secondary-medium p-4 text-sm text-heading"><code>php bin/console ux:install {{ recipe.name }} \
+    --kit={{ kit_url }}</code></pre>
+                    <p class="mt-3 flex gap-4 text-sm">
+                        <a href="{{ source }}/README.md" class="underline hover:text-heading">README</a>
+                        <a href="{{ source }}" class="underline hover:text-heading">Source</a>
+                    </p>
+                </section>
+                <section class="min-w-0" aria-labelledby="installs-heading">
+                    <h2 id="installs-heading" class="font-semibold text-heading">What it installs</h2>
+                    <dl class="mt-3 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-2 text-sm">
+                        <dt class="font-medium text-heading">Copies</dt>
+                        <dd>
+                            {% for source_path, destination in recipe.manifest.copyFiles %}
+                                <code>{{ source_path }}</code> → <code>{{ destination }}</code>{% if not loop.last %}<br>{% endif %}
+                            {% else %}
+                                nothing
+                            {% endfor %}
+                        </dd>
+                        {% if dependencies.recipes %}
+                            <dt class="font-medium text-heading">Recipes</dt>
+                            <dd class="flex flex-wrap gap-x-3">
+                                {% for dependency in dependencies.recipes %}
+                                    <a href="{{ path('app_recipe', {recipe: dependency.name}) }}" class="underline hover:text-heading">{{ dependency.name }}</a>
+                                {% endfor %}
+                            </dd>
+                        {% endif %}
+                        {% for group, label in {composer: 'Composer', npm: 'npm', importmap: 'Importmap'} %}
+                            {% if dependencies[group] %}
+                                <dt class="font-medium text-heading">{{ label }}</dt>
+                                <dd>{% for dependency in dependencies[group] %}<code>{{ dependency }}</code>{% if not loop.last %}<br>{% endif %}{% endfor %}</dd>
+                            {% endif %}
+                        {% endfor %}
+                    </dl>
+                </section>
+            </div>
+
+            <section class="mt-12" aria-labelledby="examples-heading">
+                <h2 id="examples-heading" class="text-2xl font-semibold text-heading">Examples <span class="font-normal text-body" data-testid="example-count">({{ examples|length }})</span></h2>
+                {% for example in examples %}
+                    <article id="{{ example.id }}" class="mt-6 overflow-hidden rounded-base border border-default" data-testid="example" data-example="{{ example.id }}">
+                        <h3 class="border-b border-default px-4 py-3 font-semibold text-heading">
+                            <a href="#{{ example.id }}" class="hover:underline">{{ example.id|replace({'-': ' '})|capitalize }}</a>
+                        </h3>
+                        <div class="grid md:grid-cols-2">
+                            {% for theme in ['light', 'dark'] %}
+                                <figure class="{{ loop.first ? 'md:border-r' : 'border-t md:border-t-0' }} border-default">
+                                    <iframe src="{{ path('app_preview', {recipe: recipe.name, example: example.id, theme: theme}) }}"
+                                            title="{{ example.id }} ({{ theme }})" loading="lazy"
+                                            data-controller="preview-frame"
+                                            class="{{ is_page ? 'h-[32rem]' : 'h-72' }} block w-full"></iframe>
+                                    <figcaption class="border-t border-default px-4 py-1.5 text-xs">{{ theme|capitalize }}</figcaption>
+                                </figure>
+                            {% endfor %}
+                        </div>
+                        <details class="border-t border-default text-sm">
+                            <summary class="cursor-pointer px-4 py-2 font-medium hover:text-heading">Code</summary>
+                            <pre tabindex="0" class="overflow-x-auto bg-neutral-secondary-medium p-4 text-heading"><code>{{ example.code }}</code></pre>
+                        </details>
+                    </article>
+                {% endfor %}
+            </section>
+        </div>
+    </div>
 {% endblock %}

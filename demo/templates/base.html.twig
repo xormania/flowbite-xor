@@ -1,9 +1,13 @@
+{#- Set by app:export-static on the pages it saves for GitHub Pages: {release, latest_release, commit}; null when served by Symfony. -#}
+{%- set static_export = app.request.attributes.get('_static_export') -%}
+{%- set repository = 'https://github.com/xormania/flowbite-xor' -%}
 <!DOCTYPE html>
 <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}flowbite-xor demo{% endblock %}</title>
+        <meta name="description" content="Flowbite 4 and Tailwind CSS 4 components, layouts, blocks and a form theme for the Symfony UX Toolkit, with all behavior in Stimulus controllers.">
         <link rel="icon" href="data:,">
         {# The request's Content Security Policy nonces, as the layouts recipe prints them (Turbo gives this one to the <style> of its progress bar). #}
         <meta name="csp-nonce" nonce="{{ csp_style_nonce }}">
@@ -21,18 +25,51 @@
             {% block importmap %}{{ importmap('app', {nonce: csp_script_nonce ~ ''}) }}{% endblock %}
         {% endblock %}
     </head>
-    <body class="min-h-screen bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
-        <header class="border-b border-gray-200 dark:border-gray-800">
-            <nav class="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3" aria-label="Main">
-                <a href="{{ path('app_index') }}" class="font-semibold">flowbite-xor</a>
-                <a href="{{ path('app_index') }}" class="text-sm hover:underline">Recipes</a>
-                <a href="{{ path('app_forms') }}" class="text-sm hover:underline">Forms</a>
-                <a href="{{ path('app_lab') }}" class="text-sm hover:underline">Lab</a>
-                <twig:ThemeToggle class="ml-auto" />
+    <body class="flex min-h-screen flex-col bg-neutral-primary text-body antialiased">
+        <header class="border-b border-default bg-neutral-primary">
+            <nav class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3" aria-label="Main">
+                <a href="{{ path('app_index') }}" class="flex items-center gap-2 font-semibold text-heading">
+                    <span class="grid size-7 place-items-center rounded-base bg-brand text-xs font-bold text-white" aria-hidden="true">fx</span>
+                    flowbite-xor
+                </a>
+                <a href="{{ path('app_index') }}#recipes" class="text-sm font-medium hover:text-heading">Recipes</a>
+                <a href="{{ path('app_demo') }}" class="text-sm font-medium hover:text-heading">Demo app</a>
+                {% if not static_export %}
+                    <a href="{{ path('app_forms') }}" class="text-sm font-medium hover:text-heading">Forms</a>
+                    <a href="{{ path('app_lab') }}" class="text-sm font-medium hover:text-heading">Lab</a>
+                {% endif %}
+                <div class="ml-auto flex items-center gap-4">
+                    <a href="{{ repository }}" class="text-sm font-medium hover:text-heading">GitHub</a>
+                    <twig:ThemeToggle />
+                </div>
             </nav>
         </header>
-        <main class="mx-auto max-w-5xl px-4 py-8">
+        {% if static_export %}
+            <div class="border-b border-default bg-neutral-secondary-medium text-sm">
+                <p class="mx-auto max-w-7xl px-4 py-2">
+                    {% if static_export.release -%}
+                        A static copy of the demo at release <strong class="text-heading">{{ static_export.release }}</strong>.
+                    {%- else -%}
+                        A static copy of the demo, built from
+                        {% if static_export.commit %}<a href="{{ repository }}/commit/{{ static_export.commit }}" class="font-mono underline hover:text-heading">{{ static_export.commit[:7] }}</a> on {% endif %}<code>main</code>
+                        {%- if static_export.latest_release %} after release <strong class="text-heading">{{ static_export.latest_release }}</strong>{% endif %}.
+                    {%- endif %}
+                    Live Components, Turbo Streams and form submits need Symfony:
+                    <a href="{{ repository }}/blob/main/CONTRIBUTING.md#setup" class="underline hover:text-heading">run the full demo</a>.
+                </p>
+            </div>
+        {% endif %}
+        <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
             {% block body %}{% endblock %}
         </main>
+        <footer class="border-t border-default">
+            <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-6 text-sm">
+                <p>MIT licensed. Built on the official <code>flowbite-4</code> kit of Symfony UX.</p>
+                <a href="{{ repository }}/blob/main/README.md" class="underline hover:text-heading">README</a>
+                <a href="{{ repository }}/blob/main/CHANGELOG.md" class="underline hover:text-heading">Changelog</a>
+                <a href="{{ repository }}/releases" class="underline hover:text-heading">Releases</a>
+                <a href="{{ repository }}/blob/main/SECURITY.md" class="underline hover:text-heading">Security</a>
+            </div>
+        </footer>
     </body>
 </html>
