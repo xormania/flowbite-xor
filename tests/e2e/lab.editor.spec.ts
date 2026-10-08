@@ -173,3 +173,34 @@ test('in a Live Component, a re-render while the editor has the focus does not l
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByTestId('saved')).toHaveText('<p>Draft from the server. Typed while it re-renders.</p>');
 });
+
+test('a frame visit promoted to history leaves the editor beside the frame working, and Back brings its content back in one editor', async ({ page }) => {
+    await page.goto('/lab/editor-turbo');
+    await mounted(page);
+    const body = page.getByRole('textbox', { name: 'Body' });
+    await body.click();
+    await page.keyboard.type('Before the step');
+
+    // Turbo copies the page and dispatches turbo:before-cache, but the editor stays on screen
+    await page.getByRole('link', { name: 'Next step' }).click();
+    await expect(page.getByTestId('history-step')).toHaveText('1');
+    await expect.poll(() => new URL(page.url()).searchParams.get('step')).toBe('1');
+    await turboVisitDone(page);
+    await expect(editors(page)).toHaveCount(3);
+    await page.getByRole('textbox', { name: 'Body' }).click();
+    await page.keyboard.press('ControlOrMeta+End');
+    await page.keyboard.type(' and after');
+    expect(await page.locator('textarea[name="editor_demo[body]"]').inputValue()).toBe('<p>Before the step and after</p>');
+
+    await page.goBack();
+    await expect(page.getByTestId('history-step')).toHaveText('0');
+    await turboVisitDone(page);
+    await mounted(page);
+    await expect(editors(page)).toHaveCount(3);
+    await expect(page.getByRole('toolbar', { name: 'Formatting' })).toHaveCount(3);
+    await expect(page.getByRole('textbox', { name: 'Body' })).toHaveText('Before the step');
+    await page.getByRole('textbox', { name: 'Body' }).click();
+    await page.keyboard.press('ControlOrMeta+End');
+    await page.keyboard.type(', again');
+    expect(await page.locator('textarea[name="editor_demo[body]"]').inputValue()).toBe('<p>Before the step, again</p>');
+});

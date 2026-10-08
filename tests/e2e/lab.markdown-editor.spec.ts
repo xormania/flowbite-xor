@@ -109,3 +109,22 @@ test('replaced or updated by a Turbo Stream, the markdown editor shows the new c
         await tab(page, 'streamed', 'Write').click();
     }
 });
+
+test('after a frame visit promoted to history and Back, the typing comes back, and its preview renders it', async ({ page }) => {
+    await page.goto('/lab/markdown-turbo');
+    await page.getByRole('textbox', { name: 'Body' }).fill('Typed **before** the step');
+
+    // Turbo copies the page as soon as the frame visit starts, before turbo:before-cache
+    await page.getByRole('link', { name: 'Next step' }).click();
+    await expect(page.getByTestId('history-step')).toHaveText('1');
+    await expect.poll(() => new URL(page.url()).searchParams.get('step')).toBe('1');
+    await turboVisitDone(page);
+    await page.goBack();
+    await expect(page.getByTestId('history-step')).toHaveText('0');
+    await turboVisitDone(page);
+    await expect(editors(page)).toHaveCount(3);
+
+    await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed **before** the step');
+    await tab(page, 'markdown_demo_body', 'Preview').click();
+    await expect(panel(page, 'markdown_demo_body').locator('strong')).toHaveText('before');
+});

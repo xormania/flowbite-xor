@@ -66,6 +66,7 @@ final class LabController extends AbstractController
         'editor-turbo' => 'Editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'editor-stream' => 'An Editor replaced and updated by Turbo Streams.',
         'live-editor' => 'An Editor bound to a Live Component property: unrelated re-renders leave the typing alone, a save reads the content, a reset from the server replaces it.',
+        'turbo-restore' => 'Overlays left open when a link inside them visits another page: Back shows them closed and working, also when the next page waits for a new stylesheet (Turbo then caches the page before the controllers disconnect).',
         'markdown-turbo' => 'Markdown editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'markdown-stream' => 'A MarkdownEditor replaced and updated by Turbo Streams.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
@@ -115,6 +116,12 @@ final class LabController extends AbstractController
             'description' => self::SCENARIOS['turbo-nav'],
             'recipes' => $this->kit->getRecipes(),
         ]);
+    }
+
+    #[Route('/turbo-restore/{page}', name: 'app_lab_turbo_restore', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    public function turboRestore(string $page): Response
+    {
+        return $this->render('lab/turbo_restore.html.twig', ['page' => $page, 'description' => self::SCENARIOS['turbo-restore']]);
     }
 
     #[Route('/turbo-nav/save', name: 'app_lab_turbo_nav_save', methods: ['POST'])]
@@ -432,6 +439,7 @@ final class LabController extends AbstractController
             'page' => $page,
             'form' => $form,
             'load' => $request->query->getInt('load'),
+            'step' => $request->query->getInt('step'),
             'saved' => $request->query->getBoolean('saved') ? $request->getSession()->get('lab_editor_body') : null,
             'description' => self::SCENARIOS['editor-turbo'],
         ], new Response(null, $form->isSubmitted() ? 422 : 200));
@@ -467,6 +475,7 @@ final class LabController extends AbstractController
             'page' => $page,
             'form' => $form,
             'load' => $request->query->getInt('load'),
+            'step' => $request->query->getInt('step'),
             'saved' => $request->query->getBoolean('saved') ? $request->getSession()->get('lab_markdown_body') : null,
             'description' => self::SCENARIOS['markdown-turbo'],
         ], new Response(null, $form->isSubmitted() ? 422 : 200));
