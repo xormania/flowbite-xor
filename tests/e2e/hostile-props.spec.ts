@@ -18,6 +18,7 @@ type Cases = {
     urls: UrlCase[];
     calendar: { html: string };
     chart: { html: string };
+    editor: { policy: { input: string; once: string; twice: string }[]; html: string };
     sidebar: { path: string; html: string };
 };
 
@@ -254,4 +255,34 @@ test('a sidebar item whose link renders "#" is never the current page', async ({
     await expect(nav.getByRole('link', { name: 'Rejected' })).toHaveAttribute('href', '#');
     await expect(nav.getByRole('link', { name: 'Rejected' })).not.toHaveAttribute('aria-current');
     await expect(nav.getByRole('link', { name: 'Placeholder' })).not.toHaveAttribute('aria-current');
+});
+
+test("the editor's policy keeps the preset, removes everything else, and gives the same output twice", () => {
+    const [plain, blocks, links, hostileLinks, hostile, foreign, tricks, empty] = cases.editor.policy;
+    for (const { once, twice } of cases.editor.policy) {
+        expect(twice).toBe(once);
+        expect(once).not.toMatch(/<(script|style|img|svg|math|iframe|form|input|table|div|span|h1)\b|\s(style|class|id|data-[a-z-]+|on[a-z]+|target)=|javascript:|vbscript:|data:text/i);
+    }
+    // the sanitizer writes void elements as <br /> and <hr />
+    expect(plain.once).toBe(plain.input.replace('<br>', '<br />'));
+    expect(blocks.once).toBe(blocks.input.replace('<hr>', '<hr />'));
+    expect(links.once).toBe('<p><a href="https://example.com" title="Example" rel="noopener noreferrer nofollow">https</a> <a href="mailto:a&#64;example.com" rel="noopener noreferrer nofollow">mail</a> <a href="/pricing#faq" rel="noopener noreferrer nofollow">relative</a></p>');
+    expect(hostileLinks.once).not.toContain('href="j');
+    expect(hostile.once).toBe('<p>attributes</p>');
+    expect(foreign.once).toContain('H1');
+    expect(foreign.once).toContain('cell');
+    expect(tricks.once).toContain('&lt;script&gt;text&lt;/script&gt;');
+    expect(empty.once).toBe('');
+});
+
+test('the Editor prints a hostile value sanitized, in the editable area and the textarea', async ({ page }) => {
+    const dialogs = recordDialogs(page);
+    const found = await parse(page, cases.editor.html);
+    expect(found.handlers).toEqual([]);
+    // the icons are the template's own <svg>; the value adds no element beyond the preset
+    expect(found.elements.filter((element) => UNSAFE_ELEMENTS.includes(element) && !['textarea', 'svg'].includes(element))).toEqual([]);
+    expect(await page.getByTestId('editor').locator('[role="textbox"] svg, [role="textbox"] math, [role="textbox"] img').count()).toBe(0);
+    expect(found.ran).toBeNull();
+    expect(await page.locator('textarea[name="body"]').inputValue()).not.toMatch(/<script|onerror|javascript:/);
+    expect(dialogs).toEqual([]);
 });

@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\FlowbiteXor\Editor\EditorHtmlPolicy;
 use App\Kit\PreviewForms;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -92,6 +93,7 @@ final class HostilePropsCommand
     public function __construct(
         private readonly Environment $twig,
         private readonly PreviewForms $forms,
+        private readonly EditorHtmlPolicy $editorPolicy,
     ) {
     }
 
@@ -102,6 +104,7 @@ final class HostilePropsCommand
             'attributes' => $this->attributes(),
             'urls' => $this->urls(),
             'calendar' => $this->calendar(),
+            'editor' => $this->editor(),
             'chart' => ['html' => $this->render(self::CHART, [
                 'id' => 'c" onmouseover="window.__xss=1',
                 'title' => '"><svg onload=window.__xss=1>',
@@ -118,6 +121,35 @@ final class HostilePropsCommand
         ], \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * The editor's policy on hostile and ordinary HTML: each input, its sanitized form, and that form sanitized again;
+     * and the Editor component given a hostile value.
+     *
+     * @return array{policy: list<array{input: string, once: string, twice: string}>, html: string}
+     */
+    private function editor(): array
+    {
+        $inputs = [
+            '<p>Plain <strong>bold</strong> <em>italic</em> <u>under</u> <s>strike</s> <code>code</code><br>next</p>',
+            '<h2>Title</h2><h3>Sub</h3><ul><li><p>one</p><ul><li><p>nested</p></li></ul></li></ul><ol start="3"><li><p>three</p></li></ol><blockquote><p>quote</p></blockquote><hr>',
+            '<p><a href="https://example.com" title="Example">https</a> <a href="mailto:a@example.com">mail</a> <a href="/pricing#faq">relative</a></p>',
+            '<p><a href="javascript:alert(1)">js</a><a href=" jav&#x09;ascript:alert(1)">js2</a><a href="data:text/html,x">data</a><a href="vbscript:x">vb</a><a href="https://example.com" target="_blank" rel="opener" onclick="x()">target</a></p>',
+            '<p style="color:red" class="x" id="y" data-controller="z" onmouseover="x()">attributes</p><script>x()</script><style>p{}</style><img src=x onerror=x()><svg onload=x()></svg><math><mi>x</mi></math><iframe src="/"></iframe><form><input></form>',
+            '<h1>H1</h1><div><span style="font-weight:bold">span</span> <b>b</b> <i>i</i></div><table><tr><td>cell</td></tr></table><p></p>',
+            '<p><!-- comment --><scr<script>ipt>x()</script></p><p>&lt;script&gt;text&lt;/script&gt;</p>',
+            '<p></p><p>   </p>',
+        ];
+
+        return [
+            'policy' => array_map(function (string $input): array {
+                $once = $this->editorPolicy->sanitize($input);
+
+                return ['input' => $input, 'once' => $once, 'twice' => $this->editorPolicy->sanitize($once)];
+            }, $inputs),
+            'html' => $this->render('<twig:Editor id="hostile-editor" name="body" label="Body" :value="value" data-testid="editor" />', ['value' => $inputs[4].$inputs[3]]),
+        ];
     }
 
     /**

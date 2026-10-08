@@ -29,6 +29,7 @@ What it renders:
 - **Controls**: text-like types through `Input`, `textarea` through `Textarea`, collapsed choices through `Select`, checkboxes and radios through `Checkbox`/`Radio` with a `Label`, buttons through `Button`. To pick a `Button` variant, give the button field `'attr' => ['variant' => 'outline']` in the form type, or `attr: {variant: 'outline'}` in Twig.
 - **Date picker**: with the `date-picker` recipe installed, a `DateType` with `'widget' => 'single_text'` and `'block_prefix' => 'flowbite_date_picker'` renders as a typed field with a calendar in a popover; see the [`date-picker` README](../date-picker/README.md#with-a-symfony-form). Without the opt-in it stays a native `<input type="date">`.
 - **File uploads**: with the `dropzone` recipe installed, every `DropzoneType` (symfony/ux-dropzone) renders as the recipe's `Dropzone`, never as UX Dropzone's own form theme (whose `style` attributes break a strict Content Security Policy); see the [`dropzone` README](../dropzone/README.md#in-a-symfony-form). A plain `FileType` stays a native `<input type="file">`.
+- **Rich text**: with the `editor` recipe installed, its `EditorType` renders as a formatting toolbar over an editable area; see the [`editor` README](../editor/README.md#usage).
 - Everything else (hidden, range, color, collections) falls back to Symfony's `tailwind_2_layout.html.twig`.
 
 The theme only arranges components: their classes stay in the component templates, so a form and a hand-written page look the same.

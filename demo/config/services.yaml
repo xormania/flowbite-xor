@@ -20,6 +20,12 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        # the recipes' PHP is registered from the kit below (tools/sync-demo copies it here too)
+        exclude: '../src/FlowbiteXor/'
+
+    # PHP that ux:install copies into an app's src/ (composer.json's autoload maps it to the recipes)
+    App\FlowbiteXor\Editor\:
+        resource: '../../editor/src/FlowbiteXor/Editor/'
 
     # The Content Security Policy nonces of the current request (App\Security\CspNonce): Twig globals printed by
     # the layouts (config/packages/twig.yaml), put in the policy by App\EventListener\SecurityHeadersListener.

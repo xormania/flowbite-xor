@@ -75,5 +75,8 @@
     { "fg": "fg-danger-strong", "bg": "neutral-secondary-medium", "min": 4.5, "usage": "dropzone note asking to choose a file again" },
     { "fg": "body", "bg": "neutral-tertiary-medium", "min": 3, "usage": "dropzone remove icon while hovered" },
     { "fg": "body", "bg": "disabled", "min": 4.5, "usage": "disabled dropzone hint" },
-    { "fg": "heading", "bg": "disabled", "min": 4.5, "usage": "disabled dropzone main line" }
+    { "fg": "heading", "bg": "disabled", "min": 4.5, "usage": "disabled dropzone main line" },
+    { "fg": "heading", "bg": "neutral-tertiary", "min": 4.5, "usage": "editor inline code" },
+    { "fg": "body", "bg": "neutral-primary-soft", "min": 4.5, "usage": "editor toolbar buttons and counter" },
+    { "fg": "fg-brand-strong", "bg": "brand-softer", "min": 4.5, "usage": "editor toolbar button pressed" }
 ]

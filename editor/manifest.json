@@ -1,0 +1,39 @@
+{
+    "$schema": "https://raw.githubusercontent.com/symfony/ux/f152d0ba5b403e8086e90ce8f09bcade1405e217/src/Toolkit/schema-kit-recipe-v1.json",
+    "type": "component",
+    "name": "Editor",
+    "copy-files": {
+        "assets/": "assets/",
+        "src/": "src/",
+        "templates/": "templates/"
+    },
+    "dependencies": {
+        "recipe": ["form-theme", "popover", "button", "input", "label"],
+        "composer": [
+            "symfony/form",
+            "symfony/html-sanitizer",
+            "symfony/ux-icons",
+            "symfony/ux-twig-component:^3.5",
+            "twig/html-extra:^3.24.0",
+            "tales-from-a-dev/twig-tailwind-extra:^1.3.0"
+        ],
+        "importmap": [
+            "@tiptap/core",
+            "@tiptap/extension-blockquote",
+            "@tiptap/extension-bold",
+            "@tiptap/extension-code",
+            "@tiptap/extension-document",
+            "@tiptap/extension-hard-break",
+            "@tiptap/extension-heading",
+            "@tiptap/extension-horizontal-rule",
+            "@tiptap/extension-italic",
+            "@tiptap/extension-link",
+            "@tiptap/extension-list",
+            "@tiptap/extension-paragraph",
+            "@tiptap/extension-strike",
+            "@tiptap/extension-text",
+            "@tiptap/extension-underline",
+            "@tiptap/extensions"
+        ]
+    }
+}

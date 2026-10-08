@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Demo\OrdersTable;
 use App\Form\AutocompleteDemoType;
+use App\Form\EditorDemoType;
 use App\Form\UploadDemoType;
 use App\Kit\KitReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -61,6 +62,9 @@ final class LabController extends AbstractController
         'dropzone-events' => 'A Dropzone given a controller of the page: its actions, values and target reach it.',
         'dropzone-form' => 'A Symfony form with DropzoneType fields posted through Turbo (303, or 422 with the errors), next to a Live Component whose re-renders leave the picked files alone.',
         'live-dropzone' => 'Files uploaded from a Live Component through a files action: re-renders leave the picked files alone, and each upload gives a fresh zone.',
+        'editor-turbo' => 'Editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
+        'editor-stream' => 'An Editor replaced and updated by Turbo Streams.',
+        'live-editor' => 'An Editor bound to a Live Component property: unrelated re-renders leave the typing alone, a save reads the content, a reset from the server replaces it.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -88,6 +92,7 @@ final class LabController extends AbstractController
     #[Route('/live-autocomplete', name: 'app_lab_live_autocomplete')]
     #[Route('/live-chart', name: 'app_lab_live_chart')]
     #[Route('/live-dropzone', name: 'app_lab_live_dropzone')]
+    #[Route('/live-editor', name: 'app_lab_live_editor')]
     public function live(string $_route): Response
     {
         $name = str_replace('_', '-', substr($_route, \strlen('app_lab_')));
@@ -406,5 +411,40 @@ final class LabController extends AbstractController
     public function dropzoneEvents(): Response
     {
         return $this->render('lab/dropzone_events.html.twig', ['description' => self::SCENARIOS['dropzone-events']]);
+    }
+
+    #[Route('/editor-turbo/{page}', name: 'app_lab_editor_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'], methods: ['GET', 'POST'])]
+    public function editorTurbo(Request $request, string $page): Response
+    {
+        $form = $this->createForm(EditorDemoType::class);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            // what the field stored, shown after the redirect
+            $request->getSession()->set('lab_editor_body', $form->get('body')->getData());
+
+            return $this->redirectToRoute('app_lab_editor_turbo', ['page' => $page, 'saved' => 1], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('lab/editor_turbo.html.twig', [
+            'page' => $page,
+            'form' => $form,
+            'load' => $request->query->getInt('load'),
+            'saved' => $request->query->getBoolean('saved') ? $request->getSession()->get('lab_editor_body') : null,
+            'description' => self::SCENARIOS['editor-turbo'],
+        ], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+
+    #[Route('/editor-stream', name: 'app_lab_editor_stream', methods: ['GET', 'POST'])]
+    public function editorStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/editor_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/editor_stream.html.twig', ['description' => self::SCENARIOS['editor-stream']]);
     }
 }
