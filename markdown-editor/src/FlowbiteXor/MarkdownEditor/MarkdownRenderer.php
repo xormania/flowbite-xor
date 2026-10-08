@@ -48,8 +48,9 @@ final class MarkdownRenderer
         $this->converter = new MarkdownConverter($environment);
 
         $config = (new HtmlSanitizerConfig())
-            // CommonMark's HTML is longer than its Markdown; the input is checked before converting
-            ->withMaxInputLength(4 * self::MAX_INPUT_BYTES)
+            // no limit here: the sanitizer would cut longer HTML, and CommonMark's escaping makes the HTML several times
+            // longer than its Markdown (`&` is `&amp;`); toHtml() refuses Markdown over MAX_INPUT_BYTES before converting
+            ->withMaxInputLength(-1)
             ->allowLinkSchemes(['https', 'http', 'mailto'])
             ->allowRelativeLinks(true)
             ->allowElement('ol', ['start'])

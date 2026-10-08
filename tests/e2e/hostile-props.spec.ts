@@ -19,7 +19,7 @@ type Cases = {
     calendar: { html: string };
     chart: { html: string };
     editor: { policy: { input: string; once: string; twice: string }[]; html: string };
-    markdown: { renderer: { input: string; html: string }[]; html: string };
+    markdown: { renderer: { input: string; html: string }[]; expansion: { characters: number; kept: number; complete: boolean }; html: string };
     sidebar: { path: string; html: string };
 };
 
@@ -295,6 +295,8 @@ test('the Markdown renderer keeps what Markdown makes, strips raw HTML and image
     expect(deep.html.match(/<blockquote>/g)).toHaveLength(20);
     expect(delimiters.html.length).toBeGreaterThan(0);
     expect(blank.html).toBe('');
+    // HTML far longer than its Markdown (each `&` is `&amp;`) is rendered whole
+    expect(cases.markdown.expansion).toEqual({ characters: 900000, kept: 900000, complete: true });
 });
 
 test('the MarkdownEditor prints a hostile value as text in its textarea', async ({ page }) => {

@@ -159,7 +159,7 @@ final class HostilePropsCommand
      * The Markdown renderer on hostile and ordinary Markdown: each input and its HTML; and the MarkdownEditor given a
      * hostile value.
      *
-     * @return array{renderer: list<array{input: string, html: string}>, html: string}
+     * @return array{renderer: list<array{input: string, html: string}>, expansion: array{characters: int, kept: int, complete: bool}, html: string}
      */
     private function markdown(): array
     {
@@ -177,6 +177,12 @@ final class HostilePropsCommand
 
         return [
             'renderer' => array_map(fn (string $input): array => ['input' => $input, 'html' => $this->markdownRenderer->toHtml($input)], $inputs),
+            // Markdown under the limit whose HTML is five times longer: rendered whole, never cut
+            'expansion' => (function (): array {
+                $html = $this->markdownRenderer->toHtml(str_repeat('&', 900_000));
+
+                return ['characters' => 900_000, 'kept' => substr_count($html, '&amp;'), 'complete' => str_ends_with($html, '</p>')];
+            })(),
             'html' => $this->render('<twig:MarkdownEditor id="hostile-markdown" name="body" label="Body" :value="value" data-testid="markdown" />', ['value' => '</textarea><script>window.__xss=1</script><img src=x onerror="window.__xss=1">']),
         ];
     }
