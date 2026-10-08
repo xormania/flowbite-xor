@@ -1,0 +1,7 @@
+<p data-testid="stream-action" class="mb-2 text-sm text-body">{{ action|default('initial') }}</p>
+<twig:Popover id="streamed">
+    <twig:Popover:Trigger>
+        <twig:Button variant="outline" {{ ...popover_trigger_attrs }}>Streamed</twig:Button>
+    </twig:Popover:Trigger>
+    <twig:Popover:Content label="Streamed">Version {{ action|default('initial') }}.</twig:Popover:Content>
+</twig:Popover>

@@ -1,0 +1,21 @@
+{%- props
+    ## string|null The dialog's accessible name. Without it, the trigger's text names the dialog.
+    label = null
+-%}
+{%- set _popover_id = inject('popover.id') -%}
+{%- set _popover_open = inject('popover.open', false) -%}
+<div
+    id="{{ _popover_id }}-content"
+    role="dialog"
+    tabindex="-1"
+    {% if label is not null %}aria-label="{{ label }}"{% else %}aria-labelledby="{{ _popover_id }}-trigger"{% endif %}
+    data-popover-target="content"
+    data-state="{{ _popover_open ? 'open' : 'closed' }}"
+    {% if not _popover_open %}hidden{% endif %}
+    {{ attributes.defaults({
+        class: 'z-10 w-72 rounded-base border border-default-medium bg-neutral-primary-medium p-4 text-sm text-body shadow-lg outline-none'|tailwind_classes,
+    }) }}
+>
+    {##- What the popover shows: text, links, a small form. -#}
+    {%- block content %}{% endblock -%}
+</div>

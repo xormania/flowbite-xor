@@ -43,6 +43,9 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   `model` prop (`model="day"`, or `model="stay"` for a range array with `from`/`to`), never `data-model` on the
   `<twig:Calendar>`. `minDate`/`maxDate`/`disabled` only guide the user: validate on the server. PHP needs `intl`
   for locales other than `en`. Times: native `<input type="time">`.
+- **Content next to a control: `ux:install popover`** (`<twig:Popover id="…">` with `Popover:Trigger`, spreading
+  `popover_trigger_attrs` on its `Button`, and `Popover:Content`); menus of actions use `dropdown`. Pass a stable `id`
+  inside Live Components and Turbo Frames.
 - **Searchable selects: `ux:install autocomplete`**, then `'autocomplete' => true` on a choice field (`ChoiceType`,
   `EntityType`, `CountryType`…; `'multiple' => true` for several, `'tom_select_options' => ['create' => true]` for
   typed values). Options searched on the server: a field class with `#[AsAutocompleteField]` whose parent is

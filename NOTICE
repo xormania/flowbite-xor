@@ -6,7 +6,7 @@ Symfony UX (https://github.com/symfony/ux), src/Toolkit/kits/flowbite-4
 
 Symfony UX (https://github.com/symfony/ux), src/Toolkit/kits/shadcn
     Copyright (c) 2025-present Fabien Potencier
-    calendar is derived from its recipe of the same name (not copied).
+    popover and calendar are derived from its recipes of the same names (not copied).
 
 Flowbite (https://github.com/themesberg/flowbite)
     Copyright (c) 2023 Bergside Inc.
