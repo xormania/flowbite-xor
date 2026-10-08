@@ -154,6 +154,7 @@ export default class extends Controller {
         if (!definition || !this.#editor) {
             return;
         }
+        this.#focus();
         definition.run(this.#editor.chain().focus()).run();
     }
 
@@ -192,6 +193,7 @@ export default class extends Controller {
             this.linkInputTarget.setAttribute('aria-invalid', 'true');
             return;
         }
+        this.#focus();
         const chain = this.#editor.chain().focus().extendMarkRange('link');
         if (this.#editor.state.selection.empty && !this.#editor.isActive('link')) {
             // nothing selected: the address becomes the link's text
@@ -203,6 +205,7 @@ export default class extends Controller {
     }
 
     removeLink() {
+        this.#focus();
         this.#editor?.chain().focus().extendMarkRange('link').unsetLink().run();
         this.#closeLinkDialog();
     }
@@ -211,7 +214,7 @@ export default class extends Controller {
         const label = event.target.closest('label');
         if (label && this.#editor && label.htmlFor === this.#editor.view.dom.id) {
             event.preventDefault();
-            this.#editor.commands.focus();
+            this.#focus();
         }
     }
 
@@ -303,7 +306,15 @@ export default class extends Controller {
 
     #closeLinkDialog() {
         this.linkInputTarget?.closest('[data-controller~="popover"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-        this.#editor?.commands.focus();
+        this.#focus();
+    }
+
+    /**
+     * Focuses the editor now: Tiptap's `focus()` waits for the next frame when another element (a toolbar button, the
+     * link input) has the focus, and keys typed before that frame would go to that element.
+     */
+    #focus() {
+        this.#editor?.view.focus();
     }
 
     /**
