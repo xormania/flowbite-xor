@@ -61,13 +61,12 @@ if (!process.env.TEST_WORKER_INDEX) {
 /*
  * Builds the demo's Tailwind CSS unless it was built from the same sources: those it scans
  * (demo/assets/styles/app.css: `@source "../../.."`, the repository minus what git ignores), identified by a
- * SHA-256 of their paths and content hashes (`git hash-object`), kept next to the build. So no screenshot is taken
- * against stale CSS, whoever runs the tests, and nothing is rebuilt when nothing changed: in CI, right after its own
- * `tailwind:build`, the first run builds once more, for the hash.
+ * SHA-256 of their paths and content hashes (`git hash-object`), recorded next to the build. So no screenshot is
+ * taken against stale CSS, whoever runs the tests, and nothing is rebuilt when nothing changed (in CI, right after
+ * its own `tailwind:build`, the first run builds once more, for the record). The record is read and written by
+ * PHP_BINARY's PHP: in the Docker demo, demo/var/ lives in the container.
  */
 function buildTailwindIfStale() {
-    const dir = join(root, 'demo/var/tailwind');
-    const record = join(dir, 'sources.sha256');
     const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, encoding: 'utf8' })
         .split('\0')
         .filter((file) => file && existsSync(join(root, file)));
@@ -77,12 +76,16 @@ function buildTailwindIfStale() {
     const digest = createHash('sha256')
         .update(files.map((file, index) => `${hashes[index]} ${file}`).join('\n'))
         .digest('hex');
-    if (existsSync(join(dir, 'app.built.css')) && existsSync(record) && readFileSync(record, 'utf8').trim() === digest) {
+    const php = (args: string[], stdio: 'pipe' | 'inherit' = 'pipe') =>
+        execFileSync(process.env.PHP_BINARY ?? 'php', args, { cwd: join(root, 'demo'), encoding: 'utf8', stdio });
+    const record = 'var/tailwind/sources.sha256';
+    const recorded = php(['-r', `echo is_file('var/tailwind/app.built.css') ? @file_get_contents('${record}') : '';`]);
+    if (recorded.trim() === digest) {
         return;
     }
     console.log("Building the demo's Tailwind CSS: its sources changed since the last build");
-    execFileSync(process.env.PHP_BINARY ?? 'php', ['bin/console', 'tailwind:build'], { cwd: join(root, 'demo'), stdio: 'inherit' });
-    writeFileSync(record, `${digest}\n`);
+    php(['bin/console', 'tailwind:build'], 'inherit');
+    php(['-r', `file_put_contents('${record}', $argv[1].PHP_EOL);`, '--', digest]);
 }
 
 export default defineConfig({
