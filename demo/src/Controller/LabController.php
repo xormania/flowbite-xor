@@ -39,6 +39,9 @@ final class LabController extends AbstractController
         'autocomplete-frame' => 'An Autocomplete inside a Turbo Frame that reloads.',
         'autocomplete-stream' => 'An Autocomplete replaced by a Turbo Stream.',
         'live-autocomplete' => 'Autocomplete fields in a Live form that re-renders.',
+        'popover-turbo' => 'Popovers across Turbo visits and Back: a plain one, a group, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
+        'popover-stream' => 'A Popover replaced and updated by Turbo Streams.',
+        'live-popover' => 'A Popover open while its Live Component re-renders (action and model change).',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -60,6 +63,7 @@ final class LabController extends AbstractController
     #[Route('/live-table', name: 'app_lab_live_table')]
     #[Route('/live-drawer', name: 'app_lab_live_drawer')]
     #[Route('/live-form', name: 'app_lab_live_form')]
+    #[Route('/live-popover', name: 'app_lab_live_popover')]
     #[Route('/live-autocomplete', name: 'app_lab_live_autocomplete')]
     public function live(string $_route): Response
     {
@@ -203,5 +207,29 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/autocomplete_stream.html.twig', ['description' => self::SCENARIOS['autocomplete-stream']]);
+    }
+
+    #[Route('/popover-turbo/{page}', name: 'app_lab_popover_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    public function popoverTurbo(Request $request, string $page): Response
+    {
+        return $this->render('lab/popover_turbo.html.twig', [
+            'page' => $page,
+            'load' => $request->query->getInt('load'),
+            'description' => self::SCENARIOS['popover-turbo'],
+        ]);
+    }
+
+    #[Route('/popover-stream', name: 'app_lab_popover_stream', methods: ['GET', 'POST'])]
+    public function popoverStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/popover_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/popover_stream.html.twig', ['description' => self::SCENARIOS['popover-stream']]);
     }
 }

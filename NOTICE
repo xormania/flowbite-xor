@@ -4,6 +4,10 @@ Symfony UX (https://github.com/symfony/ux), src/Toolkit/kits/flowbite-4
     Copyright (c) 2025-present Fabien Potencier
     Copied files and their deviations are listed in UPSTREAM.md.
 
+Symfony UX (https://github.com/symfony/ux), src/Toolkit/kits/shadcn
+    Copyright (c) 2025-present Fabien Potencier
+    popover is derived from its recipe of the same name (not copied).
+
 Flowbite (https://github.com/themesberg/flowbite)
     Copyright (c) 2023 Bergside Inc.
     Design tokens, class names and markup patterns of the Flowbite components.

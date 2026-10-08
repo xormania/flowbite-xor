@@ -38,6 +38,9 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   `#[AsLiveComponent(name: '…', template: 'components/DataTableLive.html.twig')]`, rendered as
   `<twig:Name tableId="…" />` with no controller code; a bulk action is a `#[LiveAction]` reading `$this->selectedIds`
   (browser input: check each id). Back leaves a Live table; the plain one walks its states.
+- **Content next to a control: `ux:install popover`** (`<twig:Popover id="…">` with `Popover:Trigger`, spreading
+  `popover_trigger_attrs` on its `Button`, and `Popover:Content`); menus of actions use `dropdown`. Pass a stable `id`
+  inside Live Components and Turbo Frames.
 - **Searchable selects: `ux:install autocomplete`**, then `'autocomplete' => true` on a choice field (`ChoiceType`,
   `EntityType`, `CountryType`…; `'multiple' => true` for several, `'tom_select_options' => ['create' => true]` for
   typed values). Options searched on the server: a field class with `#[AsAutocompleteField]` whose parent is

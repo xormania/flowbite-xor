@@ -121,6 +121,7 @@ Each recipe's README has its examples, props and usage.
 | [`empty-state`](empty-state/README.md) | What a list or page shows when it has nothing yet, with a way forward. |
 | [`navbar`](navbar/README.md) ✦ | The bar on top of the app: brand, search, actions, and the menu button opening the sidebar on small screens. |
 | [`page-header`](page-header/README.md) | The top of a page: its title, a short description and the page's actions. |
+| [`popover`](popover/README.md) ✦ | Free content anchored to a button (text, links, a small form) in a non-modal dialog that closes on Escape, a click outside or when the focus leaves it. |
 | [`progress`](progress/README.md) | A bar showing how far a task has come. |
 | [`sidebar`](sidebar/README.md) ✦ | The app's main navigation: grouped links with icons and counts, collapsible to icons, opened over the page on small screens. |
 | [`stat-card`](stat-card/README.md) | A key figure with its label and, optionally, how it changed over a period. |

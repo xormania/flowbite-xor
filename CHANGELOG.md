@@ -7,6 +7,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `popover`: free content anchored to a button, in a non-modal dialog; it closes on Escape, a click outside or when
+  the focus leaves it, and before Turbo caches the page.
 - `autocomplete`: searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme, through the
   form theme (`'autocomplete' => true`) or the `Autocomplete` component.
 - `data-table-live`: `data-table` as a Live Component (`AbstractLiveDataTable`), with row selection for bulk actions;
