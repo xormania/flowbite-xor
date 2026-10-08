@@ -67,6 +67,8 @@ final class HostilePropsCommand
     ];
 
     /** A Sidebar on the page at this path: its current item, an item whose link is rejected, a `#` item. */
+    private const CHART = '<twig:Chart :id="id" :title="title" :type="type" :size="size" :table="table" :labelsHeader="title" :labels="labels" :datasets="datasets" data-testid="chart" />';
+
     private const SIDEBAR_PATH = '/lab';
     private const SIDEBAR = <<<'TWIG'
         <twig:Sidebar id="hostile-sidebar" label="Hostile links" storageKey="hostile-sidebar">
@@ -100,6 +102,15 @@ final class HostilePropsCommand
             'attributes' => $this->attributes(),
             'urls' => $this->urls(),
             'calendar' => $this->calendar(),
+            'chart' => ['html' => $this->render(self::CHART, [
+                'id' => 'c" onmouseover="window.__xss=1',
+                'title' => '"><svg onload=window.__xss=1>',
+                'type' => 'bar onclick=x',
+                'size' => '"><script>window.__xss=1</script>',
+                'table' => 'visible" onfocus="window.__xss=1',
+                'labels' => ['<img src=x onerror=window.__xss=1>', 'B'],
+                'datasets' => [['label' => '"><svg onload=window.__xss=1>', 'data' => ['<script>window.__xss=1</script>', 2]]],
+            ])],
             'sidebar' => [
                 'path' => self::SIDEBAR_PATH,
                 'html' => $this->render(self::SIDEBAR, ['rejected' => 'javascript:alert(document.domain)', 'current' => self::SIDEBAR_PATH]),

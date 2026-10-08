@@ -45,6 +45,7 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 
 - [breadcrumb](https://raw.githubusercontent.com/xormania/flowbite-xor/main/breadcrumb/README.md): A trail of links showing where the current page sits in the site hierarchy.
 - [calendar](https://raw.githubusercontent.com/xormania/flowbite-xor/main/calendar/README.md): Pick a date, several dates or a range inline: keyboard navigation, disabled dates and bounds, several months, locales, right to left, hidden inputs for forms and a `model` prop for Live Components.
+- [chart](https://raw.githubusercontent.com/xormania/flowbite-xor/main/chart/README.md): Charts with Symfony UX Chart.js in the theme's colors, light and dark, each with its data as a table; from arrays or `ChartBuilderInterface`, updated in place by Live Components.
 - [data-table](https://raw.githubusercontent.com/xormania/flowbite-xor/main/data-table/README.md): A server-driven table: search, filters, sortable columns, page size and pages in a Turbo Frame, with Back and Forward through each state. Copies PHP classes into `src/FlowbiteXor/`.
 - [data-table-live](https://raw.githubusercontent.com/xormania/flowbite-xor/main/data-table-live/README.md): `data-table` as a Live Component: search while typing, filters, sorting, pages and row selection for bulk actions, its state in the URL. Copies PHP classes into `src/FlowbiteXor/`.
 - [date-picker](https://raw.githubusercontent.com/xormania/flowbite-xor/main/date-picker/README.md): A date or a range picked in a calendar that opens from a button or a typed field; a `DateType` opts in through the form theme.
@@ -64,7 +65,7 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 - [form-theme](https://raw.githubusercontent.com/xormania/flowbite-xor/main/form-theme/README.md): A Symfony form theme that renders every row through `FormField` and every control through the kit's `Input`, `Select`, `Textarea`, `Checkbox`, `Radio`, `Label` and `Button` components.
 - [form-field](https://raw.githubusercontent.com/xormania/flowbite-xor/main/form-field/README.md): A labelled form control with its help text and error message, wired by id (used by the form theme).
 - [autocomplete](https://raw.githubusercontent.com/xormania/flowbite-xor/main/autocomplete/README.md): Searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme: one choice, several, values typed by the user, options searched on the server. Works through the form theme (`'autocomplete' => true`) and as an `Autocomplete` component outside forms.
-- [dropzone](https://raw.githubusercontent.com/xormania/flowbite-xor/main/dropzone/README.md): File uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of the picked image, several files that add up across picks, keyboard focus kept after a pick or a removal.
+- [dropzone](https://raw.githubusercontent.com/xormania/flowbite-xor/main/dropzone/README.md): File uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of the picked image, several files that add up across picks, keyboard focus kept after a pick or a removal; a `DropzoneType` renders as one through the form theme.
 
 ## Layouts
 

@@ -111,6 +111,7 @@ Each recipe's README has its examples, props and usage.
 |---|---|
 | [`breadcrumb`](breadcrumb/README.md) | A trail of links showing where the current page sits in the site hierarchy. |
 | [`calendar`](calendar/README.md) ✦ | Pick a date, several dates or a range inline: keyboard navigation, disabled dates and bounds, several months, locales, right to left, hidden inputs for forms and a `model` prop for Live Components. |
+| [`chart`](chart/README.md) ✦ | Charts with Symfony UX Chart.js in the theme's colors, light and dark, each with its data as a table; from arrays or `ChartBuilderInterface`, updated in place by Live Components. |
 | [`data-table`](data-table/README.md) | A server-driven table: search, filters, sortable columns, page size and pages in a Turbo Frame, with Back and Forward through each state. Copies PHP classes into `src/FlowbiteXor/`. |
 | [`data-table-live`](data-table-live/README.md) | `data-table` as a Live Component: search while typing, filters, sorting, pages and row selection for bulk actions, its state in the URL. Copies PHP classes into `src/FlowbiteXor/`. |
 | [`date-picker`](date-picker/README.md) ✦ | A date or a range picked in a calendar that opens from a button or a typed field; a `DateType` opts in through the form theme. |
@@ -132,7 +133,7 @@ Each recipe's README has its examples, props and usage.
 | [`form-theme`](form-theme/README.md) | A Symfony form theme that renders every row through `FormField` and every control through the kit's `Input`, `Select`, `Textarea`, `Checkbox`, `Radio`, `Label` and `Button` components. |
 | [`form-field`](form-field/README.md) | A labelled form control with its help text and error message, wired by id (used by the form theme). |
 | [`autocomplete`](autocomplete/README.md) | Searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme: one choice, several, values typed by the user, options searched on the server. Works through the form theme (`'autocomplete' => true`) and as an `Autocomplete` component outside forms. |
-| [`dropzone`](dropzone/README.md) ✦ | File uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of the picked image, several files that add up across picks, keyboard focus kept after a pick or a removal. |
+| [`dropzone`](dropzone/README.md) ✦ | File uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of the picked image, several files that add up across picks, keyboard focus kept after a pick or a removal; a `DropzoneType` renders as one through the form theme. |
 
 ### Layouts
 
@@ -190,6 +191,11 @@ How the recipes behave with Turbo and Live Components, and what your own pages a
 - **Your form controllers answer 303 or 422.** Turbo Drive rejects a 200 after a form submit. On success,
   redirect with `$this->redirectToRoute('…', [], Response::HTTP_SEE_OTHER)` (the default is 302). On errors,
   render the form with `$this->render(…, ['form' => $form])`, which answers 422 when the submitted form is invalid.
+- **Charts are drawn and destroyed by their controllers** on every Turbo visit, Frame or Stream; inside a Live
+  Component, new data updates a chart in place.
+- **Files are never restored.** After a 422, a Turbo Stream or a Live re-render that replaces a file field, the
+  user picks the files again (`dropzone` says so in the box). In a Live Component, upload through a `files` action
+  first ([`dropzone`](dropzone/README.md#in-a-live-component)).
 - **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a
   Turbo Frame (`id="stock-{{ row.id }}"`): its generated id would change on every re-render.
 
@@ -235,7 +241,7 @@ each version changes.
 | Symfony UX Toolkit | ^3.5 (blocks need 3.5) |
 | PHP | ≥ 8.4 (required by the toolkit), with the `zip` extension; `intl` for `calendar` and `date-picker` in any locale but `en` |
 | Symfony | 7.4 LTS and 8.1: CI installs the kit on both (8.1 in a fresh Symfony Docker project), and the demo and its browser tests run on 8.1 |
-| Assets | AssetMapper. With Webpack Encore, override the layouts' `stylesheets` and `javascripts` blocks: they load the `app` importmap entrypoint |
+| Assets | AssetMapper (`chart` also needs `chart.js` in the import map, which Flex adds). With Webpack Encore, override the layouts' `stylesheets` and `javascripts` blocks: they load the `app` importmap entrypoint |
 | Tailwind CSS | 4.x |
 | Flowbite | 4.x |
 

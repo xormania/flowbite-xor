@@ -7,7 +7,7 @@ import { test, expect } from './fixtures';
  * whole suite runs the kit under this policy; these tests check the policy itself, and what a blocked inline script
  * or style would silently break: the theme before the first paint, Turbo's progress bar, the Progress bars.
  */
-const pages = ['/', '/r/button', '/preview/button/default?theme=light', '/preview/dropdown/default?theme=light', '/demo', '/demo/login', '/lab/live-table', '/lab/popover-turbo', '/preview/popover/default?theme=light', '/lab/calendar-turbo', '/preview/calendar/default?theme=light', '/lab/date-picker-turbo', '/preview/date-picker/default?theme=light', '/lab/dropzone-turbo', '/preview/dropzone/default?theme=light'];
+const pages = ['/', '/r/button', '/preview/button/default?theme=light', '/preview/dropdown/default?theme=light', '/demo', '/demo/login', '/lab/live-table', '/lab/popover-turbo', '/preview/popover/default?theme=light', '/lab/calendar-turbo', '/preview/calendar/default?theme=light', '/lab/date-picker-turbo', '/preview/date-picker/default?theme=light', '/lab/chart-turbo', '/preview/chart/default?theme=light', '/lab/dropzone-turbo', '/preview/dropzone/default?theme=light', '/forms', '/lab/dropzone-form', '/lab/live-dropzone'];
 
 type Policy = Map<string, string[]>;
 
@@ -130,7 +130,7 @@ test('the Progress bars keep their width', async ({ page }) => {
 });
 
 test("the Dropzone markup is the kit's: no style attribute, never UX Dropzone's own form theme", async ({ page }) => {
-    for (const path of ['/lab/dropzone-turbo', '/preview/dropzone/multiple-files?theme=light']) {
+    for (const path of ['/lab/dropzone-turbo', '/preview/dropzone/multiple-files?theme=light', '/forms', '/lab/dropzone-form', '/lab/live-dropzone']) {
         const response = await page.request.get(path);
         expect(response.status()).toBe(200);
         const html = await response.text();

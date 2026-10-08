@@ -1,0 +1,2 @@
+<p data-testid="stream-action" class="mb-2 text-sm text-body">{{ action|default('initial') }}</p>
+<twig:Chart id="streamed" title="Streamed" labelsHeader="Item" size="sm" :labels="['A', 'B', 'C']" :datasets="[{label: action|default('initial'), data: action|default('initial') == 'initial' ? [1, 2, 3] : [3, 2, 1]}]" />

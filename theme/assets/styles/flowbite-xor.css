@@ -115,6 +115,15 @@
     --color-indigo: var(--color-indigo-600);
     --color-orange: var(--color-orange-400);
 
+    /* flowbite-xor: chart series, in this order (chart recipe); validated for contrast and color vision deficiency */
+    --color-chart-1: var(--color-blue-700);
+    --color-chart-2: var(--color-orange-600);
+    --color-chart-3: var(--color-teal-600);
+    --color-chart-4: var(--color-purple-600);
+    --color-chart-5: var(--color-pink-600);
+    --color-chart-6: var(--color-lime-700);
+    --color-chart-other: var(--color-gray-500);
+
     /* BORDER COLOR VARIABLES */
     --color-buffer: var(--color-white);
     --color-buffer-medium: var(--color-white);
@@ -209,6 +218,15 @@
     --color-fuchsia: var(--color-fuchsia-500);
     --color-indigo: var(--color-indigo-500);
     --color-orange: var(--color-orange-400);
+
+    /* flowbite-xor: chart series (chart recipe) */
+    --color-chart-1: var(--color-blue-500);
+    --color-chart-2: var(--color-orange-600);
+    --color-chart-3: var(--color-teal-600);
+    --color-chart-4: var(--color-purple-500);
+    --color-chart-5: var(--color-pink-500);
+    --color-chart-6: var(--color-lime-600);
+    --color-chart-other: var(--color-gray-500);
 
     /* border color variables */
     --color-buffer: var(--color-gray-950);

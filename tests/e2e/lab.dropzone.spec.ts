@@ -159,3 +159,52 @@ test('a controller passed to the Dropzone gets its actions, values and target', 
     await page.getByRole('button', { name: 'Remove a.png' }).click();
     await expect(page.getByTestId('echo')).toHaveText('caller dropzone:remove echoed[] 1');
 });
+
+test('a Turbo form posts its DropzoneType files; a Live re-render beside it leaves the picked files alone', async ({ page, allowHttpError }) => {
+    allowHttpError(/\/lab\/dropzone-form$/, 422);
+    await page.goto('/lab/dropzone-form');
+    await page.locator('#upload_demo_photo').setInputFiles(png('tiny.png'));
+    await page.locator('#upload_demo_attachments').setInputFiles([text('a.txt'), text('b.txt')]);
+    await page.getByRole('button', { name: 'Increment' }).click();
+    await expect(page.getByTestId('count')).toHaveText('1');
+    expect(await fileCount(page.locator('#upload_demo_photo'))).toBe(1);
+    expect(await fileCount(page.locator('#upload_demo_attachments'))).toBe(2);
+
+    // an empty title sends the valid files back: the boxes say so
+    await page.getByRole('button', { name: 'Upload' }).click();
+    await expect(page.locator('#upload_demo_title')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.locator('#upload_demo_photo')).toHaveAccessibleDescription('PNG or JPG, up to 1 MB. tiny.png was not kept: choose it again.');
+
+    await page.getByRole('textbox', { name: 'Title' }).fill('Trip');
+    await page.locator('#upload_demo_photo').setInputFiles(png('tiny.png'));
+    await page.locator('#upload_demo_attachments').setInputFiles([text('a.txt'), text('b.txt')]);
+    await page.getByRole('button', { name: 'Upload' }).click();
+    await expect(page.getByTestId('submitted')).toHaveText('photo=tiny.png; attachments=a.txt,b.txt');
+    expect(new URL(page.url()).searchParams.get('submitted')).toBe('photo=tiny.png; attachments=a.txt,b.txt');
+    await expect(zoneOf(page, 'upload_demo_photo')).toHaveCount(1);
+});
+
+test('in a Live Component, files go up through a files action: re-renders keep them, each upload gives a fresh zone', async ({ page }) => {
+    await page.goto('/lab/live-dropzone');
+    const photos = page.getByLabel('Photos', { exact: true });
+    await photos.setInputFiles([png('a.png'), png('b.png')]);
+    await page.getByRole('textbox', { name: 'Note' }).fill('hello');
+    await expect(page.getByTestId('note')).toHaveText('hello');
+    await expect(page.locator('.dropzone-preview-list-item')).toHaveCount(2);
+    expect(await fileCount(photos)).toBe(2);
+
+    await page.getByRole('button', { name: 'Upload' }).click();
+    await expect(page.getByTestId('uploads').locator('li')).toHaveText([/^a\.png \(\d+ bytes\)$/, /^b\.png \(\d+ bytes\)$/]);
+    await expect(photos).toHaveAttribute('id', 'photos-1');
+    await expect(page.locator('.dropzone-preview-list-item')).toHaveCount(0);
+    expect(await fileCount(photos)).toBe(0);
+    await expect(page.locator('[data-controller~="dropzone-assist"]')).toHaveCount(1);
+
+    await photos.setInputFiles(text('notes.txt'));
+    await page.getByRole('button', { name: 'Upload' }).click();
+    await expect(photos).toHaveAttribute('aria-invalid', 'true');
+    await expect(photos).toHaveAccessibleDescription(/not a valid image/);
+    await expect(page.locator('.dropzone-preview-list-item')).toHaveCount(0);
+    await expect(page.locator('[data-controller~="dropzone-assist"]')).toHaveCount(1);
+    await expect(page.getByTestId('uploads').locator('li')).toHaveCount(2);
+});
