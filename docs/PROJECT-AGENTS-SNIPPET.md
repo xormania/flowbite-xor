@@ -64,6 +64,11 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   public unless you set its `security` option. Outside a form: `<twig:Autocomplete id="…" name="…">` with
   `<option>`s inside, its label with a matching `for` and no `id` of its own. In a Live Component form, use the form
   option, not the component. Never import Tom Select's own stylesheet: the recipe's replaces it.
+- **File uploads: `ux:install dropzone`**, then do the README's CSS import and `controllers.json` change (UX
+  Dropzone's own stylesheet off). `<twig:Dropzone id="…" name="…" />` (`multiple` and `name="…[]"` for several) in a
+  `method="post" enctype="multipart/form-data"` form; without the `enctype`, Turbo sends no file. Validate on the
+  server (`File`/`Image`, `All` + `Count` for several), answer 303/422, and say that files are never kept after a 422.
+  Image previews need `img-src data:` in a Content Security Policy.
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the
   position yourself, as the kit's `Sidebar` does.

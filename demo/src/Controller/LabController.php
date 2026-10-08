@@ -6,9 +6,12 @@ use App\Demo\OrdersTable;
 use App\Form\AutocompleteDemoType;
 use App\Kit\KitReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\UX\Turbo\TurboBundle;
 
 /**
@@ -52,6 +55,9 @@ final class LabController extends AbstractController
         'chart-stream' => 'A Chart replaced and updated by Turbo Streams.',
         'live-chart' => 'A Chart in a Live Component whose data changes: the chart updates in place and keeps the theme.',
         'chart-points' => 'Charts whose category data come as points, without labels: vertical bars ({x: label, y: value}) and horizontal bars ({y: label, x: value}); their tables list every label.',
+        'dropzone-turbo' => 'Dropzones across Turbo visits and Back (one file, several files), one inside a data-turbo-permanent element, and one in a multipart form inside a Turbo Frame that reloads and submits.',
+        'dropzone-stream' => 'A Dropzone replaced and updated by Turbo Streams.',
+        'dropzone-events' => 'A Dropzone given a controller of the page: its actions, values and target reach it.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -331,5 +337,48 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/date_picker_stream.html.twig', ['description' => self::SCENARIOS['date-picker-stream']]);
+    }
+
+    #[Route('/dropzone-turbo/{page}', name: 'app_lab_dropzone_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'], methods: ['GET', 'POST'])]
+    public function dropzoneTurbo(Request $request, ValidatorInterface $validator, string $page): Response
+    {
+        $error = null;
+        // the multipart form inside the Turbo Frame: a 303 back into the frame, or a 422 with the error in it
+        if ($request->isMethod('POST')) {
+            $file = $request->files->get('framed');
+            $violations = $validator->validate($file, [new Assert\NotNull(message: 'Choose an image.'), new Assert\Image(maxSize: '1M')]);
+            if (0 === \count($violations) && $file instanceof UploadedFile) {
+                return $this->redirectToRoute('app_lab_dropzone_turbo', ['page' => $page, 'framed' => $file->getClientOriginalName()], Response::HTTP_SEE_OTHER);
+            }
+            $error = (string) $violations[0]?->getMessage();
+        }
+
+        return $this->render('lab/dropzone_turbo.html.twig', [
+            'page' => $page,
+            'load' => $request->query->getInt('load'),
+            'framed' => $request->query->getString('framed'),
+            'error' => $error,
+            'description' => self::SCENARIOS['dropzone-turbo'],
+        ], new Response(null, null === $error ? 200 : 422));
+    }
+
+    #[Route('/dropzone-stream', name: 'app_lab_dropzone_stream', methods: ['GET', 'POST'])]
+    public function dropzoneStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/dropzone_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/dropzone_stream.html.twig', ['description' => self::SCENARIOS['dropzone-stream']]);
+    }
+
+    #[Route('/dropzone-events', name: 'app_lab_dropzone_events')]
+    public function dropzoneEvents(): Response
+    {
+        return $this->render('lab/dropzone_events.html.twig', ['description' => self::SCENARIOS['dropzone-events']]);
     }
 }

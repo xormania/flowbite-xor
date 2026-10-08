@@ -9,6 +9,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 - `chart`: charts drawn with Symfony UX Chart.js in the theme's colors, light and dark, each with its data as a table;
   from arrays or a `ChartBuilderInterface` chart, updated in place by Live Components.
+- `dropzone`: file uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of
+  the picked image, several files that add up across picks; focus follows a pick or a removal, and a file dropped
+  outside the input is refused.
 - `FOR-AGENTS.md`, a page for the coding agent given the repository's URL (setup, which recipe for what, the rules),
   and `llms.txt`, every page with one line, written from `README.md`'s recipe tables and checked in CI.
 - `date-picker`: a `Calendar` in a `Popover`, opened from a button or a field where the date can be typed; a
