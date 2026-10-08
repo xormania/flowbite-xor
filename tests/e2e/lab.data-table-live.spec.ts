@@ -104,16 +104,23 @@ test('a selection the browser sends is cut to the table\'s limit before the serv
         const ids = Array.from({ length: 5_000 }, (_, index) => String(1_001 + index));
         table.set('selectedIds', ['x'.repeat(129), ...ids], true);
     });
-    await expect(selected(page)).toHaveText('1000 selected, the most this table selects');
+    // the first 1,000 entries are kept, and of those the too long id is dropped
+    await expect(selected(page)).toHaveText('999 selected');
     await expect(page.getByTestId('selected-ids')).not.toContainText('xxx');
-    await expect(page.getByTestId('selected-ids')).not.toContainText('2001');
+    await expect(page.getByTestId('selected-ids')).toContainText('1999');
+    await expect(page.getByTestId('selected-ids')).not.toContainText('2000');
+
+    // "Select this page" adds the first row of the page, then the selection is full
+    await page.getByRole('button', { name: 'Select this page' }).click();
+    await expect(selected(page)).toHaveText('1000 selected, the most this table selects');
+    await expect(page.getByRole('checkbox', { name: 'Select row 57' })).toBeChecked();
 
     // full: no row can be added, and the selection can still be cleared
     await expect(page.getByRole('button', { name: 'Select this page' })).toHaveCount(0);
-    await expect(page.getByRole('checkbox', { name: 'Select row 57' })).toBeDisabled();
+    await expect(page.getByRole('checkbox', { name: 'Select row 56' })).toBeDisabled();
     await page.getByRole('button', { name: 'Clear selection' }).click();
     await expect(selected(page)).toHaveText('0 selected');
-    await expect(page.getByRole('checkbox', { name: 'Select row 57' })).toBeEnabled();
+    await expect(page.getByRole('checkbox', { name: 'Select row 56' })).toBeEnabled();
 });
 
 test('a URL with values the table does not accept renders a valid table', async ({ page }) => {
