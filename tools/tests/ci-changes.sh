@@ -30,6 +30,11 @@ check 'contrast'                  tools/contrast/pairs.json
 check 'php static-site demo'      demo/src/Demo/DataTableCollector.php
 check 'php'                       tools/phpstan.neon
 check 'fresh-install'             tools/tests/fresh-install.sh
+check 'fresh-install'             tools/tests/live-action.php
+check 'fresh-install'             tools/tests/fixtures/fresh-app/templates/home.html.twig
+check 'demo'                      tools/tests/fixtures/sync-kit/manifest.json
+check 'php static-site fresh-install demo' demo/compose.yaml
+check 'php static-site fresh-install demo' demo/frankenphp/Caddyfile
 check "$kit"                      side-nav/assets/controllers/side_nav_controller.js
 check "$all"                      side-nav/README.md
 check "$all"                      kit.css

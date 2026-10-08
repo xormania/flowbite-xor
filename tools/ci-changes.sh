@@ -33,12 +33,15 @@ while IFS= read -r path; do
 
         # Repository tools, each with the jobs that run it
         tools/contrast/* | tools/llms-txt.mjs | llms.txt) on contrast ;;
-        tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh | tools/tests/fixtures/*) on fresh-install ;;
-        tools/tests/sync-demo.sh) on demo ;;
+        tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh) on fresh-install ;;
+        tools/tests/live-action.php | tools/tests/fixtures/fresh-app/*) on fresh-install ;;
+        tools/tests/sync-demo.sh | tools/tests/fixtures/sync-kit/*) on demo ;;
         tools/phpstan.neon) on php ;;
         tools/*) on php static-site demo ;;
 
-        # The demo app: its PHP tests, its static export and the browser tests run against it
+        # The demo app: its PHP tests, its static export and the browser tests run against it. docker-install.sh copies
+        # the demo's Compose file and Caddyfile into a fresh Symfony Docker project.
+        demo/compose.yaml | demo/frankenphp/Caddyfile) on php static-site demo fresh-install ;;
         demo/*) on php static-site demo ;;
 
         # A recipe's own tests (upstream specs, screenshot baselines): only the browser tests read them
