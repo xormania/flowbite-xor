@@ -46,7 +46,7 @@
             {%- if disabled %} disabled{% endif %}
             data-model="norender|value"
             data-markdown-editor-target="source"
-            data-action="input->markdown-editor#count"
+            data-action="input->markdown-editor#record"
         >{{ value }}</textarea>
     </div>
     <div id="{{ id }}_preview" role="tabpanel" aria-labelledby="{{ id }}_preview_tab" tabindex="0" class="{{ _content_class }}"{% if not previewing %} hidden{% endif %}>

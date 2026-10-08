@@ -6,7 +6,8 @@ import { Controller } from '@hotwired/stimulus';
  * It replaces Flowbite's `Dropdown` (and its Popper dependency) with the same behavior: the content
  * toggles `hidden`/`block` and `aria-hidden`, closes on a click outside, follows its trigger on scroll
  * and resize while open, flips to the opposite side when it does not fit, and is shifted back into the
- * viewport along the trigger. Every listener is removed when it closes or disconnects.
+ * viewport along the trigger. Every listener is removed when it closes or disconnects. The menu starts closed on
+ * every connect: a copy of the page Turbo cached while it was open (Back) shows it closed, not open and inert.
  *
  * @target trigger        The button opening the menu.
  * @target content        The menu, positioned next to the trigger.
@@ -28,6 +29,7 @@ export default class extends Controller {
 
     connect() {
         this.visible = false;
+        this.#closeMarkup();
         this.timeouts = new Set();
         this.listeners = [];
 
@@ -106,10 +108,7 @@ export default class extends Controller {
         if (silent) {
             return;
         }
-        this.contentTarget.classList.remove('block');
-        this.contentTarget.classList.add('hidden');
-        this.contentTarget.setAttribute('aria-hidden', 'true');
-        this.triggerTarget.setAttribute('aria-expanded', 'false');
+        this.#closeMarkup();
         if (restoreFocus) {
             this.triggerTarget.focus();
         }
@@ -275,5 +274,12 @@ export default class extends Controller {
                 break;
             }
         }
+    }
+
+    #closeMarkup() {
+        this.contentTarget.classList.remove('block');
+        this.contentTarget.classList.add('hidden');
+        this.contentTarget.setAttribute('aria-hidden', 'true');
+        this.triggerTarget.setAttribute('aria-expanded', 'false');
     }
 }
