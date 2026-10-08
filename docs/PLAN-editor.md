@@ -16,7 +16,9 @@ _2026-10-08. This plan implements F in [`ROADMAP.md`](ROADMAP.md) from the resea
    a validation error, never a silent cut._
 
 _Delivery: two pull requests, (1) `editor` and (2) `markdown-editor`, each with its form-theme wiring, lab, specs,
-fresh install and docs._
+fresh install and docs. Decided with the user on 2026-10-08: the recommended answer to every open question at the
+end (names `editor` and `markdown-editor`, a kit `EditorType`, a non-modal link dialog, a Live Component preview,
+the library size accepted with a dynamic import)._
 
 ## Sources read
 
