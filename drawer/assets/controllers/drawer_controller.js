@@ -4,7 +4,8 @@ import { Controller } from '@hotwired/stimulus';
  * Opens a `Drawer`, a native `<dialog>` docked to a side of the viewport: modal by default (the page is
  * inert, focus is trapped, Escape or a click on the backdrop closes it) or beside the page.
  * Like the `Modal`, a drawer open when its element is moved in the DOM (Turbo, Live re-renders) is
- * reopened on reconnect, and a closed one stays closed.
+ * reopened on reconnect, and a closed one stays closed. A copy of the page Turbo cached while it was open (Back)
+ * shows it closed, unless its `open` value says otherwise.
  *
  * @target trigger             The elements opening the drawer, kept in sync through `aria-expanded`.
  * @target dialog              The `<dialog>` element.
@@ -22,6 +23,11 @@ export default class extends Controller {
     #wasOpen = null;
 
     connect() {
+        // a cached copy of an open dialog keeps `open` but not its modality or focus: a new controller starts closed
+        if (null === this.#wasOpen && this.dialogTarget.open) {
+            this.dialogTarget.close();
+            this.closed();
+        }
         if (this.#wasOpen ?? this.openValue) {
             this.open();
         }

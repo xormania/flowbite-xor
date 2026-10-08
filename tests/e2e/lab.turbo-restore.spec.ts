@@ -1,0 +1,84 @@
+import type { Page } from '@playwright/test';
+import { test, expect, turboVisitDone } from './fixtures';
+
+/*
+ * Overlays left open when a link inside them visits another page: Back shows them closed, and they open again as they
+ * should (a menu's markup and state agree, a dialog is modal). Page two links a stylesheet page one lacks; delayed, it
+ * makes Turbo copy page one before its controllers disconnect, the order a slow stylesheet gives in production.
+ */
+
+type Overlay = {
+    name: string;
+    open: (page: Page) => Promise<void>;
+    link: (page: Page) => ReturnType<Page['getByRole']>;
+    expectOpen: (page: Page) => Promise<void>;
+    expectClosed: (page: Page) => Promise<void>;
+};
+
+const dialogState = (page: Page, id: string) =>
+    page.locator(`dialog#${id}`).evaluate((dialog: HTMLDialogElement) => ({ open: dialog.open, modal: dialog.matches(':modal') }));
+
+const overlays: Overlay[] = [
+    {
+        name: 'a dropdown menu',
+        open: (page) => page.getByRole('button', { name: 'Menu' }).click(),
+        link: (page) => page.getByRole('menuitem', { name: 'Page two from the menu' }),
+        expectOpen: async (page) => {
+            await expect(page.getByRole('menuitem', { name: 'Page two from the menu' })).toBeVisible();
+            await expect(page.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'true');
+        },
+        expectClosed: async (page) => {
+            await expect(page.getByRole('menuitem', { name: 'Page two from the menu', includeHidden: true })).toBeHidden();
+            await expect(page.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+        },
+    },
+    {
+        name: 'a modal',
+        open: (page) => page.getByRole('button', { name: 'Open the modal' }).click(),
+        link: (page) => page.getByRole('link', { name: 'Page two from the modal' }),
+        expectOpen: async (page) => expect.poll(() => dialogState(page, 'modal-restore-modal')).toEqual({ open: true, modal: true }),
+        expectClosed: async (page) => {
+            await expect.poll(() => dialogState(page, 'modal-restore-modal')).toEqual({ open: false, modal: false });
+            await expect(page.getByRole('button', { name: 'Open the modal' })).toHaveAttribute('aria-expanded', 'false');
+        },
+    },
+    {
+        name: 'a drawer',
+        open: (page) => page.getByRole('button', { name: 'Open the drawer' }).click(),
+        link: (page) => page.getByRole('link', { name: 'Page two from the drawer' }),
+        expectOpen: async (page) => expect.poll(() => dialogState(page, 'drawer-restore-drawer')).toEqual({ open: true, modal: true }),
+        expectClosed: async (page) => {
+            await expect.poll(() => dialogState(page, 'drawer-restore-drawer')).toEqual({ open: false, modal: false });
+            await expect(page.getByRole('button', { name: 'Open the drawer' })).toHaveAttribute('aria-expanded', 'false');
+        },
+    },
+];
+
+for (const slow of [false, true]) {
+    for (const overlay of overlays) {
+        test(`${overlay.name} left open by a visit is closed after Back, and opens again${slow ? ', the next page waiting for a stylesheet' : ''}`, async ({ page }) => {
+            if (slow) {
+                await page.route('**/lab/slow.css', async (route) => {
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                    await route.fallback();
+                });
+            }
+            await page.goto('/lab/turbo-restore');
+            await page.evaluate(() => ((window as any).__sameDocument = true));
+            await overlay.open(page);
+            await overlay.expectOpen(page);
+
+            await overlay.link(page).click();
+            await expect(page.getByTestId('page')).toHaveText('Page two');
+            await turboVisitDone(page);
+            await page.goBack();
+            await expect(page.getByTestId('page')).toHaveText('Page one');
+            await turboVisitDone(page);
+
+            await overlay.expectClosed(page);
+            await overlay.open(page);
+            await overlay.expectOpen(page);
+            expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
+        });
+    }
+}

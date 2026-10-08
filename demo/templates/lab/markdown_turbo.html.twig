@@ -6,6 +6,10 @@
     {{ include('lab/_header.html.twig', {name: 'markdown-turbo'}) }}
     <h2 class="mb-2 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
     <p class="mb-6"><a href="{{ path('app_lab_markdown_turbo', {page: page == 'one' ? 'two' : 'one'}) }}" class="text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a></p>
+    {#- a frame whose visits are promoted to history: Turbo copies the page, the markdown editors outside it included, before the frame changes -#}
+    <turbo-frame id="history-steps" data-turbo-action="advance" class="mb-6 block">
+        <p>Step <span data-testid="history-step">{{ step }}</span> · <a href="{{ path('app_lab_markdown_turbo', {page: page, step: step + 1}) }}" class="text-fg-brand hover:underline">Next step</a></p>
+    </turbo-frame>
     {% if saved is not null %}
         <div class="mb-6 max-w-xl rounded-base border border-default p-4">
             <p class="mb-2 text-sm font-medium text-heading">Published</p>

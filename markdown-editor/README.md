@@ -79,7 +79,8 @@ deeper than 20 levels and more than 500 emphasis markers on a line are kept as t
 
 ## Turbo and Live Components
 
-- Before Turbo caches the page, the textarea's text becomes its value: Back shows what was typed.
+- What is typed is kept in the markup as it is typed, so every copy of the page Turbo caches holds it (a frame visit
+  promoted to history copies the page early): Back shows it, and the preview renders it.
 - Turbo Frames and Streams create and destroy the editor with its markup.
 - The editor is a Live Component of its own: put it in a plain form, not inside another Live Component's re-rendered
   markup.

@@ -198,10 +198,13 @@ How the recipes behave with Turbo and Live Components, and what your own pages a
 - **Files are never restored.** After a 422, a Turbo Stream or a Live re-render that replaces a file field, the
   user picks the files again (`dropzone` says so in the box). In a Live Component, upload through a `files` action
   first ([`dropzone`](dropzone/README.md#in-a-live-component)).
-- **Editors come back with their content.** Before Turbo caches a page, an `editor` turns back into plain markup with
-  its content and selection; Back starts it again (not its undo history). In a Live Component it sits in
-  `data-live-ignore`: re-renders never overwrite typing, and its `reset` prop replaces the content from the server.
-  A `markdown-editor` keeps what was typed across Back too, and its preview renders it.
+- **Editors come back with their content.** Before Turbo caches a page, an `editor` saves its content and selection
+  in the markup; Back builds a new editor from them (not its undo history), also after a frame visit promoted to
+  history. In a Live Component it sits in `data-live-ignore`: re-renders never overwrite typing, and its `reset` prop
+  replaces the content from the server. A `markdown-editor` keeps what was typed across Back too, and its preview
+  renders it.
+- **Overlays come back closed.** A dropdown, modal or drawer left open by a link inside it shows closed after Back,
+  and opens again as before (a dialog as a modal).
 - **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a
   Turbo Frame (`id="stock-{{ row.id }}"`): its generated id would change on every re-render.
 

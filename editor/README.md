@@ -91,8 +91,9 @@ change the controller's extensions and `EditorHtmlPolicy` together.
 
 ## Turbo and Live Components
 
-- Before Turbo caches the page, the editor turns back into plain markup with its content and selection: Back shows
-  them, and the editor starts again (the undo history is not kept).
+- Before Turbo caches the page, the editor saves its content and selection in the markup and stays on screen (a frame
+  visit promoted to history caches the page while the editor is still in use). Back builds a new editor from the
+  cached copy, with that content and selection (the undo history is not kept).
 - Turbo Frames and Streams create and destroy the editor with its markup.
 - In a Live Component, bind the field with the `model` prop (`<twig:Editor … model="on(change)|body" />`, the value
   of a `data-model`), or use a `ComponentWithFormTrait` form: the content reaches the component when the editor loses

@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { getComponent } from '@symfony/ux-live-component';
 
 /** What each toolbar button writes: around the selection, or at the start of each selected line. */
 const SYNTAX = {
@@ -15,40 +16,54 @@ const SYNTAX = {
  * Write and Preview tabs' keyboard, the counter. Typing sends nothing to the server: the textarea's `data-model` is
  * `norender`, and a tab click first hands its current value to Live, so the preview renders what is typed.
  *
- * Turbo: before the page is cached, the typed Markdown is saved in `draft`; after Back, once Live has set the
- * textarea from its props, the draft comes back and Live gets it, so the preview renders what was typed.
+ * Turbo: the typed Markdown is saved in `draft` as it is typed, so every copy of the page Turbo caches holds it (a
+ * frame visit promoted to history copies the page before `turbo:before-cache`). After Back, Live's new component
+ * sets the textarea from its props; once Live has registered it (getComponent), the draft goes back into the
+ * textarea and into Live's model, so the preview renders what was typed.
  *
  * @target source  The textarea holding the Markdown, named like the field.
  * @target button  A toolbar button writing `data-markdown-editor-syntax-param`.
  * @target tab     The Write and Preview tabs.
  * @target counter The text counting the characters.
  * @value  maxChars The most characters the server accepts.
- * @value  draft    The Markdown saved before Turbo caches the page.
+ * @value  draft    The Markdown as typed, kept in the markup for Turbo's copies of the page.
  * @action format   Writes the button's syntax around the selection or before its lines.
  * @action navigate Moves the focus between the toolbar's buttons (arrow keys, Home, End).
  * @action switchTab Moves to the other tab with the arrow keys, Home and End, and opens it.
  * @action sync     Hands the textarea's value to Live before a tab's action.
- * @action count    Updates the counter.
+ * @action record   Saves the typed Markdown in `draft` and updates the counter.
  * @action cache    Saves the typed Markdown before Turbo caches the page.
  */
 export default class extends Controller {
     static targets = ['source', 'button', 'tab', 'counter'];
     static values = { maxChars: { type: Number, default: 20000 }, draft: String };
 
+    #connection = 0;
+
     connect() {
-        if (!this.hasDraftValue || !this.hasSourceTarget) {
+        const connection = ++this.#connection;
+        const root = this.element.closest('[data-controller~="live"]');
+        if (!this.hasDraftValue || !this.hasSourceTarget || !root) {
             return;
         }
-        // Back from Turbo's cache: Live sets the textarea from its props when it connects, then the draft comes back
-        requestAnimationFrame(() => {
-            if (!this.hasDraftValue || !this.element.isConnected) {
-                return;
-            }
-            this.sourceTarget.value = this.draftValue;
-            this.element.removeAttribute(`data-${this.identifier}-draft-value`);
-            this.sync();
-            this.count();
-        });
+        // a copy of the page from Turbo's cache: Live's new component has set the textarea from its props
+        getComponent(root).then(
+            (component) => {
+                if (connection !== this.#connection || !this.hasDraftValue) {
+                    return;
+                }
+                this.sourceTarget.value = this.draftValue;
+                // the model only: nothing is sent until a tab is opened
+                component.set('value', this.draftValue, false);
+                this.count();
+            },
+            () => {},
+        );
+    }
+
+    disconnect() {
+        // a pending restoration belongs to this connection only
+        this.#connection++;
     }
 
     format({ params: { syntax } }) {
@@ -126,8 +141,13 @@ export default class extends Controller {
         this.counterTarget.toggleAttribute('data-over', count > this.maxCharsValue);
     }
 
+    record() {
+        this.cache();
+        this.count();
+    }
+
     cache() {
-        if (this.hasSourceTarget && this.sourceTarget.value !== this.sourceTarget.defaultValue) {
+        if (this.hasSourceTarget) {
             this.draftValue = this.sourceTarget.value;
         }
     }

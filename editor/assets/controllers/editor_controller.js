@@ -44,8 +44,9 @@ const COMMANDS = {
 /**
  * A rich text editor (Tiptap) over a hidden textarea that holds its HTML: the textarea submits with the form and
  * carries Live's `data-model`. The server renders the content in `preview` first; the controller replaces it with the
- * editor, and before Turbo caches the page puts the content back as plain markup, with the selection, so Back shows
- * it (the undo history is not kept). Only the preset's formatting exists: the server sanitizes the same set.
+ * editor. Before Turbo caches the page, the content and the selection are saved in the markup, and the editor stays: Back
+ * builds a new editor from a cached copy of a mounted one (the undo history is not kept). Only the preset's formatting
+ * exists: the server sanitizes the same set.
  *
  * Live: the editor sits in `data-live-ignore`, so a re-render leaves the user's typing alone; the textarea gets
  * `input` while typing and `change` on blur. Bumping `reset` (in a re-render) replaces the content with the
@@ -69,7 +70,7 @@ const COMMANDS = {
  * @action applyLink  Sets the link of the selection from the dialog's URL field.
  * @action removeLink Removes the link of the selection.
  * @action focusFromLabel Focuses the editor when its label is clicked.
- * @action cache      Puts the content back as plain markup before Turbo caches the page.
+ * @action cache      Saves the content and the selection in the markup before Turbo caches the page.
  */
 export default class extends Controller {
     static targets = ['preview', 'value', 'toolbar', 'button', 'linkInput', 'counter'];
@@ -87,10 +88,14 @@ export default class extends Controller {
     #echo = null;
 
     connect() {
-        if (this.#editor || !this.hasPreviewTarget) {
+        if (this.#editor) {
             return;
         }
-        const preview = this.previewTarget;
+        // the server's markup, or a copy of a mounted editor that Turbo cached (it has no instance: one is built anew)
+        const preview = this.hasPreviewTarget ? this.previewTarget : this.element.querySelector('[data-editor-mount] > .ProseMirror');
+        if (!preview) {
+            return;
+        }
         const attributes = { class: this.classValue };
         for (const name of ['id', 'role', 'aria-multiline', 'aria-readonly', 'aria-label', 'aria-labelledby', 'aria-describedby', 'aria-invalid', 'aria-required']) {
             if (preview.hasAttribute(name)) {
@@ -98,7 +103,8 @@ export default class extends Controller {
             }
         }
         this.#mount = document.createElement('div');
-        preview.replaceWith(this.#mount);
+        this.#mount.setAttribute('data-editor-mount', '');
+        (this.hasPreviewTarget ? preview : preview.parentElement).replaceWith(this.#mount);
         this.#editor = new Editor({
             element: this.#mount,
             content: this.valueTarget.value,
@@ -224,9 +230,10 @@ export default class extends Controller {
         }
         const { from, to } = this.#editor.state.selection;
         this.selectionValue = `${from},${to}`;
-        // Turbo's copy of the page keeps the textarea's content, which the restored editor starts from
+        // Turbo's copy of the page keeps the textarea's content, which the restored editor starts from. The editor
+        // itself stays: a frame visit promoted to history caches the page while this editor stays on screen, and Back
+        // rebuilds one from the copy (connect)
         this.valueTarget.textContent = this.valueTarget.value;
-        this.#destroy();
     }
 
     resetValueChanged(value, previous) {

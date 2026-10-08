@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}turbo-restore ({{ page }}) — Lab{% endblock %}
+
+{% block stylesheets %}
+    {#- a stylesheet page one does not have: Turbo waits for it before rendering, and copies page one before its controllers disconnect -#}
+    {%- if page == 'two' %}<link rel="stylesheet" href="/lab/slow.css">{% endif -%}
+{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'turbo-restore'}) }}
+    <h2 class="mb-4 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    {%- if page == 'two' %}
+        <p><a href="{{ path('app_lab_turbo_restore', {page: 'one'}) }}" class="text-fg-brand hover:underline">Go to page one</a></p>
+    {%- else %}
+    <div class="flex flex-wrap items-start gap-6">
+        <twig:Dropdown id="restore-menu">
+            <twig:Dropdown:Trigger>
+                <twig:Button {{ ...dropdown_trigger_attrs }}>Menu</twig:Button>
+            </twig:Dropdown:Trigger>
+            <twig:Dropdown:Content>
+                <twig:Dropdown:Group>
+                    <twig:Dropdown:Item href="{{ path('app_lab_turbo_restore', {page: 'two'}) }}">Page two from the menu</twig:Dropdown:Item>
+                </twig:Dropdown:Group>
+            </twig:Dropdown:Content>
+        </twig:Dropdown>
+
+        <twig:Modal id="restore-modal">
+            <twig:Modal:Trigger>
+                <twig:Button variant="outline" {{ ...modal_trigger_attrs }}>Open the modal</twig:Button>
+            </twig:Modal:Trigger>
+            <twig:Modal:Content>
+                <twig:Modal:Header>
+                    <twig:Modal:Title>Restore modal</twig:Modal:Title>
+                </twig:Modal:Header>
+                <twig:Modal:Body>
+                    <p><a href="{{ path('app_lab_turbo_restore', {page: 'two'}) }}" class="text-fg-brand hover:underline">Page two from the modal</a></p>
+                </twig:Modal:Body>
+            </twig:Modal:Content>
+        </twig:Modal>
+
+        <twig:Drawer id="restore-drawer">
+            <twig:Drawer:Trigger>
+                <twig:Button variant="outline" {{ ...drawer_trigger_attrs }}>Open the drawer</twig:Button>
+            </twig:Drawer:Trigger>
+            <twig:Drawer:Content>
+                <twig:Drawer:Header>
+                    <twig:Drawer:Title>Restore drawer</twig:Drawer:Title>
+                </twig:Drawer:Header>
+                <twig:Drawer:Body>
+                    <p><a href="{{ path('app_lab_turbo_restore', {page: 'two'}) }}" class="text-fg-brand hover:underline">Page two from the drawer</a></p>
+                </twig:Drawer:Body>
+            </twig:Drawer:Content>
+        </twig:Drawer>
+    </div>
+    {%- endif %}
+{% endblock %}

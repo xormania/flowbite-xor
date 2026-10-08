@@ -10,6 +10,11 @@ export default class extends Controller {
     #wasOpen = null;
 
     connect() {
+        // a copy of the page Turbo cached while the dialog was open keeps its `open` attribute but not its
+        // modality: a new controller closes it, then opens it as a modal if it should be open
+        if (null === this.#wasOpen && this.modalTarget.open && !this.modalTarget.matches(':modal')) {
+            this.close();
+        }
         if (this.#wasOpen ?? this.openValue) {
             this.open();
         }
