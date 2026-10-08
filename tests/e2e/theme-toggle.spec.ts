@@ -134,4 +134,22 @@ test.describe('a switch', () => {
             expect(await page.evaluate(() => (window as any).__transitions)).toEqual([]);
         });
     }
+
+    test('leaves a transition already running to finish on its own', async ({ page }) => {
+        await page.goto('/demo');
+        await expect(page.getByRole('button', { name: 'Collapse sidebar' })).toBeVisible();
+        // the sidebar starts collapsing (a 200 ms width transition), then the theme switches in the same task
+        const running = await page.evaluate(() => {
+            document.querySelector<HTMLElement>('[data-action~="sidebar#toggle"]')!.click();
+            getComputedStyle(document.body).width;
+            document.querySelector<HTMLElement>('[data-controller~="theme-toggle"]')!.click();
+
+            return document
+                .getAnimations()
+                .filter((animation) => animation instanceof CSSTransition && 'width' === animation.transitionProperty)
+                .map((animation) => animation.playState);
+        });
+        expect(running).toEqual(['running']);
+        await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+    });
 });
