@@ -128,7 +128,8 @@ Recipes are copies the project owns. Commit first, then reinstall from a newer v
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version> --force
 ```
 
-Versions are git tags `X.Y.Z` ([`CHANGELOG.md`](CHANGELOG.md)). Without a version, `ux:install` takes `main`.
+Versions are git tags `X.Y.Z` ([`CHANGELOG.md`](CHANGELOG.md)). Without a version, `ux:install` takes `main`, the last
+release; `:dev` takes the work merged since.
 
 ## Quick reference
 
