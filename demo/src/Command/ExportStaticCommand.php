@@ -147,6 +147,16 @@ final class ExportStaticCommand
             $html,
         );
 
+        // A preview's own forms (a table's search) point at the preview without its theme, sent as a field instead:
+        // on this page, they submit to the page's own directory
+        if (1 === preg_match('#^(/preview/[a-z0-9-]+/[a-z0-9-]+)\?theme=(light|dark)$#', $path, $preview)) {
+            $html = str_replace(
+                'action="'.$basePath.$preview[1].'"',
+                'action="'.$basePath.$preview[1].'/'.$preview[2].'/"',
+                $html,
+            );
+        }
+
         // No server answers Live Components here: without their controller, a click does nothing instead of opening
         // Live's error dialog (the recipe page says what needs the server)
         $html = preg_replace_callback(

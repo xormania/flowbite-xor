@@ -145,10 +145,14 @@ jobs:
               working-directory: demo
               run: bin/console app:export-static ../_site --base-path=/flowbite-xor --commit="$(git rev-parse --short HEAD)"
 
-            - name: The previews' own links keep their parameters
+            - name: The previews' own links and forms reach saved pages
               run: |
                   if grep -rlE '/preview/[a-z0-9-]+/[a-z0-9-]+/(light|dark)/&' _site; then
                       echo "::error::a preview link lost its '?' when the export moved the theme into the path"
+                      exit 1
+                  fi
+                  if grep -rlE 'action="[^"]*/preview/[a-z0-9-]+/[a-z0-9-]+"' _site; then
+                      echo "::error::a preview form submits to a path without the theme: no file answers it"
                       exit 1
                   fi
 
