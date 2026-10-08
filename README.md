@@ -118,6 +118,7 @@ Each recipe's README has its examples, props and usage.
 | [`calendar`](calendar/README.md) ✦ | Pick a date, several dates or a range inline: keyboard navigation, disabled dates and bounds, several months, locales, right to left, hidden inputs for forms and a `model` prop for Live Components. |
 | [`data-table`](data-table/README.md) | A server-driven table: search, filters, sortable columns, page size and pages in a Turbo Frame, with Back and Forward through each state. Copies PHP classes into `src/FlowbiteXor/`. |
 | [`data-table-live`](data-table-live/README.md) | `data-table` as a Live Component: search while typing, filters, sorting, pages and row selection for bulk actions, its state in the URL. Copies PHP classes into `src/FlowbiteXor/`. |
+| [`date-picker`](date-picker/README.md) ✦ | A date or a range picked in a calendar that opens from a button or a typed field; a `DateType` opts in through the form theme. |
 | [`drawer`](drawer/README.md) ✦ | A panel sliding over one side of the page, for navigation, filters or details, as a native `<dialog>`. |
 | [`empty-state`](empty-state/README.md) | What a list or page shows when it has nothing yet, with a way forward. |
 | [`navbar`](navbar/README.md) ✦ | The bar on top of the app: brand, search, actions, and the menu button opening the sidebar on small screens. |
@@ -236,7 +237,7 @@ each version changes.
 | | |
 |---|---|
 | Symfony UX Toolkit | ^3.5 (blocks need 3.5) |
-| PHP | ≥ 8.4 (required by the toolkit), with the `zip` extension; `intl` for `calendar` in any locale but `en` |
+| PHP | ≥ 8.4 (required by the toolkit), with the `zip` extension; `intl` for `calendar` and `date-picker` in any locale but `en` |
 | Symfony | 7.4 LTS and 8.1: CI installs the kit on both (8.1 in a fresh Symfony Docker project), and the demo and its browser tests run on 8.1 |
 | Assets | AssetMapper. With Webpack Encore, override the layouts' `stylesheets` and `javascripts` blocks: they load the `app` importmap entrypoint |
 | Tailwind CSS | 4.x |

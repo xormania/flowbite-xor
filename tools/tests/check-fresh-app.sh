@@ -3,7 +3,7 @@
 # the dashboard through the layouts, `/register` renders the signup form through the form theme (no
 # `twig.form_themes` setting: the block applies the theme itself), `/orders` renders a DataTable whose PHP classes
 # ux:install copied into src/, `/live-orders` a DataTableLive that answers a Live action, `/pick` autocomplete fields and
-# the Autocomplete component, and all answer 200.
+# the Autocomplete component, `/dates` a DateType opted into the date picker, and all answer 200.
 #
 #   tools/tests/check-fresh-app.sh <base URL> [curl option…]
 set -euo pipefail
@@ -85,3 +85,14 @@ url="$(grep -oE '<select[^>]*id="form_customer"[^>]*>' <<< "$page" | grep -oE 'a
 fetch "$url?query=bon" "$@" | grep -q '"text":"Bonnie Green"' \
     || { echo "FAIL: the remote autocomplete field's search URL does not find Bonnie Green" >&2; exit 1; }
 echo "ok: the autocomplete fields and component render, and the remote search answers (HTTP 200)"
+
+# the date-picker recipe through the form theme's opt-in: the typed field takes the field's id, the hidden input its
+# name and value, and the calendar its bounds
+page="$(fetch /dates "$@")"
+grep -oE '<input[^>]*>' <<< "$page" | grep 'id="form_startsOn"' | grep -q 'data-date-picker-target="input"' \
+    || { echo "FAIL: the opted-in date field is not the date picker's text field" >&2; exit 1; }
+grep -oE '<input[^>]*>' <<< "$page" | grep 'name="form\[startsOn\]"' | grep 'type="hidden"' | grep -q 'value="2026-03-12"' \
+    || { echo "FAIL: the date picker's hidden input lacks the field's name or value" >&2; exit 1; }
+grep -qE 'data-calendar-min-date-value="2026-01-01"' <<< "$page" \
+    || { echo "FAIL: the date picker's calendar lacks the field's min" >&2; exit 1; }
+echo "ok: the date picker renders an opted-in DateType (HTTP 200)"

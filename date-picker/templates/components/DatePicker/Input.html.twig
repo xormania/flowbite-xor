@@ -1,0 +1,9 @@
+{%- set date_picker_input_attrs = {
+    type: 'text',
+    'data-date-picker-target': 'input',
+    'data-action': 'input->date-picker#parseInput change->date-picker#commitInput keydown.down->date-picker#open',
+    value: inject('datePicker.formatted', ''),
+    autocomplete: 'off',
+} -%}
+{##- A text field where a date can be typed, usually an `Input` given `{{ ...date_picker_input_attrs }}`; give it a label, and no `name`: the Calendar's hidden input holds the value. -#}
+{%- block content %}{% endblock -%}

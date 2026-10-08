@@ -7,6 +7,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `date-picker`: a `Calendar` in a `Popover`, opened from a button or a field where the date can be typed; a
+  `DateType` with `'block_prefix' => 'flowbite_date_picker'` renders as one through the form theme.
 - `calendar`: pick a date, several dates or a range, with hidden inputs for forms (dispatching `input` and `change`)
   and a `model` prop for Live Components; invalid dates are ignored, and a range never spans a disabled day.
 - `popover`: free content anchored to a button, in a non-modal dialog; it closes on Escape, a click outside or when
@@ -20,6 +22,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `form-theme`: a single-text `DateType` opted in with `'block_prefix' => 'flowbite_date_picker'` renders as the
+  `date-picker` recipe's picker.
 - `form-theme`: an autocomplete field's hidden `<select>` keeps its label's name (`aria-labelledby`) after Tom Select
   moves the label to its own input.
 - `AGENTS.md`, `CONTRIBUTING.md`, `UPSTREAM.md`: the official `flowbite-4` kit is a reference, not a constraint;

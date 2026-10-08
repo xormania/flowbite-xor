@@ -110,6 +110,15 @@
     {{- block('flowbite_control') -}}
 {%- endblock textarea_widget -%}
 
+{##- A `DateType` opted in with `'block_prefix' => 'flowbite_date_picker'`: with `'widget' => 'single_text'`, the date-picker recipe's widget (a typed field, a button opening a Calendar, the hidden input with the field's name), rendered from its own template so a project without that recipe never needs it; any other widget stays Symfony's. -#}
+{%- block flowbite_date_picker_widget -%}
+    {%- if 'single_text' == widget|default('') -%}
+        {{- include('form/flowbite_date_picker_widget.html.twig') -}}
+    {%- else -%}
+        {##- Any other widget, from this theme or Symfony's layout. -#}{{- block('date_widget') -}}
+    {%- endif -%}
+{%- endblock flowbite_date_picker_widget -%}
+
 {##- A collapsed choice through the Select component. -#}
 {%- block choice_widget_collapsed -%}
     {%- if required and placeholder is none and not placeholder_in_choices and not multiple and (attr.size is not defined or attr.size <= 1) -%}

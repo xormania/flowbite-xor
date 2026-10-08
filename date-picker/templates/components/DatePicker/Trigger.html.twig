@@ -1,0 +1,14 @@
+{%- set _popover_id = inject('popover.id') -%}
+{%- set date_picker_trigger_attrs = {
+    type: 'button',
+    id: _popover_id ~ '-trigger',
+    'data-popover-target': 'trigger',
+    'data-date-picker-target': 'trigger',
+    'data-action': 'click->popover#toggle',
+    'aria-haspopup': 'dialog',
+    'aria-expanded': inject('popover.open', false) ? 'true' : 'false',
+    'aria-controls': _popover_id ~ '-content',
+    'data-empty': inject('datePicker.empty', true) ? 'true' : 'false',
+} -%}
+{##- The element opening the calendar, usually a `Button` given `{{ ...date_picker_trigger_attrs }}`. -#}
+{%- block content %}{% endblock -%}

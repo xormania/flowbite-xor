@@ -1,0 +1,12 @@
+{% set selected = action|default('initial') == 'update' ? '2026-03-25' : '2026-03-10' %}
+<p data-testid="stream-action" class="mb-2 text-sm text-body">{{ action|default('initial') }}</p>
+<twig:DatePicker id="streamed" :selected="selected">
+    <twig:DatePicker:Trigger>
+        <twig:Button variant="outline" class="w-60 justify-between font-normal" {{ ...date_picker_trigger_attrs }}>
+            <twig:DatePicker:Value />
+        </twig:Button>
+    </twig:DatePicker:Trigger>
+    <twig:DatePicker:Content>
+        <twig:Calendar name="streamed" :selected="selected" today="2026-03-15" />
+    </twig:DatePicker:Content>
+</twig:DatePicker>

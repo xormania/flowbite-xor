@@ -1,0 +1,8 @@
+{%- props
+    ## string The dialog's accessible name.
+    label = 'Choose a date'
+-%}
+<twig:Popover:Content :label="label" {{ ...attributes.defaults({class: 'w-auto p-0'|tailwind_classes}) }}>
+    {##- The `Calendar`. -#}
+    {{- block(outerBlocks.content) -}}
+</twig:Popover:Content>

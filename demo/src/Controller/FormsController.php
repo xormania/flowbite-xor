@@ -35,7 +35,7 @@ final class FormsController extends AbstractController
     public function parity(): Response
     {
         $form = $this->createForm(DemoType::class, null, ['csrf_protection' => false]);
-        $form->submit(['name' => 'A', 'bio' => 'Designer in Lyon.', 'country' => '', 'save' => '']);
+        $form->submit(['name' => 'A', 'bio' => 'Designer in Lyon.', 'startsOn' => '2026-03-12', 'country' => '', 'save' => '']);
 
         return $this->render('forms/parity.html.twig', ['form' => $form->createView()]);
     }

@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -40,6 +42,7 @@ const browserServer =
  */
 const recipeSpecsDir = join(root, 'tests/e2e/examples/recipes');
 if (!process.env.TEST_WORKER_INDEX) {
+    buildTailwindIfStale();
     rmSync(recipeSpecsDir, { recursive: true, force: true });
     mkdirSync(recipeSpecsDir, { recursive: true });
     for (const entry of readdirSync(root, { withFileTypes: true })) {
@@ -53,6 +56,36 @@ if (!process.env.TEST_WORKER_INDEX) {
             writeFileSync(join(recipeSpecsDir, `${entry.name}.${file}`), `// Generated from ${entry.name}/tests/${file} by playwright.config.ts: do not edit.\n${spec}`);
         }
     }
+}
+
+/*
+ * Builds the demo's Tailwind CSS unless it was built from the same sources: those it scans
+ * (demo/assets/styles/app.css: `@source "../../.."`, the repository minus what git ignores), identified by a
+ * SHA-256 of their paths and content hashes (`git hash-object`), recorded next to the build. So no screenshot is
+ * taken against stale CSS, whoever runs the tests, and nothing is rebuilt when nothing changed (in CI, right after
+ * its own `tailwind:build`, the first run builds once more, for the record). The record is read and written by
+ * PHP_BINARY's PHP: in the Docker demo, demo/var/ lives in the container.
+ */
+function buildTailwindIfStale() {
+    const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, encoding: 'utf8' })
+        .split('\0')
+        .filter((file) => file && existsSync(join(root, file)));
+    const hashes = execFileSync('git', ['hash-object', '--stdin-paths'], { cwd: root, encoding: 'utf8', input: files.join('\n'), maxBuffer: 64 * 1024 * 1024 })
+        .trim()
+        .split('\n');
+    const digest = createHash('sha256')
+        .update(files.map((file, index) => `${hashes[index]} ${file}`).join('\n'))
+        .digest('hex');
+    const php = (args: string[], stdio: 'pipe' | 'inherit' = 'pipe') =>
+        execFileSync(process.env.PHP_BINARY ?? 'php', args, { cwd: join(root, 'demo'), encoding: 'utf8', stdio });
+    const record = 'var/tailwind/sources.sha256';
+    const recorded = php(['-r', `echo is_file('var/tailwind/app.built.css') ? @file_get_contents('${record}') : '';`]);
+    if (recorded.trim() === digest) {
+        return;
+    }
+    console.log("Building the demo's Tailwind CSS: its sources changed since the last build");
+    php(['bin/console', 'tailwind:build'], 'inherit');
+    php(['-r', `file_put_contents('${record}', $argv[1].PHP_EOL);`, '--', digest]);
 }
 
 export default defineConfig({

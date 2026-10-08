@@ -27,6 +27,7 @@ What it renders:
 - **Rows**: a `FormField` with the label, the control, the help text (`<id>_help`) and the errors (`<id>_error`). The control gets `aria-describedby` pointing at both, and `aria-invalid="true"` when there are errors. Required fields get a marker on the label.
 - **Groups**: expanded choices (radios, checkboxes), dates in three selects and sub-forms are a `fieldset` whose `legend` is the label.
 - **Controls**: text-like types through `Input`, `textarea` through `Textarea`, collapsed choices through `Select`, checkboxes and radios through `Checkbox`/`Radio` with a `Label`, buttons through `Button`. To pick a `Button` variant, give the button field `'attr' => ['variant' => 'outline']` in the form type, or `attr: {variant: 'outline'}` in Twig.
+- **Date picker**: with the `date-picker` recipe installed, a `DateType` with `'widget' => 'single_text'` and `'block_prefix' => 'flowbite_date_picker'` renders as a typed field with a calendar in a popover; see the [`date-picker` README](../date-picker/README.md#with-a-symfony-form). Without the opt-in it stays a native `<input type="date">`.
 - Everything else (hidden, range, color, collections) falls back to Symfony's `tailwind_2_layout.html.twig`.
 
 The theme only arranges components: their classes stay in the component templates, so a form and a hand-written page look the same.
