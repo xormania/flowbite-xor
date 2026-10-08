@@ -9,9 +9,9 @@ const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
  * calendar's selected day (or today's).
  *
  * The text field (single mode) takes typed dates: `Y-m-d`, the locale's numeric order (`3/15/2026`,
- * `15.03.2026`) or the formatted text. While typing, a valid date that the calendar accepts selects it and
- * an emptied field clears the selection; when the field changes (blur, Enter), text that is not a date the
- * calendar accepts (disabled, out of bounds) clears the selection and marks the field `aria-invalid`. The
+ * `15.03.2026`) or the formatted text (`Mar 15, 2026`). While typing, a valid date that the calendar accepts
+ * selects it and an emptied field clears the selection; when the field changes (blur, Enter), text that is not
+ * a date the calendar accepts (disabled, out of bounds) clears the selection and marks the field `aria-invalid`. The
  * calendar's hidden input, which forms and Live Components read, gets `input` and `change` each time. The
  * field has no `name`: the hidden input holds the value.
  *
@@ -227,7 +227,7 @@ export default class extends Controller {
 
     /**
      * Reads `Y-m-d`, the locale's numeric day, month and four-digit year order with `/`, `.` or `-`, or the
-     * exact formatted text of a date; `null` for anything else. No `Date.parse`, which depends on the engine.
+     * formatted text of a date; `null` for anything else. No `Date.parse`, which depends on the engine.
      */
     #parse(text) {
         const value = text.trim();
@@ -247,10 +247,33 @@ export default class extends Controller {
 
             return this.#valid(`${parts.year}-${parts.month.padStart(2, '0')}-${parts.day.padStart(2, '0')}`);
         }
-        // the formatted text of a selected date, as the field shows it
-        const selected = this.#selection().find((date) => this.#format(date) === value);
+        return this.#parseFormatted(value);
+    }
 
-        return selected ?? null;
+    /**
+     * Reads the text as the picker formats it (`Mar 15, 2026`, `15. März 2026`), for any date: its four-digit year
+     * and day come from its numbers, its month from trying each one, and the date counts only when it formats back
+     * to the same text (ignoring case and the kind of spaces).
+     */
+    #parseFormatted(text) {
+        const normalize = (string) => string.replace(/[\s\u00a0\u202f]+/g, ' ').trim().toLocaleLowerCase();
+        const target = normalize(text);
+        const numbers = text.match(/\d+/g) ?? [];
+        const year = numbers.find((number) => 4 === number.length);
+        if (!year) {
+            return null;
+        }
+        const days = numbers.filter((number) => number !== year && number.length <= 2 && Number(number) >= 1 && Number(number) <= 31);
+        for (const day of days) {
+            for (let month = 1; month <= 12; month++) {
+                const date = this.#valid(`${year}-${String(month).padStart(2, '0')}-${day.padStart(2, '0')}`);
+                if (null !== date && normalize(this.#format(date)) === target) {
+                    return date;
+                }
+            }
+        }
+
+        return null;
     }
 
     #valid(date) {

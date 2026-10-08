@@ -72,8 +72,9 @@ is "Choose date", translated with the form's translation domain; set the `picker
 ### Typing a date
 
 `DatePicker:Input` (single mode) takes `2026-03-15`, the locale's numeric order (`3/15/2026` in `en-US`,
-`15.03.2026` in `de`) or the formatted text. A date the calendar refuses (disabled, out of bounds) or text that is
-not a date clears the selection when the field changes, and marks the field `aria-invalid`.
+`15.03.2026` in `de`) or the formatted text (`Mar 15, 2026`). A date the calendar refuses (disabled, out of
+bounds) or text that is not a date clears the selection when the field changes, and marks the field
+`aria-invalid`.
 
 ```twig {"preview":true}
 <div class="flex min-h-96 items-start justify-center pt-6">

@@ -45,6 +45,18 @@ test('a typed date selects it; an emptied field clears it; text that is not a da
     await field.fill('');
     await expect(hidden).toHaveValue('');
 
+    // the formatted text of a date that is not selected, into an empty field and over another date
+    await field.fill('Mar 20, 2026');
+    await field.press('Tab');
+    await expect(hidden).toHaveValue('2026-03-20');
+    await expect(field).not.toHaveAttribute('aria-invalid');
+    await field.fill('mar 25,  2026');
+    await field.press('Tab');
+    await expect(hidden).toHaveValue('2026-03-25');
+    await expect(field).toHaveValue('Mar 25, 2026');
+    await field.fill('');
+    await expect(hidden).toHaveValue('');
+
     // before minDate: refused
     await field.fill('2026-02-15');
     await field.press('Tab');

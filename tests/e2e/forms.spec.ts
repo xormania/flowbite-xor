@@ -101,10 +101,14 @@ test('the date picker opt-in submits the pick; a date the server refuses comes b
     await page.goto('/forms');
     const field = page.getByRole('textbox', { name: 'Starts on' });
     const hidden = page.locator('input[name="demo[startsOn]"]');
+    // empty, with a past minimum: the calendar opens on today's month, not the minimum's
+    const now = new Date();
+    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-15`;
     await page.getByRole('button', { name: 'Choose date' }).click();
-    await page.getByRole('dialog').locator('[data-slot="calendar-day"][data-day="2026-01-15"] button').click();
-    await expect(hidden).toHaveValue('2026-01-15');
-    await expect(field).toHaveValue('Jan 15, 2026');
+    await expect(page.getByRole('dialog').getByRole('grid')).toHaveAccessibleName(new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(now));
+    await page.getByRole('dialog').locator(`[data-slot="calendar-day"][data-day="${day}"] button`).click();
+    await expect(hidden).toHaveValue(day);
+    await expect(field).toHaveValue(new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`)));
 
     // below the bound, as a script could send it: the constraint decides
     await hidden.evaluate((input) => ((input as HTMLInputElement).value = '2025-06-01'));

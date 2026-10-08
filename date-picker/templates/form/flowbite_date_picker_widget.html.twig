@@ -8,6 +8,11 @@
 {%- set _value = errors|length == 0 and value is not empty and value matches _isDate and value|date('Y-m-d') == value ? value : null -%}
 {%- set _min = attr.min ?? null -%}
 {%- set _max = attr.max ?? null -%}
+{#- without a value, the calendar opens on today's month, within the bounds -#}
+{%- set _today = 'now'|date('Y-m-d') -%}
+{%- set _validMin = _min is not null and _min matches _isDate and _min|date('Y-m-d') == _min -%}
+{%- set _validMax = _max is not null and _max matches _isDate and _max|date('Y-m-d') == _max -%}
+{%- set _month = _value ?? (_validMin and _today < _min ? _min : (_validMax and _today > _max ? _max : _today)) -%}
 {%- set _text_attr = {id: id, disabled: disabled, required: required|default(false)} -%}
 {%- for _name, _attr_value in attr|filter((v, k) => k not in ['min', 'max', 'type', 'name', 'value']) -%}
     {%- if _name in ['placeholder', 'title'] and translation_domain is not same as(false) and _attr_value is not null -%}
@@ -33,6 +38,6 @@
         </twig:DatePicker:Trigger>
     </div>
     <twig:DatePicker:Content>
-        <twig:Calendar :name="full_name" :selected="_value" :month="_value ?? _min" :minDate="_min" :maxDate="_max" :inputAttr="disabled ? {disabled: true} : {}" />
+        <twig:Calendar :name="full_name" :selected="_value" :month="_month" :minDate="_min" :maxDate="_max" :inputAttr="disabled ? {disabled: true} : {}" />
     </twig:DatePicker:Content>
 </twig:DatePicker>
