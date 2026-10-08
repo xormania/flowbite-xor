@@ -149,6 +149,9 @@
             "config/routes/ux_autocomplete.yaml"
         ]
     },
+    "symfony/ux-dropzone": {
+        "version": "v3.5.1"
+    },
     "symfony/ux-icons": {
         "version": "3.5",
         "recipe": {

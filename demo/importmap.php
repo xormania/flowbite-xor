@@ -31,6 +31,9 @@ return [
     '@symfony/ux-autocomplete' => [
         'path' => './vendor/symfony/ux-autocomplete/assets/dist/controller.js',
     ],
+    '@symfony/ux-dropzone' => [
+        'path' => './vendor/symfony/ux-dropzone/assets/dist/controller.js',
+    ],
     'tom-select' => [
         'version' => '2.6.2',
     ],
