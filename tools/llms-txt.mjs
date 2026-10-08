@@ -78,6 +78,7 @@ lines.push(
     '',
     `- [Changelog](${raw}/CHANGELOG.md): what each version changes`,
     `- [Security](${raw}/SECURITY.md): reporting a vulnerability`,
+    `- [Testing patterns](${raw}/docs/TESTING.md): how this repository tests Turbo, Live Components, the CSP and request limits, to reuse in an app`,
     `- [Contributing](${raw}/CONTRIBUTING.md): changing the kit itself: layout, conventions, checks`,
     '',
 );

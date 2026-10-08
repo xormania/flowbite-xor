@@ -29,9 +29,12 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 - `autocomplete`: searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme, through the
   form theme (`'autocomplete' => true`) or the `Autocomplete` component.
 - `data-table-live`: `data-table` as a Live Component (`AbstractLiveDataTable`), with row selection for bulk actions;
-  its state is in the URL.
+  its state is in the URL. The selection holds at most `maxSelection()` ids (1,000) of at most 128 characters,
+  enforced on what the browser sends before anything uses it.
 - `data-table`: a server-driven table (search, filters, sortable columns, page size, pages) in a Turbo Frame, with
-  the PHP classes a table extends (`AbstractDataTable`) copied into `src/FlowbiteXor/DataTable/`.
+  the PHP classes a table extends (`AbstractDataTable`) copied into `src/FlowbiteXor/DataTable/`. A table counts its
+  rows (`countRows()`), then loads one page once (`loadRows()`); no page starts past `maxRows()` rows (10,000), so a
+  request never makes the database skip more.
 
 ### Fixed
 
@@ -45,6 +48,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   instead of what was typed.
 - `toast`: a toast outside the permanent `ToastRegion` came back on Back, for another full timeout; it is now removed
   before Turbo caches the page. Toasts in the region still stay across visits until they time out or are closed.
+- `theme-toggle`: with the system in dark mode and the light theme chosen, the button showed no icon
+  (`flowbite.min.css` gates its own `dark:hidden` on `prefers-color-scheme`); it now shows the moon. A switch no
+  longer fades table rows into the new theme: the color transitions it starts are finished at once.
 
 ### Changed
 

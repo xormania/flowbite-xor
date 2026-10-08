@@ -29,7 +29,8 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   `<twig:Toast:Stream>` in the page body (every kit layout does it for flash messages) or in a Turbo Stream
   response.
 - **Lists of records: `ux:install data-table`**, then one class per table extending
-  `App\FlowbiteXor\DataTable\AbstractDataTable` with `columns()` and `loadPage(TableQuery): TableResult`; the
+  `App\FlowbiteXor\DataTable\AbstractDataTable` with `columns()`, `countRows(TableQuery): int` and
+  `loadRows(TableQuery): array` (the page's rows, from `$query->offset()`); the
   controller passes `$table->handleRequest($request)` to `<twig:DataTable :table="table" id="…" />`. The query is
   already checked: sort by `$query->sortField`, never by a raw request value. Custom cells go in
   `<twig:block name="cell_<key>">` (not `{% block %}`, which does not compile `<twig:…>` inside a component).

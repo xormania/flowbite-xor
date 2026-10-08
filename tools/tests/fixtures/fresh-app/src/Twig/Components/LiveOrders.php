@@ -4,7 +4,6 @@ namespace App\Twig\Components;
 
 use App\FlowbiteXor\DataTable\Column;
 use App\FlowbiteXor\DataTable\TableQuery;
-use App\FlowbiteXor\DataTable\TableResult;
 use App\FlowbiteXor\DataTableLive\AbstractLiveDataTable;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 
@@ -16,7 +15,12 @@ final class LiveOrders extends AbstractLiveDataTable
         return [Column::make('number', 'Order')->sortable()];
     }
 
-    protected function loadPage(TableQuery $query): TableResult
+    protected function countRows(TableQuery $query): int
+    {
+        return 25;
+    }
+
+    protected function loadRows(TableQuery $query): array
     {
         $rows = [];
         for ($id = 1; $id <= 25; ++$id) {
@@ -26,6 +30,6 @@ final class LiveOrders extends AbstractLiveDataTable
             $rows = array_reverse($rows);
         }
 
-        return new TableResult(\array_slice($rows, $query->offset(), $query->pageSize), \count($rows));
+        return \array_slice($rows, $query->offset(), $query->pageSize);
     }
 }

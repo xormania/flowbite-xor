@@ -104,6 +104,10 @@ jobs:
                   "$RUNNER_TEMP/phpstan/vendor/bin/phpstan" analyse --no-progress --level=8 \
                       --autoload-file=demo/vendor/autoload.php $(cat "$RUNNER_TEMP/php-dirs") demo/src/Demo
 
+            # What a request can make the data tables do: the deepest page, the loader calls, the selection's size
+            - name: Data table limits
+              run: php tools/tests/data-table.php
+
     fresh-install:
         name: Fresh install
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
