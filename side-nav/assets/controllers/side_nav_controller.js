@@ -33,10 +33,14 @@ export default class extends Controller {
         const visible = this.visibleItems();
         const stop = [current, this.treeitems().find((item) => '0' === item.getAttribute('tabindex'))].find((item) => item && visible.includes(item));
         this.setTabStop(stop ?? visible[0]);
+        // a Sidebar collapsing around the tree hides the nested treeitems without telling the tree: its width changes
+        this.resizeObserver = new ResizeObserver(() => this.keepTabStopShown());
+        this.resizeObserver.observe(this.element);
     }
 
     disconnect() {
         clearTimeout(this.typeTimer);
+        this.resizeObserver?.disconnect();
     }
 
     keydown(event) {
@@ -145,6 +149,20 @@ export default class extends Controller {
             this.setTabStop(item);
             item.focus();
         }
+    }
+
+    /** Moves the Tab stop off a treeitem that was hidden, to its nearest shown branch, so Tab still reaches the tree. */
+    keepTabStopShown() {
+        const shown = this.visibleItems();
+        const stop = this.treeitems().find((item) => '0' === item.getAttribute('tabindex'));
+        if (!stop || shown.includes(stop)) {
+            return;
+        }
+        let branch = this.parentOf(stop);
+        while (branch && !shown.includes(branch)) {
+            branch = this.parentOf(branch);
+        }
+        this.setTabStop(branch ?? shown[0]);
     }
 
     setTabStop(stop) {

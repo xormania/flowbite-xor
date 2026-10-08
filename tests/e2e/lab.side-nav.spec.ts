@@ -212,6 +212,23 @@ test('in the demo\'s data-turbo-permanent sidebar, the tree follows the current 
     await expect(nav.getByRole('treeitem', { name: 'Settings' })).toHaveAttribute('aria-expanded', 'true');
 });
 
+test('collapsing the demo\'s sidebar moves the Tab stop off a hidden current item to its shown branch', async ({ page }) => {
+    await page.goto('/demo/settings/profile');
+    const nav = page.getByRole('tree', { name: 'Acme' });
+    await expect(nav.getByRole('treeitem', { name: 'Profile' })).toHaveAttribute('tabindex', '0');
+
+    await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+    await expect(nav.getByRole('treeitem', { name: 'Profile' })).toBeHidden();
+    await expect(nav.getByRole('treeitem', { name: 'Settings' })).toHaveAttribute('tabindex', '0');
+    await expect(nav.locator('[role="treeitem"][tabindex="0"]')).toHaveCount(1);
+    await nav.getByRole('treeitem', { name: 'Settings' }).focus();
+    await expect(nav.getByRole('treeitem', { name: 'Settings' })).toBeFocused();
+
+    await page.getByRole('button', { name: 'Expand sidebar' }).click();
+    await expect(nav.getByRole('treeitem', { name: 'Profile' })).toBeVisible();
+    await expect(nav.locator('[role="treeitem"][tabindex="0"]')).toHaveCount(1);
+});
+
 for (const system of ['light', 'dark'] as const) {
     for (const theme of ['light', 'dark'] as const) {
         test.describe(`system ${system}, ${theme} theme chosen`, () => {
