@@ -8,6 +8,7 @@ import { Controller } from '@hotwired/stimulus';
  * `prefers-color-scheme`, also when it changes while the page is open. The no-flash snippet of the recipe's README applies the
  * same rule in `<head>` before the first paint, so `connect()` finds the theme already set.
  * `aria-pressed` follows the `dark` class, whoever changes it (another toggle, a Turbo visit).
+ * The new theme shows at once: the color transitions it would start (a table row's hover fade) are finished.
  *
  * @value  storageKey The `localStorage` key of the saved choice, `light` or `dark`.
  * @action toggle     Switches to the other theme and saves the choice.
@@ -48,7 +49,17 @@ export default class extends Controller {
     }
 
     apply(dark) {
-        document.documentElement.classList.toggle('dark', dark);
+        const html = document.documentElement;
+        if (html.classList.contains('dark') !== dark) {
+            html.classList.toggle('dark', dark);
+            // computing the styles starts the transitions the new colors trigger, so they can be finished at once
+            getComputedStyle(html).color;
+            for (const animation of document.getAnimations()) {
+                if (animation instanceof CSSTransition) {
+                    animation.finish();
+                }
+            }
+        }
         this.syncPressed();
     }
 

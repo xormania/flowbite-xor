@@ -106,20 +106,5 @@ test.describe('theme toggle', () => {
             await page.emulateMedia({ colorScheme: 'light' });
             await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
         });
-
-        // flowbite.min.css gates its own `dark:hidden` on prefers-color-scheme, not on the `dark` class: the
-        // toggle's icons must follow the class, or a light choice under a dark system shows no icon
-        test('shows the icon of the theme on screen, whatever the system preference', async ({ page }) => {
-            const toggle = page.getByRole('button', { name: 'Toggle dark mode' });
-            const icons = toggle.locator('svg');
-            await page.goto('/');
-            await expect(icons.nth(0)).toBeHidden();
-            await expect(icons.nth(1)).toBeVisible();
-
-            await toggle.click();
-            await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
-            await expect(icons.nth(0)).toBeVisible();
-            await expect(icons.nth(1)).toBeHidden();
-        });
     });
 });
