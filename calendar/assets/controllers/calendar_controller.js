@@ -94,6 +94,9 @@ export default class extends Controller {
         this.#focusDate =
             this.element.querySelector('[data-slot="calendar-day"] button[tabindex="0"]')?.dataset.day ?? this.#selected[0] ?? this.#month;
         this.#connected = true;
+        // the labels in the browser's own locale data, which can differ from the server's ICU (digits, names)
+        this.#relabel();
+        this.#render();
     }
 
     /** The selected dates, as `Y-m-d` strings. */

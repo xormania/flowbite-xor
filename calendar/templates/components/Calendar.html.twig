@@ -179,7 +179,7 @@
                             {%- for weekdayOffset in 0..6 -%}
                                 {%- set _weekday = _weekdayReference|date_modify('+' ~ ((weekStartsOn + weekdayOffset) % 7) ~ ' days')|date('Y-m-d') -%}
                                 <th scope="col" aria-label="{{ _weekday|format_date(pattern: 'EEEE', locale: _locale) }}" data-slot="calendar-weekday" data-weekday="{{ (weekStartsOn + weekdayOffset) % 7 }}" class="flex-1 text-xs font-normal text-body-subtle select-none">
-                                    {{- _weekday|format_date(pattern: 'EEEEEE', locale: _locale) -}}
+                                    {{- _weekday|format_date(pattern: 'EEE', locale: _locale) -}}
                                 </th>
                             {%- endfor -%}
                         </tr>
