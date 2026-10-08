@@ -1,0 +1,32 @@
+{#-
+    The Dropzone of a `DropzoneType` (symfony/ux-dropzone), included by the form-theme recipe's `dropzone_widget`
+    block with the field's variables. The file input takes the field's id (its label points at it), name and `attr`;
+    `attr.class` and `attr['data-controller']` go to the box. After a submit that other fields' errors sent back
+    (422), the files picked are gone: the box says so, unless the field has errors of its own. Override that sentence
+    with the `reselect_message` variable (`%name%` is the file's name, `%count%` the number of files).
+-#}
+{%- set _attrs = {id: id, name: full_name, disabled: disabled, required: required|default(false)} -%}
+{%- for _name, _value in attr|filter((v, k) => k not in ['placeholder', 'type', 'name', 'multiple', 'value']) -%}
+    {%- if 'title' == _name and translation_domain is not same as(false) and _value is not null -%}
+        {%- set _value = _value|trans(attr_translation_parameters, translation_domain) -%}
+    {%- endif -%}
+    {%- set _attrs = _attrs|merge({(_name): _value}) -%}
+{%- endfor -%}
+{%- set _attrs = _attrs|filter((v) => v is not null and v is not same as(false)) -%}
+{%- set _placeholder = attr.placeholder ?? null -%}
+{%- if _placeholder is not null and translation_domain is not same as(false) -%}
+    {%- set _placeholder = _placeholder|trans(attr_translation_parameters, translation_domain) -%}
+{%- endif -%}
+{%- set _props = _placeholder is not null ? {placeholder: _placeholder} : {} -%}
+{%- set _removeLabel = remove_label|default('Remove') -%}
+{%- set _removeLabel = translation_domain is same as(false) ? _removeLabel : _removeLabel|trans({}, translation_domain) -%}
+{#- the files of a submit that came back for other fields' errors -#}
+{%- set _kept = multiple ? (data ?? [])|filter((file) => file is not null) : (data is null ? [] : [data]) -%}
+{%- set _reselect = null -%}
+{%- if submitted|default(false) and errors|length == 0 and _kept|length > 0 -%}
+    {%- set _single = _kept|length == 1 -%}
+    {%- set _message = reselect_message|default(_single ? '%name% was not kept: choose it again.' : '%count% files were not kept: choose them again.') -%}
+    {%- set _parameters = {'%name%': _single ? (_kept|first).clientOriginalName|default('The file') : '', '%count%': _kept|length} -%}
+    {%- set _reselect = translation_domain is same as(false) ? _message|replace(_parameters) : _message|trans(_parameters, translation_domain) -%}
+{%- endif -%}
+<twig:Dropzone :multiple="multiple" :removeLabel="_removeLabel" :reselect="_reselect" {{ ..._props }} {{ ..._attrs }} />

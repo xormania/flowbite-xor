@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Demo\OrdersTable;
 use App\Form\AutocompleteDemoType;
+use App\Form\UploadDemoType;
 use App\Kit\KitReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -54,6 +55,8 @@ final class LabController extends AbstractController
         'dropzone-turbo' => 'Dropzones across Turbo visits and Back (one file, several files), one inside a data-turbo-permanent element, and one in a multipart form inside a Turbo Frame that reloads and submits.',
         'dropzone-stream' => 'A Dropzone replaced and updated by Turbo Streams.',
         'dropzone-events' => 'A Dropzone given a controller of the page: its actions, values and target reach it.',
+        'dropzone-form' => 'A Symfony form with DropzoneType fields posted through Turbo (303, or 422 with the errors), next to a Live Component whose re-renders leave the picked files alone.',
+        'live-dropzone' => 'Files uploaded from a Live Component through a files action: re-renders leave the picked files alone, and each upload gives a fresh zone.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -79,6 +82,7 @@ final class LabController extends AbstractController
     #[Route('/live-calendar', name: 'app_lab_live_calendar')]
     #[Route('/live-popover', name: 'app_lab_live_popover')]
     #[Route('/live-autocomplete', name: 'app_lab_live_autocomplete')]
+    #[Route('/live-dropzone', name: 'app_lab_live_dropzone')]
     public function live(string $_route): Response
     {
         $name = str_replace('_', '-', substr($_route, \strlen('app_lab_')));
@@ -339,6 +343,28 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/dropzone_stream.html.twig', ['description' => self::SCENARIOS['dropzone-stream']]);
+    }
+
+    #[Route('/dropzone-form', name: 'app_lab_dropzone_form', methods: ['GET', 'POST'])]
+    public function dropzoneForm(Request $request): Response
+    {
+        $form = $this->createForm(UploadDemoType::class);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $name = static fn (?UploadedFile $file): string => $file?->getClientOriginalName() ?? '';
+            $photo = $form->get('photo')->getData();
+            $attachments = $form->get('attachments')->getData() ?? [];
+
+            return $this->redirectToRoute('app_lab_dropzone_form', [
+                'submitted' => \sprintf('photo=%s; attachments=%s', $name($photo), implode(',', array_map($name, $attachments))),
+            ], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('lab/dropzone_form.html.twig', [
+            'form' => $form,
+            'submitted' => $request->query->getString('submitted'),
+            'description' => self::SCENARIOS['dropzone-form'],
+        ], new Response(null, $form->isSubmitted() ? 422 : 200));
     }
 
     #[Route('/dropzone-events', name: 'app_lab_dropzone_events')]

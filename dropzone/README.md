@@ -62,6 +62,42 @@ go there with it, and its target (`data-<controller>-target`) stays on the input
 - The `content` block replaces the icon and the placeholder, for a custom look; `hint` and `reselect` stay under it.
 - In an invalid field, set `aria-invalid="true"` and point `aria-describedby` at the error: the box turns red.
 
+### In a Symfony form
+
+With the `form-theme` recipe's theme, every `DropzoneType` renders as this `Dropzone`: the field's label points at
+the file input, its help and errors describe it, `attr.placeholder` is the main line and `remove_label` names the
+Remove buttons. `attr.class` and `attr['data-controller']` go to the box, every other `attr` to the input.
+
+```php
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\UX\Dropzone\Form\DropzoneType;
+
+$builder
+    ->add('photo', DropzoneType::class, [
+        'required' => false,
+        'help' => 'PNG or JPG, up to 1 MB.',
+        'attr' => ['accept' => 'image/png,image/jpeg', 'placeholder' => 'Drop a photo or browse'],
+        'constraints' => [new Assert\Image(maxSize: '1M', mimeTypes: ['image/png', 'image/jpeg'])],
+    ])
+    ->add('attachments', DropzoneType::class, [
+        'required' => false,
+        'multiple' => true,
+        'constraints' => [new Assert\Count(max: 3), new Assert\All([new Assert\File(maxSize: '1M')])],
+    ]);
+```
+
+The controller is the usual one: `handleRequest()`, `getData()` gives an `UploadedFile` (a list of them with
+`multiple`), then a 303 on success and `render()` (422) on errors; `form_start()` adds the `enctype`. When other
+fields' errors send the form back, the files the user picked are gone: a field without errors of its own says so in
+its box ("photo.png was not kept: choose it again."). Change that sentence with the `reselect_message` variable
+(`%name%`, `%count%`), translated with the form's domain:
+
+```twig
+{{ form_row(form.photo, {reselect_message: 'Choose %name% again.'}) }}
+```
+
+A plain `FileType` stays the form theme's native file input.
+
 ### Outside a form
 
 A hand-written form needs `method="post"` and `enctype="multipart/form-data"`. Without the `enctype`, the browser
@@ -114,6 +150,36 @@ dropped. Raise both in `php.ini` above your largest constraint, `post_max_size` 
 - After Back, a zone for one file starts empty. A zone for several files lists what its input holds: Turbo's copy of
   the page keeps the files in some browsers (Chromium), not in others.
 - A zone inside a `data-turbo-permanent` element keeps its files across visits.
+
+### In a Live Component
+
+A Live Component never receives a `DropzoneType` file through its form. Upload the files with a `files` action
+first, then keep their names or ids in a LiveProp:
+
+```twig
+{# re-renders leave the zone alone; ids that change after each upload make Live replace it, empty #}
+<div id="photos-zone-{{ uploads|length }}">
+    <div data-live-ignore>
+        <twig:FormField for="photos-{{ uploads|length }}" label="Photos">
+            <twig:Dropzone id="photos-{{ uploads|length }}" name="photos[]" multiple />
+        </twig:FormField>
+    </div>
+</div>
+<twig:Button data-action="live#action" data-live-action-param="files(photos[])|upload">Upload</twig:Button>
+```
+
+```php
+#[LiveAction]
+public function upload(Request $request, ValidatorInterface $validator): void
+{
+    $files = $request->files->all('photos');
+    // validate (All + Image, Count), store, then keep the stored names in a LiveProp
+}
+```
+
+- `data-live-ignore` keeps the picked files and their list through re-renders the zone has nothing to do with.
+- The wrapper's id and the input's id must both change after an upload (a counter): with a new wrapper id alone,
+  Live keeps the ignored zone and moves its input into the new one.
 
 ### Events
 

@@ -1,0 +1,24 @@
+<div {{ attributes }}>
+    <div class="max-w-sm space-y-4">
+        <twig:FormField for="note" label="Note">
+            <twig:Input id="note" data-model="note" />
+        </twig:FormField>
+        <p class="text-sm">Note: <span data-testid="note">{{ note }}</span></p>
+        {#- re-renders leave the zone alone (data-live-ignore); after an upload, the new ids (the wrapper's and the
+            input's, which Live's morph would otherwise move into the new zone) make Live replace it whole: the zone
+            comes back empty -#}
+        <div id="photos-zone-{{ attempts }}">
+            <div data-live-ignore>
+                <twig:FormField for="photos-{{ attempts }}" label="Photos" :error="errors">
+                    <twig:Dropzone id="photos-{{ attempts }}" name="photos[]" accept="image/png,image/jpeg" multiple {{ ...(errors ? {'aria-invalid': 'true', 'aria-describedby': 'photos-' ~ attempts ~ '_error'} : {}) }} />
+                </twig:FormField>
+            </div>
+        </div>
+        <twig:Button data-action="live#action" data-live-action-param="files(photos[])|upload">Upload</twig:Button>
+        <ul data-testid="uploads" class="text-sm">
+            {%- for upload in uploads %}
+                <li>{{ upload.name }} ({{ upload.size }} bytes)</li>
+            {%- endfor %}
+        </ul>
+    </div>
+</div>

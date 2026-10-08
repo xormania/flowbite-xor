@@ -119,6 +119,16 @@
     {%- endif -%}
 {%- endblock flowbite_date_picker_widget -%}
 
+{##- A `DropzoneType` (symfony/ux-dropzone): the dropzone recipe's widget (a box to drop files on or browse, previews, Remove buttons), rendered from its own template so a project without that recipe never needs it; without the recipe, the kit's file Input. Symfony UX Dropzone's own theme never renders. -#}
+{%- block dropzone_widget -%}
+    {%- set _dropzone = include('form/flowbite_dropzone_widget.html.twig', ignore_missing = true) -%}
+    {%- if _dropzone|trim is empty -%}
+        {{- block('form_widget_simple') -}}
+    {%- else -%}
+        {{- _dropzone -}}
+    {%- endif -%}
+{%- endblock dropzone_widget -%}
+
 {##- A collapsed choice through the Select component. -#}
 {%- block choice_widget_collapsed -%}
     {%- if required and placeholder is none and not placeholder_in_choices and not multiple and (attr.size is not defined or attr.size <= 1) -%}
