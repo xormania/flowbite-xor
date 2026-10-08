@@ -1,0 +1,2 @@
+<p data-testid="stream-action" class="mb-2 text-sm text-body">{{ action|default('initial') }}</p>
+<twig:Calendar label="Streamed" today="2026-03-15" month="{{ action|default('initial') == 'update' ? '2026-05-01' : '2026-03-01' }}" class="inline-block rounded-base border border-default" />

@@ -38,6 +38,11 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   `#[AsLiveComponent(name: '…', template: 'components/DataTableLive.html.twig')]`, rendered as
   `<twig:Name tableId="…" />` with no controller code; a bulk action is a `#[LiveAction]` reading `$this->selectedIds`
   (browser input: check each id). Back leaves a Live table; the plain one walks its states.
+- **Dates inline: `ux:install calendar`** (`<twig:Calendar name="…" mode="single|multiple|range" />`; dates are
+  `Y-m-d` strings, the form gets `name`, `name[]` or `name[from]`/`name[to]`). Inside a Live Component, bind with the
+  `model` prop (`model="day"`, or `model="stay"` for a range array with `from`/`to`), never `data-model` on the
+  `<twig:Calendar>`. `minDate`/`maxDate`/`disabled` only guide the user: validate on the server. PHP needs `intl`
+  for locales other than `en`. Times: native `<input type="time">`.
 - **Content next to a control: `ux:install popover`** (`<twig:Popover id="…">` with `Popover:Trigger`, spreading
   `popover_trigger_attrs` on its `Button`, and `Popover:Content`); menus of actions use `dropdown`. Pass a stable `id`
   inside Live Components and Turbo Frames.

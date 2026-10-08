@@ -1,0 +1,20 @@
+<div {{ attributes }}>
+    <p class="mb-4 text-sm text-heading">day=<span data-testid="day">{{ day }}</span> stay=<span data-testid="stay">{{ stay.from }}..{{ stay.to }}</span></p>
+    <div class="mb-4 flex flex-wrap gap-4">
+        <label class="text-sm text-heading">Earliest day
+            <select data-model="minDay" class="ms-2 rounded-base border border-default-medium bg-neutral-secondary-medium px-2 py-1">
+                {% for option in ['2026-03-01', '2026-03-10'] %}<option value="{{ option }}"{% if option == minDay %} selected{% endif %}>{{ option }}</option>{% endfor %}
+            </select>
+        </label>
+        <label class="text-sm text-heading">Language
+            <select data-model="locale" class="ms-2 rounded-base border border-default-medium bg-neutral-secondary-medium px-2 py-1">
+                {% for option in ['en', 'fr'] %}<option value="{{ option }}"{% if option == locale %} selected{% endif %}>{{ option }}</option>{% endfor %}
+            </select>
+        </label>
+        <twig:Button size="sm" variant="secondary" data-action="live#action" data-live-action-param="clear">Clear</twig:Button>
+    </div>
+    <div class="flex flex-wrap items-start gap-6">
+        <twig:Calendar id="live-day" label="Day" model="day" :selected="day" today="2026-03-15" month="2026-03-01" :minDate="minDay" :locale="locale" class="rounded-base border border-default" />
+        <twig:Calendar id="live-stay" label="Stay" mode="range" model="stay" :selected="[stay.from, stay.to]" today="2026-03-15" month="2026-03-01" :disabled="['2026-03-20']" class="rounded-base border border-default" />
+    </div>
+</div>

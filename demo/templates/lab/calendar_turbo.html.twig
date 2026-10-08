@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}calendar-turbo ({{ page }}) — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'calendar-turbo'}) }}
+    <h2 class="mb-2 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    <p class="mb-4"><a href="{{ path('app_lab_calendar_turbo', {page: page == 'one' ? 'two' : 'one'}) }}" class="text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a></p>
+    {% if submitted %}
+        <p class="mb-4 text-sm text-heading" data-testid="submitted">day={{ submitted.day }} stay={{ submitted.stay }} dates={{ submitted.dates }}</p>
+    {% endif %}
+    <form method="get" action="{{ path('app_lab_calendar_turbo', {page: page}) }}" class="flex flex-wrap items-start gap-6">
+        <twig:Calendar id="cal-day" label="Day" name="day" :selected="submitted.day ?? null" today="2026-03-15" month="2026-03-01" :disabled="['2026-03-20']" class="rounded-base border border-default" />
+        <twig:Calendar id="cal-stay" label="Stay" mode="range" name="stay" today="2026-03-15" month="2026-03-01" :disabled="['2026-03-20']" class="rounded-base border border-default" />
+        <twig:Calendar id="cal-dates" label="Dates" mode="multiple" name="dates" today="2026-03-15" month="2026-03-01" :inputAttr="{'data-kept': 'yes'}" class="rounded-base border border-default" />
+        <twig:Button type="submit">Show</twig:Button>
+    </form>
+    <div id="lab-permanent-calendar" data-turbo-permanent class="mt-6 inline-block rounded-base border border-default">
+        <twig:Calendar id="cal-kept" label="Kept" today="2026-03-15" month="2026-03-01" />
+    </div>
+    <turbo-frame id="calendar-frame" class="mt-6 block">
+        <p class="mb-2">Frame load <span data-testid="frame-load">{{ load }}</span> · <a href="{{ path('app_lab_calendar_turbo', {page: page, load: load + 1}) }}" class="text-fg-brand hover:underline">Reload the frame</a></p>
+        <twig:Calendar id="cal-framed" label="Framed" today="2026-03-15" month="2026-03-01" class="rounded-base border border-default" />
+    </turbo-frame>
+{% endblock %}

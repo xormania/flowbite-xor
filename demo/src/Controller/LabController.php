@@ -42,6 +42,9 @@ final class LabController extends AbstractController
         'popover-turbo' => 'Popovers across Turbo visits and Back: a plain one, a group, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'popover-stream' => 'A Popover replaced and updated by Turbo Streams.',
         'live-popover' => 'A Popover open while its Live Component re-renders (action and model change).',
+        'calendar-turbo' => 'Calendars in a GET form (one date, a range, several dates) across Turbo visits and Back, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
+        'calendar-stream' => 'A Calendar replaced and updated by Turbo Streams.',
+        'live-calendar' => 'Calendars bound to Live Component properties: a date, a range, bounds and a locale changed by the server.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -63,6 +66,7 @@ final class LabController extends AbstractController
     #[Route('/live-table', name: 'app_lab_live_table')]
     #[Route('/live-drawer', name: 'app_lab_live_drawer')]
     #[Route('/live-form', name: 'app_lab_live_form')]
+    #[Route('/live-calendar', name: 'app_lab_live_calendar')]
     #[Route('/live-popover', name: 'app_lab_live_popover')]
     #[Route('/live-autocomplete', name: 'app_lab_live_autocomplete')]
     public function live(string $_route): Response
@@ -231,5 +235,37 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/popover_stream.html.twig', ['description' => self::SCENARIOS['popover-stream']]);
+    }
+
+    #[Route('/calendar-turbo/{page}', name: 'app_lab_calendar_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    public function calendarTurbo(Request $request, string $page): Response
+    {
+        $stay = $request->query->all('stay');
+        $dates = $request->query->all('dates');
+
+        return $this->render('lab/calendar_turbo.html.twig', [
+            'page' => $page,
+            'load' => $request->query->getInt('load'),
+            'submitted' => $request->query->has('day') ? [
+                'day' => $request->query->getString('day'),
+                'stay' => implode('..', array_map('strval', [$stay['from'] ?? '', $stay['to'] ?? ''])),
+                'dates' => implode(',', array_map('strval', $dates)),
+            ] : null,
+            'description' => self::SCENARIOS['calendar-turbo'],
+        ]);
+    }
+
+    #[Route('/calendar-stream', name: 'app_lab_calendar_stream', methods: ['GET', 'POST'])]
+    public function calendarStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/calendar_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/calendar_stream.html.twig', ['description' => self::SCENARIOS['calendar-stream']]);
     }
 }

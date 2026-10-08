@@ -1,0 +1,265 @@
+{%- props
+    ## 'single'|'multiple'|'range' The selection mode.
+    mode = 'single',
+    ## string|null The name of the hidden inputs holding the selection, so a form submits it: `name` (single), `name[]` (multiple), `name[from]` and `name[to]` (range).
+    name = null,
+    ## string|array<string>|null The selected dates, as `Y-m-d` strings; in `range` mode, the start then the end. Anything else is ignored.
+    selected = null,
+    ## string|null The first month displayed, as a `Y-m-d` string.
+    month = null,
+    ## int The number of months displayed side by side.
+    numberOfMonths = 1,
+    ## 'label'|'dropdown' Whether the caption is a label or month and year dropdowns.
+    captionLayout = 'label',
+    ## boolean Whether the days of the surrounding months are displayed.
+    showOutsideDays = true,
+    ## boolean Whether a leading column shows the ISO week number.
+    showWeekNumber = false,
+    ## boolean Whether every month displays six weeks.
+    fixedWeeks = false,
+    ## int The first day of the week, from `0` for Sunday to `6` for Saturday.
+    weekStartsOn = 0,
+    ## string|null The locale of the month, weekday and day names; without it, the request's locale.
+    locale = null,
+    ## string|null The date shown as today, as a `Y-m-d` string; without it, the server's today.
+    today = null,
+    ## array<string> The dates that cannot be selected, as `Y-m-d` strings.
+    disabled = [],
+    ## string|null The earliest selectable date, as a `Y-m-d` string.
+    minDate = null,
+    ## string|null The latest selectable date, as a `Y-m-d` string.
+    maxDate = null,
+    ## string|null The earliest month navigation reaches, as a `Y-m-d` string.
+    startMonth = null,
+    ## string|null The latest month navigation reaches, as a `Y-m-d` string.
+    endMonth = null,
+    ## array<string,array<string>> Extra flags: each name (lowercase letters, digits, dashes) with its `Y-m-d` dates, rendered as `data-<name>="true"` on those days.
+    modifiers = {},
+    ## string|null A Live Component property the selection is bound to (`date`; `stay`, an array with `from` and `to`, in range mode). Use it rather than `data-model`, which a Twig component inside a Live Component reads as its own binding.
+    model = null,
+    ## array<string,string|bool> Extra attributes for the hidden inputs, such as `{form: 'booking'}` or `{disabled: true}`; `type`, `name`, `value` and inline event handlers (`on…`) are left out.
+    inputAttr = {},
+    ## string The calendar's accessible name.
+    label = 'Calendar',
+    ## string The accessible name of the previous month button.
+    previousLabel = 'Previous month',
+    ## string The accessible name of the next month button.
+    nextLabel = 'Next month'
+-%}
+{#- a date is a `Y-m-d` string that names a real day: anything else (a typo, a raw form submission) is dropped, never parsed -#}
+{%- set _isDate = '/^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/' -%}
+{%- set _locale = locale ?? app.request.locale|default(null) -%}
+{%- set _today = (today is not null and today matches _isDate and today|date('Y-m-d') == today) ? today : 'now'|date('Y-m-d') -%}
+{%- set _selected = null == selected ? [] : ((selected is iterable ? selected : [selected])|filter(value => value is not null and value matches _isDate and value|date('Y-m-d') == value)|map(value => value ~ '')|reduce((carry, value) => carry|merge([value]), [])) -%}
+{%- if 'single' == mode -%}{%- set _selected = _selected|slice(0, 1) -%}{%- elseif 'range' == mode -%}{%- set _selected = _selected|slice(0, 2) -%}{%- endif -%}
+{%- set _rangeStart = 'range' == mode and _selected|length > 0 ? _selected[0] : null -%}
+{%- set _rangeEnd = 'range' == mode and _selected|length > 1 and _selected[1] >= _selected[0] ? _selected[1] : null -%}
+{%- set _validMonth = month is not null and month matches _isDate and month|date('Y-m-d') == month -%}
+{%- set _month = (_validMonth ? month : (_selected is empty ? _today : _selected|first))|date('Y-m-01') -%}
+{%- set _lastMonth = _month|date_modify('+' ~ (numberOfMonths - 1) ~ ' months')|date('Y-m-01') -%}
+{%- set _startMonth = ((startMonth is not null and startMonth matches _isDate and startMonth|date('Y-m-d') == startMonth) ? startMonth : _today|date_modify('-100 years'))|date('Y-m-01') -%}
+{%- set _endMonth = ((endMonth is not null and endMonth matches _isDate and endMonth|date('Y-m-d') == endMonth) ? endMonth : _today|date_modify('+10 years'))|date('Y-m-01') -%}
+{%- set _disabled = disabled|filter(value => value is not null and value matches _isDate and value|date('Y-m-d') == value)|map(value => value ~ '')|reduce((carry, value) => carry|merge([value]), []) -%}
+{%- set _minDate = (minDate is not null and minDate matches _isDate and minDate|date('Y-m-d') == minDate) ? minDate : null -%}
+{%- set _maxDate = (maxDate is not null and maxDate matches _isDate and maxDate|date('Y-m-d') == maxDate) ? maxDate : null -%}
+{%- set _modifiers = {} -%}
+{%- for _name, _days in modifiers -%}
+    {%- if _name matches '/^[a-z][a-z0-9-]*$/' and _days is iterable -%}
+        {%- set _modifiers = _modifiers|merge({(_name): _days|filter(value => value is not null and value matches _isDate and value|date('Y-m-d') == value)|map(value => value ~ '')|reduce((carry, value) => carry|merge([value]), [])}) -%}
+    {%- endif -%}
+{%- endfor -%}
+{%- set _focusDate = _selected is not empty ? _selected|first : (_today >= _month and _today <= _lastMonth|date_modify('last day of this month')|date('Y-m-d') ? _today : _month) -%}
+{#- the hidden inputs' extra attributes: names a browser accepts only, no inline event handler (`on…`), `true` as a bare attribute, `false` and null left out -#}
+{%- set _inputAttr = inputAttr|filter((value, key) => key matches '/^[a-zA-Z_][a-zA-Z0-9_.:-]*$/' and not (key|lower starts with 'on') and key|lower not in ['type', 'name', 'value'] and value is not same as(false) and value is not null) -%}
+{%- set _modelPath = model is not null and model matches '/^[a-zA-Z_][a-zA-Z0-9_.]*$/' ? model : null -%}
+{%- set _dayClass = html_classes(
+    'group/day relative flex-1 p-0 text-center select-none',
+    'data-[range-start=true]:rounded-s-base data-[range-start=true]:bg-brand-softer data-[range-middle=true]:bg-brand-softer data-[range-end=true]:rounded-e-base data-[range-end=true]:bg-brand-softer',
+    'data-[range-start=true]:data-[range-end=true]:bg-transparent data-[hidden=true]:invisible',
+) -%}
+{%- set _dayButtonClass = html_classes(
+    'relative isolate z-10 flex aspect-square w-full min-w-(--cell-size) items-center justify-center rounded-base text-sm text-heading outline-none hover:bg-neutral-tertiary',
+    'group-data-[focused=true]/day:ring-2 group-data-[focused=true]/day:ring-brand-medium',
+    'group-data-[today=true]/day:bg-neutral-tertiary group-data-[today=true]/day:font-semibold',
+    'group-data-[outside=true]/day:text-body-subtle',
+    'disabled:cursor-not-allowed disabled:text-fg-disabled disabled:line-through disabled:hover:bg-transparent',
+    'data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-transparent data-[range-middle=true]:text-fg-brand-strong data-[range-middle=true]:hover:bg-brand-soft',
+    'data-[selected-single=true]:bg-brand data-[selected-single=true]:text-white data-[selected-single=true]:hover:bg-brand-strong',
+    'data-[range-start=true]:bg-brand data-[range-start=true]:text-white data-[range-start=true]:hover:bg-brand-strong',
+    'data-[range-end=true]:bg-brand data-[range-end=true]:text-white data-[range-end=true]:hover:bg-brand-strong',
+) -%}
+{%- set _navClass = 'inline-flex size-(--cell-size) items-center justify-center rounded-base text-body outline-none hover:bg-neutral-tertiary hover:text-heading focus-visible:ring-2 focus-visible:ring-brand-medium aria-disabled:pointer-events-none aria-disabled:opacity-50' -%}
+{%- set _dropdownClass = 'relative rounded-base border border-default-medium has-focus:border-brand has-focus:ring-2 has-focus:ring-brand-medium' -%}
+{#- a known Sunday: the weekday headers follow from `weekStartsOn` alone -#}
+{%- set _weekdayReference = '2024-01-07' -%}
+{%- macro hidden_input(name, value, modelPath, inputAttr, role) -%}
+    <input type="hidden"{% if name %} name="{{ name }}"{% endif %} value="{{ value }}" data-calendar-target="input"{% if role %} data-role="{{ role }}"{% endif %}{% if modelPath %} data-model="on(change)|{{ modelPath }}"{% endif %}
+        {%- for _key, _value in inputAttr %} {{ _key }}{% if _value is not same as(true) %}="{{ _value }}"{% endif %}{% endfor %} />
+{%- endmacro -%}
+<div
+    role="group"
+    aria-label="{{ label }}"
+    data-slot="calendar"
+    data-mode="{{ mode }}"
+    data-calendar-mode-value="{{ mode }}"
+    data-calendar-locale-value="{{ _locale }}"
+    data-calendar-name-value="{{ name }}"
+    data-calendar-month-value="{{ _month }}"
+    data-calendar-selected-value="{{ _selected|json_encode }}"
+    data-calendar-disabled-value="{{ _disabled|json_encode }}"
+    data-calendar-modifiers-value="{{ _modifiers is empty ? '{}' : _modifiers|json_encode }}"
+    data-calendar-today-value="{{ _today }}"
+    data-calendar-min-date-value="{{ _minDate }}"
+    data-calendar-max-date-value="{{ _maxDate }}"
+    data-calendar-start-month-value="{{ _startMonth }}"
+    data-calendar-end-month-value="{{ _endMonth }}"
+    data-calendar-week-starts-on-value="{{ weekStartsOn }}"
+    data-calendar-number-of-months-value="{{ numberOfMonths }}"
+    data-calendar-show-outside-days-value="{{ showOutsideDays ? 'true' : 'false' }}"
+    data-calendar-show-week-number-value="{{ showWeekNumber ? 'true' : 'false' }}"
+    data-calendar-fixed-weeks-value="{{ fixedWeeks ? 'true' : 'false' }}"
+    {{ attributes.defaults({
+        class: 'group/calendar w-fit p-3 text-sm text-body [--cell-size:--spacing(9)]'|tailwind_classes,
+        'data-controller': 'calendar',
+        'data-action': 'keydown->calendar#handleKeydown focusin->calendar#trackFocus focusout->calendar#trackFocus pointerover->calendar#previewRange pointerleave->calendar#clearPreview',
+    }) }}
+>
+    <div data-slot="calendar-months" class="relative flex flex-col gap-4 md:flex-row">
+        <nav data-slot="calendar-nav" class="absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1">
+            <button type="button" data-calendar-target="previous" data-action="click->calendar#previousMonth" aria-label="{{ previousLabel }}" aria-disabled="{{ _month > _startMonth ? 'false' : 'true' }}" class="{{ _navClass }}">
+                <twig:ux:icon name="flowbite:chevron-left-outline" class="size-4 rtl:rotate-180" aria-hidden="true" />
+            </button>
+            <button type="button" data-calendar-target="next" data-action="click->calendar#nextMonth" aria-label="{{ nextLabel }}" aria-disabled="{{ _lastMonth < _endMonth ? 'false' : 'true' }}" class="{{ _navClass }}">
+                <twig:ux:icon name="flowbite:chevron-right-outline" class="size-4 rtl:rotate-180" aria-hidden="true" />
+            </button>
+        </nav>
+
+        {%- for monthOffset in 0..(numberOfMonths - 1) -%}
+            {%- set _current = _month|date_modify('+' ~ monthOffset ~ ' months')|date('Y-m-01') -%}
+            {%- set _lead = (_current|date('w') - weekStartsOn + 7) % 7 -%}
+            {%- set _gridStart = _current|date_modify('-' ~ _lead ~ ' days')|date('Y-m-d') -%}
+            <div data-slot="calendar-month" data-calendar-target="month" data-month="{{ _current }}" class="flex w-full flex-col gap-3">
+                <div data-slot="calendar-month-caption" class="flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)">
+                    {%- if 'dropdown' == captionLayout -%}
+                        <div data-slot="calendar-dropdowns" class="flex h-(--cell-size) w-full items-center justify-center gap-1.5 font-medium text-heading">
+                            <span data-slot="calendar-dropdown-root" class="{{ _dropdownClass }}">
+                                <select aria-label="Month" data-action="change->calendar#goToMonth" data-calendar-index-param="{{ monthOffset }}" class="absolute inset-0 size-full cursor-pointer opacity-0">
+                                    {%- for monthNumber in 1..12 -%}
+                                        <option value="{{ monthNumber }}"{% if monthNumber == _current|date('n') %} selected{% endif %}>{{ ('2024-' ~ '%02d'|format(monthNumber) ~ '-01')|format_date(pattern: 'LLL', locale: _locale) }}</option>
+                                    {%- endfor -%}
+                                </select>
+                                <span data-slot="calendar-caption-label" class="flex h-7 items-center gap-1 ps-2 pe-1.5 select-none">
+                                    {{- _current|format_date(pattern: 'LLL', locale: _locale) -}}
+                                    <twig:ux:icon name="flowbite:chevron-down-outline" class="size-3.5 text-body" aria-hidden="true" />
+                                </span>
+                            </span>
+                            <span data-slot="calendar-dropdown-root" class="{{ _dropdownClass }}">
+                                <select aria-label="Year" data-action="change->calendar#goToMonth" data-calendar-index-param="{{ monthOffset }}" class="absolute inset-0 size-full cursor-pointer opacity-0">
+                                    {%- for year in _startMonth|date('Y')..(_endMonth|date('Y')) -%}
+                                        <option value="{{ year }}"{% if year == _current|date('Y') %} selected{% endif %}>{{ year }}</option>
+                                    {%- endfor -%}
+                                </select>
+                                <span data-slot="calendar-caption-label" class="flex h-7 items-center gap-1 ps-2 pe-1.5 select-none">
+                                    {{- _current|format_date(pattern: 'y', locale: _locale) -}}
+                                    <twig:ux:icon name="flowbite:chevron-down-outline" class="size-3.5 text-body" aria-hidden="true" />
+                                </span>
+                            </span>
+                        </div>
+                    {%- else -%}
+                        <span data-slot="calendar-caption-label" class="font-medium text-heading select-none">{{ _current|format_date(pattern: 'LLLL y', locale: _locale) }}</span>
+                    {%- endif -%}
+                </div>
+
+                <table role="grid" aria-label="{{ _current|format_date(pattern: 'LLLL y', locale: _locale) }}" data-slot="calendar-grid" class="w-full border-collapse">
+                    <thead>
+                        <tr class="flex">
+                            {%- if showWeekNumber -%}
+                                <th scope="col" data-slot="calendar-week-number-header" class="w-(--cell-size) select-none"><span class="sr-only">Week</span></th>
+                            {%- endif -%}
+                            {%- for weekdayOffset in 0..6 -%}
+                                {%- set _weekday = _weekdayReference|date_modify('+' ~ ((weekStartsOn + weekdayOffset) % 7) ~ ' days')|date('Y-m-d') -%}
+                                <th scope="col" aria-label="{{ _weekday|format_date(pattern: 'EEEE', locale: _locale) }}" data-slot="calendar-weekday" data-weekday="{{ (weekStartsOn + weekdayOffset) % 7 }}" class="flex-1 text-xs font-normal text-body-subtle select-none">
+                                    {{- _weekday|format_date(pattern: 'EEE', locale: _locale) -}}
+                                </th>
+                            {%- endfor -%}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {%- for week in 0..5 -%}
+                            {%- set _weekStart = _gridStart|date_modify('+' ~ (week * 7) ~ ' days')|date('Y-m-d') -%}
+                            {%- set _weekEnd = _weekStart|date_modify('+6 days')|date('Y-m-d') -%}
+                            {%- set _weekOutside = _weekStart|date('Y-m') != _current|date('Y-m') and _weekEnd|date('Y-m') != _current|date('Y-m') -%}
+                            <tr data-slot="calendar-week" data-hidden="{{ not fixedWeeks and _weekOutside ? 'true' : 'false' }}" class="mt-1 flex w-full data-[hidden=true]:hidden">
+                                {%- if showWeekNumber -%}
+                                    <td data-slot="calendar-week-number" class="text-xs text-body-subtle select-none">
+                                        <div class="flex size-(--cell-size) items-center justify-center text-center">{{ _weekStart|date_modify('+' ~ ((1 - weekStartsOn + 7) % 7) ~ ' days')|date('W') }}</div>
+                                    </td>
+                                {%- endif -%}
+                                {%- for dayOffset in 0..6 -%}
+                                    {%- set _date = _weekStart|date_modify('+' ~ dayOffset ~ ' days')|date('Y-m-d') -%}
+                                    {%- set _outside = _date|date('Y-m') != _current|date('Y-m') -%}
+                                    {%- set _isDisabled = _date in _disabled or (_minDate and _date < _minDate) or (_maxDate and _date > _maxDate) -%}
+                                    {%- set _isRangeStart = _rangeStart and _date == _rangeStart -%}
+                                    {%- set _isRangeEnd = _rangeEnd and _date == _rangeEnd -%}
+                                    {%- set _isRangeMiddle = _rangeStart and _rangeEnd and _date > _rangeStart and _date < _rangeEnd -%}
+                                    {%- set _isSelected = 'range' == mode ? (_isRangeStart or _isRangeEnd or _isRangeMiddle) : _date in _selected -%}
+                                    <td
+                                        data-slot="calendar-day"
+                                        data-day="{{ _date }}"
+                                        data-outside="{{ _outside ? 'true' : 'false' }}"
+                                        data-today="{{ _date == _today ? 'true' : 'false' }}"
+                                        data-selected="{{ _isSelected ? 'true' : 'false' }}"
+                                        data-disabled="{{ _isDisabled ? 'true' : 'false' }}"
+                                        data-focused="false"
+                                        data-hidden="{{ _outside and not showOutsideDays ? 'true' : 'false' }}"
+                                        data-range-start="{{ _isRangeStart ? 'true' : 'false' }}"
+                                        data-range-middle="{{ _isRangeMiddle ? 'true' : 'false' }}"
+                                        data-range-end="{{ _isRangeEnd ? 'true' : 'false' }}"
+                                        aria-selected="{{ _isSelected ? 'true' : 'false' }}"
+                                        {%- for _name, _days in _modifiers %} data-{{ _name }}="{{ _date in _days ? 'true' : 'false' }}"{% endfor %}
+                                        class="{{ _dayClass }}"
+                                    >
+                                        <button
+                                            type="button"
+                                            data-action="click->calendar#selectDate"
+                                            data-calendar-date-param="{{ _date }}"
+                                            data-day="{{ _date }}"
+                                            data-selected-single="{{ 'range' != mode and _isSelected ? 'true' : 'false' }}"
+                                            data-range-start="{{ _isRangeStart ? 'true' : 'false' }}"
+                                            data-range-middle="{{ _isRangeMiddle ? 'true' : 'false' }}"
+                                            data-range-end="{{ _isRangeEnd ? 'true' : 'false' }}"
+                                            aria-label="{{ _date|format_date(dateFormat: 'full', locale: _locale) }}"
+                                            tabindex="{{ _date == _focusDate ? '0' : '-1' }}"
+                                            class="{{ _dayButtonClass }}"
+                                            {%- if _isDisabled %} disabled{% endif %}
+                                        >
+                                            {{- _date|format_date(pattern: 'd', locale: _locale) -}}
+                                        </button>
+                                    </td>
+                                {%- endfor -%}
+                            </tr>
+                        {%- endfor -%}
+                    </tbody>
+                </table>
+            </div>
+        {%- endfor -%}
+    </div>
+
+    {%- if name or _modelPath -%}
+        <div data-slot="calendar-inputs" hidden>
+            {%- if 'range' == mode -%}
+                {{- _self.hidden_input(name ? name ~ '[from]' : null, _rangeStart, _modelPath ? _modelPath ~ '.from' : null, _inputAttr, 'from') -}}
+                {{- _self.hidden_input(name ? name ~ '[to]' : null, _rangeEnd, _modelPath ? _modelPath ~ '.to' : null, _inputAttr, 'to') -}}
+            {%- elseif 'multiple' == mode -%}
+                {%- for _date in _selected -%}
+                    {{- _self.hidden_input(name ? name ~ '[]' : null, _date, null, _inputAttr, null) -}}
+                {%- endfor -%}
+                <template data-calendar-target="inputPrototype">{{ _self.hidden_input(name ? name ~ '[]' : null, '', null, _inputAttr, null) }}</template>
+            {%- else -%}
+                {{- _self.hidden_input(name, _selected|first, _modelPath, _inputAttr, null) -}}
+            {%- endif -%}
+        </div>
+    {%- endif -%}
+    {##- Content below the month grids, such as preset buttons: a button with `data-action="click->calendar#selectDate"` and `data-calendar-date-param="<Y-m-d>"` selects that date. -#}
+    {%- block content %}{% endblock -%}
+</div>
