@@ -74,6 +74,7 @@ Keep `php bin/console tailwind:build --watch` running while you work, or run `ta
 | A date field, typed or picked, in a form | `date-picker` |
 | File uploads, drag and drop or browse, one file or several | `dropzone` |
 | Rich text (formatted descriptions, posts, comments) stored as HTML | `editor` |
+| Text written in Markdown, with a preview (docs, notes, comments for technical users) | `markdown-editor` |
 | Dates inline: one, several or a range | `calendar` |
 | A list of records with search, filters, sorting and pages | `data-table` (Turbo Frame) |
 | The same, with row selection, bulk actions or search while typing | `data-table-live` (Live Component) |
