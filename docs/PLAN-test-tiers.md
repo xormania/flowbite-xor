@@ -50,7 +50,7 @@ Counts, not timings: the same build gives the same numbers, so they fail like an
 | No stray transitions or animations after a state change | `document.getAnimations()` in the frame the change lands (the theme toggle spec does this) |
 | No layout shift after load and after a transition | A `PerformanceObserver` for `layout-shift` entries |
 | No duplicate requests on a Turbo visit, Back or a Live re-render | The page's requests, per URL |
-| One controller instance and one set of listeners after repeated visits | Chromium's `Performance.getMetrics` (`JSEventListeners`, `Nodes`) before and after N visits |
+| One controller instance per element after repeated visits | Stimulus itself: `application.controllers` filtered by identifier, against the elements carrying it, after N visits. Page-wide totals (`Performance.getMetrics`: `Nodes`, `JSEventListeners`) depend on garbage collection and cached snapshots, so they are not counts; leaks are a release check (below) |
 | JavaScript and CSS bytes per demo page under a budget | Resource Timing `encodedBodySize`, per page, budgets in a checked-in JSON file |
 
 Budgets change only through a pull request that says why.
@@ -66,9 +66,9 @@ baseline.
 
 | Group | What |
 |---|---|
-| Timings | Per scenario, the median of 5 runs: total blocking time (long tasks), the slowest interaction's input-to-paint time (Event Timing), and Chromium's `RecalcStyleDuration`, `LayoutDuration`, `ScriptDuration` for the transition. Compared with the baseline, with a tolerance per metric. |
+| Timings | Per scenario, the median of 5 runs, compared with the baseline with a tolerance per metric: total blocking time (long tasks); **immediate feedback**, the slowest input's next paint (Event Timing, which ends there by design); **completion**, from the input to the first frame presented after the expected update lands (a mark at the input, the update observed by its own event, `turbo:render`, `turbo:frame-render` or Live's `render:finished`, or a `MutationObserver`, then `requestAnimationFrame` twice), so a slow response or DOM update after the first paint is measured; and Chromium's `RecalcStyleDuration`, `LayoutDuration`, `ScriptDuration` over the transition. |
 | Harsh conditions | The tier 1 transitions of the heavy recipes (data tables, editors, chart, autocomplete, date picker) under 4× CPU throttling, a slow network, and a phone viewport. |
-| Long sessions | 50 Turbo visits and Backs across the demo: the JS heap, `Nodes` and `JSEventListeners` must come back to their level after the first visit (leaks a single visit hides). |
+| Long sessions | 50 Turbo visits and Backs across the demo: after `Memory.prepareForLeakDetection` and a forced collection (`HeapProfiler.collectGarbage`), the leak-detection counters (`Memory.getDOMCounters`: documents, nodes, listeners) and the JS heap must come back to their level after the first visit (leaks a single visit hides). |
 | Wide matrices | The state × transition matrix of tier 1 extended to every overlay (modal, drawer, dropdown, popover, tooltip) and editor, in both themes. |
 | Fuzz and properties | Seeded, with a time budget per target; each run prints its seed and `SEED=…` replays it. **Requests:** random query strings for the data tables, random values for every writable Live prop (sent as the live controller sends them), random form posts: no 5xx, no response over a time budget, no injected element, no CSP violation. **Properties** of the server code: `TableQuery::fromValues()` (the offset stays below `maxRows()`), the editor's HTML policy and the Markdown renderer (sanitized output is stable when sanitized again, no `<script>` or `on*` attribute, length limits hold). **UI runs:** random clicks, keys, Back/Forward and theme switches on the lab pages under the test fixture: no console or page error, one controller instance. A failure found becomes a fixed tier 1 test. |
 
