@@ -116,7 +116,9 @@ abstract class AbstractLiveDataTable extends AbstractDataTable
 
         $ids = [];
         foreach (\array_slice($data, 0, $this->maxSelection()) as $id) {
-            if (\is_scalar($id) && \strlen((string) $id) <= self::SELECTED_ID_MAX_LENGTH) {
+            // characters, not bytes; the byte count first, so a huge string is not scanned (4 bytes at most each)
+            if (\is_scalar($id) && \strlen((string) $id) <= 4 * self::SELECTED_ID_MAX_LENGTH
+                && mb_strlen((string) $id, 'UTF-8') <= self::SELECTED_ID_MAX_LENGTH) {
                 $ids[(string) $id] = true;
             }
         }

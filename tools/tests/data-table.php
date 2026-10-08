@@ -103,6 +103,8 @@ check(1_000 === \count($live->hydrateSelectedIds($ids)), '5,000 ids sent: the fi
 check(['1', '2'] === $live->hydrateSelectedIds([1, '1', 2, str_repeat('x', 129), ['nested'], null]), 'ids once each, as strings; too long and non-scalar ids dropped');
 check(\strlen(str_repeat('x', 128)) === \strlen($live->hydrateSelectedIds([str_repeat('x', 128)])[0] ?? ''), 'an id of 128 characters is kept');
 check([] === $live->hydrateSelectedIds('1,2,3'), 'a selection that is not a list is empty');
+check([str_repeat('😀', 128)] === $live->hydrateSelectedIds([str_repeat('😀', 128)]), 'an id of 128 multibyte characters (512 bytes) is kept');
+check([] === $live->hydrateSelectedIds([str_repeat('é', 129)]), 'an id of 129 multibyte characters is dropped');
 
 $live = new LiveTable(120);
 $live->pageSize = 50;
