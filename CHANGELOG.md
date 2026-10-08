@@ -45,6 +45,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   instead of what was typed.
 - `toast`: a toast outside the permanent `ToastRegion` came back on Back, for another full timeout; it is now removed
   before Turbo caches the page. Toasts in the region still stay across visits until they time out or are closed.
+- `theme-toggle`: with the system in dark mode and the light theme chosen, the button showed no icon
+  (`flowbite.min.css` gates its own `dark:hidden` on `prefers-color-scheme`); it now shows the moon. A switch no
+  longer fades table rows into the new theme: the color transitions it starts are finished at once.
 
 ### Changed
 
