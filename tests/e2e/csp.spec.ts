@@ -7,7 +7,7 @@ import { test, expect } from './fixtures';
  * whole suite runs the kit under this policy; these tests check the policy itself, and what a blocked inline script
  * or style would silently break: the theme before the first paint, Turbo's progress bar, the Progress bars.
  */
-const pages = ['/', '/r/button', '/preview/button/default?theme=light', '/preview/dropdown/default?theme=light', '/demo', '/demo/login', '/lab/live-table', '/lab/popover-turbo', '/preview/popover/default?theme=light', '/lab/calendar-turbo', '/preview/calendar/default?theme=light', '/lab/date-picker-turbo', '/preview/date-picker/default?theme=light'];
+const pages = ['/', '/r/button', '/preview/button/default?theme=light', '/preview/dropdown/default?theme=light', '/demo', '/demo/login', '/lab/live-table', '/lab/popover-turbo', '/preview/popover/default?theme=light', '/lab/calendar-turbo', '/preview/calendar/default?theme=light', '/lab/date-picker-turbo', '/preview/date-picker/default?theme=light', '/lab/dropzone-turbo', '/preview/dropzone/default?theme=light'];
 
 type Policy = Map<string, string[]>;
 
@@ -127,6 +127,36 @@ test('the Progress bars keep their width', async ({ page }) => {
     for (const { value, width } of bars) {
         expect(width).toBeCloseTo(value, 0);
     }
+});
+
+test("the Dropzone markup is the kit's: no style attribute, never UX Dropzone's own form theme", async ({ page }) => {
+    for (const path of ['/lab/dropzone-turbo', '/preview/dropzone/multiple-files?theme=light']) {
+        const response = await page.request.get(path);
+        expect(response.status()).toBe(200);
+        const html = await response.text();
+        expect(html).toContain('data-controller="symfony--ux-dropzone--dropzone dropzone-assist"');
+        expect(html, path).not.toContain('dropzone-container');
+        expect(html, path).not.toMatch(/\sstyle=/);
+    }
+});
+
+test('a picked image shows its preview under the policy (img-src data:)', async ({ page }) => {
+    const { policy } = await gotoAndCheckPolicy(page, '/preview/dropzone/default?theme=light');
+    expect(policy.get('img-src')).toContain('data:');
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    await page.locator('input[type="file"]').setInputFiles({ name: 'tiny.png', mimeType: 'image/png', buffer: png });
+    const image = page.locator('[data-symfony--ux-dropzone--dropzone-target="previewImage"]');
+    await expect(image).toBeVisible();
+    // the image loads: its natural size, read the way the browser loads a CSS background (the fixtures fail on a violation)
+    const loaded = await image.evaluate(async (element) => {
+        const url = getComputedStyle(element).backgroundImage.slice(5, -2);
+        const probe = new Image();
+        probe.src = url;
+        await probe.decode();
+
+        return { scheme: url.slice(0, 15), width: probe.naturalWidth };
+    });
+    expect(loaded).toEqual({ scheme: 'data:image/png;', width: 1 });
 });
 
 test("Symfony's error pages keep the hardening headers without a policy on scripts and styles", async ({ page, allowHttpError }) => {

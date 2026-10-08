@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}dropzone-turbo ({{ page }}) — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'dropzone-turbo'}) }}
+    <h2 class="mb-2 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    <p class="mb-4"><a href="{{ path('app_lab_dropzone_turbo', {page: page == 'one' ? 'two' : 'one'}) }}" class="text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a></p>
+    <div class="mb-6 grid max-w-3xl gap-6 md:grid-cols-2">
+        <twig:FormField for="photo" label="Photo">
+            <twig:Dropzone id="photo" name="photo" accept="image/png,image/jpeg" />
+        </twig:FormField>
+        <twig:FormField for="attachments" label="Attachments">
+            <twig:Dropzone id="attachments" name="attachments[]" multiple />
+        </twig:FormField>
+    </div>
+    <div id="lab-permanent-dropzone" data-turbo-permanent class="mb-6 max-w-sm">
+        <twig:FormField for="kept" label="Kept file">
+            <twig:Dropzone id="kept" name="kept" />
+        </twig:FormField>
+    </div>
+    <turbo-frame id="dropzone-frame" class="block max-w-sm">
+        <p class="mb-2">Frame load <span data-testid="frame-load">{{ load }}</span> · <a href="{{ path('app_lab_dropzone_turbo', {page: page, load: load + 1}) }}" class="text-fg-brand hover:underline">Reload the frame</a></p>
+        {% if framed %}<p class="mb-2 text-sm text-heading" data-testid="framed">framed={{ framed }}</p>{% endif %}
+        <form method="post" action="{{ path('app_lab_dropzone_turbo', {page: page}) }}" enctype="multipart/form-data">
+            <twig:FormField for="framed" label="Framed image" :error="error">
+                <twig:Dropzone id="framed" name="framed" accept="image/png,image/jpeg" {{ ...(error ? {'aria-invalid': 'true', 'aria-describedby': 'framed_error'} : {}) }} />
+            </twig:FormField>
+            <twig:Button type="submit" class="mt-4">Upload</twig:Button>
+        </form>
+    </turbo-frame>
+{% endblock %}
