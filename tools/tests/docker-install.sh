@@ -12,7 +12,7 @@ ref="${KIT_REF:?set KIT_REF to a tag or a full commit SHA of the kit}"
 repository="${KIT_REPOSITORY:-xormania/flowbite-xor}"
 toolkit_version="${UX_TOOLKIT_VERSION:-3.5.1}"
 export SYMFONY_VERSION="${SYMFONY_VERSION:-8.1.*}"
-# the template commit UPSTREAM.md records for the demo
+# the template commit docs/NOTES.md records for the demo
 template_commit=422756611d61e0108600ed7ec1370ec677d0e8d0
 work="$(mktemp -d)"
 app="$work/app"
@@ -33,7 +33,7 @@ git clone --quiet https://github.com/dunglas/symfony-docker "$app"
 git -C "$app" checkout --quiet "$template_commit"
 cd "$app"
 # FrankenPHP 1.13 (Mercure 1.0) refuses the template's Mercure configuration: the demo's Caddyfile and no
-# `demo` directive, as in UPSTREAM.md's Symfony Docker section
+# `demo` directive, as in docs/NOTES.md's Symfony Docker section
 cp "$root/demo/frankenphp/Caddyfile" frankenphp/Caddyfile
 sed -i '/MERCURE_EXTRA_DIRECTIVES/d' compose.override.yaml
 # the demo's compose.yaml: the template's, with its ports published on loopback only

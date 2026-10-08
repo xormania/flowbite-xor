@@ -13,11 +13,6 @@ navigates and when Live Components re-render them.
 **Gallery:** <https://xormania.github.io/flowbite-xor/> shows every recipe and every example of its README, in light
 and dark, with its code and its install command. It is a static copy of the demo app, published with each release.
 
-22 components are copied from the UX Toolkit's official `flowbite-4` kit, which loads Flowbite's JavaScript.
-This kit replaces that JavaScript with its own Stimulus controllers, fixes the contrast of some theme colors, and
-adds components, a form theme, layouts and blocks. [`UPSTREAM.md`](UPSTREAM.md) lists every change to the copied
-files.
-
 ## Install
 
 Requires PHP 8.4 or later with the `zip` extension (the toolkit unpacks GitHub's archive of the kit).
@@ -215,7 +210,7 @@ unchecked. On top of escaping, the components check what shapes their markup:
   The value is printed as text, even a `Markup` one (`|raw`).
 - **Attributes.** Attributes given to a component, and `FormField`'s `labelAttr` and `helpAttr`, render with escaped
   names and values: a name cannot add another attribute. Otherwise they render as given, an `on…` handler or an
-  `href` included. URLs given as attributes are not checked, as in the official kit: the `href` of `Button` or `Badge`
+  `href` included. URLs given as attributes are not checked: the `href` of `Button` or `Badge`
   with `as="a"`, of `Dropdown:Item` and of `Pagination:Link`, and the `src` of `Avatar:Image`. Check those yourself.
 - **Content Security Policy.** The components print no inline script, style or event handler, so they work under a
   strict policy (nonces and `'strict-dynamic'`, no `'unsafe-inline'`). The layouts print their inline script and the
