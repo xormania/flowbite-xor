@@ -10,6 +10,8 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  * Paragraphs and line breaks, bold, italic, underline, strike, inline code, level 2 and 3 headings, lists (an ordered
  * list keeps its `start`), quotes, horizontal lines, and links to https, http, mailto or a relative URL, always with
  * `rel="noopener noreferrer nofollow"`. No `style`, `class`, `id`, `data-*`, event attribute, image or `target`.
+ * Other formatting and structure tags (`b`, `span`, `div`, `h1`, tables…) are unwrapped, their text kept; scripts,
+ * styles, images, media, frames and forms are removed with their content.
  *
  * Copied into your app by `ux:install editor`: change it with the recipe's toolbar, never one without the other.
  */
@@ -22,6 +24,9 @@ final class EditorHtmlPolicy
     public const MAX_CHARS = 20_000;
 
     private const ELEMENTS = ['p', 'br', 'strong', 'em', 'u', 's', 'code', 'h2', 'h3', 'ul', 'li', 'blockquote', 'hr'];
+
+    /** Tags removed with their text kept (formatting and structure from elsewhere); anything else not allowed is dropped whole. */
+    private const UNWRAPPED = ['b', 'i', 'del', 'strike', 'ins', 'mark', 'small', 'sub', 'sup', 'span', 'font', 'div', 'section', 'article', 'header', 'footer', 'main', 'aside', 'nav', 'h1', 'h4', 'h5', 'h6', 'pre', 'kbd', 'samp', 'abbr', 'cite', 'q', 'dl', 'dt', 'dd', 'figure', 'figcaption', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'caption'];
 
     private readonly HtmlSanitizer $sanitizer;
 
@@ -37,6 +42,9 @@ final class EditorHtmlPolicy
             ->forceAttribute('a', 'rel', 'noopener noreferrer nofollow');
         foreach (self::ELEMENTS as $element) {
             $config = $config->allowElement($element);
+        }
+        foreach (self::UNWRAPPED as $element) {
+            $config = $config->blockElement($element);
         }
         $this->sanitizer = new HtmlSanitizer($config);
     }

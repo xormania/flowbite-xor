@@ -221,6 +221,8 @@ export default class extends Controller {
         }
         const { from, to } = this.#editor.state.selection;
         this.selectionValue = `${from},${to}`;
+        // Turbo's copy of the page keeps the textarea's content, which the restored editor starts from
+        this.valueTarget.textContent = this.valueTarget.value;
         this.#destroy();
     }
 
