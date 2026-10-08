@@ -1,5 +1,19 @@
 import { Controller } from '@hotwired/stimulus';
 
+/**
+ * Tabs, as the WAI-ARIA tabs pattern describes them: one tab at a time is in the Tab order (roving `tabindex`), and
+ * the arrow keys of the list's orientation move to the previous or next tab and select it (Left and Right in a
+ * horizontal list, Up and Down in a vertical one), Home and End to the first and last; disabled tabs are skipped.
+ *
+ * The selected tab is the `activeTab` value, mirrored in the element's attribute, so the copy of the page Turbo
+ * caches comes back on Back with the tab that was selected; a new visit or a reload starts from `defaultValue`.
+ *
+ * @target trigger The tabs (`role="tab"` buttons).
+ * @target tab     The panels (`role="tabpanel"`), shown when their tab is selected.
+ * @value  activeTab The value of the selected tab.
+ * @action open    Selects the clicked tab.
+ * @action keydown Moves to and selects another tab with the arrow keys, Home and End.
+ */
 export default class extends Controller {
     static targets = ['trigger', 'tab'];
     static values = { activeTab: String };
@@ -10,10 +24,44 @@ export default class extends Controller {
         if (panelId && !document.getElementById(panelId)) {
             trigger.removeAttribute('aria-controls');
         }
+        this.updateTabStop();
     }
 
     open(e) {
         this.activeTabValue = e.currentTarget.dataset.tabId;
+    }
+
+    keydown(event) {
+        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+            return;
+        }
+        const vertical = 'vertical' === this.element.dataset.orientation;
+        const previous = vertical ? 'ArrowUp' : 'ArrowLeft';
+        const next = vertical ? 'ArrowDown' : 'ArrowRight';
+        const tabs = this.enabledTriggers();
+        const index = tabs.indexOf(event.currentTarget);
+        let target;
+        switch (event.key) {
+            case previous:
+                target = tabs[(index - 1 + tabs.length) % tabs.length];
+                break;
+            case next:
+                target = tabs[(index + 1) % tabs.length];
+                break;
+            case 'Home':
+                target = tabs[0];
+                break;
+            case 'End':
+                target = tabs[tabs.length - 1];
+                break;
+            default:
+                return;
+        }
+        event.preventDefault();
+        if (target) {
+            this.activeTabValue = target.dataset.tabId;
+            target.focus();
+        }
     }
 
     activeTabValueChanged() {
@@ -26,5 +74,17 @@ export default class extends Controller {
         this.tabTargets.forEach((tab) => {
             tab.dataset.state = tab.dataset.tabId === this.activeTabValue ? 'active' : 'inactive';
         });
+        this.updateTabStop();
+    }
+
+    /** The selected tab is the list's one Tab stop; without one, the first enabled tab. */
+    updateTabStop() {
+        const enabled = this.enabledTriggers();
+        const stop = enabled.find((trigger) => trigger.dataset.tabId === this.activeTabValue) ?? enabled[0];
+        this.triggerTargets.forEach((trigger) => trigger.setAttribute('tabindex', trigger === stop ? '0' : '-1'));
+    }
+
+    enabledTriggers() {
+        return this.triggerTargets.filter((trigger) => !trigger.disabled);
     }
 }

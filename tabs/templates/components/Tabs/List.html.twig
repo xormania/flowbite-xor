@@ -12,8 +12,10 @@
     },
 ) -%}
 
+{#- the orientation of the surrounding Tabs -#}
 <ul
     role="tablist"
+    aria-orientation="{{ (orientation ?? 'horizontal') is same as('vertical') ? 'vertical' : 'horizontal' }}"
     data-variant="{{ variant }}"
     {{ attributes.defaults({class: style.apply({variant: variant})|tailwind_classes}) }}>
     {## The default block. -#}
