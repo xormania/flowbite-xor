@@ -59,12 +59,15 @@ jobs:
                   else
                       base=
                   fi
-                  if [ -z "$base" ]; then
-                      echo "Everything runs ($EVENT on $REF)"
-                      echo .github/workflows/ci.yml | tools/ci-changes.sh | tee -a "$GITHUB_OUTPUT"
-                  else
+                  # The classifier runs as it is at the base, which the change cannot edit: a branch that changes
+                  # tools/ci-changes.sh is classified by the base's copy (which runs everything for that path), and a base
+                  # without the script runs everything.
+                  if [ -n "$base" ] && git show "$base:tools/ci-changes.sh" > "$RUNNER_TEMP/ci-changes.sh" 2>/dev/null; then
                       echo "Changed since $base:"
-                      git diff --name-only --no-renames "$base" HEAD | tee /dev/stderr | tools/ci-changes.sh | tee -a "$GITHUB_OUTPUT"
+                      git diff --name-only --no-renames "$base" HEAD | tee /dev/stderr | bash "$RUNNER_TEMP/ci-changes.sh" | tee -a "$GITHUB_OUTPUT"
+                  else
+                      echo "Everything runs ($EVENT on $REF)"
+                      for job in lint-kit php static-site fresh-install contrast demo; do echo "$job=true"; done | tee -a "$GITHUB_OUTPUT"
                   fi
 
     lint-kit:
