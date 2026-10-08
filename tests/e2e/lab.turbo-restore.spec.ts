@@ -2,8 +2,8 @@ import type { Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
 
 /*
- * Overlays left open when a link inside them visits another page: Back shows them closed, and they open again as they
- * should (a menu's markup and state agree, a dialog is modal). Page two links a stylesheet page one lacks; delayed, it
+ * Overlays left open when a link inside them visits another page, and a tooltip shown on such a link: Back shows them
+ * closed, and they open again as they should (a menu's markup and state agree, a dialog is modal). Page two links a stylesheet page one lacks; delayed, it
  * makes Turbo copy page one before its controllers disconnect, the order a slow stylesheet gives in production.
  */
 
@@ -50,6 +50,23 @@ const overlays: Overlay[] = [
         expectClosed: async (page) => {
             await expect.poll(() => dialogState(page, 'drawer-restore-drawer')).toEqual({ open: false, modal: false });
             await expect(page.getByRole('button', { name: 'Open the drawer' })).toHaveAttribute('aria-expanded', 'false');
+        },
+    },
+    {
+        // shown while the pointer is on the link it describes, when that link visits
+        name: 'a tooltip',
+        open: async (page) => {
+            await page.mouse.move(0, 0);
+            await page.getByRole('link', { name: 'Page two from the tooltip link' }).hover();
+        },
+        link: (page) => page.getByRole('link', { name: 'Page two from the tooltip link' }),
+        expectOpen: async (page) => {
+            await expect(page.getByRole('tooltip', { name: 'Opens page two' })).toBeVisible();
+            await expect(page.getByRole('link', { name: 'Page two from the tooltip link' })).toHaveAccessibleDescription('Opens page two');
+        },
+        expectClosed: async (page) => {
+            await expect(page.getByRole('tooltip', { name: 'Opens page two', includeHidden: true })).toBeHidden();
+            await expect(page.getByRole('link', { name: 'Page two from the tooltip link' })).toHaveAccessibleDescription('Opens page two');
         },
     },
 ];
