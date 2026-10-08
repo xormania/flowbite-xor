@@ -307,16 +307,16 @@ export default class extends Controller {
     }
 
     /**
-     * Pasted HTML without its `style` attributes and `<style>` elements, before ProseMirror reads it: its parser would
-     * apply them in a document under the page's Content Security Policy, which blocks and reports them. Text only, as
-     * any parser would apply them too; what it misses, the schema drops anyway.
+     * Pasted HTML without its `style` attributes and `<style>` elements, before ProseMirror reads it: any HTML parser
+     * (DOMParser, a template, ProseMirror's) applies them in a document under the page's Content Security Policy,
+     * which blocks and reports them, so they go as text. Repeated until nothing changes, and an unclosed `<style`
+     * goes to the end: no removal can leave one behind. The schema then decides what is kept.
      */
     #withoutStyles(html) {
-        // repeated until nothing changes: a removal can join the halves of another `<style` or `style=`
         let previous;
         do {
             previous = html;
-            html = html.replace(/<style[\s\S]*?<\/style\s*>/gi, '').replace(/\sstyle\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+            html = html.replace(/<style\b[\s\S]*?(?:<\/style\s*>|$)/gi, '').replace(/\sstyle\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, ' ');
         } while (html !== previous);
 
         return html;

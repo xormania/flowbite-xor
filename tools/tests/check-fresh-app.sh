@@ -146,7 +146,7 @@ token="$(grep -oE '<input[^>]*name="form\[_token\]"[^>]*>' <<< "$page" | grep -o
 location="$(curl -s "$@" -o /dev/null -w '%{http_code} %{redirect_url}' -b "$work/cookies" -H "Origin: $base" \
     --data-urlencode 'form[body]=<p onclick="x()">Hi <script>x()</script></p>' ${token:+--data-urlencode "form[_token]=$token"} "$base/post")"
 case "$location" in
-    "303 "*"stored=%3Cp%3EHi%20%3C%2Fp%3E") ;;
+    "303 "*"stored=%3Cp%3EHi%20%3C/p%3E") ;;
     *) echo "FAIL: posting a body to /post answered $location" >&2; exit 1 ;;
 esac
 echo "ok: an EditorType renders the Editor and stores sanitized HTML (HTTP 200, 303)"
