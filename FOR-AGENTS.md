@@ -82,6 +82,7 @@ Keep `php bin/console tailwind:build --watch` running while you work, or run `ta
 | A hint on hover or focus | `tooltip` |
 | Notifications, also from Turbo Streams | `toast` |
 | Key figures | `stat-card` |
+| A chart of numbers, with its data as a table | `chart` |
 | An empty list's message | `empty-state` |
 | Sign in, sign up, password reset, profile settings, a 404 page | `login`, `signup`, `forgot-password`, `settings-profile`, `not-found` |
 | A light/dark switch | `theme-toggle` |
@@ -101,8 +102,10 @@ Buttons, inputs, selects, cards, badges, alerts, tabs and the rest of Flowbite's
   form (422) on errors. Turbo Drive rejects a 200 after a submit.
 - **Opt form fields in, with no template code**: `'autocomplete' => true` on a choice field;
   `'widget' => 'single_text', 'block_prefix' => 'flowbite_date_picker'` on a `DateType`.
-- **Stable ids in re-rendered markup**: inside a Live Component or a Turbo Frame, give `Tooltip`, `Popover` and
-  `DatePicker` an explicit `id`.
+- **No colors in chart data**: the theme's chart roles apply; for a color of your own, write a role as
+  `'var(--color-…)'`.
+- **Stable ids in re-rendered markup**: inside a Live Component or a Turbo Frame, give `Tooltip`, `Popover`,
+  `DatePicker` and `Chart` an explicit `id`.
 - **Toasts go through Turbo Streams**: render `<twig:Toast:Stream>` in the page or in a Stream response, never
   inside the permanent toast region.
 - **One owner per region**: a Live Component or a Turbo Frame or Stream, not both.

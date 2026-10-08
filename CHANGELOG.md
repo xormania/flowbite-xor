@@ -7,6 +7,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `chart`: charts drawn with Symfony UX Chart.js in the theme's colors, light and dark, each with its data as a table;
+  from arrays or a `ChartBuilderInterface` chart, updated in place by Live Components.
 - `FOR-AGENTS.md`, a page for the coding agent given the repository's URL (setup, which recipe for what, the rules),
   and `llms.txt`, every page with one line, written from `README.md`'s recipe tables and checked in CI.
 - `date-picker`: a `Calendar` in a `Popover`, opened from a button or a field where the date can be typed; a
@@ -24,6 +26,7 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `theme`: chart series roles `chart-1` to `chart-6` and `chart-other`, checked for contrast in both themes.
 - The docs no longer track the official `flowbite-4` kit, an initial reference only: `UPSTREAM.md` is removed, and
   its notes on toolkit and platform behavior moved to `docs/NOTES.md`. `NOTICE` keeps the credit.
 - `form-theme`: a single-text `DateType` opted in with `'block_prefix' => 'flowbite_date_picker'` renders as the
