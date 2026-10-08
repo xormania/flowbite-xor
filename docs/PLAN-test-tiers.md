@@ -9,8 +9,12 @@ _2026-10-08. Decided with the user on 2026-10-08:_
    Components, `flowbite.min.css` and the strict CSP meet. Small component tests only where e2e cannot isolate a
    cost._
 3. _**A baseline first:** timings are recorded on `main` before anything is compared or gated._
-4. _**Every tier must pass for a release, from 0.3.0.** 0.2.0 ships on the current checks and the security audit;
-   the work in this plan starts after 0.2.0._
+4. _**Every tier must pass for a release, from 0.3.0.** 0.2.0 ships on the current checks and the security audit._
+5. _**Fuzz and property testing** join the release checks (decided later the same day)._
+6. _**PHP tests first:** PHPUnit and the Symfony UX test helpers are set up before the rest of this plan, from the
+   survey of PHP and Symfony testing projects._
+7. _**Before 0.2.0:** this plan, with the Turbo cleanup and the other work first planned after the release, is done
+   before 0.2.0 is tagged._
 
 _What led here: the theme toggle showed no icon under a dark system with the light theme chosen, and a theme switch
 faded table rows (`fix(theme-toggle)`). Each component's states were tested, not the moves between them, and nothing
@@ -66,6 +70,7 @@ baseline.
 | Harsh conditions | The tier 1 transitions of the heavy recipes (data tables, editors, chart, autocomplete, date picker) under 4× CPU throttling, a slow network, and a phone viewport. |
 | Long sessions | 50 Turbo visits and Backs across the demo: the JS heap, `Nodes` and `JSEventListeners` must come back to their level after the first visit (leaks a single visit hides). |
 | Wide matrices | The state × transition matrix of tier 1 extended to every overlay (modal, drawer, dropdown, popover, tooltip) and editor, in both themes. |
+| Fuzz and properties | Seeded, with a time budget per target; each run prints its seed and `SEED=…` replays it. **Requests:** random query strings for the data tables, random values for every writable Live prop (sent as the live controller sends them), random form posts: no 5xx, no response over a time budget, no injected element, no CSP violation. **Properties** of the server code: `TableQuery::fromValues()` (the offset stays below `maxRows()`), the editor's HTML policy and the Markdown renderer (sanitized output is stable when sanitized again, no `<script>` or `on*` attribute, length limits hold). **UI runs:** random clicks, keys, Back/Forward and theme switches on the lab pages under the test fixture: no console or page error, one controller instance. A failure found becomes a fixed tier 1 test. |
 
 Scenarios, all in the demo: the `/demo` dashboard, the data-table and data-table-live labs, the editor and
 markdown-editor labs, the chart page, the forms page, and the Turbo labs. Server time is excluded: every metric is
@@ -104,17 +109,22 @@ Specs live with the others in `tests/e2e/`; tier 3 is a tag, not a separate tree
 One pull request each, in order:
 
 1. **This plan** (`docs/PLAN-test-tiers.md`), reviewed.
-2. **The inventory:** per recipe, its states and transitions and the spec covering each, as a table in this file.
-3. **Baseline:** the timing harness, `release-checks.yml` with `workflow_dispatch` and `record`, report only, and the
+2. **PHP tests:** PHPUnit 13 and `symfony/test-pack` in the demo, the PHPStan Symfony and PHPUnit extensions,
+   `tools/tests/data-table.php` ported to PHPUnit; Live and Twig component tests with the UX packages' helpers
+   (`InteractsWithLiveComponents`, `InteractsWithTwigComponents`), snapshot tests of rendered components, and
+   `composer audit` in CI.
+3. **The inventory:** per recipe, its states and transitions and the spec covering each, as a table in this file.
+4. **Baseline:** the timing harness, `release-checks.yml` with `workflow_dispatch` and `record`, report only, and the
    first `tests/perf/baseline.json`.
-4. **Tier 2:** the count checks and the byte budgets, in the existing specs.
-5. **Tier 1 gaps:** the missing state × transition specs from the inventory, a recipe group per pull request.
-6. **Tier 3 and the release gate:** harsh conditions, long sessions, wide matrices, the daily schedule and its issue,
-   `release.yml` calling it.
-7. **Gates on:** the tolerances the user picked after reviewing the reports.
+5. **Tier 2:** the count checks and the byte budgets, in the existing specs.
+6. **Tier 1 gaps:** the missing state × transition specs from the inventory, a recipe group per pull request.
+7. **Tier 3 and the release gate:** harsh conditions, long sessions, wide matrices, fuzz and property tests, the daily
+   schedule and its issue, `release.yml` calling it.
+8. **Gates on:** the tolerances the user picked after reviewing the reports.
 
 ## Open questions
 
-1. Tolerances per timing metric: decided after the report-only runs (step 7).
+1. Tolerances per timing metric: decided after the report-only runs (step 8).
 2. How many runs per scenario: 5 is the starting point; more if the spread is wide.
 3. Firefox and WebKit: Chromium only for now (the metrics above are Chromium's); revisit after the release.
+4. The work lands before 0.2.0 (decision 7): does the release gate then already apply to 0.2.0, or still from 0.3.0?
