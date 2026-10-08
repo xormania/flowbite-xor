@@ -29,7 +29,9 @@ Add a toast with `<twig:Toast:Stream>`. It renders a Turbo Stream that appends t
 {% endfor %}
 ```
 
-A toast closes itself after 5 seconds. Set `timeout` in milliseconds, or `timeout="0"` to keep it until the user closes it.
+A toast closes itself after 5 seconds. Set `timeout` in milliseconds, or `timeout="0"` to keep it until the user closes it. In the region, a toast stays across Turbo visits until then.
+
+A toast placed outside a region belongs to its page: it is marked `data-turbo-temporary`, so Turbo removes it before caching the page, and Back never shows it again.
 
 Toasts written inside `<twig:ToastRegion>` show on a full page load only: on a Turbo Drive visit, Turbo keeps the region already on screen and drops the new page's copy, with its toasts. Use `<twig:Toast:Stream>` instead.
 
