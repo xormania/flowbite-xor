@@ -152,7 +152,7 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
   fresh-install tests run it in a new app. The README documents the PHP contract by hand: the generated API section
   covers Twig props and Stimulus controllers only.
 - **Never commit** `demo/vendor/`, `demo/var/`, `demo/public/assets/`, `demo/assets/vendor/`, `node_modules/`,
-  Playwright output (`test-results/`, `playwright-report/`).
+  Playwright output (`test-results/`, `playwright-report/`, `playwright-results/`).
 
 ## Adding a recipe
 
