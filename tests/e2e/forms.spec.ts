@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
 
-const pairs = ['name', 'email', 'country', 'bio', 'plan', 'terms', 'save'];
+const pairs = ['name', 'email', 'country', 'bio', 'startsOn', 'plan', 'terms', 'save'];
 
 /**
  * Largest per-channel difference between two element screenshots of the same size: rounded corners
@@ -94,4 +94,23 @@ test('label_attr and help_attr reach the row label and help', async ({ page }) =
     await expect(page.getByTestId('website-help')).toHaveAttribute('id', 'demo_website_help');
     await expect(page.getByTestId('terms-label')).toHaveAttribute('for', 'demo_terms');
     await expect(page.getByTestId('terms-label')).toHaveClass(/\bselect-none\b/);
+});
+
+test('the date picker opt-in submits the pick; a date the server refuses comes back as typed, with its error', async ({ page, allowHttpError }) => {
+    allowHttpError(/\/forms$/, 422);
+    await page.goto('/forms');
+    const field = page.getByRole('textbox', { name: 'Starts on' });
+    const hidden = page.locator('input[name="demo[startsOn]"]');
+    await page.getByRole('button', { name: 'Choose date' }).click();
+    await page.getByRole('dialog').locator('[data-slot="calendar-day"][data-day="2026-01-15"] button').click();
+    await expect(hidden).toHaveValue('2026-01-15');
+    await expect(field).toHaveValue('Jan 15, 2026');
+
+    // below the bound, as a script could send it: the constraint decides
+    await hidden.evaluate((input) => ((input as HTMLInputElement).value = '2025-06-01'));
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await expect(field).toHaveAttribute('aria-invalid', 'true');
+    await expect(field).toHaveValue('2025-06-01');
+    await expect(field).toHaveAccessibleDescription(/^The first day of your subscription\. This value should be greater than or equal to/);
+    await expect(page.locator('input[name="demo[startsOn]"]')).toHaveValue('');
 });

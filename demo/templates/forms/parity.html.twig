@@ -46,6 +46,27 @@
             </twig:FormField>
         </div>
 
+        <div data-pair="startsOn" data-side="theme">{{ form_row(form.startsOn) }}</div>
+        <div data-pair="startsOn" data-side="components">
+            <twig:FormField for="c_startsOn" label="Starts on" help="The first day of your subscription." class="mb-6">
+                <twig:DatePicker id="c_startsOn_picker" selected="2026-03-12" class="block w-full">
+                    <div class="flex gap-2">
+                        <twig:DatePicker:Input>
+                            <twig:Input id="c_startsOn" aria-describedby="c_startsOn_help" {{ ...date_picker_input_attrs }} />
+                        </twig:DatePicker:Input>
+                        <twig:DatePicker:Trigger>
+                            <twig:Button variant="outline" size="icon" aria-label="Choose date" {{ ...date_picker_trigger_attrs }}>
+                                <twig:ux:icon name="flowbite:calendar-month-outline" class="size-5" aria-hidden="true" />
+                            </twig:Button>
+                        </twig:DatePicker:Trigger>
+                    </div>
+                    <twig:DatePicker:Content>
+                        <twig:Calendar name="c_startsOn" selected="2026-03-12" month="2026-03-12" minDate="2026-01-01" />
+                    </twig:DatePicker:Content>
+                </twig:DatePicker>
+            </twig:FormField>
+        </div>
+
         <div data-pair="plan" data-side="theme">{{ form_row(form.plan) }}</div>
         <div data-pair="plan" data-side="components">
             <twig:FormField as="fieldset" for="c_plan" label="Plan" help="You can change it later." :error="[first_error(form.plan)]" required class="mb-6" aria-describedby="c_plan_help c_plan_error">

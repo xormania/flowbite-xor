@@ -52,6 +52,15 @@ final class DemoType extends AbstractType
                 'required' => false,
                 'widget' => 'single_text',
             ])
+            // the date-picker recipe's widget, opted in per field; the bounds guide the calendar, the constraint decides
+            ->add('startsOn', DateType::class, [
+                'required' => false,
+                'widget' => 'single_text',
+                'block_prefix' => 'flowbite_date_picker',
+                'help' => 'The first day of your subscription.',
+                'attr' => ['min' => '2026-01-01'],
+                'constraints' => [new Assert\GreaterThanOrEqual('2026-01-01')],
+            ])
             ->add('bio', TextareaType::class, [
                 'required' => false,
                 'help' => 'At most 200 characters.',

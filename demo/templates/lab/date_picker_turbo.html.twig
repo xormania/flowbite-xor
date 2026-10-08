@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}date-picker-turbo ({{ page }}) — Lab{% endblock %}
+
+{% macro picker(fieldId, label, selected) %}
+    <div class="w-64">
+        <twig:Label for="{{ fieldId }}" class="mb-2.5">{{ label }}</twig:Label>
+        <twig:DatePicker id="{{ fieldId }}-picker" :selected="selected">
+            <div class="flex gap-2">
+                <twig:DatePicker:Input>
+                    <twig:Input id="{{ fieldId }}" {{ ...date_picker_input_attrs }} />
+                </twig:DatePicker:Input>
+                <twig:DatePicker:Trigger>
+                    <twig:Button variant="outline" size="icon" aria-label="{{ label }}: choose date" {{ ...date_picker_trigger_attrs }}>
+                        <twig:ux:icon name="flowbite:calendar-month-outline" class="size-5" aria-hidden="true" />
+                    </twig:Button>
+                </twig:DatePicker:Trigger>
+            </div>
+            <twig:DatePicker:Content>
+                <twig:Calendar :name="fieldId" :selected="selected" today="2026-03-15" month="2026-03-01" minDate="2026-03-02" :disabled="['2026-03-20']" />
+            </twig:DatePicker:Content>
+        </twig:DatePicker>
+    </div>
+{% endmacro %}
+
+{% block body %}
+    {% from _self import picker %}
+    {{ include('lab/_header.html.twig', {name: 'date-picker-turbo'}) }}
+    <h2 class="mb-2 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    <p class="mb-4"><a href="{{ path('app_lab_date_picker_turbo', {page: page == 'one' ? 'two' : 'one'}) }}" class="text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a></p>
+    {% if submitted is not null %}<p class="mb-4 text-sm text-heading" data-testid="submitted">due={{ submitted }}</p>{% endif %}
+    <form method="get" action="{{ path('app_lab_date_picker_turbo', {page: page}) }}" class="mb-6 flex items-end gap-4">
+        {{ picker('due', 'Due date', submitted) }}
+        <twig:Button type="submit">Show</twig:Button>
+    </form>
+    <div id="lab-permanent-date-picker" data-turbo-permanent class="mb-6 inline-block">{{ picker('kept', 'Kept date', null) }}</div>
+    <turbo-frame id="date-picker-frame" class="block">
+        <p class="mb-2">Frame load <span data-testid="frame-load">{{ load }}</span> · <a href="{{ path('app_lab_date_picker_turbo', {page: page, load: load + 1}) }}" class="text-fg-brand hover:underline">Reload the frame</a></p>
+        {{ picker('framed', 'Framed date', null) }}
+    </turbo-frame>
+{% endblock %}

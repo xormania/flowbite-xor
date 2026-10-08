@@ -1,0 +1,44 @@
+{%- props
+    ## string Unique identifier, the base of the trigger's and the content's ids. Without it, a random one, which changes on every render: pass a stable one inside Live Components and Turbo Frames.
+    id = 'date-picker-' ~ random(),
+    ## string|array<string>|null The selected dates, as `Y-m-d` strings (the nested Calendar's `selected`), for the text rendered before JavaScript runs.
+    selected = null,
+    ## string|null The locale of the formatted dates; without it, the request's locale.
+    locale = null,
+    ## 'full'|'long'|'medium'|'short' The length of the formatted dates.
+    dateStyle = 'medium',
+    ## string The text between two formatted dates (a range, several dates).
+    separator = ' – ',
+    ## boolean Whether completing the selection closes the popover.
+    closeOnSelect = true,
+    ## boolean Whether the popover is open on render.
+    open = false,
+    ## 'bottom'|'top'|'left'|'right'|'bottom-start'|'bottom-end'|'top-start'|'top-end'|'left-start'|'left-end'|'right-start'|'right-end' Where the calendar opens.
+    placement = 'bottom-start'
+-%}
+{%- set _isDate = '/^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/' -%}
+{%- set _locale = locale ?? app.request.locale|default(null) -%}
+{%- set _selected = null == selected ? [] : ((selected is iterable ? selected : [selected])|filter(value => value is not null and value matches _isDate and value|date('Y-m-d') == value)) -%}
+{%- set _formatted = _selected|map(date => date|format_date(dateFormat: dateStyle in ['full', 'long', 'medium', 'short'] ? dateStyle : 'medium', locale: _locale))|join(separator) -%}
+{%- do provide('popover.id', id) -%}
+{%- do provide('popover.open', open) -%}
+{%- do provide('datePicker.empty', _selected is empty) -%}
+{%- do provide('datePicker.formatted', _formatted) -%}
+<div
+    data-state="{{ open ? 'open' : 'closed' }}"
+    data-empty="{{ _selected is empty ? 'true' : 'false' }}"
+    data-popover-open-value="{{ open ? 'true' : 'false' }}"
+    data-popover-placement-value="{{ placement }}"
+    data-date-picker-locale-value="{{ _locale }}"
+    data-date-picker-date-style-value="{{ dateStyle }}"
+    data-date-picker-separator-value="{{ separator }}"
+    data-date-picker-close-on-select-value="{{ closeOnSelect ? 'true' : 'false' }}"
+    {{ attributes.defaults({
+        class: 'relative inline-block'|tailwind_classes,
+        'data-controller': 'popover date-picker',
+        'data-action': 'popover:open@window->popover#closeIfGrouped keydown.esc->popover#escape focusout->popover#closeOnFocusOut turbo:before-cache@document->popover#closeSilently calendar:select->date-picker#select popover:focus->date-picker#focusDay',
+    }) }}
+>
+    {##- A `DatePicker:Trigger` (or a `DatePicker:Input` beside one) and a `DatePicker:Content` holding a `Calendar`. -#}
+    {%- block content %}{% endblock -%}
+</div>

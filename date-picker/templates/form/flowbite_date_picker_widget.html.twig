@@ -1,0 +1,38 @@
+{#-
+    The date picker of a `DateType` opted in with `'block_prefix' => 'flowbite_date_picker'` and
+    `'widget' => 'single_text'`, included by the form-theme recipe's `flowbite_date_picker_widget` block with the
+    field's variables. The text field takes the field's id (its label points at it) and no name; the Calendar's
+    hidden input takes the name. A submitted value with errors is shown as typed, never parsed.
+-#}
+{%- set _isDate = '/^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/' -%}
+{%- set _value = errors|length == 0 and value is not empty and value matches _isDate and value|date('Y-m-d') == value ? value : null -%}
+{%- set _min = attr.min ?? null -%}
+{%- set _max = attr.max ?? null -%}
+{%- set _text_attr = {id: id, disabled: disabled, required: required|default(false)} -%}
+{%- for _name, _attr_value in attr|filter((v, k) => k not in ['min', 'max', 'type', 'name', 'value']) -%}
+    {%- if _name in ['placeholder', 'title'] and translation_domain is not same as(false) and _attr_value is not null -%}
+        {%- set _attr_value = _attr_value|trans(attr_translation_parameters, translation_domain) -%}
+    {%- endif -%}
+    {%- set _text_attr = _text_attr|merge({(_name): _attr_value}) -%}
+{%- endfor -%}
+{%- if errors|length > 0 -%}
+    {%- set _text_attr = _text_attr|merge({value: value}) -%}
+{%- endif -%}
+{%- set _text_attr = _text_attr|filter((v) => v is not null and v is not same as(false)) -%}
+{%- set _picker_label = picker_label|default('Choose date') -%}
+{%- set _picker_label = translation_domain is same as(false) ? _picker_label : _picker_label|trans({}, translation_domain) -%}
+<twig:DatePicker id="{{ id }}_picker" :selected="_value" class="block w-full">
+    <div class="flex gap-2">
+        <twig:DatePicker:Input>
+            <twig:Input {{ ...date_picker_input_attrs }} {{ ..._text_attr }} />
+        </twig:DatePicker:Input>
+        <twig:DatePicker:Trigger>
+            <twig:Button variant="outline" size="icon" aria-label="{{ _picker_label }}" {{ ...(disabled ? {disabled: true} : {}) }} {{ ...date_picker_trigger_attrs }}>
+                <twig:ux:icon name="flowbite:calendar-month-outline" class="size-5" aria-hidden="true" />
+            </twig:Button>
+        </twig:DatePicker:Trigger>
+    </div>
+    <twig:DatePicker:Content>
+        <twig:Calendar :name="full_name" :selected="_value" :month="_value ?? _min" :minDate="_min" :maxDate="_max" :inputAttr="disabled ? {disabled: true} : {}" />
+    </twig:DatePicker:Content>
+</twig:DatePicker>

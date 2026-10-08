@@ -45,6 +45,9 @@ final class LabController extends AbstractController
         'calendar-turbo' => 'Calendars in a GET form (one date, a range, several dates) across Turbo visits and Back, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'calendar-stream' => 'A Calendar replaced and updated by Turbo Streams.',
         'live-calendar' => 'Calendars bound to Live Component properties: a date, a range, bounds and a locale changed by the server.',
+        'date-picker-turbo' => 'Date pickers across Turbo visits and Back: one in a GET form, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
+        'date-picker-stream' => 'A DatePicker replaced and updated by Turbo Streams.',
+        'live-date-picker' => 'Date pickers in a Live form through the form theme: each pick reaches the server, and the end date follows the start.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -66,6 +69,7 @@ final class LabController extends AbstractController
     #[Route('/live-table', name: 'app_lab_live_table')]
     #[Route('/live-drawer', name: 'app_lab_live_drawer')]
     #[Route('/live-form', name: 'app_lab_live_form')]
+    #[Route('/live-date-picker', name: 'app_lab_live_date_picker')]
     #[Route('/live-calendar', name: 'app_lab_live_calendar')]
     #[Route('/live-popover', name: 'app_lab_live_popover')]
     #[Route('/live-autocomplete', name: 'app_lab_live_autocomplete')]
@@ -267,5 +271,30 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/calendar_stream.html.twig', ['description' => self::SCENARIOS['calendar-stream']]);
+    }
+
+    #[Route('/date-picker-turbo/{page}', name: 'app_lab_date_picker_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    public function datePickerTurbo(Request $request, string $page): Response
+    {
+        return $this->render('lab/date_picker_turbo.html.twig', [
+            'page' => $page,
+            'load' => $request->query->getInt('load'),
+            'submitted' => $request->query->has('due') ? $request->query->getString('due') : null,
+            'description' => self::SCENARIOS['date-picker-turbo'],
+        ]);
+    }
+
+    #[Route('/date-picker-stream', name: 'app_lab_date_picker_stream', methods: ['GET', 'POST'])]
+    public function datePickerStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/date_picker_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/date_picker_stream.html.twig', ['description' => self::SCENARIOS['date-picker-stream']]);
     }
 }

@@ -1,0 +1,9 @@
+<div {{ attributes }}>
+    <p class="mb-4 text-sm text-heading">start=<span data-testid="start">{{ form.start.vars.value }}</span> end=<span data-testid="end">{{ form.end.vars.value }}</span></p>
+    {{ form_start(form, {attr: {'data-model': 'on(change)|*', novalidate: true}}) }}
+        <div class="grid max-w-md gap-2">
+            {{ form_row(form.start) }}
+            {{ form_row(form.end) }}
+        </div>
+    {{ form_end(form) }}
+</div>
