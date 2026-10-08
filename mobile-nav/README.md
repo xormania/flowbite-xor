@@ -48,7 +48,8 @@ The app's navigation on small screens: a menu button in the navbar opening a mod
 - **What it is:** a `Drawer` (a native modal `<dialog>`, docked left) and its menu button, in the `Navbar`'s `menu`
   block. The button has `aria-controls`, `aria-haspopup="dialog"` and `aria-expanded`, named by `menuLabel`; the
   drawer is named by `label`, and so is the `<nav>` inside it. Put a `SideNav` in it, or the `Sidebar:Group`s of a
-  `Sidebar`; `header` shows above it, typically the brand.
+  `Sidebar`; `header` shows above it, typically the brand. A `SideNav` marks the current page from the URL wherever
+  it is; a `Sidebar:Item` is marked in the drawer only by its `route` (the `Sidebar`'s controller marks the rest).
 - **Small screens only:** the button is hidden from Tailwind's `md` breakpoint up, where the app layout shows the
   `Sidebar`; a drawer still open when the screen grows to that width closes. In your copy, change both `md:hidden`
   on the button and the controller's `media` value (`(min-width: 48rem)`) to move it.
