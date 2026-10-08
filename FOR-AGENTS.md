@@ -72,6 +72,7 @@ Keep `php bin/console tailwind:build --watch` running while you work, or run `ta
 | Forms rendered with the kit's components | `form-theme` |
 | A searchable select, one or several choices, server-side search | `autocomplete` |
 | A date field, typed or picked, in a form | `date-picker` |
+| File uploads, drag and drop or browse, one file or several | `dropzone` |
 | Dates inline: one, several or a range | `calendar` |
 | A list of records with search, filters, sorting and pages | `data-table` (Turbo Frame) |
 | The same, with row selection, bulk actions or search while typing | `data-table-live` (Live Component) |
