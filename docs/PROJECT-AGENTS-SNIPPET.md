@@ -72,6 +72,12 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   field says when its files were not kept. In a Live Component, never a `DropzoneType`: `<twig:Dropzone>` inside
   `data-live-ignore`, a wrapper id and an input id that change after each upload, and a `files(name)|action` button.
   Image previews need `img-src data:` in a Content Security Policy.
+- **Rich text: `ux:install editor`**, run the printed `composer require` and `importmap:require` commands, and do the
+  README's CSS import. In a form, `EditorType` (from `App\FlowbiteXor\Editor`; `max_chars`, `max_bytes`): its data is
+  sanitized HTML or `null`. Print stored HTML with `|flowbite_editor_html`, never `|raw`; HTML from another path
+  goes through `EditorHtmlPolicy::sanitize()` before it is stored. Change the toolbar's formatting and the policy
+  together. In a Live Component, `<twig:Editor model="on(change)|field">`, and bump its `reset` prop to replace the
+  content from the server.
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the
   position yourself, as the kit's `Sidebar` does.

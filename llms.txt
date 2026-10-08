@@ -66,6 +66,7 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 - [form-field](https://raw.githubusercontent.com/xormania/flowbite-xor/main/form-field/README.md): A labelled form control with its help text and error message, wired by id (used by the form theme).
 - [autocomplete](https://raw.githubusercontent.com/xormania/flowbite-xor/main/autocomplete/README.md): Searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme: one choice, several, values typed by the user, options searched on the server. Works through the form theme (`'autocomplete' => true`) and as an `Autocomplete` component outside forms.
 - [dropzone](https://raw.githubusercontent.com/xormania/flowbite-xor/main/dropzone/README.md): File uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of the picked image, several files that add up across picks, keyboard focus kept after a pick or a removal; a `DropzoneType` renders as one through the form theme.
+- [editor](https://raw.githubusercontent.com/xormania/flowbite-xor/main/editor/README.md): A rich text editor (Tiptap) that stores restricted HTML: paragraphs, bold, italic, strike, code, headings, lists, quotes, links; a keyboard-friendly toolbar, a link dialog, a counter. `EditorType` sanitizes every submit (symfony/html-sanitizer), and `flowbite_editor_html` prints stored HTML.
 
 ## Layouts
 

@@ -4,7 +4,7 @@
 # `twig.form_themes` setting: the block applies the theme itself), `/orders` renders a DataTable whose PHP classes
 # ux:install copied into src/, `/live-orders` a DataTableLive that answers a Live action, `/pick` autocomplete fields and
 # the Autocomplete component, `/dates` a DateType opted into the date picker, `/charts` two charts, `/upload`
-# DropzoneType fields that take a posted file, and all answer 200.
+# DropzoneType fields that take a posted file, `/post` an EditorType that sanitizes what it stores, and all answer 200.
 #
 #   tools/tests/check-fresh-app.sh <base URL> [curl option…]
 set -euo pipefail
@@ -134,3 +134,19 @@ case "$location" in
     *) echo "FAIL: posting a PNG to /upload answered $location" >&2; exit 1 ;;
 esac
 echo "ok: a DropzoneType renders through the dropzone recipe and takes a posted file (HTTP 200, 303)"
+
+# the editor recipe through the form theme: an EditorType renders the Editor (a textbox named by the label, the hidden
+# textarea under the field's name), and a posted body is stored sanitized
+page="$(fetch /post "$@" -c "$work/cookies")"
+for expected in 'data-controller="editor"' 'role="textbox"' 'aria-labelledby="form_body_label"' 'id="form_body_label"' 'name="form[body]"' 'role="toolbar"'; do
+    grep -qF -- "$expected" <<< "$page" || { echo "FAIL: the post page lacks $expected" >&2; exit 1; }
+done
+if grep -q ' style="' <<< "$page"; then echo "FAIL: the post page has a style attribute" >&2; exit 1; fi
+token="$(grep -oE '<input[^>]*name="form\[_token\]"[^>]*>' <<< "$page" | grep -oE 'value="[^"]*"' | sed 's/^value="//; s/"$//' || true)"
+location="$(curl -s "$@" -o /dev/null -w '%{http_code} %{redirect_url}' -b "$work/cookies" -H "Origin: $base" \
+    --data-urlencode 'form[body]=<p onclick="x()">Hi <script>x()</script></p>' ${token:+--data-urlencode "form[_token]=$token"} "$base/post")"
+case "$location" in
+    "303 "*"stored=%3Cp%3EHi%20%3C%2Fp%3E") ;;
+    *) echo "FAIL: posting a body to /post answered $location" >&2; exit 1 ;;
+esac
+echo "ok: an EditorType renders the Editor and stores sanitized HTML (HTTP 200, 303)"
