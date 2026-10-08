@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}editor-turbo ({{ page }}) — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'editor-turbo'}) }}
+    <h2 class="mb-2 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    <p class="mb-6"><a href="{{ path('app_lab_editor_turbo', {page: page == 'one' ? 'two' : 'one'}) }}" class="text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a></p>
+    {% if saved is not null %}
+        <div class="mb-6 max-w-2xl rounded-base border border-default p-4">
+            <p class="mb-2 text-sm font-medium text-heading">Published</p>
+            <div data-testid="saved-rendered">{{ saved|flowbite_editor_html }}</div>
+            <pre class="mt-2 text-xs whitespace-pre-wrap text-body" data-testid="saved-html">{{ saved }}</pre>
+        </div>
+    {% endif %}
+    <div class="grid max-w-5xl gap-8 lg:grid-cols-2">
+        <div>
+            {{ form_start(form, {attr: {novalidate: true}}) }}
+                {{ form_widget(form) }}
+            {{ form_end(form) }}
+        </div>
+        <div class="space-y-8">
+            <div id="lab-permanent-editor" data-turbo-permanent>
+                <twig:FormField for="kept" label="Kept notes" :labelAttr="{id: 'kept_label'}">
+                    <twig:Editor id="kept" name="kept" labelledBy="kept_label" value="<p>Kept across visits.</p>" />
+                </twig:FormField>
+            </div>
+            <turbo-frame id="editor-frame" class="block">
+                <p class="mb-2">Frame load <span data-testid="frame-load">{{ load }}</span> · <a href="{{ path('app_lab_editor_turbo', {page: page, load: load + 1}) }}" class="text-fg-brand hover:underline">Reload the frame</a></p>
+                <twig:FormField for="framed" label="Framed notes" :labelAttr="{id: 'framed_label'}">
+                    <twig:Editor id="framed" name="framed" labelledBy="framed_label" value="<p>In a frame.</p>" />
+                </twig:FormField>
+            </turbo-frame>
+        </div>
+    </div>
+{% endblock %}

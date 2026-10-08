@@ -1,0 +1,16 @@
+<div {{ attributes }}>
+    <div class="max-w-2xl space-y-4">
+        <twig:FormField for="note" label="Note">
+            <twig:Input id="note" data-model="note" />
+        </twig:FormField>
+        <p class="text-sm">Note: <span data-testid="note">{{ note }}</span></p>
+        <twig:FormField for="body" label="Body" :labelAttr="{id: 'body_label'}">
+            <twig:Editor id="body" name="body" labelledBy="body_label" :value="body" :reset="resets" model="on(change)|body" />
+        </twig:FormField>
+        <div class="flex gap-3">
+            <twig:Button data-action="live#action" data-live-action-param="save">Save</twig:Button>
+            <twig:Button variant="outline" data-action="live#action" data-live-action-param="reset">Reset</twig:Button>
+        </div>
+        <pre class="text-xs whitespace-pre-wrap text-body" data-testid="saved">{{ saved }}</pre>
+    </div>
+</div>

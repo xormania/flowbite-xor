@@ -7,7 +7,7 @@ import { test, expect } from './fixtures';
  * whole suite runs the kit under this policy; these tests check the policy itself, and what a blocked inline script
  * or style would silently break: the theme before the first paint, Turbo's progress bar, the Progress bars.
  */
-const pages = ['/', '/r/button', '/preview/button/default?theme=light', '/preview/dropdown/default?theme=light', '/demo', '/demo/login', '/lab/live-table', '/lab/popover-turbo', '/preview/popover/default?theme=light', '/lab/calendar-turbo', '/preview/calendar/default?theme=light', '/lab/date-picker-turbo', '/preview/date-picker/default?theme=light', '/lab/chart-turbo', '/preview/chart/default?theme=light', '/lab/dropzone-turbo', '/preview/dropzone/default?theme=light', '/forms', '/lab/dropzone-form', '/lab/live-dropzone'];
+const pages = ['/', '/r/button', '/preview/button/default?theme=light', '/preview/dropdown/default?theme=light', '/demo', '/demo/login', '/lab/live-table', '/lab/popover-turbo', '/preview/popover/default?theme=light', '/lab/calendar-turbo', '/preview/calendar/default?theme=light', '/lab/date-picker-turbo', '/preview/date-picker/default?theme=light', '/lab/chart-turbo', '/preview/chart/default?theme=light', '/lab/dropzone-turbo', '/preview/dropzone/default?theme=light', '/forms', '/lab/dropzone-form', '/lab/live-dropzone', '/lab/editor-turbo', '/preview/editor/default?theme=light'];
 
 type Policy = Map<string, string[]>;
 
@@ -138,6 +138,19 @@ test("the Dropzone markup is the kit's: no style attribute, never UX Dropzone's 
         expect(html, path).not.toContain('dropzone-container');
         expect(html, path).not.toMatch(/\sstyle=/);
     }
+});
+
+test("the Editor's markup has no style attribute, and the mounted editor adds no <style> element", async ({ page }) => {
+    for (const path of ['/lab/editor-turbo', '/lab/live-editor', '/preview/editor/default?theme=light']) {
+        const response = await page.request.get(path);
+        expect(response.status()).toBe(200);
+        const html = await response.text();
+        expect(html, path).toContain('data-controller="editor"');
+        expect(html, path).not.toMatch(/\sstyle=/);
+    }
+    await gotoAndCheckPolicy(page, '/preview/editor/default?theme=light');
+    await expect(page.locator('.ProseMirror')).toHaveCount(1);
+    expect(await page.locator('style').evaluateAll((styles) => styles.filter((style) => style.textContent!.includes('ProseMirror')).length)).toBe(0);
 });
 
 test('a picked image shows its preview under the policy (img-src data:)', async ({ page }) => {
