@@ -99,9 +99,10 @@ grep -qE 'data-calendar-min-date-value="2026-01-01"' <<< "$page" \
 echo "ok: the date picker renders an opted-in DateType (HTTP 200)"
 
 # the chart recipe: a Chart from arrays and one from ChartBuilderInterface, each with its canvas for UX Chart.js, its
-# theme controller and its data table; Flex put UX Chart.js's controller and chart.js in the import map
+# theme controller and its data table; Flex put chart.js in the import map (StimulusBundle loads UX Chart.js's
+# controller from controllers.json, without an import map entry)
 page="$(fetch /charts "$@")"
-for expected in 'data-controller="chart"' 'data-controller="symfony--ux-chartjs--chart"' 'role="img"' '<table id="revenue-table"' 'bg-chart-1' '"@symfony/ux-chartjs"' '"chart.js"'; do
+for expected in 'data-controller="chart"' 'data-controller="symfony--ux-chartjs--chart"' 'role="img"' '<table id="revenue-table"' 'bg-chart-1' '"chart.js"'; do
     grep -qF -- "$expected" <<< "$page" || { echo "FAIL: the charts page lacks $expected" >&2; exit 1; }
 done
 grep -oE 'data-symfony--ux-chartjs--chart-view-value="[^"]*' <<< "$page" | grep -q 'Mon' \
