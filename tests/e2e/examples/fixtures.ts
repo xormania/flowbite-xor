@@ -83,6 +83,8 @@ export const test = base.extend<Fixtures>({
             if ('fake' === timers) {
                 await page.clock.runFor(1000);
             }
+            // lazy controllers load after the page: an editor replaces its server-rendered content once mounted
+            await expect(page.locator('[data-editor-target="preview"]')).toHaveCount(0);
         });
     },
 });

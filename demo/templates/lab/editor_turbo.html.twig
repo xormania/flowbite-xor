@@ -7,7 +7,7 @@
     <h2 class="mb-2 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
     <p class="mb-6"><a href="{{ path('app_lab_editor_turbo', {page: page == 'one' ? 'two' : 'one'}) }}" class="text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a></p>
     {% if saved is not null %}
-        <div class="mb-6 max-w-2xl rounded-base border border-default p-4">
+        <div class="mb-6 max-w-xl rounded-base border border-default p-4">
             <p class="mb-2 text-sm font-medium text-heading">Published</p>
             <div data-testid="saved-rendered">{{ saved|flowbite_editor_html }}</div>
             <pre class="mt-2 text-xs whitespace-pre-wrap text-body" data-testid="saved-html">{{ saved }}</pre>

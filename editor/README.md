@@ -5,7 +5,7 @@ inline code, headings, lists, quotes, links and horizontal lines, with a keyboar
 sanitizes the same set, so what the toolbar makes is all a field ever stores.
 
 ```twig {"preview":true}
-<div class="w-full max-w-2xl p-4">
+<div class="w-full max-w-xl p-4">
     <twig:FormField for="editor-default" label="Description" :labelAttr="{id: 'editor-default_label'}">
         <twig:Editor id="editor-default" name="description" labelledBy="editor-default_label" value="<p>Our <strong>spring collection</strong> is here: light fabrics, bright colors.</p><ul><li><p>Free shipping over 50 €</p></li><li><p>Returns within 30 days</p></li></ul>" />
     </twig:FormField>
@@ -116,7 +116,7 @@ change the controller's extensions and `EditorHtmlPolicy` together.
 ### Placeholder and help
 
 ```twig {"preview":true}
-<div class="w-full max-w-2xl p-4">
+<div class="w-full max-w-xl p-4">
     <twig:FormField for="editor-placeholder" label="Your message" :labelAttr="{id: 'editor-placeholder_label'}" help="Lists and links are kept.">
         <twig:Editor id="editor-placeholder" name="message" labelledBy="editor-placeholder_label" placeholder="Write something…" maxChars="500" aria-describedby="editor-placeholder_help" />
     </twig:FormField>
@@ -126,7 +126,7 @@ change the controller's extensions and `EditorHtmlPolicy` together.
 ### Invalid
 
 ```twig {"preview":true}
-<div class="w-full max-w-2xl p-4">
+<div class="w-full max-w-xl p-4">
     <twig:FormField for="editor-invalid" label="Summary" :labelAttr="{id: 'editor-invalid_label'}" error="This value should not be blank.">
         <twig:Editor id="editor-invalid" name="summary" labelledBy="editor-invalid_label" aria-invalid="true" aria-describedby="editor-invalid_error" />
     </twig:FormField>
@@ -136,7 +136,7 @@ change the controller's extensions and `EditorHtmlPolicy` together.
 ### Read-only
 
 ```twig {"preview":true}
-<div class="w-full max-w-2xl p-4">
+<div class="w-full max-w-xl p-4">
     <twig:Editor id="editor-readonly" name="terms" label="Terms" readonly value="<h2>Terms</h2><p>By ordering, you accept our <a href='/terms'>terms of sale</a>.</p><blockquote><p>Prices include taxes.</p></blockquote>" />
 </div>
 ```
