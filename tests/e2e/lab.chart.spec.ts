@@ -109,3 +109,21 @@ test('a value block given to the chart formats the cells of its table', async ({
     await page.goto('/lab/chart-turbo');
     await expect(page.locator('#lab-doughnut-table tbody td')).toHaveText(['5 visits from Search', '3 visits from Direct', '2 visits from Social']);
 });
+
+test('category data given as points, without labels, fills the table from the points', async ({ page }) => {
+    await page.goto('/lab/chart-points');
+    const rows = (id: string) =>
+        page.locator(`#${id}-table tbody tr`).evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll('th, td')].map((cell) => cell.textContent!.trim())));
+    expect(await rows('points-columns')).toEqual([
+        ['Jan', '12', ''],
+        ['Feb', '19', '7'],
+        ['Mar', '14', ''],
+        ['Apr', '', '9'],
+    ]);
+    expect(await rows('points-rows')).toEqual([
+        ['Billing', '7'],
+        ['Platform', '12'],
+    ]);
+    await expect.poll(async () => (await chartState(page, 'points-columns'))?.colors.length).toBe(2);
+    await expect.poll(async () => (await chartState(page, 'points-rows'))?.colors.length).toBe(1);
+});

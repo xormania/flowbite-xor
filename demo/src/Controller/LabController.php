@@ -51,6 +51,7 @@ final class LabController extends AbstractController
         'chart-turbo' => 'Charts across Turbo visits and Back: a bar chart, a doughnut in a card, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads; each follows the theme.',
         'chart-stream' => 'A Chart replaced and updated by Turbo Streams.',
         'live-chart' => 'A Chart in a Live Component whose data changes: the chart updates in place and keeps the theme.',
+        'chart-points' => 'Charts whose category data come as points, without labels: vertical bars ({x: label, y: value}) and horizontal bars ({y: label, x: value}); their tables list every label.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -253,6 +254,12 @@ final class LabController extends AbstractController
             'load' => $request->query->getInt('load'),
             'description' => self::SCENARIOS['chart-turbo'],
         ]);
+    }
+
+    #[Route('/chart-points', name: 'app_lab_chart_points')]
+    public function chartPoints(): Response
+    {
+        return $this->render('lab/chart_points.html.twig', ['description' => self::SCENARIOS['chart-points']]);
     }
 
     #[Route('/chart-stream', name: 'app_lab_chart_stream', methods: ['GET', 'POST'])]

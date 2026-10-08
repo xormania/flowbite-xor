@@ -39,6 +39,12 @@
 {%- set _controllers = _canvasAttributes['data-controller'] is defined ? _canvasAttributes['data-controller'] ~ ' ' ~ _controller : _controller -%}
 {%- set _canvasAttributes = _canvasAttributes|filter((value, name) => name matches '/^[a-zA-Z_][a-zA-Z0-9_.:-]*$/' and name|lower not in ['data-controller', 'role', 'style'] and not (name|lower starts with 'on') and not (name|lower starts with 'aria-')) -%}
 {%- set _pointChart = _type in ['scatter', 'bubble'] -%}
+{#- category data given as points ({x: 'Jan', y: 12}, or {y: 'Jan', x: 12} with `indexAxis: 'y'`): its rows come from the points -#}
+{%- set _indexKey = 'y' == (_options.indexAxis ?? 'x') ? 'y' : 'x' -%}
+{%- set _valueKey = 'x' == _indexKey ? 'y' : 'x' -%}
+{%- if not _pointChart and _labels is empty -%}
+    {%- set _labels = _datasets|reduce((labels, dataset) => labels|merge((dataset.data ?? [])|filter((point) => point is iterable and point[_indexKey] is defined)|map((point) => point[_indexKey])|reduce((carry, label) => label in carry or label in labels ? carry : carry|merge([label]), [])), []) -%}
+{%- endif -%}
 {%- set _size = {sm: 'h-48', md: 'h-64', lg: 'h-80', xl: 'h-96'}[size] ?? 'h-64' -%}
 {%- set _table = table in ['details', 'visible', 'hidden'] ? table : 'details' -%}
 {#- the swatch of each series in the table, in the theme's chart roles (the controller recolors a series whose color the server set) -#}
@@ -117,7 +123,9 @@
                         <tr class="border-b border-default bg-neutral-primary-soft">
                             <th scope="row" class="px-6 py-3 font-medium text-heading">{{ _label is iterable ? _label|join(' ') : _label }}</th>
                             {%- for _dataset in _datasets %}
-                                {%- set value = (_dataset.data ?? [])[_row] ?? '' -%}
+                                {%- set _point = (_dataset.data ?? [])|filter((point) => point is iterable and point[_indexKey] is defined and point[_indexKey] is same as(_label))|first -%}
+                                {%- set _atRow = (_dataset.data ?? [])[_row] ?? '' -%}
+                                {%- set value = _point is iterable ? (_point[_valueKey] ?? '') : (_atRow is iterable and _atRow[_indexKey] is defined ? '' : _atRow) -%}
                                 {%- set dataset = _dataset -%}
                                 {%- set label = _label -%}
                                 <td class="px-6 py-3">{{ block('value') }}</td>

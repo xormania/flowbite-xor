@@ -47,6 +47,8 @@ text and border roles. They follow light and dark as the theme switches.
   shows it, `hidden` keeps it for screen readers only.
 - Up to six series get their own color; any series after the sixth is gray. Fold small series into an "Other" one, or
   split the chart.
+- Category data may come as points instead of `labels` (`{x: 'Jan', y: 12}`, or `{y: 'Jan', x: 12}` with
+  `indexAxis: 'y'`): the table takes its rows from the points, in order.
 - Pass a stable `id` inside Live Components and Turbo Frames.
 
 ### With `ChartBuilderInterface`
