@@ -52,7 +52,7 @@ x composer require --no-interaction --no-progress --dev "symfony/ux-toolkit:$too
 x composer require --no-interaction --no-progress symfony/asset-mapper symfony/stimulus-bundle
 
 # each recipe's printed `composer require` runs before the next recipe installs (see fresh-install.sh)
-for recipe in dashboard-home signup data-table data-table-live autocomplete date-picker; do
+for recipe in dashboard-home signup data-table data-table-live autocomplete date-picker chart; do
     x bin/console ux:install "$recipe" --kit="https://github.com/$repository:$ref" --no-interaction > "$work/install-$recipe.log" 2>&1 \
         || { cat "$work/install-$recipe.log"; echo "FAIL: ux:install $recipe"; exit 1; }
     grep -h '^ *\$ composer require ' "$work/install-$recipe.log" | sed 's/^ *\$ composer //' | while IFS= read -r arguments; do

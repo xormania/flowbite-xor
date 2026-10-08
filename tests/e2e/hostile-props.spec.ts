@@ -17,6 +17,7 @@ type Cases = {
     attributes: { expected: Record<string, string>; absent: string[]; html: string };
     urls: UrlCase[];
     calendar: { html: string };
+    chart: { html: string };
     sidebar: { path: string; html: string };
 };
 
@@ -219,6 +220,24 @@ test('the Calendar drops dates, modifier names and input attribute names it cann
     // the navigation's chevrons are the only <svg>: decorative icons
     expect(found.elements.filter((element) => UNSAFE_ELEMENTS.includes(element) && 'svg' !== element)).toEqual([]);
     await expect(page.locator('svg:not([aria-hidden="true"])')).toHaveCount(0);
+    expect(found.ran).toBeNull();
+    expect(dialogs).toEqual([]);
+});
+
+test('the Chart falls back to its defaults for hostile type, size and table, and prints text as text', async ({ page }) => {
+    const dialogs = recordDialogs(page);
+    const found = await parse(page, cases.chart.html);
+    const figure = page.getByTestId('chart');
+    const view = JSON.parse((await figure.locator('canvas').getAttribute('data-symfony--ux-chartjs--chart-view-value'))!);
+    expect(view.type).toBe('bar');
+    await expect(figure.locator('canvas').locator('..')).toHaveClass(/\bh-64\b/);
+    await expect(figure.locator('details')).toHaveCount(1);
+    await expect(figure).toHaveAttribute('id', 'c" onmouseover="window.__xss=1');
+    await expect(figure.locator('figcaption')).toHaveText('"><svg onload=window.__xss=1>');
+    await expect(figure.locator('tbody th').first()).toHaveText('<img src=x onerror=window.__xss=1>');
+    await expect(figure.locator('tbody td').first()).toHaveText('<script>window.__xss=1</script>');
+    expect(found.handlers).toEqual([]);
+    expect(found.elements.filter((element) => UNSAFE_ELEMENTS.includes(element))).toEqual([]);
     expect(found.ran).toBeNull();
     expect(dialogs).toEqual([]);
 });

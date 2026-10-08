@@ -43,6 +43,15 @@ return [
     '@orchidjs/unicode-variants' => [
         'version' => '1.2.2',
     ],
+    '@symfony/ux-chartjs' => [
+        'path' => './vendor/symfony/ux-chartjs/assets/dist/controller.js',
+    ],
+    'chart.js' => [
+        'version' => '4.5.1',
+    ],
+    '@kurkle/color' => [
+        'version' => '0.3.4',
+    ],
     'flowbite/dist/flowbite.min.css' => [
         'version' => '4.0.2',
         'type' => 'css',

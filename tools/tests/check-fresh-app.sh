@@ -3,7 +3,8 @@
 # the dashboard through the layouts, `/register` renders the signup form through the form theme (no
 # `twig.form_themes` setting: the block applies the theme itself), `/orders` renders a DataTable whose PHP classes
 # ux:install copied into src/, `/live-orders` a DataTableLive that answers a Live action, `/pick` autocomplete fields and
-# the Autocomplete component, `/dates` a DateType opted into the date picker, and all answer 200.
+# the Autocomplete component, `/dates` a DateType opted into the date picker, `/charts`
+# two charts, and all answer 200.
 #
 #   tools/tests/check-fresh-app.sh <base URL> [curl option…]
 set -euo pipefail
@@ -96,3 +97,14 @@ grep -oE '<input[^>]*>' <<< "$page" | grep 'name="form\[startsOn\]"' | grep 'typ
 grep -qE 'data-calendar-min-date-value="2026-01-01"' <<< "$page" \
     || { echo "FAIL: the date picker's calendar lacks the field's min" >&2; exit 1; }
 echo "ok: the date picker renders an opted-in DateType (HTTP 200)"
+
+# the chart recipe: a Chart from arrays and one from ChartBuilderInterface, each with its canvas for UX Chart.js, its
+# theme controller and its data table; Flex put chart.js in the import map (StimulusBundle loads UX Chart.js's
+# controller from controllers.json, without an import map entry)
+page="$(fetch /charts "$@")"
+for expected in 'data-controller="chart"' 'data-controller="symfony--ux-chartjs--chart"' 'role="img"' '<table id="revenue-table"' 'bg-chart-1' '"chart.js"'; do
+    grep -qF -- "$expected" <<< "$page" || { echo "FAIL: the charts page lacks $expected" >&2; exit 1; }
+done
+grep -oE 'data-symfony--ux-chartjs--chart-view-value="[^"]*' <<< "$page" | grep -q 'Mon' \
+    || { echo "FAIL: the ChartBuilderInterface chart lost its labels" >&2; exit 1; }
+echo "ok: the chart recipe renders charts from arrays and from ChartBuilderInterface (HTTP 200)"

@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}chart-turbo ({{ page }}) — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'chart-turbo'}) }}
+    <h2 class="mb-4 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    <p class="mb-6"><a href="{{ path('app_lab_chart_turbo', {page: page == 'one' ? 'two' : 'one'}) }}" class="text-fg-brand hover:underline">Go to page {{ page == 'one' ? 'two' : 'one' }}</a></p>
+    <div class="grid gap-6 md:grid-cols-2">
+        {%- if page == 'one' %}
+            <twig:Chart id="lab-bar" title="Revenue" labelsHeader="Month" size="sm" :labels="['Jan', 'Feb', 'Mar']" :datasets="[{label: '2025', data: [12, 19, 14]}, {label: '2026', data: [15, 21, 18], backgroundColor: 'rgb(0, 128, 0)', borderColor: 'rgb(0, 128, 0)'}]" />
+            <twig:Card class="max-w-none">
+                <twig:Chart id="lab-doughnut" type="doughnut" title="Sources" labelsHeader="Source" size="sm" :labels="['Search', 'Direct', 'Social']" :datasets="[{label: 'Visits', data: [5, 3, 2]}]">
+                    <twig:block name="value">{{ value }} {{ dataset.label|lower }} from {{ label }}</twig:block>
+                </twig:Chart>
+            </twig:Card>
+        {%- else %}
+            <twig:Chart id="lab-line" type="line" title="Visits" labelsHeader="Day" size="sm" :labels="['Mon', 'Tue', 'Wed']" :datasets="[{label: 'Visits', data: [4, 6, 5]}]" />
+        {%- endif %}
+        <div id="lab-permanent-chart" data-turbo-permanent class="rounded-base border border-default p-3">
+            <twig:Chart id="lab-kept" type="line" title="Kept" labelsHeader="Day" size="sm" :labels="['Mon', 'Tue', 'Wed']" :datasets="[{label: 'Kept', data: [3, 1, 2]}]" />
+        </div>
+    </div>
+    <turbo-frame id="chart-frame" class="mt-8 block">
+        <p class="mb-4">Frame load <span data-testid="frame-load">{{ load }}</span> · <a href="{{ path('app_lab_chart_turbo', {page: page, load: load + 1}) }}" class="text-fg-brand hover:underline">Reload the frame</a></p>
+        <twig:Chart id="lab-framed" title="Framed" labelsHeader="Item" size="sm" :labels="['A', 'B']" :datasets="[{label: 'Load ' ~ load, data: [load + 1, 2]}]" />
+    </turbo-frame>
+{% endblock %}

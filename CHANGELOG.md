@@ -7,6 +7,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `chart`: charts drawn with Symfony UX Chart.js in the theme's colors, light and dark, each with its data as a table;
+  from arrays or a `ChartBuilderInterface` chart, updated in place by Live Components.
 - `dropzone`: file uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of
   the picked image, several files that add up across picks; focus follows a pick or a removal, and a file dropped
   outside the input is refused.
@@ -27,6 +29,7 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `theme`: chart series roles `chart-1` to `chart-6` and `chart-other`, checked for contrast in both themes.
 - The docs no longer track the official `flowbite-4` kit, an initial reference only: `UPSTREAM.md` is removed, and
   its notes on toolkit and platform behavior moved to `docs/NOTES.md`. `NOTICE` keeps the credit.
 - `form-theme`: a single-text `DateType` opted in with `'block_prefix' => 'flowbite_date_picker'` renders as the

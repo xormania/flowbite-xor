@@ -1,0 +1,7 @@
+{% extends 'layouts/auth.html.twig' %}
+
+{% block title %}Charts{% endblock %}
+{% block content %}
+    <twig:Chart id="revenue" title="Revenue" labelsHeader="Month" :labels="['Jan', 'Feb', 'Mar']" :datasets="[{label: '2026', data: [12, 19, 14]}]" />
+    <twig:Chart id="visits" :chart="visits" title="Visits" labelsHeader="Day" />
+{% endblock %}

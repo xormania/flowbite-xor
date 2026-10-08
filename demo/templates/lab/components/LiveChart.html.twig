@@ -1,0 +1,14 @@
+<div {{ attributes }}>
+    <div class="mb-4 flex flex-wrap items-end gap-4">
+        <div>
+            <label for="live-chart-range" class="mb-1 block text-heading">Range</label>
+            <select id="live-chart-range" data-model="range" class="rounded-base border border-default-medium bg-neutral-secondary-medium px-2 py-1 text-heading">
+                <option value="7"{{ range == 7 ? ' selected' }}>7 days</option>
+                <option value="30"{{ range == 30 ? ' selected' }}>30 days</option>
+            </select>
+        </div>
+        <twig:Button size="sm" data-action="live#action" data-live-action-param="addSale">Add a sale</twig:Button>
+        <p class="text-sm text-body">Points: <span data-testid="points">{{ this.sales|length }}</span></p>
+    </div>
+    <twig:Chart id="live-sales" type="line" title="Sales" labelsHeader="Day" size="sm" :labels="this.labels" :datasets="[{label: 'Sales', data: this.sales}]" />
+</div>
