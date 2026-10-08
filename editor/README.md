@@ -46,8 +46,8 @@ $builder->add('body', EditorType::class, [
 ```
 
 - `getData()` gives sanitized HTML, or `null` when the text is empty (`<p></p>` counts as empty), so `NotBlank` works.
-- `max_bytes` (default 100000) limits the HTML, `max_chars` (default 20000) the text: longer input is a field error,
-  and the content stays as typed.
+- `max_bytes` (default 100000, at most 1000000) limits the HTML, `max_chars` (default 20000) the text: longer input
+  is a field error, and the content stays as typed.
 - Print stored content with the `flowbite_editor_html` filter, which sanitizes it again (content saved by another
   path is safe too). Never with `|raw`:
 
@@ -56,7 +56,8 @@ $builder->add('body', EditorType::class, [
   ```
 
 Outside a form, `<twig:Editor id="…" name="…" />` submits its HTML under `name` (a hidden textarea): sanitize it on
-the server with `EditorHtmlPolicy::sanitize()` before you store it.
+the server with `EditorHtmlPolicy::sanitize()` before you store it. It throws a `LengthException` for more than
+1000000 bytes rather than keep part of the HTML: check the length first.
 
 - `label` names the editor when no label points at it; with a `FormField`, give the label an id
   (`labelAttr: {id: '<id>_label'}`) and pass it as `labelledBy`. A click on the label focuses the editor.

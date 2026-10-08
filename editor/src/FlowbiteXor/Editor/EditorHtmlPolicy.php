@@ -23,6 +23,9 @@ final class EditorHtmlPolicy
     /** The most characters of text a field accepts by default. */
     public const MAX_CHARS = 20_000;
 
+    /** The most bytes of HTML the policy reads: longer input is refused, never cut. A field's `max_bytes` stays at or below it. */
+    public const MAX_INPUT_BYTES = 1_000_000;
+
     private const ELEMENTS = ['p', 'br', 'strong', 'em', 'u', 's', 'code', 'h2', 'h3', 'ul', 'li', 'blockquote', 'hr'];
 
     /** Tags removed with their text kept (formatting and structure from elsewhere); anything else not allowed is dropped whole. */
@@ -33,8 +36,8 @@ final class EditorHtmlPolicy
     public function __construct()
     {
         $config = (new HtmlSanitizerConfig())
-            // a parser safeguard; fields reject longer input before sanitizing (EditorType)
-            ->withMaxInputLength(10 * self::MAX_BYTES)
+            // the sanitizer cuts longer input: sanitize() refuses it first
+            ->withMaxInputLength(self::MAX_INPUT_BYTES)
             ->allowLinkSchemes(['https', 'http', 'mailto'])
             ->allowRelativeLinks(true)
             ->allowElement('ol', ['start'])
@@ -49,9 +52,16 @@ final class EditorHtmlPolicy
         $this->sanitizer = new HtmlSanitizer($config);
     }
 
-    /** The HTML with only the editor's formatting; '' when it holds no text (e.g. `<p></p>`). */
+    /**
+     * The HTML with only the editor's formatting; '' when it holds no text (e.g. `<p></p>`).
+     *
+     * @throws \LengthException when the HTML is longer than MAX_INPUT_BYTES, instead of storing part of it
+     */
     public function sanitize(string $html): string
     {
+        if (\strlen($html) > self::MAX_INPUT_BYTES) {
+            throw new \LengthException(\sprintf('The HTML holds %d bytes, more than the %d the editor policy reads.', \strlen($html), self::MAX_INPUT_BYTES));
+        }
         $clean = trim($this->sanitizer->sanitize($html));
 
         return self::isEmpty($clean) ? '' : $clean;

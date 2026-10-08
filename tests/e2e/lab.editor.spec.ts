@@ -159,3 +159,17 @@ test('in a Live Component, re-renders leave the typing alone, a save reads it an
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByTestId('saved')).toHaveText('<p>Reset by the server. Again.</p>');
 });
+
+test('in a Live Component, a re-render while the editor has the focus does not lose the typing', async ({ page }) => {
+    await page.goto('/lab/live-editor');
+    await mounted(page);
+    const body = page.getByRole('textbox', { name: 'Body' });
+    await body.click();
+    await page.keyboard.press('ControlOrMeta+End');
+    await page.keyboard.type(' Typed while it re-renders.');
+    // a server re-render (polling, another update) puts the component's older body back into the textarea
+    await page.locator('[data-controller~="live"]').evaluate((element) => (element as any).__component.render());
+    await expect(body).toBeFocused();
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByTestId('saved')).toHaveText('<p>Draft from the server. Typed while it re-renders.</p>');
+});

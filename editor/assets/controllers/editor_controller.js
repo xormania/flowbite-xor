@@ -239,7 +239,7 @@ export default class extends Controller {
 
     /** The editor's HTML into the textarea (an empty document is ''), and `input` for whoever listens. */
     #sync() {
-        const html = this.#editor.isEmpty ? '' : this.#editor.getHTML();
+        const html = this.#html();
         if (html === this.valueTarget.value) {
             return;
         }
@@ -249,11 +249,22 @@ export default class extends Controller {
         this.#count();
     }
 
+    /**
+     * `change` when the editor loses the focus after an edit. The textarea gets the editor's HTML again first: a Live
+     * re-render while the editor had the focus may have put the server's older value back into it.
+     */
     #commit() {
-        if (null !== this.#echo) {
-            this.#echo = null;
-            this.valueTarget.dispatchEvent(new Event('change', { bubbles: true }));
+        const html = this.#html();
+        if (null === this.#echo && html === this.valueTarget.value) {
+            return;
         }
+        this.#echo = null;
+        this.valueTarget.value = html;
+        this.valueTarget.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    #html() {
+        return this.#editor.isEmpty ? '' : this.#editor.getHTML();
     }
 
     #count() {

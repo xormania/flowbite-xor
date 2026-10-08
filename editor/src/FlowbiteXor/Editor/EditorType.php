@@ -65,6 +65,8 @@ final class EditorType extends AbstractType
             'max_chars_message' => 'This text is too long: it holds more than {{ limit }} characters.',
         ]);
         $resolver->setAllowedTypes('max_bytes', 'int');
+        // longer input could not be sanitized whole
+        $resolver->setAllowedValues('max_bytes', static fn (int $bytes): bool => $bytes > 0 && $bytes <= EditorHtmlPolicy::MAX_INPUT_BYTES);
         $resolver->setAllowedTypes('max_chars', 'int');
         $resolver->setAllowedTypes('max_bytes_message', 'string');
         $resolver->setAllowedTypes('max_chars_message', 'string');
