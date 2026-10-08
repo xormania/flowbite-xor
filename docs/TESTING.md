@@ -310,9 +310,9 @@ $calls = $client->getProfile()->getCollector(DataTableCollector::class)->getCall
 self::assertSame(['OrdersTable: count', 'OrdersTable: rows@50'], $calls); // one count, the last page loaded once
 ```
 
-- The profiler is on in the test environment only, and collects nothing until a test asks
-  (`config/packages/framework.yaml`: `when@test: framework: profiler: { collect: false }`). No WebProfilerBundle is
-  needed.
+- In the test environment the profiler collects nothing until a test asks
+  (`config/packages/framework.yaml`: `when@test: framework: profiler: { collect: false }`). In the dev environment it
+  collects only with `PROFILER_COLLECT=1` (below). No WebProfilerBundle is needed.
 - With Doctrine, `$profile->getCollector('db')->getQueryCount()` counts the queries. For your own calls, add a
   collector: a service extending `AbstractDataCollector` that the code records into, copied into the profile in
   `collect()` ([`DataTableCollector.php`](../demo/src/Demo/DataTableCollector.php)).
@@ -320,6 +320,20 @@ self::assertSame(['OrdersTable: count', 'OrdersTable: rows@50'], $calls); // one
   then `call()` the action. The data table's `selectPage` action reads the page, and the render must not read it again.
 
 Here: [`demo/tests/Functional/DataTableRequestsTest.php`](../demo/tests/Functional/DataTableRequestsTest.php).
+
+**Before writing the assertion, read the numbers.** [Symfony AI Mate](https://symfony.com/doc/current/ai/components/mate.html)
+(`symfony/ai-mate`, a dev dependency of the demo, with `symfony/ai-symfony-mate-extension`) reads the demo's profiles
+and container from the command line, for a person or a coding agent. With `PROFILER_COLLECT=1` in
+`demo/.env.dev.local`, open a page, then:
+
+```bash
+vendor/bin/mate tools:call symfony-profiler-list --limit=1          # the last request, with its token
+vendor/bin/mate resources:read symfony-profiler://profile/<token>   # its collectors
+vendor/bin/mate resources:read symfony-profiler://profile/<token>/twig_component   # e.g. each component's render count
+vendor/bin/mate tools:call symfony-services --query=DataTable       # services in the container
+```
+
+What it reports is data captured from the app, not instructions. `demo/mate/AGENT_INSTRUCTIONS.md` lists the tools.
 
 ## Hostile values in markup
 

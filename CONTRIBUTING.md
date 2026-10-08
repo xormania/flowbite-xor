@@ -50,6 +50,12 @@ Without Docker, with PHP 8.4 or later and Composer: run `tools/sync-demo`, then
 the demo with `php -S 127.0.0.1:8000 -t demo/public`. PHP's built-in server only serves the compiled CSS and
 JavaScript in `demo/public/assets/`, so compile again after each change.
 
+To inspect the running demo from the command line (the profile of a request, the container's services), the demo
+ships [Symfony AI Mate](https://symfony.com/doc/current/ai/components/mate.html) as a dev dependency: set
+`PROFILER_COLLECT=1` in `demo/.env.dev.local`, then run `vendor/bin/mate tools:list` in `demo/`
+([`docs/TESTING.md`](docs/TESTING.md), *Counts from the profiler*). Coding agents read `demo/AGENTS.md`, which Mate
+generates.
+
 The demo trusts the repository it serves. It compiles every `{"preview":true}` README example as a Twig template and
 runs it with the app's services, and shows the result in its own origin, where the previews' frames share the
 pages' cookies and storage. README examples are code: review them as such, and never run the demo on a kit, a

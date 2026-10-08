@@ -36,3 +36,10 @@
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+
+###> symfony/ai-mate ###
+# the agent skills Mate generates from its installed extensions (mate/extensions.php); its Composer plugin rewrites them
+# on every install, and demo/.claude/skills holds symlinks into demo/.agents/skills
+/.agents/
+/.claude/
+###< symfony/ai-mate ###
