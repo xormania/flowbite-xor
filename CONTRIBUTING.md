@@ -251,8 +251,9 @@ A release is a pull request from `dev` to `main`, opened as a draft when the mai
 commit moves the entries under `## [Unreleased]` to the new `## [X.Y.Z] - YYYY-MM-DD` section and updates the compare
 links at the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor
 version, *Removed* or anything that breaks an installed recipe a major version (a minor one while the version is
-`0.x`). The release checks (`docs/PLAN-test-tiers.md`: timings, harsh conditions, long sessions, fuzzing) run on
-this pull request; `main`'s ruleset requires them. Merging it is the release.
+`0.x`). CI runs on this pull request like on any other. The release checks (`docs/PLAN-test-tiers.md`: timings,
+harsh conditions, long sessions, fuzzing) will run on it too, and `main`'s ruleset will require them, once their
+workflow lands (step 7 of that plan); until then, only CI gates a release. Merging it is the release.
 
 A fix that cannot wait for the next release goes to `main` in its own pull request with its version heading (a
 patch), and `main` is then merged into `dev`.
