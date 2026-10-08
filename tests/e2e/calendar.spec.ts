@@ -7,8 +7,8 @@ const countEvents = (page: Page, selector: string) =>
     page.evaluate((selector) => {
         const counts = { input: 0, change: 0 };
         const root = document.querySelector(selector)!;
-        root.addEventListener('input', (event) => (event.target as HTMLElement).matches('[data-calendar-target="input"], [data-slot="calendar-inputs"]') && counts.input++);
-        root.addEventListener('change', (event) => (event.target as HTMLElement).matches('[data-calendar-target="input"], [data-slot="calendar-inputs"]') && counts.change++);
+        root.addEventListener('input', (event) => (event.target as HTMLElement).matches('[data-calendar-target="input"]') && counts.input++);
+        root.addEventListener('change', (event) => (event.target as HTMLElement).matches('[data-calendar-target="input"]') && counts.change++);
         (window as any).__counts = counts;
     }, selector);
 const counts = (page: Page) => page.evaluate(() => (window as any).__counts as { input: number; change: number });
@@ -44,6 +44,39 @@ test('the month and year dropdowns move the calendar', async ({ page }) => {
     await expect(calendar.getByRole('grid')).toHaveAccessibleName('July 2027');
     await calendar.getByRole('button', { name: 'Previous month' }).click();
     await expect(calendar.getByRole('grid')).toHaveAccessibleName('June 2027');
+});
+
+test('the dropdowns stay within startMonth and endMonth', async ({ page }) => {
+    await page.goto('/preview/calendar/default?theme=light');
+    const calendar = page.getByRole('group', { name: 'Calendar' });
+    await calendar.evaluate((node) => {
+        node.setAttribute('data-calendar-start-month-value', '2026-06-01');
+        node.setAttribute('data-calendar-end-month-value', '2026-09-01');
+    });
+    await calendar.getByLabel('Month', { exact: true }).selectOption('12');
+    await expect(calendar.getByRole('grid')).toHaveAccessibleName('September 2026');
+    await calendar.getByLabel('Month', { exact: true }).selectOption('1');
+    await expect(calendar.getByRole('grid')).toHaveAccessibleName('June 2026');
+});
+
+test('a modifier gone from a re-render leaves no attribute on the days', async ({ page }) => {
+    await page.goto('/preview/calendar/default?theme=light');
+    const calendar = page.getByRole('group', { name: 'Calendar' });
+    await calendar.evaluate((node) => node.setAttribute('data-calendar-modifiers-value', '{"booked":["2026-03-12"]}'));
+    await expect(calendar.locator('[data-day="2026-03-12"][data-booked="true"]')).toHaveCount(1);
+    await calendar.evaluate((node) => node.setAttribute('data-calendar-modifiers-value', '{}'));
+    await expect(calendar.locator('[data-booked]')).toHaveCount(0);
+});
+
+test('a date that does not exist is never selected', async ({ page }) => {
+    await page.goto('/lab/calendar-turbo');
+    const calendar = page.getByRole('group', { name: 'Day' });
+    const input = page.locator('input[name="day"]');
+    await calendar.evaluate((node) => node.setAttribute('data-calendar-selected-value', '["2026-02-31"]'));
+    await calendar.evaluate((node) => node.setAttribute('data-calendar-selected-value', '["2026-03-11"]'));
+    await expect(input).toHaveValue('2026-03-11');
+    await calendar.evaluate((node) => node.setAttribute('data-calendar-selected-value', '["2026-02-30"]'));
+    await expect(input).toHaveValue('');
 });
 
 test('each mode submits its inputs; day buttons never submit the form', async ({ page }) => {
@@ -107,4 +140,10 @@ test('in multiple mode, the inputs keep their attributes and order as dates come
         ['dates[]', '2026-03-03', 'yes'],
         ['dates[]', '2026-03-17', 'yes'],
     ]);
+
+    // deselecting the last date changes no remaining input: the events come from the removed one
+    await countEvents(page, '#cal-dates');
+    await day(dates, '2026-03-17').click();
+    await expect(inputs).toHaveCount(1);
+    expect(await counts(page)).toEqual({ input: 1, change: 1 });
 });

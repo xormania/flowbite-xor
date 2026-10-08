@@ -37,7 +37,7 @@ With `name`, the calendar renders hidden inputs that the form submits:
 | `multiple` | `name[]`, one per date |
 | `range` | `name[from]` and `name[to]` |
 
-`inputAttr` adds attributes to them, e.g. `:inputAttr="{form: 'booking'}"` for a form elsewhere on the page. Each pick
+`inputAttr` adds attributes to them, e.g. `:inputAttr="{form: 'booking'}"` for a form elsewhere on the page (inline event handlers, `on…`, are left out: behavior belongs in a Stimulus controller). Each pick
 dispatches `input` and `change` on the inputs, as a typed field would. The day and navigation buttons are
 `type="button"`: they never submit the form.
 

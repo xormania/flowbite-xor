@@ -37,7 +37,7 @@
     modifiers = {},
     ## string|null A Live Component property the selection is bound to (`date`; `stay`, an array with `from` and `to`, in range mode). Use it rather than `data-model`, which a Twig component inside a Live Component reads as its own binding.
     model = null,
-    ## array<string,string|bool> Extra attributes for the hidden inputs, such as `{form: 'booking'}` or `{disabled: true}`.
+    ## array<string,string|bool> Extra attributes for the hidden inputs, such as `{form: 'booking'}` or `{disabled: true}`; `type`, `name`, `value` and inline event handlers (`on…`) are left out.
     inputAttr = {},
     ## string The calendar's accessible name.
     label = 'Calendar',
@@ -69,8 +69,8 @@
     {%- endif -%}
 {%- endfor -%}
 {%- set _focusDate = _selected is not empty ? _selected|first : (_today >= _month and _today <= _lastMonth|date_modify('last day of this month')|date('Y-m-d') ? _today : _month) -%}
-{#- the hidden inputs' extra attributes: names a browser accepts only, `true` as a bare attribute, `false` and null left out -#}
-{%- set _inputAttr = inputAttr|filter((value, key) => key matches '/^[a-zA-Z_][a-zA-Z0-9_.:-]*$/' and key|lower not in ['type', 'name', 'value'] and value is not same as(false) and value is not null) -%}
+{#- the hidden inputs' extra attributes: names a browser accepts only, no inline event handler (`on…`), `true` as a bare attribute, `false` and null left out -#}
+{%- set _inputAttr = inputAttr|filter((value, key) => key matches '/^[a-zA-Z_][a-zA-Z0-9_.:-]*$/' and not (key|lower starts with 'on') and key|lower not in ['type', 'name', 'value'] and value is not same as(false) and value is not null) -%}
 {%- set _modelPath = model is not null and model matches '/^[a-zA-Z_][a-zA-Z0-9_.]*$/' ? model : null -%}
 {%- set _dayClass = html_classes(
     'group/day relative flex-1 p-0 text-center select-none',
