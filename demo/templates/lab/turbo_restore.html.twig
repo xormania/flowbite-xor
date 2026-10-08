@@ -13,6 +13,11 @@
     {%- if page == 'two' %}
         <p><a href="{{ path('app_lab_turbo_restore', {page: 'one'}) }}" class="text-fg-brand hover:underline">Go to page one</a></p>
     {%- else %}
+    <p class="mb-4"><a href="{{ path('app_lab_turbo_restore', {page: 'two'}) }}" class="text-fg-brand hover:underline">Go to page two</a></p>
+    {#- a toast outside the permanent ToastRegion: it belongs to this page, Back must not show it again -#}
+    <div class="mb-6 max-w-sm">
+        <twig:Toast variant="success" timeout="0" data-testid="page-toast">Saved on page one.</twig:Toast>
+    </div>
     <div class="flex flex-wrap items-start gap-6">
         <twig:Dropdown id="restore-menu">
             <twig:Dropdown:Trigger>

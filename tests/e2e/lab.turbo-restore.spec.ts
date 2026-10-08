@@ -82,3 +82,19 @@ for (const slow of [false, true]) {
         });
     }
 }
+
+test('a toast outside the permanent region is not shown again on Back; one in the region stays across visits', async ({ page }) => {
+    await page.goto('/lab/turbo-restore');
+    await expect(page.getByTestId('page-toast')).toHaveText('Saved on page one.');
+    await page.getByRole('link', { name: 'Go to page two', exact: true }).click();
+    await expect(page.getByTestId('page')).toHaveText('Page two');
+    await turboVisitDone(page);
+    await page.goBack();
+    await expect(page.getByTestId('page')).toHaveText('Page one');
+    await turboVisitDone(page);
+    await expect(page.getByTestId('page-toast')).toHaveCount(0);
+
+    // a full load renders the page's toast again
+    await page.reload();
+    await expect(page.getByTestId('page-toast')).toHaveText('Saved on page one.');
+});

@@ -66,7 +66,7 @@ final class LabController extends AbstractController
         'editor-turbo' => 'Editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'editor-stream' => 'An Editor replaced and updated by Turbo Streams.',
         'live-editor' => 'An Editor bound to a Live Component property: unrelated re-renders leave the typing alone, a save reads the content, a reset from the server replaces it.',
-        'turbo-restore' => 'Overlays left open when a link inside them visits another page: Back shows them closed and working, also when the next page waits for a new stylesheet (Turbo then caches the page before the controllers disconnect).',
+        'turbo-restore' => 'Overlays left open when a link inside them visits another page: Back shows them closed and working, also when the next page waits for a new stylesheet (Turbo then caches the page before the controllers disconnect). A toast outside the permanent region is not shown again on Back.',
         'markdown-turbo' => 'Markdown editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'markdown-stream' => 'A MarkdownEditor replaced and updated by Turbo Streams.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
