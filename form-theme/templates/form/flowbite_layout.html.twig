@@ -123,6 +123,7 @@
 {%- block dropzone_widget -%}
     {%- set _dropzone = include('form/flowbite_dropzone_widget.html.twig', ignore_missing = true) -%}
     {%- if _dropzone|trim is empty -%}
+        {%- set type = 'file' -%}
         {{- block('form_widget_simple') -}}
     {%- else -%}
         {{- _dropzone -}}
