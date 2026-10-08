@@ -47,30 +47,31 @@ Dropzone opt-ins).
 Columns are the plan's transitions. **Back** is a restoration visit from Turbo's cached copy; **Back, slow** is the
 same with page two's stylesheet delayed, so Turbo copies the page before the controllers disconnect (the order
 production gives; `lab.turbo-restore`); **N visits** is "repeated visits leave one instance", today shown by its
-effect (one change per pick, one toggle per click) and element counts, a Stimulus instance count from tier 2 on.
+effect (one change per pick, one toggle per click) and element counts, a Stimulus instance count from tier 2 on. A `·` means
+the transition cannot change the recipe's state, not that it is untested.
 
 | Recipe | Back | Back, slow | Forward | N visits | Permanent | Frame reload | Frame, advance | Stream replace/update | Live re-render | Theme switch | System theme |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | theme-toggle | theme-toggle | · | G10 | T2 | · | · | · | · | · | theme-toggle | theme-toggle |
-| layouts | demo-app | · | · | · | lab.turbo-nav, demo-app | · | · | lab.turbo-nav | · | csp (first paint) | css |
+| layouts | demo-app | · | G10 | · | lab.turbo-nav, demo-app | · | · | lab.turbo-nav | · | csp (first paint) | css |
 | sidebar, navbar | G6 | · | G6 | T2 | lab.turbo-nav | · | · | · | · | css | · |
 | side-nav | lab.side-nav | · | lab.side-nav | lab.side-nav | lab.side-nav | · | · | · | · | lab.side-nav (on load) | css |
-| toast | lab.turbo-restore, demo-app | · | · | · | lab.turbo-stream-toast, lab.turbo-restore | · | G2 | lab.turbo-stream-toast, lab.turbo-nav | · | css | · |
+| toast | lab.turbo-restore, demo-app | · | G10 | · | lab.turbo-stream-toast, lab.turbo-restore | · | G2 | lab.turbo-stream-toast, lab.turbo-nav | · | css | · |
 | alert | G10 | · | · | · | · | · | · | G10 | G10 | css | · |
 | avatar | avatar | · | · | · | · | · | · | · | · | · | · |
 | tabs | G5 | · | · | G5 | · | G5 | · | G5 | G5 | css | · |
-| dropdown | lab.turbo-restore | lab.turbo-restore | · | G3 | G3 | lab.turbo-frame-detail | G2 | G3 | lab.live-dropdown, lab.live-table | T3 | · |
-| modal | lab.turbo-restore | lab.turbo-restore | · | G3 | G3 | G3 | · | G3 | lab.live-modal | T3 | · |
-| drawer | lab.turbo-restore | lab.turbo-restore | · | G3 | G3 | G3 | · | G3 | lab.live-drawer | T3 | · |
-| popover | lab.popover | · | · | lab.popover | lab.popover | lab.popover | G2 | lab.popover | lab.popover | T3 | · |
+| dropdown | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | lab.turbo-frame-detail | G2 | G3 | lab.live-dropdown, lab.live-table | T3 | · |
+| modal | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | G3 | · | G3 | lab.live-modal | T3 | · |
+| drawer | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | G3 | · | G3 | lab.live-drawer | T3 | · |
+| popover | lab.popover | · | G10 | lab.popover | lab.popover | lab.popover | G2 | lab.popover | lab.popover | T3 | · |
 | tooltip | G1 | G1 | · | G1 | G1 | G1 | G1 | G1 | lab.live-table | T3 | · |
-| calendar | lab.calendar | · | · | lab.calendar | lab.calendar | lab.calendar | G4 | lab.calendar | lab.calendar | css | · |
-| date-picker | lab.date-picker | · | · | lab.date-picker | lab.date-picker | lab.date-picker | G2 | lab.date-picker | lab.date-picker | css | · |
-| chart | lab.chart | · | · | lab.chart | lab.chart | lab.chart | G4 | lab.chart | lab.chart | lab.chart | G10 |
-| dropzone | lab.dropzone | · | · | lab.dropzone | lab.dropzone | lab.dropzone | G4 | lab.dropzone | lab.dropzone | css | · |
-| editor | lab.editor | · | · | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | css | · |
-| markdown-editor | lab.markdown-editor | · | · | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | markdown-editor | css | · |
-| autocomplete | lab.autocomplete (G4) | · | · | lab.autocomplete | G4 | lab.autocomplete | G4 | lab.autocomplete | lab.autocomplete | T3 | · |
+| calendar | lab.calendar | · | G10 | lab.calendar | lab.calendar | lab.calendar | G4 | lab.calendar | lab.calendar | css | · |
+| date-picker | lab.date-picker | · | G10 | lab.date-picker | lab.date-picker | lab.date-picker | G2 | lab.date-picker | lab.date-picker (G4) | css | · |
+| chart | lab.chart | · | G10 | lab.chart | lab.chart | lab.chart | G4 | lab.chart | lab.chart | lab.chart | G10 |
+| dropzone | lab.dropzone | · | G10 | lab.dropzone | lab.dropzone | lab.dropzone | G4 | lab.dropzone | lab.dropzone | css | · |
+| editor | lab.editor | · | G10 | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | css | · |
+| markdown-editor | lab.markdown-editor | · | G10 | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | markdown-editor | css | · |
+| autocomplete | lab.autocomplete (G4) | · | G10 | lab.autocomplete | G4 | lab.autocomplete | G4 | lab.autocomplete | lab.autocomplete | T3 | · |
 | data-table | lab.data-table-frame | · | lab.data-table-frame | lab.data-table-frame | · | lab.data-table-frame | lab.data-table-frame | · | · | css | · |
 | data-table-live | lab.data-table-live (G4) | · | G10 | lab.data-table-live | lab.data-table-live | lab.data-table-live | G4 | lab.data-table-live | lab.data-table-live | css | · |
 
@@ -366,7 +367,7 @@ a browser, so E2E lab, on the existing scaffold.
 | | Gap | Why the risk | Proposed coverage | Step 6 group |
 |---|---|---|---|---|
 | G1 | **tooltip** has no Turbo coverage: shown during a visit then Back (fast and slow), N visits, permanent, frame, Stream | `connect()` only sets `aria-describedby`, never hides; `disconnect()` hides, which the slow order runs after the copy: a tooltip shown in the cached copy comes back shown. Same bug class `lab.turbo-restore` was built for; tooltips sit on icon links | Add tooltip to `lab.turbo-restore`'s overlay table (both orders); a `tooltip-turbo` lab page for the rest | Overlays |
-| G2 | **Frame visit promoted to history** beside popover, date-picker and a temporary toast | Covered only for editor, markdown-editor and the data table. Their cache safety is `turbo:before-cache`, which a promoted frame visit dispatches with the page still on screen (the editor spec): an open popover beside a data table closes on each page change, or is copied open (`open` is an attribute, reconnected open); Turbo removes `data-turbo-temporary` toasts on the same event. Data tables are the common source of promoted frame visits | A `data-turbo-action="advance"` frame on the popover, date-picker and turbo-restore labs (the editor lab's `history-steps` pattern) | Overlays |
+| G2 | **Frame visit promoted to history** beside popover, dropdown, date-picker and a temporary toast | Covered only for editor, markdown-editor and the data table. Their cache safety is `turbo:before-cache`, which a promoted frame visit dispatches with the page still on screen (the editor spec): an open popover beside a data table closes on each page change, or is copied open (`open` is an attribute, reconnected open); Turbo removes `data-turbo-temporary` toasts on the same event. Data tables are the common source of promoted frame visits | A `data-turbo-action="advance"` frame on the popover, date-picker and turbo-restore labs (the turbo-restore lab holds the dropdown and the toast) (the editor lab's `history-steps` pattern) | Overlays |
 | G3 | **dropdown, modal, drawer** beyond Back and Live: Stream replace and update while open, N visits, permanent, frame reload (modal, drawer) | An open dropdown holds document and window listeners; popover has these exact tests (listener counter) and dropdown, the most used overlay, has none | lab.popover's tests, applied to each, with the shared listener counter | Overlays |
 | G4 | **Form widgets' values** across transitions: autocomplete values after Back, permanent and frame advance; data-table-live selection after a visit and Back; calendar, chart and dropzone beside a promoted frame visit; date-picker re-rendered by Live while open | Values are what the user typed or chose; the Back tests check only instance counts (autocomplete) or URL state (data-table-live) | Extend the existing lab specs | Form widgets |
 | G5 | **tabs**: Back, Live re-render, frame, Stream, N visits | The selection is a value attribute the controller writes: the cached copy keeps it, a Live re-render may keep or reset it, nothing says which is wanted. Decide the expected state first | A `tabs-turbo` lab page; arrow keys with the vertical tabs branch | Tabs (after `claude/vtabs`) |
@@ -374,7 +375,7 @@ a browser, so E2E lab, on the existing scaffold.
 | G7 | **dropdown keys and placement**: Home, End, Tab, submenus, flip and shift | The submenu code exists and is unexercised; placement is shared with popover, whose flip test is the model | E2E demo on the dropdown previews | Overlays, or the navbar submenus branch |
 | G8 | **drawer** own interactions: backdrop click, open on load, moved in the DOM | Modal has them in its recipe spec; the drawer copies its logic without the tests | A drawer recipe spec mirroring modal's | Overlays |
 | G9 | **layouts** `data-turbo-track="reload"`: changed assets after a deploy force a full load | Fails only after a deploy; one test, low cost | E2E lab: change the tracked asset's URL between two visits | Navigation |
-| G10 | Low: alert dismissed then Back, Stream, Live; theme-toggle with storage blocked on Back and reload, two toggles in sync; Forward for the recipes covered on Back; chart and a system change; side-nav with `sessionStorage` blocked | Same code path as a covered transition, or a small state | Fold into the groups above when a spec is open anyway | Any |
+| G10 | Low: alert dismissed then Back, Stream, Live; theme-toggle with storage blocked on Back and reload, two toggles in sync; Forward for the recipes covered on Back (each stateful row's Forward cell: Forward restores page two's cached copy and reconnects its controllers, with what was open there); chart and a system change; side-nav with `sessionStorage` blocked | Same code path as a covered transition, or a small state | Fold into the groups above when a spec is open anyway | Any |
 
 Tier 2 (step 5) turns every "N visits" cell above into a Stimulus instance count, and tier 3 (step 7) takes the
 overlays and editors × both themes (wide matrices), which this map marks T3.
