@@ -255,4 +255,6 @@ whose commit's workflows differed from `main`'s), push the tag by hand
 (`git tag -a X.Y.Z <merge commit> -m "flowbite-xor X.Y.Z" && git push origin X.Y.Z`) and re-run the workflow: it
 checks the tag and publishes the Release. After a release, it publishes the gallery on GitHub Pages (`pages.yml`);
 if that part fails, use *Re-run failed jobs* (a full re-run finds the release done and skips the gallery), or run
-`pages.yml` by hand on `main`.
+`pages.yml` by hand on `main`. CI's *Static site* job builds the same pages on every push, so a page that does not render fails a pull request,
+not the release. In that copy, Live Components are switched off and the recipe pages say what needs the server
+(`ExportStaticCommand::SERVER_ONLY`): add a recipe there when its examples need Symfony behind them.

@@ -43,6 +43,13 @@
             {% if recipe.description %}
                 <p class="mt-3 max-w-3xl text-lg">{{ recipe.description }}</p>
             {% endif %}
+            {%- if static_export.server_only[recipe.name] ?? false %}
+                {#- set by app:export-static: what of this recipe's examples needs Symfony behind it -#}
+                <p class="mt-4 max-w-3xl rounded-base border border-default bg-neutral-secondary-medium px-4 py-3 text-sm" data-testid="server-only">
+                    In this static copy, {{ static_export.server_only[recipe.name] }}.
+                    <a href="{{ repository }}/blob/main/CONTRIBUTING.md#setup" class="underline hover:text-heading">Run the full demo</a> to try it.
+                </p>
+            {%- endif %}
 
             <div class="mt-8 grid gap-6 xl:grid-cols-2">
                 <section class="min-w-0" aria-labelledby="install-heading">
