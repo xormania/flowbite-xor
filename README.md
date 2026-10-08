@@ -83,7 +83,7 @@ Each recipe's README has its examples, props and usage.
 | [`theme`](theme/README.md) | Flowbite's color roles, with this kit's contrast fixes, as one stylesheet to import in `assets/styles/app.css`. A role is a named color with a light and a dark value, used as a utility: `bg-brand`, `text-heading`, `border-default`. |
 | [`theme-toggle`](theme-toggle/README.md) ✦ | A button switching between the light and dark themes, remembered in `localStorage` and following the system preference until the user chooses. |
 
-### Components from the official `flowbite-4` kit
+### Basic components
 
 | Recipe | |
 |---|---|
@@ -110,7 +110,7 @@ Each recipe's README has its examples, props and usage.
 | [`textarea`](textarea/README.md) | A multi-line text field, for a comment or a description. |
 | [`toggle`](toggle/README.md) | A switch for an on/off setting. |
 
-### Components added by this kit
+### More components
 
 | Recipe | |
 |---|---|

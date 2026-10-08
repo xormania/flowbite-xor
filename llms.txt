@@ -16,7 +16,7 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 - [theme](https://raw.githubusercontent.com/xormania/flowbite-xor/main/theme/README.md): Flowbite's color roles, with this kit's contrast fixes, as one stylesheet to import in `assets/styles/app.css`. A role is a named color with a light and a dark value, used as a utility: `bg-brand`, `text-heading`, `border-default`.
 - [theme-toggle](https://raw.githubusercontent.com/xormania/flowbite-xor/main/theme-toggle/README.md): A button switching between the light and dark themes, remembered in `localStorage` and following the system preference until the user chooses.
 
-## Components from the official `flowbite-4` kit
+## Basic components
 
 - [alert](https://raw.githubusercontent.com/xormania/flowbite-xor/main/alert/README.md): A message for information, success, a warning or an error, optionally dismissible.
 - [avatar](https://raw.githubusercontent.com/xormania/flowbite-xor/main/avatar/README.md): A user's picture, with a fallback, in several sizes, round or with rounded corners.
@@ -41,7 +41,7 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 - [textarea](https://raw.githubusercontent.com/xormania/flowbite-xor/main/textarea/README.md): A multi-line text field, for a comment or a description.
 - [toggle](https://raw.githubusercontent.com/xormania/flowbite-xor/main/toggle/README.md): A switch for an on/off setting.
 
-## Components added by this kit
+## More components
 
 - [breadcrumb](https://raw.githubusercontent.com/xormania/flowbite-xor/main/breadcrumb/README.md): A trail of links showing where the current page sits in the site hierarchy.
 - [calendar](https://raw.githubusercontent.com/xormania/flowbite-xor/main/calendar/README.md): Pick a date, several dates or a range inline: keyboard navigation, disabled dates and bounds, several months, locales, right to left, hidden inputs for forms and a `model` prop for Live Components.
@@ -81,6 +81,5 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 ## Optional
 
 - [Changelog](https://raw.githubusercontent.com/xormania/flowbite-xor/main/CHANGELOG.md): what each version changes
-- [Upstream](https://raw.githubusercontent.com/xormania/flowbite-xor/main/UPSTREAM.md): the files copied from the official flowbite-4 kit and every change to them
 - [Security](https://raw.githubusercontent.com/xormania/flowbite-xor/main/SECURITY.md): reporting a vulnerability
 - [Contributing](https://raw.githubusercontent.com/xormania/flowbite-xor/main/CONTRIBUTING.md): changing the kit itself: layout, conventions, checks

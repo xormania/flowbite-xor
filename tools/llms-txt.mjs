@@ -77,7 +77,6 @@ lines.push(
     '## Optional',
     '',
     `- [Changelog](${raw}/CHANGELOG.md): what each version changes`,
-    `- [Upstream](${raw}/UPSTREAM.md): the files copied from the official flowbite-4 kit and every change to them`,
     `- [Security](${raw}/SECURITY.md): reporting a vulnerability`,
     `- [Contributing](${raw}/CONTRIBUTING.md): changing the kit itself: layout, conventions, checks`,
     '',
