@@ -16,6 +16,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * source with Windows line breaks made `\n`, or null when blank (so `NotBlank` works). Longer than `max_bytes` bytes or
  * `max_chars` characters, the field gets an error and keeps its data: nothing is cut. Print the stored Markdown with
  * the `flowbite_markdown_html` filter.
+ *
+ * @extends AbstractType<string|null>
  */
 final class MarkdownType extends AbstractType
 {

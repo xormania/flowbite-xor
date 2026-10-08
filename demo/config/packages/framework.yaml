@@ -13,3 +13,5 @@ when@test:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+        # off until a test calls $client->enableProfiler(), which turns it on for its next request
+        profiler: { collect: false }
