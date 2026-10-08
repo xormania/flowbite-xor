@@ -106,7 +106,20 @@ await page.addInitScript(() => {
 expect(await page.evaluate(() => (window as any).__rendered)).toEqual(Array(3).fill({ open: false, expanded: 'false' }));
 ```
 
-Here: [`lab.mobile-nav.spec.ts`](../tests/e2e/lab.mobile-nav.spec.ts).
+Leave the page with the overlay open, which a click on a link inside or outside it would prevent (it closes the
+overlay): go Back or Forward, or start the visit from the page's code (`Turbo.visit(url)`). And make the next page
+wait for a stylesheet (*Back after the cache snapshot*, above), or the controllers' `disconnect()` may reset the state
+before Turbo copies the page, and the test passes without the `turbo:before-cache` reset:
+
+```ts
+await page.route('**/lab/slow.css', async (route) => { await new Promise((r) => setTimeout(r, 500)); await route.fallback(); });
+await page.goto('/lab/nav-menu/two');
+// open the submenus, then:
+await page.evaluate(() => (window as any).Turbo.visit('/lab/nav-menu'));   // page one links slow.css
+await page.goBack();                                                        // renders the copy of page two
+```
+
+Here: [`lab.mobile-nav.spec.ts`](../tests/e2e/lab.mobile-nav.spec.ts), [`lab.nav-menu.spec.ts`](../tests/e2e/lab.nav-menu.spec.ts).
 
 ### State saved after the snapshot
 
