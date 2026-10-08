@@ -1,0 +1,138 @@
+{%- props
+    ## string The chart's title: it names the chart, its canvas and its data table.
+    title,
+    ## 'bar'|'line'|'pie'|'doughnut'|'radar'|'polarArea'|'scatter'|'bubble' The Chart.js chart type; any other value draws a bar chart.
+    type = 'bar',
+    ## array The category labels (the x axis, or the slices).
+    labels = [],
+    ## array The Chart.js datasets, each with a `label` and its `data`, plus any Chart.js dataset option. Leave colors out: the theme gives them.
+    datasets = [],
+    ## array Chart.js options, merged over `{responsive: true, maintainAspectRatio: false}`.
+    options = {},
+    ## Symfony\UX\Chartjs\Model\Chart|null A chart built with `ChartBuilderInterface`; it replaces `type`, `labels`, `datasets` and `options`, and its attributes go on the canvas.
+    chart = null,
+    ## string|null One sentence saying what the chart shows ("Sales doubled in March"), printed under the title and given to screen readers.
+    description = null,
+    ## 'sm'|'md'|'lg'|'xl' The height of the chart.
+    size = 'md',
+    ## 'details'|'visible'|'hidden' How the data table shows: behind a "Show the data" toggle, always, or for screen readers only.
+    table = 'details',
+    ## string The text of the toggle showing the data table.
+    tableLabel = 'Show the data as a table',
+    ## string The header of the table's label column, e.g. "Month".
+    labelsHeader = 'Label',
+    ## string|null The base of the chart's ids; pass a stable one inside Live Components and Turbo Frames.
+    id = null,
+    ## boolean Whether the title is for screen readers only.
+    hideTitle = false
+-%}
+{%- set _id = id ?: 'chart-' ~ random() -%}
+{%- set _types = ['bar', 'line', 'pie', 'doughnut', 'radar', 'polarArea', 'scatter', 'bubble'] -%}
+{%- set _type = chart ? chart.type : type -%}
+{%- set _type = _type in _types ? _type : 'bar' -%}
+{%- set _data = chart ? chart.data : {labels: labels, datasets: datasets} -%}
+{%- set _labels = _data.labels ?? [] -%}
+{%- set _datasets = _data.datasets ?? [] -%}
+{%- set _options = {responsive: true, maintainAspectRatio: false}|merge(chart ? chart.options : options) -%}
+{%- set _canvasAttributes = chart ? chart.attributes : {} -%}
+{%- set _controller = 'symfony--ux-chartjs--chart' -%}
+{%- set _controllers = _canvasAttributes['data-controller'] is defined ? _canvasAttributes['data-controller'] ~ ' ' ~ _controller : _controller -%}
+{%- set _canvasAttributes = _canvasAttributes|filter((value, name) => name matches '/^[a-zA-Z_][a-zA-Z0-9_.:-]*$/' and name|lower not in ['data-controller', 'role', 'style'] and not (name|lower starts with 'on') and not (name|lower starts with 'aria-')) -%}
+{%- set _pointChart = _type in ['scatter', 'bubble'] -%}
+{%- set _size = {sm: 'h-48', md: 'h-64', lg: 'h-80', xl: 'h-96'}[size] ?? 'h-64' -%}
+{%- set _table = table in ['details', 'visible', 'hidden'] ? table : 'details' -%}
+{#- the swatch of each series in the table, in the theme's chart roles (the controller recolors a series whose color the server set) -#}
+{%- set _swatches = ['bg-chart-1', 'bg-chart-2', 'bg-chart-3', 'bg-chart-4', 'bg-chart-5', 'bg-chart-6'] -%}
+{#- the roles the controller reads, named here so that Tailwind writes their variables: bg-chart-other text-body text-heading border-default border-default-medium bg-neutral-primary-medium -#}
+<figure
+    id="{{ _id }}"
+    {{ attributes.defaults({
+        class: 'w-full'|tailwind_classes,
+        'data-controller': 'chart',
+        'data-action': 'chartjs:pre-connect->chart#configure chartjs:connect->chart#adopt chartjs:view-value-change->chart#reconfigure',
+    }) }}
+>
+    <figcaption id="{{ _id }}-title" class="{{ hideTitle ? 'sr-only' : 'text-base font-semibold text-heading' }}">{{ title }}</figcaption>
+    {%- if description %}
+        <p id="{{ _id }}-description" class="{{ hideTitle ? 'sr-only' : 'mt-1 text-sm text-body' }}">{{ description }}</p>
+    {%- endif %}
+    <div class="relative mt-3 w-full {{ _size }}">
+        <canvas
+            role="img"
+            aria-labelledby="{{ _id }}-title"
+            {% if description %}aria-describedby="{{ _id }}-description"{% endif %}
+            data-chart-target="canvas"
+            {%- for _name, _value in {'data-controller': _controllers}|merge(_canvasAttributes)|merge({('data-' ~ _controller ~ '-view-value'): {type: _type, data: _data, options: _options}|json_encode}) %} {{ _name }}{% if _value is not same as(true) %}="{{ _value }}"{% endif %}{% endfor %}
+        >{{ title }}: the data is in the table.</canvas>
+    </div>
+    {%- set _tableClass = 'hidden' == _table ? 'sr-only' : ('details' == _table ? 'mt-3' : 'mt-4') -%}
+    {%- if 'details' == _table %}
+    <details class="mt-3">
+        <summary class="w-fit cursor-pointer rounded-sm text-sm font-medium text-fg-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-medium">{{ tableLabel }}</summary>
+    {%- endif %}
+    <div class="{{ _tableClass }} overflow-x-auto">
+        <table id="{{ _id }}-table" class="w-full text-left text-sm text-body rtl:text-right">
+            <caption class="sr-only">{{ title }}</caption>
+            <thead class="border-b border-default bg-neutral-secondary-soft text-sm text-body">
+                <tr>
+                    {%- if _pointChart %}
+                        <th scope="col" class="px-6 py-3 font-medium">{{ labelsHeader }}</th>
+                        <th scope="col" class="px-6 py-3 font-medium">x</th>
+                        <th scope="col" class="px-6 py-3 font-medium">y</th>
+                        {%- if 'bubble' == _type %}<th scope="col" class="px-6 py-3 font-medium">r</th>{% endif %}
+                    {%- else %}
+                        <th scope="col" class="px-6 py-3 font-medium">{{ labelsHeader }}</th>
+                        {%- for _dataset in _datasets %}
+                            <th scope="col" class="px-6 py-3 font-medium">
+                                <span class="inline-flex items-center gap-2">
+                                    {%- if _type not in ['pie', 'doughnut', 'polarArea'] %}
+                                        <span aria-hidden="true" data-chart-target="swatch" data-index="{{ loop.index0 }}" class="inline-block size-2.5 shrink-0 rounded-full {{ _swatches[loop.index0] ?? 'bg-chart-other' }}"></span>
+                                    {%- endif %}
+                                    {{- _dataset.label ?? ('Series ' ~ loop.index) -}}
+                                </span>
+                            </th>
+                        {%- endfor %}
+                    {%- endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {%- if _pointChart %}
+                    {%- for _dataset in _datasets %}
+                        {%- set _series = _dataset.label ?? ('Series ' ~ loop.index) -%}
+                        {%- for _point in _dataset.data ?? [] %}
+                            <tr class="border-b border-default bg-neutral-primary-soft">
+                                <th scope="row" class="px-6 py-3 font-medium text-heading">{{ _series }}</th>
+                                {%- for _axis in 'bubble' == _type ? ['x', 'y', 'r'] : ['x', 'y'] %}
+                                    {%- set value = _point[_axis] ?? '' -%}
+                                    {%- set dataset = _dataset -%}
+                                    {%- set label = _axis -%}
+                                    <td class="px-6 py-3">{{ block('value') }}</td>
+                                {%- endfor %}
+                            </tr>
+                        {%- endfor %}
+                    {%- endfor %}
+                {%- else %}
+                    {%- for _label in _labels %}
+                        {%- set _row = loop.index0 -%}
+                        <tr class="border-b border-default bg-neutral-primary-soft">
+                            <th scope="row" class="px-6 py-3 font-medium text-heading">{{ _label is iterable ? _label|join(' ') : _label }}</th>
+                            {%- for _dataset in _datasets %}
+                                {%- set value = (_dataset.data ?? [])[_row] ?? '' -%}
+                                {%- set dataset = _dataset -%}
+                                {%- set label = _label -%}
+                                <td class="px-6 py-3">{{ block('value') }}</td>
+                            {%- endfor %}
+                        </tr>
+                    {%- endfor %}
+                {%- endif %}
+            </tbody>
+        </table>
+    </div>
+    {%- if 'details' == _table %}
+    </details>
+    {%- endif %}
+</figure>
+{%- if false -%}
+    {##- A value in the data table, as given; override it to format values (`value`, its `dataset` and its `label` are set). -#}
+    {%- block value -%}{{ value is iterable ? value|json_encode : value }}{%- endblock value -%}
+{%- endif -%}
