@@ -51,6 +51,13 @@ Counts, not timings: the same build gives the same numbers, so they fail like an
 
 Budgets change only through a pull request that says why.
 
+**Server-side counts with the Symfony profiler.** PHP functional tests (`WebTestCase`, `$client->enableProfiler()`)
+read each request's profile: the Twig templates rendered, memory, Doctrine queries, and demo-only collectors (for
+example a data table's `countRows()` and `loadRows()` calls). They assert counts like "a table request runs one count
+and one row load". The repository has no PHPUnit setup yet; `tools/tests/data-table.php` checks the table's calls
+directly until then. The profiler slows every request, so it stays off for the release checks' timings and the
+baseline.
+
 ### 3. Release checks
 
 | Group | What |
