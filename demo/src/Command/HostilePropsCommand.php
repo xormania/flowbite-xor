@@ -147,7 +147,7 @@ final class HostilePropsCommand
             'selected' => $hostile,
             'month' => '"><svg onload=window.__xss=1>',
             'modifiers' => array_fill_keys($names, ['2026-03-12']) + ['booked' => ['2026-03-12', '2026-13-45']],
-            'inputAttr' => self::LABEL_ATTRIBUTES + ['form' => 'booking', 'type' => 'text', 'name' => 'evil', 'value' => 'evil'],
+            'inputAttr' => self::LABEL_ATTRIBUTES + ['form' => 'booking', 'type' => 'text', 'name' => 'evil', 'value' => 'evil', 'onchange' => 'window.__xss=1', 'OnInput' => 'window.__xss=1'],
         ])];
     }
 

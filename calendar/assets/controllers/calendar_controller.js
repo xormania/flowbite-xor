@@ -87,6 +87,8 @@ export default class extends Controller {
     #formatters = {};
     #selected = [];
     #month = '';
+    // every modifier name rendered so far: a name gone from `modifiers` loses its attribute
+    #modifierNames = new Set();
 
     connect() {
         this.#month = this.monthTargets[0]?.dataset.month || this.monthValue;
@@ -106,7 +108,7 @@ export default class extends Controller {
 
     /** Whether `date` (a `Y-m-d` string) can be selected. */
     canSelect(date) {
-        return ISO_DATE.test(date ?? '') && !this.#isDisabled(date);
+        return this.#isRealDate(date) && !this.#isDisabled(date);
     }
 
     /**
@@ -149,7 +151,16 @@ export default class extends Controller {
             return;
         }
         const month = String(selects[0].value).padStart(2, '0');
-        this.#setMonth(this.#addMonths(`${selects[1].value}-${month}-01`, -(event.params.index ?? 0)));
+        let first = this.#addMonths(`${selects[1].value}-${month}-01`, -(event.params.index ?? 0));
+        // within the bounds, the last displayed month included
+        if ('' !== this.endMonthValue) {
+            const lastFirst = this.#addMonths(this.endMonthValue, 1 - this.numberOfMonthsValue);
+            first = first > lastFirst ? lastFirst : first;
+        }
+        if ('' !== this.startMonthValue && first < this.startMonthValue) {
+            first = this.startMonthValue;
+        }
+        this.#setMonth(first);
     }
 
     selectDate(event) {
@@ -250,8 +261,9 @@ export default class extends Controller {
     }
 
     selectedValueChanged() {
-        if (this.#connected && this.selectedValue.join(',') !== this.#selected.join(',')) {
-            this.#setSelected([...this.selectedValue], 'api');
+        const selected = this.selectedValue.filter((date) => this.#isRealDate(date));
+        if (this.#connected && selected.join(',') !== this.#selected.join(',')) {
+            this.#setSelected(selected, 'api');
         }
     }
 
@@ -280,7 +292,7 @@ export default class extends Controller {
         } else {
             dates = [...new Set(this.#cells().filter((cell) => 'true' === cell.dataset.selected).map((cell) => cell.dataset.day))];
         }
-        dates = dates.filter((date) => ISO_DATE.test(date));
+        dates = dates.filter((date) => this.#isRealDate(date));
 
         return 'range' === this.modeValue ? dates : [...new Set(dates)].sort();
     }
@@ -391,6 +403,7 @@ export default class extends Controller {
         const gridStart = this.#parse(monthStart) - lead * DAY;
         const [from, to] = this.#range;
         const modifiers = Object.entries(this.modifiersValue).filter(([name]) => /^[a-z][a-z0-9-]*$/.test(name));
+        const stale = [...this.#modifierNames].filter((name) => !modifiers.some(([current]) => current === name));
 
         this.#cells(monthElement).forEach((cell, offset) => {
             const timestamp = gridStart + offset * DAY;
@@ -412,6 +425,9 @@ export default class extends Controller {
             cell.dataset.rangeMiddle = String(rangeMiddle);
             cell.dataset.rangeEnd = String(rangeEnd);
             cell.setAttribute('aria-selected', String(selected));
+            for (const name of stale) {
+                cell.removeAttribute(`data-${name}`);
+            }
             for (const [name, dates] of modifiers) {
                 cell.setAttribute(`data-${name}`, String(Array.isArray(dates) && dates.includes(date)));
             }
@@ -428,6 +444,7 @@ export default class extends Controller {
             button.disabled = disabled;
             button.tabIndex = date === this.#focusDate ? 0 : -1;
         });
+        modifiers.forEach(([name]) => this.#modifierNames.add(name));
 
         monthElement.querySelectorAll('[data-slot="calendar-week"]').forEach((row, week) => {
             const start = this.#toIso(gridStart + week * 7 * DAY);
@@ -502,10 +519,14 @@ export default class extends Controller {
                 }
             });
             const surplus = inputs.slice(this.#selected.length);
-            surplus.forEach((input) => input.remove());
             if (surplus.length > 0 && 0 === changed.length) {
-                changed = [container];
+                // a deselected date with no other input changing: the events come from the removed input, emptied,
+                // while it is still in place
+                surplus[0].value = '';
+                surplus[0].dispatchEvent(new Event('input', { bubbles: true }));
+                surplus[0].dispatchEvent(new Event('change', { bubbles: true }));
             }
+            surplus.forEach((input) => input.remove());
         } else {
             const [first, second] = this.#selected;
             for (const input of inputs) {
@@ -568,6 +589,11 @@ export default class extends Controller {
 
     #parse(date) {
         return Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)));
+    }
+
+    /** Whether `date` is a `Y-m-d` string naming a day that exists (no 2026-02-31). */
+    #isRealDate(date) {
+        return ISO_DATE.test(date ?? '') && this.#toIso(this.#parse(date)) === date;
     }
 
     #toIso(timestamp) {
