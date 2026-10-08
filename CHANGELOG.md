@@ -43,6 +43,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   the editor now stays, and Back builds a new one from the cached copy.
 - `markdown-editor`: after Back from a frame visit promoted to history, the textarea showed the server's Markdown
   instead of what was typed.
+- `toast`: a toast outside the permanent `ToastRegion` came back on Back, for another full timeout; it is now removed
+  before Turbo caches the page. Toasts in the region still stay across visits until they time out or are closed.
 
 ### Changed
 

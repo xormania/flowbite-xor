@@ -82,3 +82,37 @@ for (const slow of [false, true]) {
         });
     }
 }
+
+test('a toast outside the permanent region is not shown again on Back', async ({ page }) => {
+    await page.goto('/lab/turbo-restore');
+    await expect(page.getByTestId('page-toast')).toHaveText('Saved on page one.');
+    await page.getByRole('link', { name: 'Go to page two', exact: true }).click();
+    await expect(page.getByTestId('page')).toHaveText('Page two');
+    await turboVisitDone(page);
+    await page.goBack();
+    await expect(page.getByTestId('page')).toHaveText('Page one');
+    await turboVisitDone(page);
+    await expect(page.getByTestId('page-toast')).toHaveCount(0);
+
+    // a full load renders the page's toast again
+    await page.reload();
+    await expect(page.getByTestId('page-toast')).toHaveText('Saved on page one.');
+});
+
+test('a toast moved into the permanent region stays across visits', async ({ page }) => {
+    await page.goto('/lab/turbo-restore');
+    await page.evaluate(() => ((window as any).__sameDocument = true));
+    const toast = page.getByTestId('page-toast');
+    await expect(toast).toHaveAttribute('data-turbo-temporary', '');
+    await toast.evaluate((element) => document.getElementById('toasts')!.append(element));
+    await expect(toast).not.toHaveAttribute('data-turbo-temporary');
+    await page.getByRole('link', { name: 'Go to page two', exact: true }).click();
+    await expect(page.getByTestId('page')).toHaveText('Page two');
+    await turboVisitDone(page);
+    await expect(toast).toHaveText('Saved on page one.');
+    await page.goBack();
+    await expect(page.getByTestId('page')).toHaveText('Page one');
+    await turboVisitDone(page);
+    await expect(toast).toHaveCount(1);
+    expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
+});
