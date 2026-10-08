@@ -41,10 +41,11 @@ Then set up Tailwind CSS, Flowbite's stylesheet and the `theme` recipe as the *T
 sections of [`INSTALL.md`](INSTALL.md) say (its *Symfony* steps are the commands above). After that, install recipes:
 
 ```bash
-# from main
+# from main: the last release
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor
 
-# from a release tag (`0.1.0`), a branch, or a full 40-character commit SHA (no "/": use the SHA for feat/x)
+# from a release tag (`0.1.0`), a branch (`dev`: the work since the last release), or a full 40-character commit
+# SHA (no "/": use the SHA for feat/x)
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version>
 ```
 
@@ -240,8 +241,8 @@ vulnerability privately: see [`SECURITY.md`](https://github.com/xormania/flowbit
 
 Versions are git tags `X.Y.Z`, without a `v`: GitHub names the archive of a `v1.2.3` tag `flowbite-xor-1.2.3`,
 which the toolkit then cannot find. Install one with `--kit=https://github.com/xormania/flowbite-xor:<version>`;
-without a version, `ux:install` downloads `main`, the latest work. [`CHANGELOG.md`](CHANGELOG.md) lists what
-each version changes.
+without a version, `ux:install` downloads `main`, which holds the last release; `:dev` installs the work merged since.
+[`CHANGELOG.md`](CHANGELOG.md) lists what each version changes.
 
 ## Requirements
 
