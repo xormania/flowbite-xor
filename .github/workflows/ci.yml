@@ -108,6 +108,54 @@ jobs:
             - name: Data table limits
               run: php tools/tests/data-table.php
 
+    static-site:
+        name: Static site
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        # The GitHub Pages copy (pages.yml) is built only on release: this builds it on every push, so a page that does
+        # not render fails here instead of after the tag. Same steps as pages.yml, without the upload.
+        env:
+            APP_DEBUG: '0'
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+              with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  extensions: intl # the calendar formats dates with twig/intl-extra
+                  tools: composer
+                  coverage: none
+
+            - name: Copy the recipes into the demo
+              run: php tools/sync-demo
+
+            - name: Install the demo
+              working-directory: demo
+              run: composer install --no-interaction --no-progress
+
+            - name: Build the CSS and compile the assets
+              working-directory: demo
+              run: |
+                  bin/console tailwind:build --minify
+                  bin/console asset-map:compile
+
+            # app:export-static fails on any page that does not answer 200
+            - name: Save the pages
+              working-directory: demo
+              run: bin/console app:export-static ../_site --base-path=/flowbite-xor --commit="$(git rev-parse --short HEAD)"
+
+            - name: The previews' own links and forms reach saved pages
+              run: |
+                  if grep -rlE '/preview/[a-z0-9-]+/[a-z0-9-]+/(light|dark)/&' _site; then
+                      echo "::error::a preview link lost its '?' when the export moved the theme into the path"
+                      exit 1
+                  fi
+                  if grep -rlE 'action="[^"]*/preview/[a-z0-9-]+/[a-z0-9-]+"' _site; then
+                      echo "::error::a preview form submits to a path without the theme: no file answers it"
+                      exit 1
+                  fi
+
     fresh-install:
         name: Fresh install
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository

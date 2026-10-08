@@ -27,6 +27,17 @@ use Symfony\Contracts\Service\ResetInterface;
 #[AsCommand('app:export-static', description: 'Saves the showcase as static pages, for GitHub Pages')]
 final class ExportStaticCommand
 {
+    /**
+     * The recipes whose examples need Symfony behind them, with what does not work in the static copy: their recipe
+     * page says so. Live Components are switched off on every saved page, so a click does nothing rather than open
+     * Live's error dialog with the static host's answer.
+     */
+    private const SERVER_ONLY = [
+        'data-table' => 'the search, the sort links and the pages ask the server for the rows, so they do not change them',
+        'data-table-live' => 'the table is a Live Component: its search, sorting, pages and selection run on the server, so they do nothing',
+        'markdown-editor' => 'the Preview tab is rendered on the server by a Live Component, so it stays empty; the Write tab and its toolbar work',
+    ];
+
     public function __construct(
         private readonly KitReader $kit,
         #[Autowire(service: 'http_kernel')]
@@ -70,7 +81,7 @@ final class ExportStaticCommand
         $filesystem->remove($dir);
         $filesystem->mirror($assets, $dir.'/assets');
 
-        $context = ['release' => $release ?: null, 'latest_release' => $latestRelease ?: null, 'commit' => $commit ?: null];
+        $context = ['release' => $release ?: null, 'latest_release' => $latestRelease ?: null, 'commit' => $commit ?: null, 'server_only' => self::SERVER_ONLY];
         $pages = 0;
         foreach ($this->getPaths() as $path => $file) {
             $html = $this->render($basePath, $path, $context);
@@ -106,7 +117,7 @@ final class ExportStaticCommand
     }
 
     /**
-     * @param array{release: ?string, latest_release: ?string, commit: ?string} $context
+     * @param array{release: ?string, latest_release: ?string, commit: ?string, server_only: array<string, string>} $context
      */
     private function render(string $basePath, string $path, array $context): string
     {
@@ -128,8 +139,31 @@ final class ExportStaticCommand
         }
 
         $html = (string) $response->getContent();
-        // A file cannot depend on the query string: the previews are saved per theme, in their own directory.
-        $html = preg_replace('#(/preview/[a-z0-9-]+/[a-z0-9-]+)\?theme=(light|dark)#', '$1/$2/', $html);
+        // A file cannot depend on the query string: the previews are saved per theme, in their own directory. A
+        // preview's own links (a table's sort and page links) carry more parameters after the theme: they follow it.
+        $html = preg_replace_callback(
+            '#(/preview/[a-z0-9-]+/[a-z0-9-]+)\?theme=(light|dark)(?:(?:&amp;|&)([^"\'\s<>]*))?#',
+            static fn (array $match): string => $match[1].'/'.$match[2].'/'.(isset($match[3]) && '' !== $match[3] ? '?'.$match[3] : ''),
+            $html,
+        );
+
+        // A preview's own forms (a table's search) point at the preview without its theme, sent as a field instead:
+        // on this page, they submit to the page's own directory
+        if (1 === preg_match('#^(/preview/[a-z0-9-]+/[a-z0-9-]+)\?theme=(light|dark)$#', $path, $preview)) {
+            $html = str_replace(
+                'action="'.$basePath.$preview[1].'"',
+                'action="'.$basePath.$preview[1].'/'.$preview[2].'/"',
+                $html,
+            );
+        }
+
+        // No server answers Live Components here: without their controller, a click does nothing instead of opening
+        // Live's error dialog (the recipe page says what needs the server)
+        $html = preg_replace_callback(
+            '#\bdata-controller="([^"]*)"#',
+            static fn (array $match): string => 'data-controller="'.trim(preg_replace('#(?:^|\s)live(?=\s|$)#', ' ', $match[1]) ?? $match[1]).'"',
+            $html,
+        );
 
         // AssetMapper prints absolute /assets/ URLs, which no base path changes (the compiled JS and CSS refer to each
         // other relatively or through the importmap): the links, preloads and the importmap need the base path.
