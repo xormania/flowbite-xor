@@ -49,5 +49,6 @@
     { "fg": "heading", "bg": "neutral-primary-medium", "min": 4.5, "usage": "popover headings and labels, autocomplete group headers" },
     { "fg": "fg-brand-strong", "bg": "neutral-primary-medium", "min": 4.5, "usage": "autocomplete dropdown selected option" },
     { "fg": "heading", "bg": "neutral-tertiary-medium", "min": 4.5, "usage": "autocomplete dropdown active option" },
-    { "fg": "body-subtle", "bg": "neutral-primary-medium", "min": 4.5, "usage": "calendar weekdays and outside days in a date picker's popover" }
+    { "fg": "body-subtle", "bg": "neutral-primary-medium", "min": 4.5, "usage": "calendar weekdays and outside days in a date picker's popover" },
+    { "fg": "brand-medium", "bg": "neutral-primary-medium", "min": 3, "usage": "calendar focus ring on a popover" }
 ]
