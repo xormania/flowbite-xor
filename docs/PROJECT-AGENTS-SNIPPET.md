@@ -43,6 +43,12 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   `model` prop (`model="day"`, or `model="stay"` for a range array with `from`/`to`), never `data-model` on the
   `<twig:Calendar>`. `minDate`/`maxDate`/`disabled` only guide the user: validate on the server. PHP needs `intl`
   for locales other than `en`. Times: native `<input type="time">`.
+- **A date field: `ux:install date-picker`**; in a form, `DateType` with `'widget' => 'single_text'` and
+  `'block_prefix' => 'flowbite_date_picker'` (bounds from `'attr' => ['min' => …, 'max' => …]`, plus constraints),
+  no template code. Outside a form: `<twig:DatePicker id="…" selected="…">` with `DatePicker:Trigger` (spread
+  `date_picker_trigger_attrs` on its `Button`) or `DatePicker:Input` (spread `date_picker_input_attrs` on its `Input`),
+  and `DatePicker:Content` holding a `<twig:Calendar name="…" />` with the same `selected`. The calendar's hidden
+  input holds the value; the typed field has no `name`.
 - **Content next to a control: `ux:install popover`** (`<twig:Popover id="…">` with `Popover:Trigger`, spreading
   `popover_trigger_attrs` on its `Button`, and `Popover:Content`); menus of actions use `dropdown`. Pass a stable `id`
   inside Live Components and Turbo Frames.

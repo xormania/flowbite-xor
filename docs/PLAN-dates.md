@@ -92,7 +92,7 @@ _2026-10-07. This plan implements the C decisions in [`ROADMAP.md`](ROADMAP.md).
 - `assets/controllers/popover_controller.js`:
   - Values `open`, `name`, `placement`, `offsetDistance`. Targets `trigger`, `content`. Actions `toggle`, `show`, `close`, `closeIfGrouped`, `escape`, `closeOnFocusOut`, `closeSilently`.
   - **Open state** is `openValue` (an attribute), reflected as `data-state`, `aria-expanded` and the `hidden` class. Live's mutation tracker then keeps it open across re-renders, as it does for `dropdown`.
-  - **Opening:** it shows the content and positions it, then adds `click` (capture) on the document, and `scroll` (capture) and `resize` on the window. It dispatches `popover:open` on the window when `name` is set. It dispatches a cancelable `popover:show` (detail `{content}`) on the root. Unless that event is prevented, it focuses `[autofocus]`, else the first focusable element, else the content itself.
+  - **Opening:** it shows the content and positions it, then adds `click` (capture) on the document, and `scroll` (capture) and `resize` on the window. It dispatches `popover:open` on the window when `name` is set. It dispatches a cancelable `popover:focus` (detail `{content}`) on the root. Unless that event is prevented, it focuses `[autofocus]`, else the first focusable element, else the content itself.
   - **Closing:** it removes those listeners. Escape (focus inside the root) closes and focuses the trigger. An outside click or focus leaving the root closes without moving focus. `closeSilently` (before Turbo caches the page) closes without focus or events. `disconnect()` removes every listener.
   - **Positioning:** copy `position()` from `dropdown/assets/controllers/dropdown_controller.js:118-174` verbatim (offset, flip, shift into the viewport along the trigger, containing-block origin, DPR rounding). The only change is the `data-placement` dataset key, with a comment naming the source so a later shared helper can replace both. `dropdown` and `tooltip` are untouched.
   - `connect()` can run again: no state outside the instance, and `open=true` positions the content on connect without stealing focus.
@@ -210,7 +210,7 @@ _2026-10-07. This plan implements the C decisions in [`ROADMAP.md`](ROADMAP.md).
 **Recipe** `date-picker/`:
 - `manifest.json`: `recipe: ["calendar", "popover"]`. Composer: the same as `calendar`.
 - `DatePicker.html.twig`:
-  - The root hosts `popover date-picker` and reuses the popover's attributes and actions. It adds `calendar:select->date-picker#select` and `popover:show->date-picker#focusDay`.
+  - The root hosts `popover date-picker` and reuses the popover's attributes and actions. It adds `calendar:select->date-picker#select` and `popover:focus->date-picker#focusDay`.
   - Props:
     - `id`;
     - `selected` (still needed for the server-rendered text);
@@ -243,7 +243,7 @@ _2026-10-07. This plan implements the C decisions in [`ROADMAP.md`](ROADMAP.md).
     - the exact formatted text of the current selection.
 
     Everything is computed in UTC, and `Date.parse` is not used.
-  - `focusDay` prevents `popover:show` and focuses the calendar's roving day.
+  - `focusDay` prevents `popover:focus` and focuses the calendar's roving day.
 - README examples (fixed `today`):
   - button trigger;
   - input plus icon trigger (`flowbite:calendar-month-outline`);

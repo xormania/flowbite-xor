@@ -115,7 +115,7 @@
     {%- if 'single_text' == widget|default('') -%}
         {{- include('form/flowbite_date_picker_widget.html.twig') -}}
     {%- else -%}
-        {{- block('date_widget') -}}
+        {##- Any other widget, from this theme or Symfony's layout. -#}{{- block('date_widget') -}}
     {%- endif -%}
 {%- endblock flowbite_date_picker_widget -%}
 
