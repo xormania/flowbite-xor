@@ -49,6 +49,11 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   `date_picker_trigger_attrs` on its `Button`) or `DatePicker:Input` (spread `date_picker_input_attrs` on its `Input`),
   and `DatePicker:Content` holding a `<twig:Calendar name="…" />` with the same `selected`. The calendar's hidden
   input holds the value; the typed field has no `name`.
+- **Charts: `ux:install chart`**, then `<twig:Chart type="bar|line|…" title="…" :labels="…" :datasets="[{label: '…', data: […]}]" />`,
+  or `<twig:Chart :chart="chart" title="…" />` with a `ChartBuilderInterface` chart. Always a `title`; no colors (the
+  theme's `chart-*` roles apply; for a role write `'var(--color-…)'`); at most six series; format the table's values in
+  `<twig:block name="value">`; pass `id` inside Live Components and Turbo Frames. Never write `new Chart()` or
+  `Chart.defaults` code.
 - **Content next to a control: `ux:install popover`** (`<twig:Popover id="…">` with `Popover:Trigger`, spreading
   `popover_trigger_attrs` on its `Button`, and `Popover:Content`); menus of actions use `dropdown`. Pass a stable `id`
   inside Live Components and Turbo Frames.

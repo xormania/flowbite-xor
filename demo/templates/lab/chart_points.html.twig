@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}chart-points — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'chart-points'}) }}
+    <div class="grid max-w-4xl gap-8 md:grid-cols-2">
+        <twig:Chart
+            id="points-columns"
+            title="Sales by month"
+            labelsHeader="Month"
+            size="sm"
+            table="visible"
+            :datasets="[{label: 'Shop', data: [{x: 'Jan', y: 12}, {x: 'Feb', y: 19}, {x: 'Mar', y: 14}]}, {label: 'Web', data: [{x: 'Feb', y: 7}, {x: 'Apr', y: 9}]}]"
+        />
+        <twig:Chart
+            id="points-rows"
+            title="Open tickets by team"
+            labelsHeader="Team"
+            size="sm"
+            table="visible"
+            :datasets="[{label: 'Open', data: [{y: 'Billing', x: 7}, {y: 'Platform', x: 12}]}]"
+            :options="{indexAxis: 'y'}"
+        />
+    </div>
+{% endblock %}

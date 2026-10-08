@@ -68,7 +68,8 @@ export const test = base.extend<Fixtures>({
         await use(async (path, { theme = 'light', timers = 'real' } = {}) => {
             const [recipe, example] = recipeAndExample(path);
 
-            await page.emulateMedia({ colorScheme: theme });
+            // reduced motion: charts draw at once instead of animating into place
+            await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
             // Any Playwright clock fakes requestAnimationFrame, which then fires without a real render.
             if ('fake' === timers) {
                 await page.clock.install({ time: FIXED_TIME });
