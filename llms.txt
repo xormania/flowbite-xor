@@ -37,7 +37,7 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 - [skeleton](https://raw.githubusercontent.com/xormania/flowbite-xor/main/skeleton/README.md): Placeholders shaped like the content that is loading.
 - [spinner](https://raw.githubusercontent.com/xormania/flowbite-xor/main/spinner/README.md): A spinning indicator for a loading state.
 - [table](https://raw.githubusercontent.com/xormania/flowbite-xor/main/table/README.md): Rows and columns of data.
-- [tabs](https://raw.githubusercontent.com/xormania/flowbite-xor/main/tabs/README.md): Tabs that switch between panels, in a row or a column.
+- [tabs](https://raw.githubusercontent.com/xormania/flowbite-xor/main/tabs/README.md): Tabs that switch between panels in place, in a row or a column, with the arrow keys of the WAI-ARIA tabs pattern.
 - [textarea](https://raw.githubusercontent.com/xormania/flowbite-xor/main/textarea/README.md): A multi-line text field, for a comment or a description.
 - [toggle](https://raw.githubusercontent.com/xormania/flowbite-xor/main/toggle/README.md): A switch for an on/off setting.
 
@@ -55,6 +55,7 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 - [page-header](https://raw.githubusercontent.com/xormania/flowbite-xor/main/page-header/README.md): The top of a page: its title, a short description and the page's actions.
 - [popover](https://raw.githubusercontent.com/xormania/flowbite-xor/main/popover/README.md): Free content anchored to a button (text, links, a small form) in a non-modal dialog that closes on Escape, a click outside or when the focus leaves it.
 - [progress](https://raw.githubusercontent.com/xormania/flowbite-xor/main/progress/README.md): A bar showing how far a task has come.
+- [section-nav](https://raw.githubusercontent.com/xormania/flowbite-xor/main/section-nav/README.md): Vertical tabs that navigate: one link per page of a group of pages (settings), the current one marked, a column on large screens and a strip that scrolls sideways on small ones.
 - [side-nav](https://raw.githubusercontent.com/xormania/flowbite-xor/main/side-nav/README.md): A multi-level navigation tree: links in branches that open and close, at any depth, with the keyboard of an ARIA tree view; the open branches hold across Turbo visits, and the branch of the current page opens.
 - [sidebar](https://raw.githubusercontent.com/xormania/flowbite-xor/main/sidebar/README.md): The app's main navigation: grouped links with icons and counts, collapsible to icons, opened over the page on small screens.
 - [stat-card](https://raw.githubusercontent.com/xormania/flowbite-xor/main/stat-card/README.md): A key figure with its label and, optionally, how it changed over a period.

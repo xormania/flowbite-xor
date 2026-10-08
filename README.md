@@ -102,7 +102,7 @@ Each recipe's README has its examples, props and usage.
 | [`skeleton`](skeleton/README.md) | Placeholders shaped like the content that is loading. |
 | [`spinner`](spinner/README.md) | A spinning indicator for a loading state. |
 | [`table`](table/README.md) | Rows and columns of data. |
-| [`tabs`](tabs/README.md) ✦ | Tabs that switch between panels, in a row or a column. |
+| [`tabs`](tabs/README.md) ✦ | Tabs that switch between panels in place, in a row or a column, with the arrow keys of the WAI-ARIA tabs pattern. |
 | [`textarea`](textarea/README.md) | A multi-line text field, for a comment or a description. |
 | [`toggle`](toggle/README.md) | A switch for an on/off setting. |
 
@@ -122,6 +122,7 @@ Each recipe's README has its examples, props and usage.
 | [`page-header`](page-header/README.md) | The top of a page: its title, a short description and the page's actions. |
 | [`popover`](popover/README.md) ✦ | Free content anchored to a button (text, links, a small form) in a non-modal dialog that closes on Escape, a click outside or when the focus leaves it. |
 | [`progress`](progress/README.md) | A bar showing how far a task has come. |
+| [`section-nav`](section-nav/README.md) ✦ | Vertical tabs that navigate: one link per page of a group of pages (settings), the current one marked, a column on large screens and a strip that scrolls sideways on small ones. |
 | [`side-nav`](side-nav/README.md) ✦ | A multi-level navigation tree: links in branches that open and close, at any depth, with the keyboard of an ARIA tree view; the open branches hold across Turbo visits, and the branch of the current page opens. |
 | [`sidebar`](sidebar/README.md) ✦ | The app's main navigation: grouped links with icons and counts, collapsible to icons, opened over the page on small screens. |
 | [`stat-card`](stat-card/README.md) | A key figure with its label and, optionally, how it changed over a period. |
@@ -208,6 +209,9 @@ How the recipes behave with Turbo and Live Components, and what your own pages a
 - **Navigation trees keep their open branches.** A `side-nav` saves which branches are open in `sessionStorage` and
   restores them after every Turbo visit, Back and Forward, over the copy Turbo cached; the branch of the current page
   opens.
+- **Tabs and sections show the page shown.** A `tabs` list keeps its selected tab in an attribute, so Back shows the
+  tab selected when the page was left; a visit or a reload starts from `defaultValue`. A `section-nav` marks the
+  section of the page shown, also inside a `data-turbo-permanent` element.
 - **Overlays come back closed.** A dropdown, modal or drawer left open by a link inside it shows closed after Back,
   and opens again as before (a dialog as a modal).
 - **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a
@@ -223,11 +227,11 @@ unchecked. On top of escaping, the components check what shapes their markup:
   `a`; `Avatar:GroupCount` `div`, `a`, `button`; `Card:Title` `span`, `div`, `p`, `h1`–`h6`; `Dropdown:Item` `a`,
   `button`; `FormField` `div`, `fieldset`. Any other value renders the default tag, without an error:
   `<twig:Button as="label">` is a `button`.
-- **Link props.** The links of this kit's own recipes (`Breadcrumb:Item`, `Sidebar:Item` and `SideNav:Item` `href`, `LoginForm`
+- **Link props.** The links of this kit's own recipes (`Breadcrumb:Item`, `Sidebar:Item`, `SideNav:Item` and `SectionNav:Item` `href`, `LoginForm`
   `forgotPasswordHref` and `signupHref`, `ForgotPasswordForm` and `SignupForm` `loginHref`, `NotFound` `homeHref`)
   keep a relative, `http(s)`, `mailto` or `tel` URL, read as browsers read it (in any case, after leading spaces and
   control characters, with tabs and newlines inside). Any other scheme, `javascript:` and `data:` but also `sms:` or
-  an app's `slack://`, silently renders `#`, and a sidebar or side nav item linking to `#` is never marked as the current page.
+  an app's `slack://`, silently renders `#`, and a sidebar, side nav or section nav item linking to `#` is never marked as the current page.
   The value is printed as text, even a `Markup` one (`|raw`).
 - **Attributes.** Attributes given to a component, and `FormField`'s `labelAttr` and `helpAttr`, render with escaped
   names and values: a name cannot add another attribute. Otherwise they render as given, an `on…` handler or an

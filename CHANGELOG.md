@@ -7,6 +7,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `section-nav`: vertical tabs that navigate between the pages of one area (settings): links with
+  `aria-current="page"` marked by the server or from the URL, a column on large screens and a strip that scrolls
+  sideways, with the current section in view, on small ones.
 - `side-nav`: a multi-level navigation tree (WAI-ARIA tree view): links in branches that open and close at any depth,
   arrow keys, Home, End and type-ahead, the branch of the current page open, and the open branches kept across Turbo
   visits, Back and Forward in `sessionStorage`.
@@ -57,6 +60,12 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `tabs`: the keyboard of the WAI-ARIA tabs pattern: the selected tab is the list's one Tab stop, the arrow keys of
+  the list's orientation (Up and Down in a vertical list, which now has `aria-orientation`) select the previous and
+  next tab, Home and End the first and last, skipping disabled tabs; an `idPrefix` prop keeps two `Tabs` of a page
+  from sharing ids.
+- `layouts`: the `settings` layout renders its navigation with `section-nav`; fill `settings_nav` with
+  `SectionNav:Item`s (plain `<li><a>` items still render, without the controller's marking).
 - `theme`: chart series roles `chart-1` to `chart-6` and `chart-other`, checked for contrast in both themes.
 - The docs no longer track the official `flowbite-4` kit, an initial reference only: `UPSTREAM.md` is removed, and
   its notes on toolkit and platform behavior moved to `docs/NOTES.md`. `NOTICE` keeps the credit.

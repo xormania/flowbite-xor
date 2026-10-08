@@ -70,6 +70,8 @@ Keep `php bin/console tailwind:build --watch` running while you work, or run `ta
 | The app's shell: sidebar, navbar, page layouts, flash toasts | `layouts` |
 | A page title with its actions | `page-header` |
 | Navigation more than one level deep: links in branches that open and close | `side-nav` (in the `Sidebar`) |
+| Vertical tabs between pages of one area (settings sections), each its own URL | `section-nav` (the `settings` layout has one) |
+| Panels switched in place on one page, in a row or a column | `tabs` |
 | Forms rendered with the kit's components | `form-theme` |
 | A searchable select, one or several choices, server-side search | `autocomplete` |
 | A date field, typed or picked, in a form | `date-picker` |
