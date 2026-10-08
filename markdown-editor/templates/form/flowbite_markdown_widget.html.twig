@@ -1,0 +1,28 @@
+{#-
+    The MarkdownEditor of a `MarkdownType`, included by the form-theme recipe's `flowbite_markdown_widget` block with the
+    field's variables. The textarea takes the field's id and name, so the field's label points at it. `attr.placeholder`
+    and `attr.rows` go to the textarea; `aria-*` too, the other attributes to the editor's box.
+-#}
+{%- set _attrs = {} -%}
+{%- for _name, _value in attr|filter((v, k) => k not in ['placeholder', 'name', 'id', 'value', 'rows']) -%}
+    {%- if 'title' == _name and translation_domain is not same as(false) and _value is not null -%}
+        {%- set _value = _value|trans(attr_translation_parameters, translation_domain) -%}
+    {%- endif -%}
+    {%- set _attrs = _attrs|merge({(_name): _value}) -%}
+{%- endfor -%}
+{%- if required|default(false) -%}{%- set _attrs = _attrs|merge({'aria-required': 'true'}) -%}{%- endif -%}
+{%- set _attrs = _attrs|filter((v) => v is not null and v is not same as(false)) -%}
+{%- set _placeholder = placeholder ?? null -%}
+{%- if _placeholder is not null and translation_domain is not same as(false) -%}
+    {%- set _placeholder = _placeholder|trans(attr_translation_parameters, translation_domain) -%}
+{%- endif -%}
+<twig:MarkdownEditor
+    :id="id"
+    :name="full_name"
+    :value="value ?? ''"
+    :placeholder="_placeholder"
+    :rows="rows"
+    :maxChars="max_chars"
+    :disabled="disabled"
+    {{ ..._attrs }}
+/>

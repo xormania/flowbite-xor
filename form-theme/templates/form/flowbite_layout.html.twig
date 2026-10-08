@@ -135,6 +135,11 @@
     {{- include('form/flowbite_editor_widget.html.twig') -}}
 {%- endblock flowbite_editor_widget -%}
 
+{##- A `MarkdownType` (the markdown-editor recipe's PHP): the markdown-editor recipe's widget (a Markdown textarea with Write and Preview tabs), rendered from its own template so a project without that recipe never needs it. -#}
+{%- block flowbite_markdown_widget -%}
+    {{- include('form/flowbite_markdown_widget.html.twig') -}}
+{%- endblock flowbite_markdown_widget -%}
+
 {##- A collapsed choice through the Select component. -#}
 {%- block choice_widget_collapsed -%}
     {%- if required and placeholder is none and not placeholder_in_choices and not multiple and (attr.size is not defined or attr.size <= 1) -%}

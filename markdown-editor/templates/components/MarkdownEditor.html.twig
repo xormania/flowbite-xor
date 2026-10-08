@@ -1,0 +1,67 @@
+{#- The template of App\FlowbiteXor\MarkdownEditor\MarkdownEditor, a Live Component: its props are LiveProps (see the
+    class). `aria-describedby`, `aria-invalid` and `aria-required` go to the textarea; everything else to the root. The
+    fields are plain elements with the Textarea component's classes: inside a Live Component, `data-model` on a Twig
+    component binds a parent prop instead of rendering the attribute. -#}
+{%- set _describedby = attributes.all['aria-describedby'] ?? null -%}
+{%- set _invalid = attributes.all['aria-invalid'] ?? null -%}
+{%- set _required = attributes.all['aria-required'] ?? (attributes.all.required ?? false ? 'true' : null) -%}
+{%- set _editable = not readonly and not disabled -%}
+{%- set _tab = 'inline-flex items-center px-4 py-2.5 text-sm font-medium text-body border-b-2 border-transparent hover:text-heading focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-medium aria-selected:border-brand aria-selected:text-fg-brand' -%}
+{%- set _button = 'inline-flex h-8 min-w-8 items-center justify-center rounded-base px-1.5 text-sm font-semibold text-body hover:bg-neutral-tertiary-medium hover:text-heading focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-medium' -%}
+{%- set _content_class = 'min-h-40 px-4 py-3 text-sm text-heading [&_a]:font-medium [&_a]:text-heading [&_a]:underline [&_blockquote]:my-3 [&_blockquote]:border-s-4 [&_blockquote]:border-default-medium [&_blockquote]:ps-4 [&_blockquote]:text-body [&_code]:rounded-sm [&_code]:bg-neutral-tertiary [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.875em] [&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-base [&_pre]:bg-neutral-tertiary [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:mb-2 [&_h4]:font-semibold [&_h5]:mt-3 [&_h5]:mb-2 [&_h5]:font-semibold [&_h6]:mt-3 [&_h6]:mb-2 [&_h6]:font-semibold [&_hr]:my-4 [&_hr]:border-default-medium [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:ps-6 [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:ps-6 [&>:first-child]:mt-0 [&>:last-child]:mb-0' -%}
+<div
+    {{ attributes.without('aria-describedby', 'aria-invalid', 'aria-required', 'required').defaults({
+        class: ('w-full overflow-hidden rounded-base border border-default-medium bg-neutral-secondary-medium shadow-xs has-[textarea[aria-invalid=true]]:border-danger-subtle has-[textarea:focus]:border-brand has-[textarea:focus]:ring-1 has-[textarea:focus]:ring-brand' ~ (disabled ? ' cursor-not-allowed opacity-60' : ''))|tailwind_classes,
+    }) }}
+>
+<div data-controller="markdown-editor" data-action="turbo:before-cache@document->markdown-editor#cache" data-markdown-editor-max-chars-value="{{ maxChars }}">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-default-medium bg-neutral-primary-soft px-2">
+        <div role="tablist" aria-label="{{ label ?? 'Markdown' }}" class="flex" data-action="keydown->markdown-editor#switchTab">
+            <button type="button" role="tab" id="{{ id }}_write_tab" aria-controls="{{ id }}_write" aria-selected="{{ previewing ? 'false' : 'true' }}" tabindex="{{ previewing ? '-1' : '0' }}" class="{{ _tab }}" data-markdown-editor-target="tab" data-action="markdown-editor#sync live#action" data-live-action-param="write">Write</button>
+            <button type="button" role="tab" id="{{ id }}_preview_tab" aria-controls="{{ id }}_preview" aria-selected="{{ previewing ? 'true' : 'false' }}" tabindex="{{ previewing ? '0' : '-1' }}" class="{{ _tab }}" data-markdown-editor-target="tab" data-action="markdown-editor#sync live#action" data-live-action-param="preview">Preview</button>
+        </div>
+        {%- if _editable and not previewing %}
+        <div role="toolbar" aria-label="{{ toolbarLabel }}" aria-controls="{{ id }}" class="flex flex-wrap items-center gap-0.5 py-1.5" data-action="keydown->markdown-editor#navigate">
+            <button type="button" tabindex="0" class="{{ _button }}" data-markdown-editor-target="button" data-action="markdown-editor#format" data-markdown-editor-syntax-param="heading" aria-label="Heading"><span aria-hidden="true">H</span></button>
+            <button type="button" tabindex="-1" class="{{ _button }}" data-markdown-editor-target="button" data-action="markdown-editor#format" data-markdown-editor-syntax-param="bold" aria-label="Bold"><twig:ux:icon name="flowbite:letter-bold-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" tabindex="-1" class="{{ _button }}" data-markdown-editor-target="button" data-action="markdown-editor#format" data-markdown-editor-syntax-param="italic" aria-label="Italic"><twig:ux:icon name="flowbite:letter-italic-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" tabindex="-1" class="{{ _button }}" data-markdown-editor-target="button" data-action="markdown-editor#format" data-markdown-editor-syntax-param="link" aria-label="Link"><twig:ux:icon name="flowbite:link-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" tabindex="-1" class="{{ _button }}" data-markdown-editor-target="button" data-action="markdown-editor#format" data-markdown-editor-syntax-param="bulletList" aria-label="Bulleted list"><twig:ux:icon name="flowbite:list-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" tabindex="-1" class="{{ _button }}" data-markdown-editor-target="button" data-action="markdown-editor#format" data-markdown-editor-syntax-param="orderedList" aria-label="Numbered list"><twig:ux:icon name="flowbite:ordered-list-outline" class="size-5" aria-hidden="true" /></button>
+        </div>
+        {%- endif %}
+    </div>
+    <div id="{{ id }}_write" role="tabpanel" aria-labelledby="{{ id }}_write_tab"{% if previewing %} hidden{% endif %}>
+        <textarea
+            id="{{ id }}"
+            name="{{ name }}"
+            rows="{{ rows }}"
+            class="block w-full resize-y border-0 bg-transparent px-4 py-3 font-mono text-sm text-heading placeholder:text-body focus:ring-0 focus:outline-none"
+            {%- if label %} aria-label="{{ label }}"{% endif %}
+            {%- if _describedby %} aria-describedby="{{ _describedby }}"{% endif %}
+            {%- if _invalid %} aria-invalid="{{ _invalid }}"{% endif %}
+            {%- if _required %} aria-required="true"{% endif %}
+            {%- if placeholder %} placeholder="{{ placeholder }}"{% endif %}
+            {%- if readonly %} readonly{% endif %}
+            {%- if disabled %} disabled{% endif %}
+            data-model="norender|value"
+            data-markdown-editor-target="source"
+            data-action="input->markdown-editor#count"
+        >{{ value }}</textarea>
+    </div>
+    <div id="{{ id }}_preview" role="tabpanel" aria-labelledby="{{ id }}_preview_tab" tabindex="0" class="{{ _content_class }}"{% if not previewing %} hidden{% endif %}>
+        {%- if previewing -%}
+            {%- set _html = this.previewHtml -%}
+            {%- if _html is null -%}
+                <p class="text-fg-danger-strong">Too long to preview.</p>
+            {%- elseif _html is same as('') -%}
+                <p class="text-body">Nothing to preview.</p>
+            {%- else -%}
+                {#- rendered by MarkdownRenderer: CommonMark without raw HTML, then sanitized -#}
+                {{ _html|raw }}
+            {%- endif -%}
+        {%- endif -%}
+    </div>
+    <p class="border-t border-default-medium px-4 py-1.5 text-end text-xs text-body data-over:font-medium data-over:text-fg-danger-strong" data-markdown-editor-target="counter" data-template="{{ counterText }}"{% if this.length > maxChars %} data-over{% endif %}>{{ counterText|replace({'%count%': this.length, '%max%': maxChars}) }}</p>
+</div>
+</div>

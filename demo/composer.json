@@ -7,6 +7,7 @@
         "php": ">=8.4",
         "ext-ctype": "*",
         "ext-iconv": "*",
+        "league/commonmark": "^2.8",
         "symfony/asset-mapper": "8.1.*",
         "symfony/console": "8.1.*",
         "symfony/dotenv": "8.1.*",
@@ -50,7 +51,8 @@
             "App\\": "src/",
             "App\\FlowbiteXor\\DataTable\\": "../data-table/src/FlowbiteXor/DataTable/",
             "App\\FlowbiteXor\\DataTableLive\\": "../data-table-live/src/FlowbiteXor/DataTableLive/",
-            "App\\FlowbiteXor\\Editor\\": "../editor/src/FlowbiteXor/Editor/"
+            "App\\FlowbiteXor\\Editor\\": "../editor/src/FlowbiteXor/Editor/",
+            "App\\FlowbiteXor\\MarkdownEditor\\": "../markdown-editor/src/FlowbiteXor/MarkdownEditor/"
         }
     },
     "autoload-dev": {

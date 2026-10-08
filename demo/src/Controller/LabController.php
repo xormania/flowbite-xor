@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Demo\OrdersTable;
 use App\Form\AutocompleteDemoType;
 use App\Form\EditorDemoType;
+use App\Form\MarkdownDemoType;
 use App\Form\UploadDemoType;
 use App\Kit\KitReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -65,6 +66,8 @@ final class LabController extends AbstractController
         'editor-turbo' => 'Editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'editor-stream' => 'An Editor replaced and updated by Turbo Streams.',
         'live-editor' => 'An Editor bound to a Live Component property: unrelated re-renders leave the typing alone, a save reads the content, a reset from the server replaces it.',
+        'markdown-turbo' => 'Markdown editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
+        'markdown-stream' => 'A MarkdownEditor replaced and updated by Turbo Streams.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -446,5 +449,40 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/editor_stream.html.twig', ['description' => self::SCENARIOS['editor-stream']]);
+    }
+
+    #[Route('/markdown-turbo/{page}', name: 'app_lab_markdown_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'], methods: ['GET', 'POST'])]
+    public function markdownTurbo(Request $request, string $page): Response
+    {
+        $form = $this->createForm(MarkdownDemoType::class);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            // what the field stored, shown after the redirect
+            $request->getSession()->set('lab_markdown_body', $form->get('body')->getData());
+
+            return $this->redirectToRoute('app_lab_markdown_turbo', ['page' => $page, 'saved' => 1], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('lab/markdown_turbo.html.twig', [
+            'page' => $page,
+            'form' => $form,
+            'load' => $request->query->getInt('load'),
+            'saved' => $request->query->getBoolean('saved') ? $request->getSession()->get('lab_markdown_body') : null,
+            'description' => self::SCENARIOS['markdown-turbo'],
+        ], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+
+    #[Route('/markdown-stream', name: 'app_lab_markdown_stream', methods: ['GET', 'POST'])]
+    public function markdownStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/markdown_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/markdown_stream.html.twig', ['description' => self::SCENARIOS['markdown-stream']]);
     }
 }
