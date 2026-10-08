@@ -20,8 +20,14 @@ export default class extends Controller {
     connect() {
         this.hovered = false;
         this.focused = false;
-        if (!this.element.closest('[data-turbo-permanent]')) {
+        // re-checked on each connect: a toast moved into the region drops the marker this controller added
+        const temporary = !this.element.closest('[data-turbo-permanent]');
+        if (temporary && !this.element.hasAttribute('data-turbo-temporary')) {
             this.element.setAttribute('data-turbo-temporary', '');
+            this.markedTemporary = true;
+        } else if (!temporary && this.markedTemporary) {
+            this.element.removeAttribute('data-turbo-temporary');
+            this.markedTemporary = false;
         }
         if (this.closing) {
             // moved in the DOM while fading out: finish the removal

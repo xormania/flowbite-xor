@@ -10,6 +10,8 @@
 {% block body %}
     {{ include('lab/_header.html.twig', {name: 'turbo-restore'}) }}
     <h2 class="mb-4 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
+    {#- on both pages, so a Turbo visit keeps it with its toasts -#}
+    <twig:ToastRegion />
     {%- if page == 'two' %}
         <p><a href="{{ path('app_lab_turbo_restore', {page: 'one'}) }}" class="text-fg-brand hover:underline">Go to page one</a></p>
     {%- else %}
