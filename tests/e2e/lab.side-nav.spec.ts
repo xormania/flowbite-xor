@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
 
 /*
- * The SideNav tree on /lab/side-nav/<page>, rendered by every page.
+ * The SideNav tree on /lab/side-nav/<page> (rendered by every page) and in the demo's data-turbo-permanent Sidebar.
  * The state checked after each transition (a click, a key, a Turbo visit, Back, Forward, a reload) is the whole tree:
  * which branches are open, which item is the current page, which treeitem holds the Tab stop, and where the focus is.
  */
@@ -53,6 +53,8 @@ test('the tree has the ARIA tree structure, and the branch of the current page r
     // the server opened them: the page's HTML, before any controller
     const html = await (await page.request.get('/lab/side-nav/three')).text();
     expect(html).toMatch(/aria-label="Guides" aria-expanded="false"/); // the lab marks the current page from the URL only
+    const demo = await (await page.request.get('/demo/settings/profile')).text();
+    expect(demo).toMatch(/aria-label="Settings" aria-expanded="true"/); // `route` marks it on the server
 });
 
 test('the keyboard moves through the shown treeitems, opens and closes branches and follows links', async ({ page }) => {
@@ -177,6 +179,37 @@ test('repeated Turbo visits leave one controller on the tree', async ({ page }) 
     await page.keyboard.press('ArrowLeft');
     await expect(treeitem(page, 'Reference')).toHaveAttribute('aria-expanded', 'false');
     await expect(treeitem(page, 'Reference')).toBeFocused();
+});
+
+test('in the demo\'s data-turbo-permanent sidebar, the tree follows the current page across visits', async ({ page }) => {
+    await page.goto('/demo');
+    const nav = page.getByRole('tree', { name: 'Acme' });
+    await page.evaluate(() => ((window as any).__sidebar = document.getElementById('sidebar')));
+    await expect(nav.getByRole('treeitem', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+    await expect(nav.getByRole('treeitem', { name: 'Settings' })).toHaveAttribute('aria-expanded', 'false');
+
+    const settings = nav.getByRole('treeitem', { name: 'Settings' });
+    await settings.locator(':scope > [data-side-nav-toggle]').click();
+    await nav.getByRole('treeitem', { name: 'Profile' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+    await turboVisitDone(page);
+    expect(await page.evaluate(() => (window as any).__sidebar === document.getElementById('sidebar'))).toBe(true);
+    await expect(nav.getByRole('treeitem', { name: 'Profile' })).toHaveAttribute('aria-current', 'page');
+    await expect(nav.getByRole('treeitem', { name: 'Dashboard' })).not.toHaveAttribute('aria-current');
+    await expect(nav.getByRole('treeitem', { name: 'Profile' })).toHaveAttribute('tabindex', '0');
+
+    await settings.locator(':scope > [data-side-nav-toggle]').click();
+    await expect(settings).toHaveAttribute('aria-expanded', 'false');
+    await nav.getByRole('treeitem', { name: 'Dashboard' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+    await turboVisitDone(page);
+    await expect(nav.getByRole('treeitem', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+    await expect(nav.getByRole('treeitem', { name: 'Settings' })).toHaveAttribute('aria-expanded', 'false');
+    await page.goBack();
+    await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+    await turboVisitDone(page);
+    await expect(nav.getByRole('treeitem', { name: 'Profile' })).toHaveAttribute('aria-current', 'page');
+    await expect(nav.getByRole('treeitem', { name: 'Settings' })).toHaveAttribute('aria-expanded', 'true');
 });
 
 for (const system of ['light', 'dark'] as const) {
