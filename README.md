@@ -132,7 +132,7 @@ Each recipe's README has its examples, props and usage.
 | [`form-theme`](form-theme/README.md) | A Symfony form theme that renders every row through `FormField` and every control through the kit's `Input`, `Select`, `Textarea`, `Checkbox`, `Radio`, `Label` and `Button` components. |
 | [`form-field`](form-field/README.md) | A labelled form control with its help text and error message, wired by id (used by the form theme). |
 | [`autocomplete`](autocomplete/README.md) | Searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme: one choice, several, values typed by the user, options searched on the server. Works through the form theme (`'autocomplete' => true`) and as an `Autocomplete` component outside forms. |
-| [`dropzone`](dropzone/README.md) ✦ | File uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of the picked image, several files that add up across picks, keyboard focus kept after a pick or a removal. |
+| [`dropzone`](dropzone/README.md) ✦ | File uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of the picked image, several files that add up across picks, keyboard focus kept after a pick or a removal; a `DropzoneType` renders as one through the form theme. |
 
 ### Layouts
 
@@ -190,6 +190,9 @@ How the recipes behave with Turbo and Live Components, and what your own pages a
 - **Your form controllers answer 303 or 422.** Turbo Drive rejects a 200 after a form submit. On success,
   redirect with `$this->redirectToRoute('…', [], Response::HTTP_SEE_OTHER)` (the default is 302). On errors,
   render the form with `$this->render(…, ['form' => $form])`, which answers 422 when the submitted form is invalid.
+- **Files are never restored.** After a 422, a Turbo Stream or a Live re-render that replaces a file field, the
+  user picks the files again (`dropzone` says so in the box). In a Live Component, upload through a `files` action
+  first ([`dropzone`](dropzone/README.md#in-a-live-component)).
 - **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a
   Turbo Frame (`id="stock-{{ row.id }}"`): its generated id would change on every re-render.
 
