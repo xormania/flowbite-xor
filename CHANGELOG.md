@@ -7,6 +7,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `FOR-AGENTS.md`, a page for the coding agent given the repository's URL (setup, which recipe for what, the rules),
+  and `llms.txt`, every page with one line, written from `README.md`'s recipe tables and checked in CI.
 - `date-picker`: a `Calendar` in a `Popover`, opened from a button or a field where the date can be typed; a
   `DateType` with `'block_prefix' => 'flowbite_date_picker'` renders as one through the form theme.
 - `calendar`: pick a date, several dates or a range, with hidden inputs for forms (dispatching `input` and `change`)

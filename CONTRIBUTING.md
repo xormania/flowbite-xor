@@ -13,8 +13,10 @@ and pull request standard.
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
 | `tools/demo-php` | no | runs PHP in the demo's container, for the Playwright specs (`DEMO_URL`) |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
+| `tools/llms-txt.mjs` | no | writes `llms.txt` from `README.md`'s recipe tables |
 | `tools/tests/` | no | `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
+| `FOR-AGENTS.md`, `llms.txt` | no | the page for coding agents given the repository's URL, and the list of every page for them ([llms.txt](https://llmstxt.org/)) |
 | `docs/`, `.github/` | no | a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
 
 `ux:install` downloads GitHub's archive of the whole repository; `export-ignore` in `.gitattributes` keeps
@@ -66,6 +68,7 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
+node tools/llms-txt.mjs --check                     # llms.txt matches README.md's recipe tables (without --check: rewrites it)
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 phpstan analyse --level=8 --autoload-file=demo/vendor/autoload.php data-table/src demo/src/Demo   # PHPStan (any install of it; CI pins one)
@@ -195,7 +198,8 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
    If the recipe puts a text, icon or bar color on a background that `tools/contrast/pairs.json` does not cover yet,
    add a row there: `fg`, `bg`, `min` (4.5 for text, 3 for icons, bars and focus rings) and `usage`.
 7. Add a row for the recipe to the matching table under *Recipes* in `README.md` (mark it ✦ if it ships a Stimulus
-   controller), and an entry to `CHANGELOG.md` (see *Changelog*). Commit, then run the checks that cover a new
+   controller), run `node tools/llms-txt.mjs` to add it to `llms.txt`, and add an entry to `CHANGELOG.md` (see
+   *Changelog*). If agents need it for a common task, add it to *Which recipe* in `FOR-AGENTS.md`. Commit, then run the checks that cover a new
    recipe: the kit lint, `ux-toolkit-kit-debug`, `node tools/contrast/check.mjs` if you added pairs, and
    `npx playwright test`. CI runs all of them.
 

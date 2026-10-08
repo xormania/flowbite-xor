@@ -245,9 +245,10 @@ each version changes.
 
 ## Coding agents
 
-Paste the block in [`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md) into your project's
-`AGENTS.md` or `CLAUDE.md`: it tells agents to use the kit's components, color roles and icons, and how they
-behave with Turbo.
+Give your agent this repository's URL: [`FOR-AGENTS.md`](FOR-AGENTS.md) is written for it (setup, which recipe for
+what, the rules), and [`llms.txt`](llms.txt) lists every page with one line. Paste the block in
+[`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md) into your project's `AGENTS.md` or `CLAUDE.md`: it
+tells agents to use the kit's components, color roles and icons, and how they behave with Turbo.
 
 ## Contributing
 
