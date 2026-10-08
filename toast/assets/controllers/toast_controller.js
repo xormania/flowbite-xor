@@ -5,6 +5,10 @@ import { Controller } from '@hotwired/stimulus';
  * button is pressed; it fades out, then leaves the DOM. A toast added by a Turbo Stream connects like
  * any other, so the timer starts as soon as it appears.
  *
+ * In a `ToastRegion` (`data-turbo-permanent`), a toast stays across Turbo visits until it times out or is closed. A
+ * toast outside a permanent region belongs to its page: it is marked `data-turbo-temporary`, so Turbo removes it
+ * before caching the page, and Back never shows it again.
+ *
  * @value  timeout Milliseconds before the toast dismisses itself, `0` to keep it until closed.
  * @action pause   Stops the countdown while the toast is hovered or focused, keeping the time left.
  * @action resume  Restarts the countdown with the time left once it is neither hovered nor focused.
@@ -16,6 +20,9 @@ export default class extends Controller {
     connect() {
         this.hovered = false;
         this.focused = false;
+        if (!this.element.closest('[data-turbo-permanent]')) {
+            this.element.setAttribute('data-turbo-temporary', '');
+        }
         if (this.closing) {
             // moved in the DOM while fading out: finish the removal
             this.element.remove();
