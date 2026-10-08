@@ -44,5 +44,9 @@
         ] },
     { "fg": "brand-medium", "bg": "gray-900", "min": 3, "usage": "focus ring on a gray-900 ground", "themes": [
             "dark"
-        ] }
+        ] },
+    { "fg": "body", "bg": "neutral-primary-medium", "min": 4.5, "usage": "autocomplete dropdown text, no results, create" },
+    { "fg": "heading", "bg": "neutral-primary-medium", "min": 4.5, "usage": "autocomplete dropdown group headers" },
+    { "fg": "fg-brand-strong", "bg": "neutral-primary-medium", "min": 4.5, "usage": "autocomplete dropdown selected option" },
+    { "fg": "heading", "bg": "neutral-tertiary-medium", "min": 4.5, "usage": "autocomplete dropdown active option" }
 ]

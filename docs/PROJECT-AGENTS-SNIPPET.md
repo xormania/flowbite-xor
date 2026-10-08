@@ -43,6 +43,13 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   `model` prop (`model="day"`, or `model="stay"` for a range array with `from`/`to`), never `data-model` on the
   `<twig:Calendar>`. `minDate`/`maxDate`/`disabled` only guide the user: validate on the server. PHP needs `intl`
   for locales other than `en`. Times: native `<input type="time">`.
+- **Searchable selects: `ux:install autocomplete`**, then `'autocomplete' => true` on a choice field (`ChoiceType`,
+  `EntityType`, `CountryType`…; `'multiple' => true` for several, `'tom_select_options' => ['create' => true]` for
+  typed values). Options searched on the server: a field class with `#[AsAutocompleteField]` whose parent is
+  `AutocompleteChoiceType` (or `#[AsEntityAutocompleteField]` with `BaseEntityAutocompleteType`); its search URL is
+  public unless you set its `security` option. Outside a form: `<twig:Autocomplete id="…" name="…">` with
+  `<option>`s inside, its label with a matching `for` and no `id` of its own. In a Live Component form, use the form
+  option, not the component. Never import Tom Select's own stylesheet: the recipe's replaces it.
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the
   position yourself, as the kit's `Sidebar` does.

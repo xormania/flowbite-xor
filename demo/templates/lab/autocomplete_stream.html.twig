@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}autocomplete-stream — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'autocomplete-stream'}) }}
+    <form method="post" action="{{ path('app_lab_autocomplete_stream') }}" class="mb-4">
+        <twig:Button type="submit" variant="secondary">Replace the field</twig:Button>
+    </form>
+    {{ include('lab/_autocomplete_streamed.html.twig', {count: 0}) }}
+{% endblock %}

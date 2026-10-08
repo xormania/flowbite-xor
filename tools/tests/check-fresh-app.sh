@@ -2,7 +2,8 @@
 # Checks the app that fresh-install.sh and docker-install.sh build from tools/tests/fixtures/fresh-app: `/` renders
 # the dashboard through the layouts, `/register` renders the signup form through the form theme (no
 # `twig.form_themes` setting: the block applies the theme itself), `/orders` renders a DataTable whose PHP classes
-# ux:install copied into src/, `/live-orders` a DataTableLive that answers a Live action, and all answer 200.
+# ux:install copied into src/, `/live-orders` a DataTableLive that answers a Live action, `/pick` autocomplete fields and
+# the Autocomplete component, and all answer 200.
 #
 #   tools/tests/check-fresh-app.sh <base URL> [curl option…]
 set -euo pipefail
@@ -66,3 +67,21 @@ status="$(curl -s "$@" -o "$work/action.html" -w '%{http_code}' -X POST "$base/_
 grep -qE 'Showing <span[^>]*>11–20</span> of <span[^>]*>25</span>' "$work/action.html" \
     || { echo "FAIL: the live orders table's goTo action did not render page 2" >&2; exit 1; }
 echo "ok: the live orders DataTableLive renders and answers a Live action (HTTP 200)"
+
+# the autocomplete recipe: a form field with `'autocomplete' => true` renders through the form theme with UX
+# Autocomplete's controller and the label reference for Tom Select, the Autocomplete component renders a Select with
+# the controller, and the remote field's search URL answers with its JSON results
+page="$(fetch /pick "$@")"
+select="$(grep -oE '<select[^>]*id="form_country"[^>]*>' <<< "$page")"
+for expected in 'data-controller="symfony--ux-autocomplete--autocomplete"' 'aria-labelledby="form_country-ts-label"' 'rounded-base'; do
+    grep -q -- "$expected" <<< "$select" || { echo "FAIL: the autocomplete form field lacks $expected" >&2; exit 1; }
+done
+select="$(grep -oE '<select[^>]*id="fruit"[^>]*>' <<< "$page")"
+for expected in 'data-controller="symfony--ux-autocomplete--autocomplete"' 'aria-labelledby="fruit-ts-label"' 'tom-select-options-value="{&quot;create&quot;:true}"' 'rounded-base'; do
+    grep -q -- "$expected" <<< "$select" || { echo "FAIL: the Autocomplete component lacks $expected" >&2; exit 1; }
+done
+url="$(grep -oE '<select[^>]*id="form_customer"[^>]*>' <<< "$page" | grep -oE 'autocomplete-url-value="[^"]*"' | cut -d'"' -f2)"
+[ -n "$url" ] || { echo "FAIL: the remote autocomplete field has no search URL" >&2; exit 1; }
+fetch "$url?query=bon" "$@" | grep -q '"text":"Bonnie Green"' \
+    || { echo "FAIL: the remote autocomplete field's search URL does not find Bonnie Green" >&2; exit 1; }
+echo "ok: the autocomplete fields and component render, and the remote search answers (HTTP 200)"

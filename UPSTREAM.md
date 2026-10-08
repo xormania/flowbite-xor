@@ -2,7 +2,8 @@
 
 This kit carries its own copies of the official Symfony UX Toolkit `flowbite-4` kit, because a
 recipe can only depend on recipes of its own kit (`PoolResolver` resolves recipe dependencies
-inside the current kit). Copies stay byte-identical unless a row below says otherwise.
+inside the current kit). The official kit is a reference, not a constraint: a copy changes when this kit needs it,
+and every change gets a row below.
 
 - **Upstream:** [`symfony/ux`](https://github.com/symfony/ux) — `src/Toolkit/kits/flowbite-4/`
 - **Pinned commit:** [`f152d0ba5b403e8086e90ce8f09bcade1405e217`](https://github.com/symfony/ux/tree/f152d0ba5b403e8086e90ce8f09bcade1405e217/src/Toolkit/kits/flowbite-4) (main, 2026-10-04)
