@@ -43,8 +43,9 @@ Then:
 
 `Dropzone` renders UX Dropzone's markup with its controller, and the kit's `dropzone-assist` controller next to it.
 `class` goes to the box's wrapper; every other attribute goes to the `<input type="file">`: `id`, `name`, `accept`,
-`required`, `disabled`, `form`, `capture`, `aria-*`, `data-*`. A `data-controller` you pass joins UX Dropzone's, on
-the wrapper, so your own controller can listen to its events.
+`required`, `disabled`, `form`, `capture`, `aria-*`, `data-*`. A `data-controller` you pass joins UX Dropzone's on the
+wrapper, where its events are dispatched; your `data-action` and your controller's values, classes, outlets and params
+go there with it, and its target (`data-<controller>-target`) stays on the input.
 
 ```twig
 <twig:Dropzone id="photo" name="photo" accept="image/png,image/jpeg" hint="PNG or JPG, up to 1 MB" />

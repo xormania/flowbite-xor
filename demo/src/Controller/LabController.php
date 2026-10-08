@@ -53,6 +53,7 @@ final class LabController extends AbstractController
         'live-date-picker' => 'Date pickers in a Live form through the form theme: each pick reaches the server, and the end date follows the start.',
         'dropzone-turbo' => 'Dropzones across Turbo visits and Back (one file, several files), one inside a data-turbo-permanent element, and one in a multipart form inside a Turbo Frame that reloads and submits.',
         'dropzone-stream' => 'A Dropzone replaced and updated by Turbo Streams.',
+        'dropzone-events' => 'A Dropzone given a controller of the page: its actions, values and target reach it.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -338,5 +339,11 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/dropzone_stream.html.twig', ['description' => self::SCENARIOS['dropzone-stream']]);
+    }
+
+    #[Route('/dropzone-events', name: 'app_lab_dropzone_events')]
+    public function dropzoneEvents(): Response
+    {
+        return $this->render('lab/dropzone_events.html.twig', ['description' => self::SCENARIOS['dropzone-events']]);
     }
 }

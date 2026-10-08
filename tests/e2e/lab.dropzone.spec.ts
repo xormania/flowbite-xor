@@ -4,7 +4,7 @@ import { test, expect, turboVisitDone } from './fixtures';
 /*
  * Dropzones under Turbo: a zone that Turbo shows again (Back, a Stream) works, with one controller, and shows what its
  * input holds (one file: nothing); a zone inside a data-turbo-permanent element keeps its file; a multipart form inside
- * a Turbo Frame posts its file.
+ * a Turbo Frame posts its file; a controller passed to the Dropzone gets its actions, values and target.
  */
 
 // a 1×1 PNG
@@ -144,4 +144,18 @@ test('replaced or updated by a Turbo Stream, the new zone is empty, works, and h
     await page.locator('#streamed').setInputFiles(png('new.png'));
     await expect(page.getByRole('button', { name: 'Remove new.png' })).toBeVisible();
     expect(await events(page, 'change')).toBe(1);
+});
+
+test('a controller passed to the Dropzone gets its actions, values and target', async ({ page }) => {
+    await page.goto('/lab/dropzone-events');
+    const zone = zoneOf(page, 'echoed');
+    await expect(zone).toHaveAttribute('data-controller', 'symfony--ux-dropzone--dropzone dropzone-assist dropzone-echo');
+    await expect(zone).toHaveAttribute('data-dropzone-echo-prefix-value', 'caller');
+    await expect(page.locator('#echoed')).toHaveAttribute('data-dropzone-echo-target', 'input');
+    await expect(page.locator('#echoed')).not.toHaveAttribute('data-action');
+
+    await page.locator('#echoed').setInputFiles([png('a.png'), png('b.png')]);
+    await expect(page.getByTestId('echo')).toHaveText('caller dropzone:change echoed[] 2');
+    await page.getByRole('button', { name: 'Remove a.png' }).click();
+    await expect(page.getByTestId('echo')).toHaveText('caller dropzone:remove echoed[] 1');
 });

@@ -11,19 +11,24 @@
     reselect = null
 -%}
 {%- set controller = 'symfony--ux-dropzone--dropzone' -%}
-{#- every attribute but `class` and `data-controller` goes to the file input; pass a stable `id`, which the label's `for` names -#}
+{#- `class`, `data-controller`, `data-action` and the attributes of the controllers passed (but their targets) go to the
+    wrapper, where UX Dropzone dispatches its events; every other attribute goes to the file input. Pass a stable `id`,
+    which the label's `for` names -#}
 {%- set _id = attributes.all.id ?? ('dropzone-' ~ random()) -%}
-{%- set _controllers = (controller ~ ' dropzone-assist ' ~ (attributes.all['data-controller'] ?? ''))|trim -%}
+{%- set _own = (attributes.all['data-controller'] ?? '')|split(' ')|filter((name) => name) -%}
+{%- set _controllers = ([controller, 'dropzone-assist']|merge(_own))|join(' ') -%}
+{%- set _wrapperKeys = ['class']|merge(attributes.all|keys|filter((key) => _own|filter((name) => key starts with ('data-' ~ name ~ '-') and key != ('data-' ~ name ~ '-target'))|length > 0)) -%}
+{%- set _actions = 'dragenter->dropzone-assist#dragOver dragover->dropzone-assist#dragOver dragleave->dropzone-assist#dragLeave drop->dropzone-assist#drop change->dropzone-assist#remember:capture dropzone:change->dropzone-assist#changed dropzone:clear->dropzone-assist#cleared dropzone:remove->dropzone-assist#removed' -%}
 {%- set _describedby = [attributes.all['aria-describedby'] ?? null, hint ? _id ~ '_hint' : null, reselect ? _id ~ '_reselect' : null]|filter((id) => id)|join(' ') -%}
 <div
-    {{ attributes.only('class').defaults({class: 'group w-full'|tailwind_classes, 'data-controller': _controllers}) }}
+    {{ attributes.only(..._wrapperKeys).defaults({class: 'group w-full'|tailwind_classes, 'data-controller': _controllers}) }}
     data-symfony--ux-dropzone--dropzone-multiple-value="{{ multiple ? 'true' : 'false' }}"
     data-symfony--ux-dropzone--dropzone-remove-label-value="{{ removeLabel }}"
-    data-action="dragenter->dropzone-assist#dragOver dragover->dropzone-assist#dragOver dragleave->dropzone-assist#dragLeave drop->dropzone-assist#drop change->dropzone-assist#remember:capture dropzone:change->dropzone-assist#changed dropzone:clear->dropzone-assist#cleared dropzone:remove->dropzone-assist#removed"
+    data-action="{{ (_actions ~ ' ' ~ (attributes.all['data-action'] ?? ''))|trim }}"
 >
     <div class="relative flex min-h-36 w-full items-center justify-center rounded-base border-2 border-dashed border-default-strong bg-neutral-secondary-medium p-4 text-center has-[input:hover:enabled:not([aria-invalid=true])]:bg-neutral-tertiary has-[input:focus-visible]:border-brand has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-brand-medium has-[input[aria-invalid=true]]:border-danger-subtle has-[input[aria-invalid=true]]:bg-danger-soft group-data-dragging:border-brand group-data-dragging:bg-brand-softer has-[input:disabled]:cursor-not-allowed has-[input:disabled]:border-default has-[input:disabled]:bg-disabled">
         <input
-            {{ attributes.without('class', 'data-controller', 'placeholder', 'type', 'id', 'multiple', 'aria-describedby') }}
+            {{ attributes.without('data-controller', 'data-action', 'placeholder', 'type', 'id', 'multiple', 'aria-describedby', ..._wrapperKeys) }}
             type="file"
             id="{{ _id }}"
             {%- if multiple %} multiple{% endif %}
