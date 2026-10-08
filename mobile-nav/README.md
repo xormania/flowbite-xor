@@ -55,8 +55,8 @@ The app's navigation on small screens: a menu button in the navbar opening a mod
   on the button and the controller's `media` value (`(min-width: 48rem)`) to move it.
 - **Focus:** opening moves the focus to the current page's link (`aria-current="page"`), or to the navigation's
   first one; the drawer traps it, and closing gives it back to the menu button.
-- **Closing:** Escape, a click on the backdrop, the close button, a link inside followed in the same tab, and the
-  screen growing past `md`.
+- **Closing:** Escape, a click on the backdrop, the close button, a link inside followed in the same tab (not one
+  opened in another tab or window by a modifier key or a `target`, nor a `download`), and the screen growing past `md`.
 - **Turbo:** the drawer closes before Turbo caches the page, so Back and Forward never show it open, and a visit
   renders the next page's own closed drawer. A `SideNav` inside keeps its open branches in `sessionStorage` and marks
   the current page on every visit, as it does in the `Sidebar`.
