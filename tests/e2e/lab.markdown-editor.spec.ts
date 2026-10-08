@@ -36,7 +36,7 @@ test('a form posts the Markdown through Turbo, or answers 422 with the field err
     await expect(page.getByTestId('saved-markdown')).toHaveText(markdown);
     expect(await page.getByTestId('saved-rendered').innerHTML()).toBe(previewed);
     await expect(page.getByTestId('saved-rendered').getByRole('link', { name: 'today' })).toHaveAttribute('href', '/news');
-    expect(previewed).not.toMatch(/<script|javascript:/);
+    expect(previewed).not.toMatch(/<script|javascript:/i);
     expect(new URL(page.url()).searchParams.get('saved')).toBe('1');
 });
 

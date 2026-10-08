@@ -45,7 +45,7 @@ test('the preview shows what was just typed, without raw HTML, images or unsafe 
     await expect(panel.locator('pre code')).toHaveText('code <i>x</i>');
     await expect(panel.getByRole('link', { name: 'ok' })).toHaveAttribute('href', '/pricing');
     const html = await panel.innerHTML();
-    expect(html).not.toMatch(/<script|<img|onerror|javascript:|<b>/);
+    expect(html).not.toMatch(/<script|<img|onerror|javascript:|<b>/i);
     expect(await page.evaluate(() => (window as any).__xss)).toBeUndefined();
 });
 
