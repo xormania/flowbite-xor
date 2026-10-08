@@ -209,21 +209,26 @@ jobs:
               working-directory: demo
               run: docker compose exec -T php php ../tools/sync-demo
 
-            - name: The synced demo matches what is committed
+            # The copies sync-demo writes are gitignored (demo/.gitignore), so this cannot compare them with anything: it
+            # checks that the sync and the demo's start left every tracked file alone. tools/tests/sync-demo.sh below
+            # checks that the copies are what ux:install writes. Deterministic checks run on one shard only.
+            - name: The sync leaves tracked files unchanged
+              if: matrix.shard == 1
               run: |
                   if [ -n "$(git status --porcelain)" ]; then
                       git status --porcelain
-                      echo "::error::tools/sync-demo changed files: run it and commit the result"
+                      echo "::error::tools/sync-demo or the demo's start changed tracked files: it must only write gitignored copies"
                       exit 1
                   fi
 
-            - name: Check the demo and build its CSS
+            # The CSS is built by playwright.config.ts, which records what it was built from: no build here
+            - name: The demo's composer.json and composer.lock are valid
+              if: matrix.shard == 1
               working-directory: demo
-              run: |
-                  docker compose exec -T php composer validate --no-check-publish --strict   # also fails on a stale composer.lock
-                  docker compose exec -T php bin/console tailwind:build
+              run: docker compose exec -T php composer validate --no-check-publish --strict   # also fails on a stale composer.lock
 
             - name: sync-demo copies what ux:install copies
+              if: matrix.shard == 1
               working-directory: demo
               run: docker compose exec -T php bash ../tools/tests/sync-demo.sh
 
@@ -239,13 +244,28 @@ jobs:
                   DEMO_URL: https://localhost
               run: npx playwright test --shard=${{ matrix.shard }}/3
 
+            # Every shard keeps its results (each test's attempts, durations and outcome: passed, failed, flaky), green
+            # or red, so a test that failed once and passed on its retry leaves a record
+            - name: Read the results
+              id: results
+              if: ${{ !cancelled() }}
+              run: node -e "const {stats} = require('./playwright-results/results.json'); console.log(stats); require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'flaky=' + stats.flaky + '\n')"
+
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              if: ${{ !cancelled() }}
+              with:
+                  name: playwright-results-${{ matrix.shard }}
+                  path: playwright-results/
+                  retention-days: 30
+
             - name: Demo logs
               if: failure()
               working-directory: demo
               run: docker compose logs php
 
+            # the full report and the traces of failed attempts: on a failure, or a test that passed only on its retry
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: failure()
+              if: ${{ failure() || steps.results.outputs.flaky > 0 }}
               with:
                   name: playwright-report-${{ matrix.shard }}
                   path: |

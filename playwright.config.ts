@@ -62,9 +62,8 @@ if (!process.env.TEST_WORKER_INDEX) {
  * Builds the demo's Tailwind CSS unless it was built from the same sources: those it scans
  * (demo/assets/styles/app.css: `@source "../../.."`, the repository minus what git ignores), identified by a
  * SHA-256 of their paths and content hashes (`git hash-object`), recorded next to the build. So no screenshot is
- * taken against stale CSS, whoever runs the tests, and nothing is rebuilt when nothing changed (in CI, right after
- * its own `tailwind:build`, the first run builds once more, for the record). The record is read and written by
- * PHP_BINARY's PHP: in the Docker demo, demo/var/ lives in the container.
+ * taken against stale CSS, whoever runs the tests, and nothing is rebuilt when nothing changed. CI builds the CSS
+ * only here. The record is read and written by PHP_BINARY's PHP: in the Docker demo, demo/var/ lives in the container.
  */
 function buildTailwindIfStale() {
     const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { cwd: root, encoding: 'utf8' })
@@ -93,7 +92,8 @@ export default defineConfig({
     retries: isCI ? 1 : 0,
     // Baselines are committed: never write screenshots unless asked with --update-snapshots.
     updateSnapshots: 'none',
-    reporter: isCI ? [['list'], ['html', { open: 'never' }]] : 'list',
+    // CI also writes every test's attempts and outcome to playwright-results/results.json, uploaded green or red
+    reporter: isCI ? [['list'], ['html', { open: 'never' }], ['json', { outputFile: 'playwright-results/results.json' }]] : 'list',
 
     expect: {
         toHaveScreenshot: { animations: 'disabled', caret: 'hide' },
