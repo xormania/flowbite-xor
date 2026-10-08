@@ -16,6 +16,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * {@see EditorHtmlPolicy} on every submit, or null when the text is empty (so `NotBlank` works). Longer than
  * `max_bytes` bytes of HTML or `max_chars` characters of text, the field gets an error and keeps its data: nothing is
  * cut.
+ *
+ * @extends AbstractType<string|null>
  */
 final class EditorType extends AbstractType
 {

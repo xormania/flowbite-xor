@@ -202,22 +202,124 @@ Here: [`tools/tests/live-action.php`](../tools/tests/live-action.php), [`check-f
 ## Server-side limits: what one request makes the server do
 
 **Catches:** a request that costs far more than a page view: a deep SQL `OFFSET`, a loader called twice, an
-unbounded collection copied and scanned. The browser cannot see these; a plain PHP script with a recording double
-can.
+unbounded collection copied and scanned. The browser cannot see these; a PHPUnit test with a recording double can.
 
 ```php
 // a table whose loaders record each call
 protected function countRows(TableQuery $query): int { $this->calls[] = 'count'; return $this->total; }
 protected function loadRows(TableQuery $query): array { $this->calls[] = 'rows@'.$query->offset(); return [/* … */]; }
 
-[$query] = $table->fetch(TableQuery::fromValues(['page' => 1_000_000, 'pageSize' => 50], $table));
-check(['count', 'rows@9950'] === $table->calls, 'a deep page: one count, one load, offset below maxRows()');
+$table = new RecordingDataTable(1_000_000);
+$table->fetch(TableQuery::fromValues(['page' => 1_000_000, 'pageSize' => 50], $table));
+self::assertSame(['count', 'rows@9950'], $table->calls); // one count, one load, the offset below maxRows()
 ```
 
-In an app with PHPUnit, the same check is a `WebTestCase` with `$client->enableProfiler()` reading the Doctrine
-collector's query count, or a collector of your own.
+Through a real request, the same count comes from the profiler (below, *Counts from the profiler*).
 
-Here: [`tools/tests/data-table.php`](../tools/tests/data-table.php), run by CI's Kit PHP job.
+Here: [`demo/tests/DataTable/`](../demo/tests/DataTable/), [`SelectionTest.php`](../demo/tests/DataTableLive/SelectionTest.php).
+
+## PHP tests (PHPUnit)
+
+The demo has PHPUnit 13 and Symfony's test tools (what `symfony/test-pack` installs: `phpunit/phpunit`,
+`symfony/browser-kit`, `symfony/css-selector`), set up by the PHPUnit Flex recipe (`phpunit.dist.xml`,
+`tests/bootstrap.php`, `.env.test`). The tests are in `demo/tests/`, by area (`DataTable/`, `Live/`, `Twig/`,
+`Functional/`). Run them from `demo/`:
+
+```sh
+bin/phpunit                                  # all of them
+bin/phpunit tests/Live                       # one folder
+bin/phpunit --filter testAPagePastTheEnd     # by name
+```
+
+They render the recipes as the demo has them: run `tools/sync-demo` first, and `bin/console tailwind:build` for the
+page tests (a page links the built CSS). PHPStan checks the tests with its PHPUnit and Symfony extensions
+(`tools/phpstan.neon`).
+
+### A Live Component through real Live requests
+
+**Catches:** what a crafted Live request can make a component do, without a browser: a writable `LiveProp` set to
+any value, an action called with any argument. `InteractsWithLiveComponents` posts what the live controller posts,
+through the endpoint, the checksum and the hydration, so `hydrateWith` methods and `#[PreReRender]` hooks run.
+
+```php
+use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
+
+final class OrdersTableTest extends KernelTestCase
+{
+    use InteractsWithLiveComponents;
+
+    public function testASelectionTheBrowserSendsIsCutToMaxSelection(): void
+    {
+        $component = $this->createLiveComponent('OrdersTable')
+            ->set('selectedIds', array_map('strval', range(1, 5_000)));  // a writable prop, as a request sets it
+
+        self::assertCount(1_000, $component->component()->selectedIds);  // the component rebuilt from the response
+        self::assertStringContainsString('1000 selected', $component->render()->crawler()->filter('[role="status"]')->text());
+    }
+}
+```
+
+`call('sortBy', ['column' => 'status'])` runs an action; `component()` gives the component as the next request would
+hydrate it, `render()` its HTML with a `crawler()`.
+
+Here: [`demo/tests/Live/OrdersTableTest.php`](../demo/tests/Live/OrdersTableTest.php) (the page past the end, the
+page sizes, the sort limited to the sortable columns, the selection's limit).
+
+### A Twig component rendered, and its snapshot
+
+**Catches:** a change in a component's markup, intended or not, and props that shape markup letting a value through
+(a tag, a link scheme). `InteractsWithTwigComponents` renders a component through the app's Twig; a component with
+parts renders from a template in the `<twig:…>` syntax. The rendering is compared with a snapshot file
+([spatie/phpunit-snapshot-assertions](https://github.com/spatie/phpunit-snapshot-assertions), which supports
+PHPUnit 13), so the change shows as a diff in review.
+
+```php
+use Spatie\Snapshots\MatchesSnapshots;
+use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
+
+$rendered = $this->renderTwigComponent('Badge', ['variant' => 'success', 'shape' => 'pill'], 'Paid');
+self::assertCount(1, $rendered->crawler()->filter('div'));
+$this->assertMatchesSnapshot($rendered->toString(), new Html5Driver());
+
+$html = self::getContainer()->get('twig')->createTemplate('<twig:Breadcrumb><twig:Breadcrumb:Item href="/">Home</twig:Breadcrumb:Item></twig:Breadcrumb>')->render();
+```
+
+- Snapshots are written next to the test (`__snapshots__/`) the first time it runs, which marks it incomplete.
+  Rewrite changed ones with `UPDATE_SNAPSHOTS=true bin/phpunit`, and review them like code. CI runs with
+  `CREATE_SNAPSHOTS=false`, so a missing snapshot fails there instead of being written.
+- `Html5Driver` (in the tests) parses the HTML with PHP's HTML5 parser (`Dom\HTMLDocument`). The library's
+  `assertMatchesHtmlSnapshot()` uses libxml's HTML 4 parser, which lower-cases SVG attributes (`viewBox`) and
+  wraps the fragment in `<html><body>`: a change there would not show.
+- Snapshot what reviewers should see change; assert the rule itself (a tag allowlist, a link scheme) with the
+  crawler, so a snapshot update cannot hide it.
+
+Here: [`demo/tests/Twig/ComponentsTest.php`](../demo/tests/Twig/ComponentsTest.php),
+[`Html5Driver.php`](../demo/tests/Snapshot/Html5Driver.php).
+
+### Counts from the profiler
+
+**Catches:** what one real request makes the server do (loader calls, queries, templates), counted, so it fails like
+any other assertion. A `WebTestCase` turns the profiler on for its next request and reads that request's profile:
+
+```php
+$client = static::createClient();
+$client->enableProfiler();
+$client->request('GET', '/lab/data-table-frame?page=1000000&size=50');
+
+$calls = $client->getProfile()->getCollector(DataTableCollector::class)->getCalls();
+self::assertSame(['OrdersTable: count', 'OrdersTable: rows@50'], $calls); // one count, the last page loaded once
+```
+
+- The profiler is on in the test environment only, and collects nothing until a test asks
+  (`config/packages/framework.yaml`: `when@test: framework: profiler: { collect: false }`). No WebProfilerBundle is
+  needed.
+- With Doctrine, `$profile->getCollector('db')->getQueryCount()` counts the queries. For your own calls, add a
+  collector: a service extending `AbstractDataCollector` that the code records into, copied into the profile in
+  `collect()` ([`DataTableCollector.php`](../demo/src/Demo/DataTableCollector.php)).
+- A Live request too: pass the client to `createLiveComponent('OrdersTable', [], $client)`, call `enableProfiler()`,
+  then `call()` the action. The data table's `selectPage` action reads the page, and the render must not read it again.
+
+Here: [`demo/tests/Functional/DataTableRequestsTest.php`](../demo/tests/Functional/DataTableRequestsTest.php).
 
 ## Hostile values in markup
 
