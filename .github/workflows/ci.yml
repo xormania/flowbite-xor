@@ -23,9 +23,54 @@ env:
     UX_TOOLKIT_VERSION: '3.5.1'
 
 jobs:
+    # Which jobs this change could affect (tools/ci-changes.sh): a job it cannot affect is skipped, and a skipped job
+    # passes the branch rulesets. Pushes to main and dev, a run by hand and a change to this workflow run everything. A
+    # branch is compared with where it left dev, so each push checks the whole pull request, not only its last commit.
+    changes:
+        name: Changes
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        outputs:
+            lint-kit: ${{ steps.jobs.outputs.lint-kit }}
+            php: ${{ steps.jobs.outputs.php }}
+            static-site: ${{ steps.jobs.outputs.static-site }}
+            fresh-install: ${{ steps.jobs.outputs.fresh-install }}
+            contrast: ${{ steps.jobs.outputs.contrast }}
+            demo: ${{ steps.jobs.outputs.demo }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
+
+            - name: The script's own cases
+              run: tools/tests/ci-changes.sh
+
+            - id: jobs
+              env:
+                  EVENT: ${{ github.event_name }}
+                  REF: ${{ github.ref }}
+                  PR_BASE: ${{ github.event.pull_request.base.sha }}
+              run: |
+                  if [ "$EVENT" = pull_request ]; then
+                      base="$PR_BASE"
+                  elif [ "$EVENT" = push ] && [ "$REF" != refs/heads/main ] && [ "$REF" != refs/heads/dev ]; then
+                      base=$(git merge-base HEAD origin/dev 2>/dev/null || true)
+                  else
+                      base=
+                  fi
+                  if [ -z "$base" ]; then
+                      echo "Everything runs ($EVENT on $REF)"
+                      echo .github/workflows/ci.yml | tools/ci-changes.sh | tee -a "$GITHUB_OUTPUT"
+                  else
+                      echo "Changed since $base:"
+                      git diff --name-only --no-renames "$base" HEAD | tee /dev/stderr | tools/ci-changes.sh | tee -a "$GITHUB_OUTPUT"
+                  fi
+
     lint-kit:
         name: Lint kit
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        needs: changes
+        if: needs.changes.outputs.lint-kit == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
@@ -66,7 +111,8 @@ jobs:
 
     php:
         name: Kit PHP
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        needs: changes
+        if: needs.changes.outputs.php == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 15
         env:
@@ -126,7 +172,8 @@ jobs:
 
     static-site:
         name: Static site
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        needs: changes
+        if: needs.changes.outputs.static-site == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 15
         # The GitHub Pages copy (pages.yml) is built only on release: this builds it on every push, so a page that does
@@ -174,7 +221,8 @@ jobs:
 
     fresh-install:
         name: Fresh install
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        needs: changes
+        if: needs.changes.outputs.fresh-install == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
@@ -193,7 +241,8 @@ jobs:
 
     docker-install:
         name: Fresh install (Symfony Docker, from GitHub)
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        needs: changes
+        if: needs.changes.outputs.fresh-install == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 20
         steps:
@@ -209,7 +258,8 @@ jobs:
 
     contrast:
         name: Contrast
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        needs: changes
+        if: needs.changes.outputs.contrast == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
@@ -233,7 +283,8 @@ jobs:
 
     demo:
         name: Demo + Playwright (${{ matrix.shard }}/3)
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        needs: changes
+        if: needs.changes.outputs.demo == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 25
         # the browser suite is most of CI's time: three shards, each with its own demo and browser (shard 1 writes the
@@ -340,3 +391,24 @@ jobs:
                       playwright-report/
                       test-results/
                   retention-days: 7
+
+    # One check for the branch rulesets to require. A skipped matrix job reports one check named after its unexpanded
+    # matrix ("Demo + Playwright (${{ matrix.shard }}/3)"), never the per-shard names, so requiring those would leave a
+    # pull request pending forever; this passes when every job passed or was skipped as unaffected.
+    result:
+        name: CI result
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)
+        needs: [changes, lint-kit, php, static-site, fresh-install, docker-install, contrast, demo]
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - env:
+                  RESULTS: ${{ join(needs.*.result, ' ') }}
+              run: |
+                  echo "Jobs: $RESULTS"
+                  for result in $RESULTS; do
+                      case "$result" in
+                          success | skipped) ;;
+                          *) echo "::error::a job ended with '$result'"; exit 1 ;;
+                      esac
+                  done
