@@ -19,8 +19,8 @@ updates:
       commit-message:
           prefix: chore
       ignore:
-          # pinned to the version of upstream's browser image, in which the screenshot baselines are compared
-          # (UPSTREAM.md): bump it by hand, with the baselines
+          # pinned to the version of the browser image in which the screenshot baselines are compared
+          # (docs/NOTES.md): bump it by hand, with the baselines
           - dependency-name: '@playwright/test'
       groups:
           npm:

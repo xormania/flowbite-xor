@@ -136,7 +136,7 @@ Sometimes you need a button to indicate an action using only an icon.
 
 ### Loader button
 
-Use the following [spinner components](https://ux.symfony.com/toolkit/kits/flowbite-4/components/spinner) from Flowbite to indicate a loader animation inside buttons:
+Use the following [spinner component](../spinner/README.md) to indicate a loader animation inside buttons:
 
 ```twig {"preview":true}
 <div class="space-x-2 space-y-2">

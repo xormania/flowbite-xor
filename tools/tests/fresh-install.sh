@@ -56,7 +56,7 @@ cp -R "$root/tools/tests/fixtures/fresh-app/." .
 
 # a cache built from scratch: cache:clear keeps the cached routes when its own boot rebuilt the container in the
 # same second as their build (the route cache checks the container file's mtime, one-second resolution), and the
-# controllers copied above would answer 404 (UPSTREAM.md, Toolkit findings)
+# controllers copied above would answer 404 (docs/NOTES.md)
 rm -rf var/cache
 $php bin/console cache:warmup --no-interaction > /dev/null
 $php -S "127.0.0.1:$port" -t public > "$work/server.log" 2>&1 &

@@ -13,13 +13,15 @@ and pull request standard.
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
 | `tools/demo-php` | no | runs PHP in the demo's container, for the Playwright specs (`DEMO_URL`) |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
+| `tools/llms-txt.mjs` | no | writes `llms.txt` from `README.md`'s recipe tables |
 | `tools/tests/` | no | `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
-| `docs/`, `.github/` | no | a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
+| `FOR-AGENTS.md`, `llms.txt` | no | the page for coding agents given the repository's URL, and the list of every page for them ([llms.txt](https://llmstxt.org/)) |
+| `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
 
 `ux:install` downloads GitHub's archive of the whole repository; `export-ignore` in `.gitattributes` keeps
 everything else out of it (the demo, tests, tools, and repository files such as this one, `AGENTS.md`,
-`UPSTREAM.md` and `SECURITY.md`). Keep any new path out of the archive the same way unless users need it.
+and `SECURITY.md`). Keep any new path out of the archive the same way unless users need it.
 
 ## Setup
 
@@ -66,6 +68,7 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
+node tools/llms-txt.mjs --check                     # llms.txt matches README.md's recipe tables (without --check: rewrites it)
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 phpstan analyse --level=8 --autoload-file=demo/vendor/autoload.php data-table/src demo/src/Demo   # PHPStan (any install of it; CI pins one)
@@ -81,7 +84,7 @@ npx playwright test                                 # every browser test: see be
   Content Security Policy (`csp.spec.ts`), and an axe accessibility scan of every demo page (no serious or critical
   issue).
 - `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
-  runs the official kit's recipe specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`). It fails
+  runs the recipes' own specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`). It fails
   on a committed screenshot that no test compares (`baselines.spec.ts`).
 
 Every test of both projects blocks requests leaving the demo, and fails on a console error, a page error, a local
@@ -101,9 +104,6 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
 
 ## Conventions
 
-- **The official kit is a reference, not a constraint.** The 22 recipes copied from the official `flowbite-4` kit
-  (listed in [`UPSTREAM.md`](UPSTREAM.md)) started from the `symfony/ux` commit pinned there. Change them when this kit
-  needs it; every change gets a row in the *Deviations* table: file, change, reason, upstream PR.
 - **Behavior in Stimulus only.** No `import 'flowbite'` and no `initFlowbite()`. A controller's `connect()` must work
   when it runs again on the same element, since Turbo and Live Components reconnect controllers. `disconnect()` undoes
   everything `connect()` set up. No global state, and no `DOMContentLoaded` or `turbo:load` listeners. A Stimulus action on
@@ -138,7 +138,7 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
     (`max-md:not-data-mobile-open:hidden`).
   - Flowbite's `max-w-2xl` is 16rem, not 42rem: do not use it.
 
-  Check the computed style in the browser. Details are under *Toolkit findings* in `UPSTREAM.md`.
+  Check the computed style in the browser. Details are in [`docs/NOTES.md`](docs/NOTES.md).
 - **Twig inside components.** In a component's content (`<twig:X>…</twig:X>`), `block('name')` and `{% block %}`
   belong to the component: reach the surrounding template's blocks with `block(outerBlocks.name)`.
 - **Turbo forms.** A submitted form answers with a redirect (303) when it succeeds and 422 when it shows errors;
@@ -195,19 +195,18 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
    If the recipe puts a text, icon or bar color on a background that `tools/contrast/pairs.json` does not cover yet,
    add a row there: `fg`, `bg`, `min` (4.5 for text, 3 for icons, bars and focus rings) and `usage`.
 7. Add a row for the recipe to the matching table under *Recipes* in `README.md` (mark it ✦ if it ships a Stimulus
-   controller), and an entry to `CHANGELOG.md` (see *Changelog*). Commit, then run the checks that cover a new
-   recipe: the kit lint, `ux-toolkit-kit-debug`, `node tools/contrast/check.mjs` if you added pairs, and
+   controller), run `node tools/llms-txt.mjs` to add it to `llms.txt`, and add an entry to `CHANGELOG.md` (see
+   *Changelog*). If agents need it for a common task, add it to *Which recipe* in `FOR-AGENTS.md`. Commit, then run
+   the checks that cover a new recipe: the kit lint, `ux-toolkit-kit-debug`, `node tools/contrast/check.mjs` if you added pairs, and
    `npx playwright test`. CI runs all of them.
 
 ## Screenshots
 
-`<recipe>/tests/screenshots/*.png` are the baselines Playwright compares screenshots with. For the copied recipes
-they come from the official kit, and `UPSTREAM.md` lists the few that changed. Never update them as a side effect. A
-visual change is a commit of its own:
+`<recipe>/tests/screenshots/*.png` are the baselines Playwright compares screenshots with. Never update them as a
+side effect. A visual change is a commit of its own:
 
 1. Run `npx playwright test --project=examples --update-snapshots`. It rewrites every baseline that differs.
 2. Keep only the files you meant to change (check `git status`), and review them.
-3. Add a row to `UPSTREAM.md` when a copied recipe's baseline changes.
 
 ## Commits and pull requests
 
@@ -237,7 +236,7 @@ under `### Added`, `### Changed`, `### Fixed` or `### Removed`, as Keep a Change
 ## Releases
 
 Versions are git tags `X.Y.Z` ([Semantic Versioning](https://semver.org/)) without a `v`: the toolkit cannot
-install a `v` tag (see `UPSTREAM.md`). A release is a pull request that moves the entries under
+install a `v` tag (see [`docs/NOTES.md`](docs/NOTES.md)). A release is a pull request that moves the entries under
 `## [Unreleased]` in `CHANGELOG.md` to a new `## [X.Y.Z] - YYYY-MM-DD` section and updates the compare links at
 the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor version,
 *Removed* or anything that breaks an installed recipe a major version (a minor one while the version is `0.x`).

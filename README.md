@@ -13,11 +13,6 @@ navigates and when Live Components re-render them.
 **Gallery:** <https://xormania.github.io/flowbite-xor/> shows every recipe and every example of its README, in light
 and dark, with its code and its install command. It is a static copy of the demo app, published with each release.
 
-22 components are copied from the UX Toolkit's official `flowbite-4` kit, which loads Flowbite's JavaScript.
-This kit replaces that JavaScript with its own Stimulus controllers, fixes the contrast of some theme colors, and
-adds components, a form theme, layouts and blocks. [`UPSTREAM.md`](UPSTREAM.md) lists every change to the copied
-files.
-
 ## Install
 
 Requires PHP 8.4 or later with the `zip` extension (the toolkit unpacks GitHub's archive of the kit).
@@ -83,7 +78,7 @@ Each recipe's README has its examples, props and usage.
 | [`theme`](theme/README.md) | Flowbite's color roles, with this kit's contrast fixes, as one stylesheet to import in `assets/styles/app.css`. A role is a named color with a light and a dark value, used as a utility: `bg-brand`, `text-heading`, `border-default`. |
 | [`theme-toggle`](theme-toggle/README.md) ✦ | A button switching between the light and dark themes, remembered in `localStorage` and following the system preference until the user chooses. |
 
-### Components from the official `flowbite-4` kit
+### Basic components
 
 | Recipe | |
 |---|---|
@@ -110,7 +105,7 @@ Each recipe's README has its examples, props and usage.
 | [`textarea`](textarea/README.md) | A multi-line text field, for a comment or a description. |
 | [`toggle`](toggle/README.md) | A switch for an on/off setting. |
 
-### Components added by this kit
+### More components
 
 | Recipe | |
 |---|---|
@@ -215,7 +210,7 @@ unchecked. On top of escaping, the components check what shapes their markup:
   The value is printed as text, even a `Markup` one (`|raw`).
 - **Attributes.** Attributes given to a component, and `FormField`'s `labelAttr` and `helpAttr`, render with escaped
   names and values: a name cannot add another attribute. Otherwise they render as given, an `on…` handler or an
-  `href` included. URLs given as attributes are not checked, as in the official kit: the `href` of `Button` or `Badge`
+  `href` included. URLs given as attributes are not checked: the `href` of `Button` or `Badge`
   with `as="a"`, of `Dropdown:Item` and of `Pagination:Link`, and the `src` of `Avatar:Image`. Check those yourself.
 - **Content Security Policy.** The components print no inline script, style or event handler, so they work under a
   strict policy (nonces and `'strict-dynamic'`, no `'unsafe-inline'`). The layouts print their inline script and the
@@ -245,9 +240,10 @@ each version changes.
 
 ## Coding agents
 
-Paste the block in [`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md) into your project's
-`AGENTS.md` or `CLAUDE.md`: it tells agents to use the kit's components, color roles and icons, and how they
-behave with Turbo.
+Give your agent this repository's URL: [`FOR-AGENTS.md`](FOR-AGENTS.md) is written for it (setup, which recipe for
+what, the rules), and [`llms.txt`](llms.txt) lists every page with one line. Paste the block in
+[`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md) into your project's `AGENTS.md` or `CLAUDE.md`: it
+tells agents to use the kit's components, color roles and icons, and how they behave with Turbo.
 
 ## Contributing
 

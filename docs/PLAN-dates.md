@@ -59,7 +59,7 @@ _2026-10-07. This plan implements the C decisions in [`ROADMAP.md`](ROADMAP.md).
   | `text-foreground` | `text-heading` |
 
 - **Icons.** Use `flowbite:chevron-left-outline`, `chevron-right-outline` and `chevron-down-outline` (already in `demo/assets/icons/flowbite/`). Add `flowbite:calendar-month-outline` with `ux:icons:import` and commit it.
-- **Credit.** Each README says "Built from the `<x>` recipe of the Symfony UX Toolkit shadcn kit (3.5.1, MIT)". `NOTICE` gets an entry: "Symfony UX, src/Toolkit/kits/shadcn: `popover`, `calendar`, `date-picker` are derived (not copied)". There are no `UPSTREAM.md` rows, because these are not copies.
+- **Credit.** Each README says "Built from the `<x>` recipe of the Symfony UX Toolkit shadcn kit (3.5.1, MIT)". `NOTICE` gets an entry: "Symfony UX, src/Toolkit/kits/shadcn: `popover`, `calendar`, `date-picker` are derived (not copied)".
 - **No inline code.** Positioning writes `element.style` through the CSSOM, as `dropdown_controller.js` already does under the demo's CSP. No `style=""` attribute, no `<style>` element.
 
 ---
