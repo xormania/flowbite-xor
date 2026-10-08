@@ -20,8 +20,8 @@ those files to match. Run the `composer require` command `ux:install` prints rig
 
 A Live table is the class a `data-table` table would be, extending `AbstractLiveDataTable` instead of
 `AbstractDataTable`, with the `#[AsLiveComponent]` attribute naming the component and this recipe's template.
-`columns()`, `filters()`, `pageSizes()`, `defaultSort()`, `rowId()` and `loadPage()` work as the `data-table` README
-describes: moving a table from one recipe to the other changes its parent class and its attribute only.
+`columns()`, `filters()`, `pageSizes()`, `defaultSort()`, `rowId()`, `countRows()`, `loadRows()` and `maxRows()` work as
+the `data-table` README describes: moving a table from one recipe to the other changes its parent class and its attribute only.
 
 ```php
 // src/Twig/Components/OrdersTable.php
@@ -29,7 +29,6 @@ namespace App\Twig\Components;
 
 use App\FlowbiteXor\DataTable\Column;
 use App\FlowbiteXor\DataTable\TableQuery;
-use App\FlowbiteXor\DataTable\TableResult;
 use App\FlowbiteXor\DataTableLive\AbstractLiveDataTable;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 
@@ -45,7 +44,12 @@ final class OrdersTable extends AbstractLiveDataTable
         return [Column::make('number', 'Order')->sortable('o.number'), Column::make('status', 'Status')];
     }
 
-    protected function loadPage(TableQuery $query): TableResult
+    protected function countRows(TableQuery $query): int
+    {
+        return $this->orders->countMatching($query); // as in the data-table README
+    }
+
+    protected function loadRows(TableQuery $query): array
     {
         return $this->orders->findPage($query); // as in the data-table README
     }
@@ -69,8 +73,14 @@ Each row has a checkbox; the ids of the selected rows are in `$this->selectedIds
 filter, a sort or another page keeps them. "Select this page" adds the rows of the current page. Override
 `selectable()` to return `false` for a table without selection.
 
+The selection holds at most `maxSelection()` rows (1,000 by default; override it): once full, "Select this page" and
+the unchecked boxes are gone or disabled, and the table says so. What the browser sends is cut to that many ids, and
+ids longer than 128 characters are dropped, before your code or the table reads them. Live Components decode the
+request before that: keep the server's request body limit (FrankenPHP and Caddy `request_body`, nginx
+`client_max_body_size`) to what your pages need.
+
 A bulk action is a `#[LiveAction]` of your class. The ids come from the browser: check that the user may act on each
-one.
+one, in one query bounded by `maxSelection()`.
 
 ```php
 #[LiveAction]

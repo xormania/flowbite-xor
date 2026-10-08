@@ -6,7 +6,8 @@ use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * A server-driven table: extend it once per table, declare its columns (and filters), and load one page of rows.
+ * A server-driven table: extend it once per table, declare its columns (and filters), count the matching rows and
+ * load one page of them.
  *
  *     final class OrdersTable extends AbstractDataTable
  *     {
@@ -17,9 +18,14 @@ use Symfony\Component\HttpFoundation\Request;
  *             return [Column::make('number', 'Order')->sortable('o.number'), Column::make('status', 'Status')];
  *         }
  *
- *         protected function loadPage(TableQuery $query): TableResult
+ *         protected function countRows(TableQuery $query): int
  *         {
- *             return $this->orders->findPage($query); // rows of $query->page and the total
+ *             return $this->orders->countMatching($query); // the rows matching the search and filters
+ *         }
+ *
+ *         protected function loadRows(TableQuery $query): array
+ *         {
+ *             return $this->orders->findPage($query); // the rows of $query->page
  *         }
  *     }
  *
@@ -36,9 +42,17 @@ abstract class AbstractDataTable
     abstract public function columns(): array;
 
     /**
-     * One page of rows for an already checked query, and the number of rows matching it on every page.
+     * The number of rows matching an already checked query (its search and filters), on every page.
      */
-    abstract protected function loadPage(TableQuery $query): TableResult;
+    abstract protected function countRows(TableQuery $query): int;
+
+    /**
+     * The rows of the query's page: at most `$query->pageSize` rows from `$query->offset()`. The query is checked and
+     * its page exists: fetch() calls it once, after countRows(), and not at all when no row matches.
+     *
+     * @return list<mixed> arrays or objects, each with a stable id (rowId())
+     */
+    abstract protected function loadRows(TableQuery $query): array;
 
     /**
      * @return list<Filter>
@@ -56,6 +70,16 @@ abstract class AbstractDataTable
     public function pageSizes(): array
     {
         return [10, 25, 50];
+    }
+
+    /**
+     * How many matching rows can be paged through: no page starts past this many rows, so no request makes the
+     * loader skip more. A search or a filter narrows a larger set. Lower it for an expensive query; above some
+     * thousands of rows, an SQL OFFSET gets slow, and keyset pagination in the app suits better.
+     */
+    public function maxRows(): int
+    {
+        return 10_000;
     }
 
     /**
@@ -102,20 +126,20 @@ abstract class AbstractDataTable
     }
 
     /**
-     * Loads the page the query asks for, or the last page when it asks for one past the end.
+     * Counts the matching rows, then loads the page the query asks for, or the last page when it asks for one past
+     * the end: one count, and one load of rows at most.
      *
      * @return array{TableQuery, TableResult} the query of the page loaded, and its result
      */
     public function fetch(TableQuery $query): array
     {
-        $result = $this->loadPage($query);
-        $last = max(1, (int) ceil($result->total / $query->pageSize));
+        $total = $this->countRows($query);
+        $last = min(max(1, (int) ceil($total / $query->pageSize)), $query->maxPage);
         if ($query->page > $last) {
             $query = $query->withPage($last);
-            $result = $this->loadPage($query);
         }
 
-        return [$query, $result];
+        return [$query, new TableResult(0 === $total ? [] : $this->loadRows($query), $total)];
     }
 
     /**

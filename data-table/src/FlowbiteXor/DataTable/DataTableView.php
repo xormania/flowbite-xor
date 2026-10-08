@@ -28,9 +28,20 @@ final class DataTableView
         return $this->path;
     }
 
+    /**
+     * The pages that can be visited: those starting within the table's maxRows().
+     */
     public function pageCount(): int
     {
-        return max(1, (int) ceil($this->result->total / $this->query->pageSize));
+        return min(max(1, (int) ceil($this->result->total / $this->query->pageSize)), $this->query->maxPage);
+    }
+
+    /**
+     * Whether more rows match than can be paged through (the table's maxRows()): a search or a filter narrows them.
+     */
+    public function isCapped(): bool
+    {
+        return $this->result->total > $this->table->maxRows();
     }
 
     /**

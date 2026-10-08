@@ -93,6 +93,29 @@ test('rows stay selected across pages; "Select this page" adds the page’s rows
     await expect(page.getByRole('checkbox', { name: 'Select row 57' })).not.toBeChecked();
 });
 
+test('a selection the browser sends is cut to the table\'s limit before the server uses it', async ({ page }) => {
+    await page.goto('/lab/data-table-live');
+    await expect(selected(page)).toHaveText('0 selected');
+
+    // what a crafted request can send: 5,000 ids of rows not on this page, and one id longer than 128 characters
+    await page.evaluate(async () => {
+        const { getComponent } = await import('@symfony/ux-live-component');
+        const table = await getComponent(document.querySelector<HTMLElement>('[data-controller~="live"]')!);
+        const ids = Array.from({ length: 5_000 }, (_, index) => String(1_001 + index));
+        table.set('selectedIds', ['x'.repeat(129), ...ids], true);
+    });
+    await expect(selected(page)).toHaveText('1000 selected, the most this table selects');
+    await expect(page.getByTestId('selected-ids')).not.toContainText('xxx');
+    await expect(page.getByTestId('selected-ids')).not.toContainText('2001');
+
+    // full: no row can be added, and the selection can still be cleared
+    await expect(page.getByRole('button', { name: 'Select this page' })).toHaveCount(0);
+    await expect(page.getByRole('checkbox', { name: 'Select row 57' })).toBeDisabled();
+    await page.getByRole('button', { name: 'Clear selection' }).click();
+    await expect(selected(page)).toHaveText('0 selected');
+    await expect(page.getByRole('checkbox', { name: 'Select row 57' })).toBeEnabled();
+});
+
 test('a URL with values the table does not accept renders a valid table', async ({ page }) => {
     await page.goto('/lab/data-table-live?sort=bogus&dir=up&page=999&size=7&f%5Bstatus%5D=nope');
     await expect(status(page)).toHaveText('Showing 51–57 of 57');

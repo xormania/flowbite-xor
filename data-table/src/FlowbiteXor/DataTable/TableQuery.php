@@ -3,16 +3,14 @@
 namespace App\FlowbiteXor\DataTable;
 
 /**
- * What a data table asks its loadPage() for, already checked: values from a URL or a Live request never reach the
- * query unchecked. The sort is a declared sortable column (its server field in $sortField), every filter value is
- * one of its choices, the page is at least 1 and the page size one of the table's page sizes.
+ * What a data table asks its countRows() and loadRows() for, already checked: values from a URL or a Live request
+ * never reach the query unchecked. The sort is a declared sortable column (its server field in $sortField), every
+ * filter value is one of its choices, the page size one of the table's page sizes, and the page at least 1 and at
+ * most maxPage: its offset stays below the table's maxRows(), so no request makes the loader skip more rows.
  */
 final class TableQuery
 {
     public const SEARCH_MAX_LENGTH = 100;
-
-    /** The highest page a query asks for: a larger one would overflow the offset; fetch() then loads the last page. */
-    public const PAGE_MAX = 1_000_000;
 
     /**
      * @param array<string, string> $filters filter key => chosen value
@@ -25,6 +23,7 @@ final class TableQuery
         public readonly string $direction,
         public readonly int $page,
         public readonly int $pageSize,
+        public readonly int $maxPage,
     ) {
     }
 
@@ -62,12 +61,18 @@ final class TableQuery
         }
         $direction = \in_array($direction, ['asc', 'desc'], true) ? $direction : 'asc';
 
-        $page = filter_var($values['page'] ?? null, \FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        $page = false === $page ? 1 : min($page, self::PAGE_MAX);
-
         $pageSizes = $table->pageSizes();
         $pageSize = filter_var($values['pageSize'] ?? null, \FILTER_VALIDATE_INT);
         $pageSize = \in_array($pageSize, $pageSizes, true) ? $pageSize : $pageSizes[0];
+
+        $maxRows = $table->maxRows();
+        if ($maxRows < 1) {
+            throw new \LogicException(\sprintf('%s::maxRows() must be at least 1.', $table::class));
+        }
+        // the last page whose first row is one of the first maxRows rows
+        $maxPage = intdiv($maxRows - 1, $pageSize) + 1;
+        $page = filter_var($values['page'] ?? null, \FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $page = false === $page ? 1 : min($page, $maxPage);
 
         return new self(
             $search,
@@ -77,16 +82,17 @@ final class TableQuery
             $direction,
             $page,
             $pageSize,
+            $maxPage,
         );
     }
 
     public function withPage(int $page): self
     {
-        return new self($this->search, $this->filters, $this->sort, $this->sortField, $this->direction, max(1, min($page, self::PAGE_MAX)), $this->pageSize);
+        return new self($this->search, $this->filters, $this->sort, $this->sortField, $this->direction, max(1, min($page, $this->maxPage)), $this->pageSize, $this->maxPage);
     }
 
     /**
-     * The first row of the page, counted from 0: what an SQL OFFSET takes.
+     * The first row of the page, counted from 0: what an SQL OFFSET takes. Always below the table's maxRows().
      */
     public function offset(): int
     {

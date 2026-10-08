@@ -5,7 +5,6 @@ namespace App\Demo;
 use App\FlowbiteXor\DataTable\Column;
 use App\FlowbiteXor\DataTable\Filter;
 use App\FlowbiteXor\DataTable\TableQuery;
-use App\FlowbiteXor\DataTable\TableResult;
 
 /**
  * The demo's orders table, shared by its plain (OrdersTable) and Live (LiveOrdersTable) versions: 57 made-up orders
@@ -41,18 +40,30 @@ trait OrdersTableDefinition
         return 'desc';
     }
 
-    protected function loadPage(TableQuery $query): TableResult
+    protected function countRows(TableQuery $query): int
     {
-        $rows = array_values(array_filter(self::orders(), static fn (array $order): bool => ('' === $query->search
-                || str_contains(strtolower($order['number'].' '.$order['customer']), strtolower($query->search)))
-            && (!isset($query->filters['status']) || $order['status'] === $query->filters['status'])));
+        return \count(self::matching($query));
+    }
 
+    protected function loadRows(TableQuery $query): array
+    {
+        $rows = self::matching($query);
         if (null !== $query->sortField) {
             $field = $query->sortField;
             usort($rows, static fn (array $a, array $b): int => ('asc' === $query->direction ? 1 : -1) * ($a[$field] <=> $b[$field] ?: $a['id'] <=> $b['id']));
         }
 
-        return new TableResult(\array_slice($rows, $query->offset(), $query->pageSize), \count($rows));
+        return \array_slice($rows, $query->offset(), $query->pageSize);
+    }
+
+    /**
+     * @return list<array{id: int, number: string, customer: string, status: string, total: int}>
+     */
+    private static function matching(TableQuery $query): array
+    {
+        return array_values(array_filter(self::orders(), static fn (array $order): bool => ('' === $query->search
+                || str_contains(strtolower($order['number'].' '.$order['customer']), strtolower($query->search)))
+            && (!isset($query->filters['status']) || $order['status'] === $query->filters['status'])));
     }
 
     /**

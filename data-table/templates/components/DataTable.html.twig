@@ -108,6 +108,7 @@
         <p class="text-sm text-body" role="status">
             {%- if view.result.total > 0 -%}
                 Showing <span class="font-semibold text-heading">{{ view.from }}–{{ view.to }}</span> of <span class="font-semibold text-heading">{{ view.result.total }}</span>
+                {%- if view.isCapped %}; the first {{ view.table.maxRows }} can be paged through: search or filter to narrow them{% endif -%}
             {%- else -%}
                 No rows
             {%- endif -%}
