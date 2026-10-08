@@ -68,9 +68,11 @@ jobs:
         name: Kit PHP
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
-        timeout-minutes: 10
+        timeout-minutes: 15
         env:
             PHPSTAN_VERSION: '2.3.0'
+            PHPSTAN_SYMFONY_VERSION: '2.1.0'
+            PHPSTAN_PHPUNIT_VERSION: '2.1.1'
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -90,23 +92,37 @@ jobs:
                   cat "$RUNNER_TEMP/php-dirs"
                   find $(cat "$RUNNER_TEMP/php-dirs") -name '*.php' -print0 | xargs -0 -n1 php -l
 
-            # PHPStan reads the classes the kit's PHP uses (Symfony) from the demo's dependencies, and also checks the
-            # demo's table built on it; it is installed in a scratch directory so the demo's lock file stays as is.
-            - name: Install the demo's dependencies and PHPStan
+            # The tests render the recipes' templates as the demo has them, and its pages with their CSS
+            - name: Install the demo
               run: |
-                  (cd demo && composer install --no-interaction --no-progress --no-scripts)
-                  mkdir "$RUNNER_TEMP/phpstan" && cd "$RUNNER_TEMP/phpstan"
-                  composer require --no-interaction --no-progress "phpstan/phpstan:${PHPSTAN_VERSION}"
+                  php tools/sync-demo
+                  (cd demo && composer install --no-interaction --no-progress && bin/console tailwind:build)
+
+            # demo/tests: the data tables' limits (the deepest page, the loader calls, the selection), the Live table
+            # through real Live requests, components rendered against their snapshots, and the loader calls of one
+            # request read from its profile. A missing snapshot fails here instead of being written.
+            - name: PHPUnit
+              working-directory: demo
+              env:
+                  CREATE_SNAPSHOTS: 'false'
+              run: bin/phpunit
+
+            # PHPStan reads the classes the kit's PHP uses (Symfony) from the demo's dependencies, and also checks the
+            # demo's tables and tests; it is installed in a scratch directory with its Symfony and PHPUnit extensions
+            # (tools/phpstan.neon), whose Symfony one reads the demo's test container.
+            - name: Install PHPStan
+              working-directory: ${{ runner.temp }}
+              run: |
+                  mkdir phpstan && cd phpstan
+                  composer require --no-interaction --no-progress "phpstan/phpstan:${PHPSTAN_VERSION}" \
+                      "phpstan/phpstan-symfony:${PHPSTAN_SYMFONY_VERSION}" "phpstan/phpstan-phpunit:${PHPSTAN_PHPUNIT_VERSION}"
 
             # The demo's autoloader maps App\FlowbiteXor\… to the recipes' own src/ (demo/composer.json).
             - name: PHPStan
               run: |
-                  "$RUNNER_TEMP/phpstan/vendor/bin/phpstan" analyse --no-progress --level=8 \
-                      --autoload-file=demo/vendor/autoload.php $(cat "$RUNNER_TEMP/php-dirs") demo/src/Demo
-
-            # What a request can make the data tables do: the deepest page, the loader calls, the selection's size
-            - name: Data table limits
-              run: php tools/tests/data-table.php
+                  (cd demo && bin/console cache:warmup --env=test)
+                  "$RUNNER_TEMP/phpstan/vendor/bin/phpstan" analyse --no-progress --configuration=tools/phpstan.neon \
+                      --autoload-file=demo/vendor/autoload.php $(cat "$RUNNER_TEMP/php-dirs") demo/src/Demo demo/tests
 
     static-site:
         name: Static site
