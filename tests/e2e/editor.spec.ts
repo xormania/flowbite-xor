@@ -21,7 +21,7 @@ const paste = (page: Page, html: string) =>
     page.evaluate((html) => {
         const data = new DataTransfer();
         data.setData('text/html', html);
-        data.setData('text/plain', html.replace(/<[^>]*>/g, ''));
+        data.setData('text/plain', 'pasted');
         document.activeElement!.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
     }, html);
 

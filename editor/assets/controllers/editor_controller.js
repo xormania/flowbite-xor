@@ -312,7 +312,14 @@ export default class extends Controller {
      * any parser would apply them too; what it misses, the schema drops anyway.
      */
     #withoutStyles(html) {
-        return html.replace(/<style[\s\S]*?<\/style\s*>/gi, '').replace(/\sstyle\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+        // repeated until nothing changes: a removal can join the halves of another `<style` or `style=`
+        let previous;
+        do {
+            previous = html;
+            html = html.replace(/<style[\s\S]*?<\/style\s*>/gi, '').replace(/\sstyle\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+        } while (html !== previous);
+
+        return html;
     }
 
     /** Destroys the editor and puts the content back as plain markup, as the server renders it. */
