@@ -141,6 +141,10 @@ chooser. PHP's own limits come first: a file over `upload_max_filesize` reaches 
 (the `File` constraint reports it), and a request over `post_max_size` reaches it empty, every field and file
 dropped. Raise both in `php.ini` above your largest constraint, `post_max_size` above the sum of the files.
 
+On FrankenPHP in worker mode (Symfony Docker), a request over `post_max_size` never reaches Symfony: the worker
+fails it with a fatal error page. Set `post_max_size` well above what a form can send, and let `upload_max_filesize`
+and the constraints refuse large files (each comes back as its field's error).
+
 ### With Turbo
 
 - Turbo submits a `multipart/form-data` form with its files. Answer 303 on success and 422 with the errors, as for

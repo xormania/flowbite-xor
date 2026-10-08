@@ -188,14 +188,17 @@ test('a valid submit with a photo and two attachments redirects with the success
     await expect(page.getByText('Account created.')).toBeVisible();
 });
 
-// Posted outside the browser: PHP's built-in server answers a body over post_max_size before reading it, and Turbo
-// never renders that early 422 (submit-end fires, no render follows), so the page cannot show it here.
-test('a file over post_max_size gives the form-level error, not a CSRF error', async ({ page }) => {
-    const response = await page.request.post('/forms', {
-        multipart: { 'demo[name]': 'Ada', 'demo[attachments][]': { name: 'huge.txt', mimeType: 'text/plain', buffer: Buffer.alloc(9 * 1024 * 1024, 'a') } },
-    });
-    expect(response.status()).toBe(422);
-    const html = await response.text();
-    expect(html).toContain('<p id="demo_error" class="mt-2.5 text-sm text-fg-danger-strong">The uploaded file was too large. Please try to upload a smaller file.</p>');
-    expect(html).not.toMatch(/CSRF token/i);
+// A file over upload_max_filesize (2M) in a body under post_max_size (8M): PHP keeps the other fields and reports the
+// file's upload error, which the field shows. A body over post_max_size is not tested: FrankenPHP's worker (CI's demo)
+// fails the request with a fatal error before Symfony runs (the dropzone README's Limits).
+test('a file over upload_max_filesize gives its field the size error', async ({ page, allowHttpError }) => {
+    allowHttpError(/\/forms$/, 422);
+    await page.goto('/forms');
+    await fillValid(page);
+    await page.locator('#demo_attachments').setInputFiles([text('a.txt'), { name: 'big.txt', mimeType: 'text/plain', buffer: Buffer.alloc(3 * 1024 * 1024, 'a') }]);
+    await page.getByRole('button', { name: 'Create account' }).click();
+    const attachments = page.locator('#demo_attachments');
+    await expect(attachments).toHaveAttribute('aria-invalid', 'true');
+    await expect(attachments).toHaveAccessibleDescription(/too large/);
+    await expect(page.getByText(/CSRF token/i)).toHaveCount(0);
 });
