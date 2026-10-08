@@ -1,0 +1,17 @@
+{%- props
+    ## string The accessible name of the tree.
+    label = 'Navigation',
+    ## string|null The `sessionStorage` key of the branches' open state, kept across Turbo visits; null keeps it in the page only.
+    storageKey = 'side-nav'
+-%}
+<ul role="tree" aria-label="{{ label }}"
+    {%- if storageKey %} data-side-nav-storage-key-value="{{ storageKey }}"{% endif %}
+    {{ attributes.defaults({
+        class: 'space-y-1 text-sm'|tailwind_classes,
+        'data-controller': 'side-nav',
+        'data-action': 'keydown->side-nav#keydown click->side-nav#toggleFromClick focusin->side-nav#remember',
+    }) }}
+>
+    {##- The tree: `SideNav:Item` links and `SideNav:Branch`es holding more of them, at any depth. -#}
+    {%- block content %}{% endblock -%}
+</ul>

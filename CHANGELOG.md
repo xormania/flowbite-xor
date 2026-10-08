@@ -7,6 +7,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `side-nav`: a multi-level navigation tree (WAI-ARIA tree view): links in branches that open and close at any depth,
+  arrow keys, Home, End and type-ahead, the branch of the current page open, and the open branches kept across Turbo
+  visits, Back and Forward in `sessionStorage`.
 - `markdown-editor`: a Markdown field, a native textarea with a toolbar writing Markdown and a Preview tab rendered on
   the server by a Live Component; `MarkdownType` refuses too long input, and the `flowbite_markdown_html` filter prints
   stored Markdown the same way (CommonMark without raw HTML or images, then sanitized).
