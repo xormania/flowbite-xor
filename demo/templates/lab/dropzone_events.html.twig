@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}dropzone-events — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'dropzone-events'}) }}
+    <div class="max-w-sm">
+        <twig:FormField for="echoed" label="Files">
+            <twig:Dropzone
+                id="echoed"
+                name="echoed[]"
+                multiple
+                data-controller="dropzone-echo"
+                data-action="dropzone:change->dropzone-echo#show dropzone:remove->dropzone-echo#show"
+                data-dropzone-echo-prefix-value="caller"
+                data-dropzone-echo-target="input"
+            />
+        </twig:FormField>
+        <output for="echoed" class="mt-3 block text-sm" data-testid="echo"></output>
+    </div>
+{% endblock %}
