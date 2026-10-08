@@ -11,6 +11,8 @@
             <twig:ux:icon name="flowbite:bars-outline" class="size-6" aria-hidden="true" />
         </button>
     {%- endif %}
+    {##- The menu button of small screens holding the app's navigation, typically a `MobileNav` (in place of `sidebarId`). -#}
+    {%- block menu %}{% endblock -%}
     <div class="flex shrink-0 items-center">
         {##- The brand: logo and product name, usually a link home. -#}
         {%- block brand %}{% endblock -%}

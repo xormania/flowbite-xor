@@ -61,7 +61,9 @@ A multi-level navigation tree: links grouped in branches that open and close, at
 - **Open branches:** a branch renders closed, or open with `open` or when it holds the current page. The controller
   saves which branches are open in `sessionStorage`, under `storageKey`, and restores them on every connect: the
   state holds across Turbo visits, Back and Forward, and reloads in the same tab. Then it opens the branches holding
-  the current page. Give each tree of the app its own `storageKey`, or `:storageKey="null"` to save nothing. A
+  the current page. Give each tree of the app its own `storageKey`, or `:storageKey="null"` to save nothing. The
+  same tree rendered twice, in the `Sidebar` and in a `MobileNav`, takes the same key: a tree hidden then shown again
+  restores the state saved meanwhile, so the two agree. A
   branch is saved under its place in the tree, from the labels of its branches: give `name` to a branch whose label
   changes (a count, a translation).
 - **Keyboard:** the tree is one Tab stop, on the current page's item when it is shown. Up and Down move between the
@@ -83,4 +85,5 @@ A multi-level navigation tree: links grouped in branches that open and close, at
 
 The sidebar's `<nav>` names the tree's landmark. Collapsed to its icons, the sidebar shows the top level's icons only:
 give each top-level item and branch an icon. On small screens, the `Navbar` menu button opens the sidebar over the
-page, tree included.
+page, tree included; or render the same tree, with the same `storageKey`, in a
+[`MobileNav`](../mobile-nav/README.md), a modal drawer, as the `layouts` app layout does.

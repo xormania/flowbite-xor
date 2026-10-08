@@ -83,6 +83,31 @@ await expect(dialog).not.toHaveAttribute('open');
 
 Here: [`lab.turbo-restore.spec.ts`](../tests/e2e/lab.turbo-restore.spec.ts), and the Back tests of each `lab.*.spec.ts`.
 
+### What the cached copy holds
+
+**Catches:** an overlay that is open, or a button still `aria-expanded="true"`, in the copy Turbo shows on Back or
+Forward, even when a controller fixes it once it connects: the copy is on screen first. A dialog's `close` event, for
+one, comes after Turbo has taken the copy.
+
+Record each body Turbo is about to render, `event.detail.newBody`, the cached copies included:
+
+```ts
+await page.addInitScript(() => {
+    (window as any).__rendered = [];
+    document.addEventListener('turbo:before-render', (event: any) => {
+        const body = event.detail.newBody;
+        (window as any).__rendered.push({
+            open: body.querySelector('#drawer-nav')?.hasAttribute('open'),
+            expanded: body.querySelector('[aria-controls="drawer-nav"]')?.getAttribute('aria-expanded'),
+        });
+    });
+});
+// open the drawer, go Back, open it on that page, go Forward:
+expect(await page.evaluate(() => (window as any).__rendered)).toEqual(Array(3).fill({ open: false, expanded: 'false' }));
+```
+
+Here: [`lab.mobile-nav.spec.ts`](../tests/e2e/lab.mobile-nav.spec.ts).
+
 ### State saved after the snapshot
 
 **Catches:** a component that shows the state of Turbo's cached copy after Back, when the user changed it on the next
@@ -163,6 +188,30 @@ expect(await page.evaluate(() => (window as any).__transitions)).toEqual([]);
 ```
 
 Here: [`tests/e2e/theme-toggle.spec.ts`](../tests/e2e/theme-toggle.spec.ts) ("a switch … runs no color transition").
+
+### One controller per element: count what it does
+
+**Catches:** a controller connected twice to one element after Turbo visits, whose actions are all idempotent, so no
+state shows the second one (opening an open dialog does nothing).
+
+Count a side effect each action has, through the prototype, then do the action once:
+
+```ts
+await page.addInitScript(() => {
+    (window as any).__focusCalls = 0;
+    const focus = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function (...args) {
+        (window as any).__focusCalls++;
+        return focus.apply(this, args);
+    };
+});
+// after the visits:
+await page.evaluate(() => ((window as any).__focusCalls = 0));
+await menu.click();                                  // focuses the button, then the current page
+expect(await page.evaluate(() => (window as any).__focusCalls)).toBe(2);
+```
+
+Here: [`lab.mobile-nav.spec.ts`](../tests/e2e/lab.mobile-nav.spec.ts) ("repeated Turbo visits leave one controller…").
 
 ## Live Components
 
