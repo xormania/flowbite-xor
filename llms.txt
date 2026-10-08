@@ -86,4 +86,5 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 
 - [Changelog](https://raw.githubusercontent.com/xormania/flowbite-xor/main/CHANGELOG.md): what each version changes
 - [Security](https://raw.githubusercontent.com/xormania/flowbite-xor/main/SECURITY.md): reporting a vulnerability
+- [Testing patterns](https://raw.githubusercontent.com/xormania/flowbite-xor/main/docs/TESTING.md): how this repository tests Turbo, Live Components, the CSP and request limits, to reuse in an app
 - [Contributing](https://raw.githubusercontent.com/xormania/flowbite-xor/main/CONTRIBUTING.md): changing the kit itself: layout, conventions, checks

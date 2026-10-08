@@ -14,20 +14,24 @@ use Symfony\UX\LiveComponent\Metadata\UrlMapping;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * A data table rendered as a Live Component: the same columns(), filters() and loadPage() as AbstractDataTable,
- * plus row selection. Its state is in the URL (the same `q`, `f`, `sort`, `dir`, `page` and `size` parameters),
- * replaced on each change: Back leaves the page, and the URL brings the last state back. The selection is not in
- * the URL.
+ * A data table rendered as a Live Component: the same columns(), filters(), countRows() and loadRows() as
+ * AbstractDataTable, plus row selection. Its state is in the URL (the same `q`, `f`, `sort`, `dir`, `page` and
+ * `size` parameters), replaced on each change: Back leaves the page, and the URL brings the last state back. The
+ * selection is not in the URL.
  *
  *     #[AsLiveComponent(name: 'OrdersTable', template: 'components/DataTableLive.html.twig')]
  *     final class OrdersTable extends AbstractLiveDataTable { ... }
  *
  * Render it with `<twig:OrdersTable tableId="orders" label="Orders" />`; a bulk action is a #[LiveAction] of the
- * subclass reading $this->selectedIds (check them: they come from the browser).
+ * subclass reading $this->selectedIds (check them: they come from the browser). The selection holds at most
+ * maxSelection() ids of at most SELECTED_ID_MAX_LENGTH characters.
  */
 abstract class AbstractLiveDataTable extends AbstractDataTable
 {
     use DefaultActionTrait;
+
+    /** The longest row id the selection keeps. */
+    public const SELECTED_ID_MAX_LENGTH = 128;
 
     #[LiveProp(writable: true, onUpdated: 'firstPage', url: new UrlMapping(as: 'q'))]
     public string $search = '';
@@ -54,12 +58,15 @@ abstract class AbstractLiveDataTable extends AbstractDataTable
     public int $pageSize = 0;
 
     /**
-     * The ids of the selected rows, on every page.
+     * The ids of the selected rows, on every page; hydrateSelectedIds() bounds what the browser sends.
      *
      * @var list<string>
      */
-    #[LiveProp(writable: true)]
+    #[LiveProp(writable: true, hydrateWith: 'hydrateSelectedIds')]
     public array $selectedIds = [];
+
+    /** @var array<string, true>|null the selected ids as keys, for isSelected() */
+    private ?array $selectedLookup = null;
 
     /** The prefix of the rows' element ids, unique on the page. */
     #[LiveProp]
@@ -77,6 +84,47 @@ abstract class AbstractLiveDataTable extends AbstractDataTable
     public function selectable(): bool
     {
         return true;
+    }
+
+    /**
+     * The most rows the selection holds: past it, "Select this page" and the unchecked boxes stop adding rows.
+     */
+    public function maxSelection(): int
+    {
+        return 1_000;
+    }
+
+    /**
+     * Whether the selection holds maxSelection() rows.
+     */
+    public function isSelectionFull(): bool
+    {
+        return \count($this->selectedIds) >= $this->maxSelection();
+    }
+
+    /**
+     * Reads the selection the browser sends before anything else uses it: its first maxSelection() entries only, and
+     * of those, the scalar ids of at most SELECTED_ID_MAX_LENGTH characters, once each.
+     *
+     * @return list<string>
+     */
+    public function hydrateSelectedIds(mixed $data): array
+    {
+        if (!\is_array($data)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach (\array_slice($data, 0, $this->maxSelection()) as $id) {
+            // characters, not bytes; the byte count first, so a huge string is not scanned (4 bytes at most each)
+            if (\is_scalar($id) && \strlen((string) $id) <= 4 * self::SELECTED_ID_MAX_LENGTH
+                && mb_strlen((string) $id, 'UTF-8') <= self::SELECTED_ID_MAX_LENGTH) {
+                $ids[(string) $id] = true;
+            }
+        }
+
+        // numeric ids became integer keys
+        return array_map('strval', array_keys($ids));
     }
 
     #[LiveAction]
@@ -99,10 +147,14 @@ abstract class AbstractLiveDataTable extends AbstractDataTable
     #[LiveAction]
     public function selectPage(): void
     {
+        $ids = array_fill_keys($this->selectedIds, true);
         foreach ($this->getView()->result->rows as $row) {
-            $this->selectedIds[] = (string) $this->rowId($row);
+            if (\count($ids) >= $this->maxSelection()) {
+                break;
+            }
+            $ids[(string) $this->rowId($row)] = true;
         }
-        $this->selectedIds = array_values(array_unique($this->selectedIds));
+        $this->selectedIds = array_map('strval', array_keys($ids));
     }
 
     #[LiveAction]
@@ -124,7 +176,7 @@ abstract class AbstractLiveDataTable extends AbstractDataTable
     #[PreReRender]
     public function prepare(): void
     {
-        $this->selectedIds = array_values(array_unique(array_map('strval', array_filter($this->selectedIds, 'is_scalar'))));
+        $this->selectedLookup = null; // an action may have changed the selection
 
         // an action that read the page (selectPage) loaded it already: render that page, not a second read of it
         $loaded = $this->view?->query;
@@ -169,6 +221,8 @@ abstract class AbstractLiveDataTable extends AbstractDataTable
      */
     public function isSelected(mixed $row): bool
     {
-        return \in_array((string) $this->rowId($row), $this->selectedIds, true);
+        $this->selectedLookup ??= array_fill_keys($this->selectedIds, true);
+
+        return isset($this->selectedLookup[(string) $this->rowId($row)]);
     }
 }

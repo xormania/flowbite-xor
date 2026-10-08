@@ -6,7 +6,6 @@ use App\FlowbiteXor\DataTable\AbstractDataTable;
 use App\FlowbiteXor\DataTable\Column;
 use App\FlowbiteXor\DataTable\Filter;
 use App\FlowbiteXor\DataTable\TableQuery;
-use App\FlowbiteXor\DataTable\TableResult;
 
 final class OrdersTable extends AbstractDataTable
 {
@@ -20,7 +19,25 @@ final class OrdersTable extends AbstractDataTable
         return [Filter::choice('status', 'Status', ['paid' => 'Paid', 'pending' => 'Pending'])];
     }
 
-    protected function loadPage(TableQuery $query): TableResult
+    protected function countRows(TableQuery $query): int
+    {
+        return \count($this->matching($query));
+    }
+
+    protected function loadRows(TableQuery $query): array
+    {
+        $rows = $this->matching($query);
+        if ('desc' === $query->direction) {
+            $rows = array_reverse($rows);
+        }
+
+        return \array_slice($rows, $query->offset(), $query->pageSize);
+    }
+
+    /**
+     * @return list<array{id: int, number: string, status: string}>
+     */
+    private function matching(TableQuery $query): array
     {
         $rows = [];
         for ($id = 1; $id <= 25; ++$id) {
@@ -29,10 +46,7 @@ final class OrdersTable extends AbstractDataTable
         if (isset($query->filters['status'])) {
             $rows = array_values(array_filter($rows, static fn (array $row): bool => $row['status'] === $query->filters['status']));
         }
-        if ('desc' === $query->direction) {
-            $rows = array_reverse($rows);
-        }
 
-        return new TableResult(\array_slice($rows, $query->offset(), $query->pageSize), \count($rows));
+        return $rows;
     }
 }

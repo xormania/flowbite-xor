@@ -21,11 +21,11 @@ Run `ux:install` from your project's root directory: besides its template, this 
 
 ## Usage
 
-Each table is one class extending `AbstractDataTable`. It declares its columns, and loads one page of rows for a
-query that is already checked: the sort is one of the columns you made sortable (`$query->sortField` holds its server
-field, never a value from the URL), each filter value is one of the filter's choices, the page is at least 1 and the
-page size one of `pageSizes()`. Return the page's rows and the number of rows matching the search and filters on every
-page; a page past the end shows the last one.
+Each table is one class extending `AbstractDataTable`. It declares its columns, counts the rows matching a query
+(`countRows()`) and loads one page of them (`loadRows()`). The query is already checked: the sort is one of the
+columns you made sortable (`$query->sortField` holds its server field, never a value from the URL), each filter value
+is one of the filter's choices, the page size one of `pageSizes()`, and the page exists: the table counts first, so a
+page past the end loads the last one, and `loadRows()` runs once per request at most (never when nothing matches).
 
 ```php
 // src/Table/OrdersTable.php
@@ -35,7 +35,7 @@ use App\FlowbiteXor\DataTable\AbstractDataTable;
 use App\FlowbiteXor\DataTable\Column;
 use App\FlowbiteXor\DataTable\Filter;
 use App\FlowbiteXor\DataTable\TableQuery;
-use App\FlowbiteXor\DataTable\TableResult;
+use Doctrine\ORM\QueryBuilder;
 
 final class OrdersTable extends AbstractDataTable
 {
@@ -63,7 +63,22 @@ final class OrdersTable extends AbstractDataTable
         return 'number';
     }
 
-    protected function loadPage(TableQuery $query): TableResult
+    protected function countRows(TableQuery $query): int
+    {
+        return (int) $this->matching($query)->select('COUNT(o.id)')->getQuery()->getSingleScalarResult();
+    }
+
+    protected function loadRows(TableQuery $query): array
+    {
+        $qb = $this->matching($query);
+        if (null !== $query->sortField) {
+            $qb->orderBy($query->sortField, $query->direction)->addOrderBy('o.id', $query->direction);
+        }
+
+        return $qb->setFirstResult($query->offset())->setMaxResults($query->pageSize)->getQuery()->getResult();
+    }
+
+    private function matching(TableQuery $query): QueryBuilder
     {
         $qb = $this->orders->createQueryBuilder('o')->join('o.customer', 'c');
         if ('' !== $query->search) {
@@ -72,13 +87,8 @@ final class OrdersTable extends AbstractDataTable
         if (isset($query->filters['status'])) {
             $qb->andWhere('o.status = :status')->setParameter('status', $query->filters['status']);
         }
-        $total = (int) (clone $qb)->select('COUNT(o.id)')->getQuery()->getSingleScalarResult();
-        if (null !== $query->sortField) {
-            $qb->orderBy($query->sortField, $query->direction)->addOrderBy('o.id', $query->direction);
-        }
-        $rows = $qb->setFirstResult($query->offset())->setMaxResults($query->pageSize)->getQuery()->getResult();
 
-        return new TableResult($rows, $total);
+        return $qb;
     }
 }
 ```
@@ -117,12 +127,22 @@ called something else. A row's element id is `<table id>-row-<row id>`.
 | Method | Default | |
 |---|---|---|
 | `columns()` | required | The columns, in order. `Column::make(key, label)`, `->sortable(field)` to sort by a server field (the key when omitted). |
-| `loadPage(TableQuery)` | required | One page of rows, and the total. |
+| `countRows(TableQuery)` | required | The number of rows matching the search and filters, on every page. |
+| `loadRows(TableQuery)` | required | The rows of the page: at most `$query->pageSize` from `$query->offset()`. |
+| `maxRows()` | `10_000` | How many matching rows can be paged through (below). |
 | `filters()` | none | `Filter::choice(key, label, [value => label])`: a select above the table. |
 | `pageSizes()` | `[10, 25, 50]` | The page sizes users can choose; the first is the default. One size hides the select. |
 | `defaultSort()`, `defaultDirection()` | none, `'asc'` | The sort when the URL names none. |
 | `paramPrefix()` | `''` | Groups the URL parameters (`?orders[page]=2`) when a page shows several tables. |
 | `rowId(row)` | `id` | The stable id of a row. |
+
+### Large tables
+
+No page starts past `maxRows()` rows, so a request never makes the database skip more rows than that, whatever page
+the URL asks for. When more rows match, the table says the first ones can be paged through, and a search or a filter
+narrows them. Lower `maxRows()` for an expensive query. An SQL `OFFSET` reads and drops every row before the page, so
+for tables browsed deep into millions of rows, keyset pagination (`WHERE id > :last`) in your own controller suits
+better than this recipe. As for any public page, limit the request rate of an expensive table at the server.
 
 ### URL and history
 

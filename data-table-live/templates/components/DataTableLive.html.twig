@@ -51,8 +51,11 @@
         <div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
             <p class="text-body" role="status">
                 <span class="font-semibold text-heading">{{ table.selectedIds|length }}</span> selected
+                {%- if table.isSelectionFull %}, the most this table selects{% endif -%}
             </p>
-            <twig:Button type="button" variant="tertiary" size="xs" data-action="live#action" data-live-action-param="selectPage">Select this page</twig:Button>
+            {%- if not table.isSelectionFull %}
+                <twig:Button type="button" variant="tertiary" size="xs" data-action="live#action" data-live-action-param="selectPage">Select this page</twig:Button>
+            {%- endif %}
             {%- if table.selectedIds is not empty %}
                 <twig:Button type="button" variant="tertiary" size="xs" data-action="live#action" data-live-action-param="clearSelection">Clear selection</twig:Button>
                 {##- The actions on the selected rows, typically buttons calling the table's own #[LiveAction]s. -#}
@@ -101,7 +104,7 @@
                         <twig:Table:Row id="{{ id }}-row-{{ row_id }}">
                             {%- if table.selectable %}
                                 <twig:Table:Cell class="w-4">
-                                    <input type="checkbox" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft disabled:border-light accent-brand" data-model="selectedIds[]" value="{{ row_id }}" aria-label="Select row {{ row_id }}"{{ table.isSelected(row) ? ' checked' }}>
+                                    <input type="checkbox" class="w-4 h-4 border border-default-medium rounded-xs bg-neutral-secondary-medium focus:ring-2 focus:ring-brand-soft disabled:border-light accent-brand" data-model="selectedIds[]" value="{{ row_id }}" aria-label="Select row {{ row_id }}"{{ table.isSelected(row) ? ' checked' : (table.isSelectionFull ? ' disabled') }}>
                                 </twig:Table:Cell>
                             {%- endif %}
                             {%- for column in view.table.columns %}
@@ -122,6 +125,7 @@
         <p class="text-sm text-body" role="status">
             {%- if view.result.total > 0 -%}
                 Showing <span class="font-semibold text-heading">{{ view.from }}–{{ view.to }}</span> of <span class="font-semibold text-heading">{{ view.result.total }}</span>
+                {%- if view.isCapped %}; the first {{ view.table.maxRows }} can be paged through: search or filter to narrow them{% endif -%}
             {%- else -%}
                 No rows
             {%- endif -%}

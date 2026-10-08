@@ -29,9 +29,12 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 - `autocomplete`: searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme, through the
   form theme (`'autocomplete' => true`) or the `Autocomplete` component.
 - `data-table-live`: `data-table` as a Live Component (`AbstractLiveDataTable`), with row selection for bulk actions;
-  its state is in the URL.
+  its state is in the URL. The selection holds at most `maxSelection()` ids (1,000) of at most 128 characters,
+  enforced on what the browser sends before anything uses it.
 - `data-table`: a server-driven table (search, filters, sortable columns, page size, pages) in a Turbo Frame, with
-  the PHP classes a table extends (`AbstractDataTable`) copied into `src/FlowbiteXor/DataTable/`.
+  the PHP classes a table extends (`AbstractDataTable`) copied into `src/FlowbiteXor/DataTable/`. A table counts its
+  rows (`countRows()`), then loads one page once (`loadRows()`); no page starts past `maxRows()` rows (10,000), so a
+  request never makes the database skip more.
 
 ### Fixed
 
