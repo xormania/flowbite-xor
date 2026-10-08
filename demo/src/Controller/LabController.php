@@ -48,6 +48,9 @@ final class LabController extends AbstractController
         'date-picker-turbo' => 'Date pickers across Turbo visits and Back: one in a GET form, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'date-picker-stream' => 'A DatePicker replaced and updated by Turbo Streams.',
         'live-date-picker' => 'Date pickers in a Live form through the form theme: each pick reaches the server, and the end date follows the start.',
+        'chart-turbo' => 'Charts across Turbo visits and Back: a bar chart, a doughnut in a card, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads; each follows the theme.',
+        'chart-stream' => 'A Chart replaced and updated by Turbo Streams.',
+        'live-chart' => 'A Chart in a Live Component whose data changes: the chart updates in place and keeps the theme.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
     ];
 
@@ -73,6 +76,7 @@ final class LabController extends AbstractController
     #[Route('/live-calendar', name: 'app_lab_live_calendar')]
     #[Route('/live-popover', name: 'app_lab_live_popover')]
     #[Route('/live-autocomplete', name: 'app_lab_live_autocomplete')]
+    #[Route('/live-chart', name: 'app_lab_live_chart')]
     public function live(string $_route): Response
     {
         $name = str_replace('_', '-', substr($_route, \strlen('app_lab_')));
@@ -239,6 +243,30 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/popover_stream.html.twig', ['description' => self::SCENARIOS['popover-stream']]);
+    }
+
+    #[Route('/chart-turbo/{page}', name: 'app_lab_chart_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    public function chartTurbo(Request $request, string $page): Response
+    {
+        return $this->render('lab/chart_turbo.html.twig', [
+            'page' => $page,
+            'load' => $request->query->getInt('load'),
+            'description' => self::SCENARIOS['chart-turbo'],
+        ]);
+    }
+
+    #[Route('/chart-stream', name: 'app_lab_chart_stream', methods: ['GET', 'POST'])]
+    public function chartStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/chart_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/chart_stream.html.twig', ['description' => self::SCENARIOS['chart-stream']]);
     }
 
     #[Route('/calendar-turbo/{page}', name: 'app_lab_calendar_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
