@@ -4,11 +4,11 @@ _2026-10-08. Decided with the user on 2026-10-08:_
 
 1. _**Three tiers:** behavior tests and basic performance checks on every pull request, and a heavier set of
    behavior and performance tests (the release checks) that runs before a release, by hand, and once a day when
-   `main` changed._
+   `dev` changed._
 2. _**The demo is the fixture.** Performance is measured end to end in the demo, where recipes, Turbo, Live
    Components, `flowbite.min.css` and the strict CSP meet. Small component tests only where e2e cannot isolate a
    cost._
-3. _**A baseline first:** timings are recorded on `main` before anything is compared or gated._
+3. _**A baseline first:** timings are recorded on `dev` before anything is compared or gated._
 4. _**Every tier must pass for a release, from 0.3.0.** 0.2.0 ships on the current checks and the security audit._
 5. _**Fuzz and property testing** join the release checks (decided later the same day)._
 6. _**PHP tests first:** PHPUnit and the Symfony UX test helpers are set up before the rest of this plan, from the
@@ -24,9 +24,9 @@ measured what a switch costs._
 
 | Tier | What | When | Gates |
 |---|---|---|---|
-| 1. Behavior | State × transition specs: every state a component can be in, and every way it moves between them | Every pull request and push to `main` (today's CI) | The pull request; a release |
+| 1. Behavior | State × transition specs: every state a component can be in, and every way it moves between them | Every pull request and push (today's CI) | The pull request; a release |
 | 2. Basic performance | Deterministic counts, as assertions inside tier 1 specs | With tier 1 | The pull request; a release |
-| 3. Release checks | Timings against the baseline, harsh conditions, long sessions, wide matrices | Before a release, by hand, daily when `main` changed | A release |
+| 3. Release checks | Timings against the baseline, harsh conditions, long sessions, wide matrices | On the release pull request (`dev` to `main`), by hand, daily when `dev` changed | A release |
 
 ### 1. Behavior
 
@@ -77,7 +77,7 @@ taken in the browser after the response, so FrankenPHP (CI) and `php -S` (local)
 
 ## The baseline
 
-- Recorded on `main` in CI's setup (the demo's FrankenPHP container, the browser in the pinned
+- Recorded on `dev` in CI's setup (the demo's FrankenPHP container, the browser in the pinned
   `mcr.microsoft.com/playwright` image), by the release checks workflow run by hand with a `record` input.
 - Stored as `tests/perf/baseline.json`: per scenario and metric, the median, the spread of the runs, the commit and
   the date. Updated only by a pull request that shows the old and new numbers.
@@ -89,17 +89,17 @@ taken in the browser after the response, so FrankenPHP (CI) and `php -S` (local)
 - **`ci.yml` (tiers 1 and 2):** unchanged in shape. Tier 3 specs are tagged `@release` and excluded with
   `--grep-invert @release`.
 - **`release-checks.yml` (tier 3), new:**
-  - `schedule` once a day: first compares `main`'s head with the commit of its last successful scheduled run (GitHub
-    API) and stops in seconds when nothing was merged;
+  - `pull_request` targeting `main`: the release pull request from `dev`. `main`'s ruleset requires this check, so
+    merging the release pull request needs it green;
+  - `schedule` once a day, on `dev`: first compares `dev`'s head with the commit of its last successful scheduled
+    run (GitHub API) and stops in seconds when nothing was merged;
   - `workflow_dispatch`, with a `record` input to write a new baseline as an artifact;
-  - `workflow_call`, for `release.yml`.
   - Runs `npx playwright test --grep @release` in the same setup as CI.
   - A failed daily run opens one issue (label `release-checks`), or comments on the open one, instead of failing
     anyone's pull request after the fact. A green run closes it.
-- **`release.yml`:** before tagging, it calls `release-checks.yml` on the commit it is about to tag. A red result
-  stops the release; tiers 1 and 2 already passed, since `release.yml` runs only after CI succeeded on `main`. A
-  failure blocks the release until it is fixed, or until the user waives that check for that release in writing (the
-  CHANGELOG entry says which and why).
+- **`release.yml`:** unchanged: it tags and publishes once the release pull request is merged and CI passed on
+  `main`. The release checks already passed on that pull request. A failure blocks the merge until it is fixed, or
+  until the user waives that check for that release in writing (the CHANGELOG entry says which and why).
 
 Specs live with the others in `tests/e2e/`; tier 3 is a tag, not a separate tree.
 
@@ -118,7 +118,7 @@ One pull request each, in order:
 5. **Tier 2:** the count checks and the byte budgets, in the existing specs.
 6. **Tier 1 gaps:** the missing state × transition specs from the inventory, a recipe group per pull request.
 7. **Tier 3 and the release gate:** harsh conditions, long sessions, wide matrices, fuzz and property tests, the daily
-   schedule and its issue, `release.yml` calling it.
+   schedule and its issue, the check on the release pull request.
 8. **Gates on:** the tolerances the user picked after reviewing the reports.
 
 ## Open questions

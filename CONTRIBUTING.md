@@ -230,6 +230,9 @@ side effect. A visual change is a commit of its own:
 
 Examples: `feat(stat-card): show the trend as text`, `fix(layouts): every layout shows flash messages`.
 
+**Branches:** `main` holds released code only. Work branches start from `dev` and their pull requests target `dev`;
+a release is a pull request from `dev` to `main` (*Releases* below).
+
 **Pull request:** one topic, with a title in the commit subject format. The description follows
 [the template](.github/pull_request_template.md):
 
@@ -238,8 +241,8 @@ Examples: `feat(stat-card): show the trend as text`, `fix(layouts): every layout
 - *Checks* says whether CI passed on the last commit and what you verified by hand.
 
 Use plain words throughout, and no AI attribution lines (`Co-Authored-By`, "Generated with" footers). Pull requests
-are merged with a merge commit (no squash, no rebase), so every commit of the branch lands on `main`: each one
-follows the commit standard above.
+are merged with a merge commit (no squash, no rebase), so every commit of the branch lands on `dev`, then on
+`main`: each one follows the commit standard above.
 
 **Changelog:** a user-visible change (a recipe added, changed or removed, a fix users notice) gets an entry under
 `## [Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md), in the pull request that makes it: one line naming the recipe,
@@ -248,12 +251,21 @@ under `### Added`, `### Changed`, `### Fixed` or `### Removed`, as Keep a Change
 ## Releases
 
 Versions are git tags `X.Y.Z` ([Semantic Versioning](https://semver.org/)) without a `v`: the toolkit cannot
-install a `v` tag (see [`docs/NOTES.md`](docs/NOTES.md)). A release is a pull request that moves the entries under
-`## [Unreleased]` in `CHANGELOG.md` to a new `## [X.Y.Z] - YYYY-MM-DD` section and updates the compare links at
-the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor version,
-*Removed* or anything that breaks an installed recipe a major version (a minor one while the version is `0.x`).
+install a `v` tag (see [`docs/NOTES.md`](docs/NOTES.md)). The version is declared in one place: a
+`## [X.Y.Z] - YYYY-MM-DD` heading in `CHANGELOG.md`.
 
-Once the pull request is merged and CI has passed on `main`, `.github/workflows/release.yml` does the rest: it
+A release is a pull request from `dev` to `main`, opened as a draft when the maintainer decides to release. Its own
+commit moves the entries under `## [Unreleased]` to the new `## [X.Y.Z] - YYYY-MM-DD` section and updates the compare
+links at the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor
+version, *Removed* or anything that breaks an installed recipe a major version (a minor one while the version is
+`0.x`). CI runs on this pull request like on any other. The release checks (`docs/PLAN-test-tiers.md`: timings,
+harsh conditions, long sessions, fuzzing) will run on it too, and `main`'s ruleset will require them, once their
+workflow lands (step 7 of that plan); until then, only CI gates a release. Merging it is the release.
+
+A fix that cannot wait for the next release goes to `main` in its own pull request with its version heading (a
+patch), and `main` is then merged into `dev`.
+
+Once the release pull request is merged and CI has passed on `main`, `.github/workflows/release.yml` does the rest: it
 checks that the merge commit installs from GitHub in a fresh Symfony Docker project
 (`tools/tests/docker-install.sh`), tags it `X.Y.Z`, and publishes a GitHub Release with the section as its notes. If
 it fails, fix the cause and re-run it: it skips what is already done. If GitHub refuses the workflow's tag push
