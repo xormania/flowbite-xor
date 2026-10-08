@@ -14,6 +14,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\UX\Dropzone\Form\DropzoneType;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -66,6 +67,22 @@ final class DemoType extends AbstractType
                 'help' => 'At most 200 characters.',
                 'attr' => ['rows' => 3],
                 'constraints' => [new Assert\Length(max: 200)],
+            ])
+            // the dropzone recipe's widget, for every DropzoneType
+            ->add('photo', DropzoneType::class, [
+                'required' => false,
+                'help' => 'PNG or JPG, up to 1 MB.',
+                'attr' => ['accept' => 'image/png,image/jpeg', 'placeholder' => 'Drop a photo or browse'],
+                'constraints' => [new Assert\Image(maxSize: '1M', mimeTypes: ['image/png', 'image/jpeg'])],
+            ])
+            ->add('attachments', DropzoneType::class, [
+                'required' => false,
+                'multiple' => true,
+                'help' => 'Up to 3 files: PDF, TXT or PNG, 1 MB each.',
+                'constraints' => [
+                    new Assert\Count(max: 3),
+                    new Assert\All([new Assert\File(maxSize: '1M', extensions: ['pdf', 'txt', 'png'])]),
+                ],
             ])
             ->add('country', ChoiceType::class, [
                 'placeholder' => 'Choose a country',

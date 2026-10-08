@@ -3,8 +3,8 @@
 # the dashboard through the layouts, `/register` renders the signup form through the form theme (no
 # `twig.form_themes` setting: the block applies the theme itself), `/orders` renders a DataTable whose PHP classes
 # ux:install copied into src/, `/live-orders` a DataTableLive that answers a Live action, `/pick` autocomplete fields and
-# the Autocomplete component, `/dates` a DateType opted into the date picker, `/charts`
-# two charts, and all answer 200.
+# the Autocomplete component, `/dates` a DateType opted into the date picker, `/charts` two charts, `/upload`
+# DropzoneType fields that take a posted file, and all answer 200.
 #
 #   tools/tests/check-fresh-app.sh <base URL> [curl option…]
 set -euo pipefail
@@ -108,3 +108,29 @@ done
 grep -oE 'data-symfony--ux-chartjs--chart-view-value="[^"]*' <<< "$page" | grep -q 'Mon' \
     || { echo "FAIL: the ChartBuilderInterface chart lost its labels" >&2; exit 1; }
 echo "ok: the chart recipe renders charts from arrays and from ChartBuilderInterface (HTTP 200)"
+
+# the dropzone recipe through the form theme, for every DropzoneType: the kit's markup (never the package's theme), the
+# help wired to the file input, several files under one name; Flex registered the bundle without a recipe, and a
+# posted file reaches the form
+page="$(fetch /upload "$@" -c "$work/cookies")"
+grep -oE '<form[^>]*>' <<< "$page" | grep -q 'enctype="multipart/form-data"' \
+    || { echo "FAIL: the upload form is not multipart" >&2; exit 1; }
+grep -q 'data-controller="symfony--ux-dropzone--dropzone dropzone-assist"' <<< "$page" \
+    || { echo "FAIL: the upload page lacks the Dropzone component" >&2; exit 1; }
+grep -oE '<input[^>]*>' <<< "$page" | grep 'id="form_photo"' | grep 'type="file"' | grep -q 'aria-describedby="form_photo_help"' \
+    || { echo "FAIL: the photo file input lacks its help" >&2; exit 1; }
+grep -oE '<input[^>]*>' <<< "$page" | grep 'name="form\[files\]\[\]"' | grep -q ' multiple' \
+    || { echo "FAIL: the several-files input lacks its name or multiple" >&2; exit 1; }
+for unexpected in 'dropzone-container' 'style="'; do
+    if grep -qF -- "$unexpected" <<< "$page"; then echo "FAIL: the upload page has $unexpected" >&2; exit 1; fi
+done
+# a 1×1 PNG, posted as the browser would: with the form's CSRF token when it has one, its cookies and its origin
+printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' | base64 -d > "$work/tiny.png"
+token="$(grep -oE '<input[^>]*name="form\[_token\]"[^>]*>' <<< "$page" | grep -oE 'value="[^"]*"' | sed 's/^value="//; s/"$//' || true)"
+location="$(curl -s "$@" -o /dev/null -w '%{http_code} %{redirect_url}' -b "$work/cookies" -H "Origin: $base" \
+    -F "form[photo]=@$work/tiny.png;type=image/png" ${token:+-F "form[_token]=$token"} "$base/upload")"
+case "$location" in
+    "303 "*"uploaded=tiny.png") ;;
+    *) echo "FAIL: posting a PNG to /upload answered $location" >&2; exit 1 ;;
+esac
+echo "ok: a DropzoneType renders through the dropzone recipe and takes a posted file (HTTP 200, 303)"

@@ -42,7 +42,7 @@ git -C "$root" archive HEAD | tar -x -C "$kit"
 # the installer prints the Composer packages a recipe needs: run each printed command through a shell, as a user pasting
 # it would (a constraint such as `^7.4|^8.0` would pipe the line into another command), before the next recipe (a
 # recipe's PHP in src/ can need its packages to boot the app, e.g. data-table-live's Live Component)
-for recipe in dashboard-home signup data-table data-table-live autocomplete date-picker chart; do
+for recipe in dashboard-home signup data-table data-table-live autocomplete date-picker chart dropzone; do
     $php bin/console ux:install "$recipe" --kit=flowbite-xor-local --no-interaction > "install-$recipe.log" 2>&1 \
         || { cat "install-$recipe.log"; echo "FAIL: ux:install $recipe"; exit 1; }
     grep -h '^ *\$ composer require ' "install-$recipe.log" | sed 's/^ *\$ composer //' | while IFS= read -r arguments; do

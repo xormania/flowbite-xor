@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}dropzone-form — Lab{% endblock %}
+
+{% block body %}
+    {{ include('lab/_header.html.twig', {name: 'dropzone-form'}) }}
+    {% if submitted %}<p class="mb-4 text-sm text-heading" data-testid="submitted">{{ submitted }}</p>{% endif %}
+    <div class="grid max-w-3xl gap-8 md:grid-cols-[2fr_1fr]">
+        {{ form_start(form, {attr: {novalidate: true}}) }}
+            {{ form_widget(form) }}
+        {{ form_end(form) }}
+        <twig:Lab:PermanentCounter />
+    </div>
+{% endblock %}

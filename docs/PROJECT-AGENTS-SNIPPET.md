@@ -68,6 +68,9 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   Dropzone's own stylesheet off). `<twig:Dropzone id="…" name="…" />` (`multiple` and `name="…[]"` for several) in a
   `method="post" enctype="multipart/form-data"` form; without the `enctype`, Turbo sends no file. Validate on the
   server (`File`/`Image`, `All` + `Count` for several), answer 303/422, and say that files are never kept after a 422.
+  In a Symfony form, a `DropzoneType` (`'multiple' => true` for several) renders through the form theme, and a
+  field says when its files were not kept. In a Live Component, never a `DropzoneType`: `<twig:Dropzone>` inside
+  `data-live-ignore`, a wrapper id and an input id that change after each upload, and a `files(name)|action` button.
   Image previews need `img-src data:` in a Content Security Policy.
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the

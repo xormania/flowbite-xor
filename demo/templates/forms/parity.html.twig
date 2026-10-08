@@ -46,6 +46,13 @@
             </twig:FormField>
         </div>
 
+        <div data-pair="photo" data-side="theme">{{ form_row(form.photo) }}</div>
+        <div data-pair="photo" data-side="components">
+            <twig:FormField for="c_photo" label="Photo" help="PNG or JPG, up to 1 MB." class="mb-6">
+                <twig:Dropzone id="c_photo" name="c_photo" accept="image/png,image/jpeg" placeholder="Drop a photo or browse" aria-describedby="c_photo_help" />
+            </twig:FormField>
+        </div>
+
         <div data-pair="startsOn" data-side="theme">{{ form_row(form.startsOn) }}</div>
         <div data-pair="startsOn" data-side="components">
             <twig:FormField for="c_startsOn" label="Starts on" help="The first day of your subscription." class="mb-6">

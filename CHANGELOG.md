@@ -34,6 +34,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   its notes on toolkit and platform behavior moved to `docs/NOTES.md`. `NOTICE` keeps the credit.
 - `form-theme`: a single-text `DateType` opted in with `'block_prefix' => 'flowbite_date_picker'` renders as the
   `date-picker` recipe's picker.
+- `form-theme`: a `DropzoneType` renders as the `dropzone` recipe's `Dropzone`, never as UX Dropzone's own theme; a
+  field whose valid files a 422 sent back says they were not kept.
 - `form-theme`: an autocomplete field's hidden `<select>` keeps its label's name (`aria-labelledby`) after Tom Select
   moves the label to its own input.
 

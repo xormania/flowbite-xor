@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
 
-const pairs = ['name', 'email', 'country', 'bio', 'startsOn', 'plan', 'terms', 'save'];
+const pairs = ['name', 'email', 'country', 'bio', 'photo', 'startsOn', 'plan', 'terms', 'save'];
 
 /**
  * Largest per-channel difference between two element screenshots of the same size: rounded corners
@@ -117,4 +117,88 @@ test('the date picker opt-in submits the pick; a date the server refuses comes b
     await expect(field).toHaveValue('2025-06-01');
     await expect(field).toHaveAccessibleDescription(/^The first day of your subscription\. This value should be greater than or equal to/);
     await expect(page.locator('input[name="demo[startsOn]"]')).toHaveValue('');
+});
+
+// a 1×1 PNG
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+const png = (name: string, size = PNG.length) => ({ name, mimeType: 'image/png', buffer: Buffer.concat([PNG, Buffer.alloc(Math.max(0, size - PNG.length))]) });
+const text = (name: string) => ({ name, mimeType: 'text/plain', buffer: Buffer.from(`${name}\n`) });
+
+/** Fills every required field of /forms with a valid value. */
+async function fillValid(page: Page) {
+    await page.getByRole('textbox', { name: 'Name' }).fill('Ada Lovelace');
+    await page.getByRole('textbox', { name: 'Email' }).fill('ada@example.com');
+    await page.getByLabel('Password').fill('correct horse battery');
+    await page.getByRole('combobox', { name: 'Country' }).selectOption('fr');
+    await page.getByRole('radio', { name: 'Pro' }).check();
+    await page.getByRole('checkbox', { name: 'Engineering' }).check();
+    await page.getByRole('checkbox', { name: 'I accept the terms' }).check();
+}
+
+test('a DropzoneType renders through the dropzone recipe, labelled and described, without the package theme', async ({ page }) => {
+    await page.goto('/forms');
+    const photo = page.getByLabel('Photo', { exact: true });
+    await expect(photo).toHaveAttribute('type', 'file');
+    await expect(photo).toHaveAttribute('name', 'demo[photo]');
+    await expect(photo).toHaveAccessibleDescription('PNG or JPG, up to 1 MB.');
+    await expect(page.locator('[data-controller~="dropzone-assist"]:has(#demo_photo)')).toContainText('Drop a photo or browse');
+    const attachments = page.locator('#demo_attachments');
+    await expect(attachments).toHaveAttribute('name', 'demo[attachments][]');
+    await expect(attachments).toHaveAttribute('multiple', '');
+    await expect(page.locator('form[name="demo"]')).toHaveAttribute('enctype', 'multipart/form-data');
+    await expect(page.locator('.dropzone-container')).toHaveCount(0);
+});
+
+test('a file the server refuses comes back with its error on the file input', async ({ page, allowHttpError }) => {
+    allowHttpError(/\/forms$/, 422);
+    await page.goto('/forms');
+    await fillValid(page);
+    await page.locator('#demo_photo').setInputFiles(text('x.png'));
+    await page.getByRole('button', { name: 'Create account' }).click();
+    const photo = page.locator('#demo_photo');
+    await expect(photo).toHaveAttribute('aria-invalid', 'true');
+    await expect(photo).toHaveAccessibleDescription(/^PNG or JPG, up to 1 MB\. .*(valid image|mime type)/);
+
+    await page.locator('#demo_photo').setInputFiles(png('big.png', 1_500_000));
+    await page.getByLabel('Password').fill('correct horse battery');
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await expect(page.locator('#demo_photo')).toHaveAccessibleDescription(/too large/);
+});
+
+test('valid files sent back by other errors are named in the box: choose them again', async ({ page, allowHttpError }) => {
+    allowHttpError(/\/forms$/, 422);
+    await page.goto('/forms');
+    await page.locator('#demo_photo').setInputFiles(png('tiny.png'));
+    await page.locator('#demo_attachments').setInputFiles([text('a.txt'), text('b.txt')]);
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('aria-invalid', 'true');
+    const photo = page.locator('#demo_photo');
+    await expect(photo).not.toHaveAttribute('aria-invalid');
+    await expect(photo).toHaveAccessibleDescription('PNG or JPG, up to 1 MB. tiny.png was not kept: choose it again.');
+    await expect(page.locator('#demo_attachments')).toHaveAccessibleDescription(/2 files were not kept: choose them again\.$/);
+    expect(await photo.evaluate((input: HTMLInputElement) => input.files?.length)).toBe(0);
+});
+
+test('a valid submit with a photo and two attachments redirects with the success message', async ({ page }) => {
+    await page.goto('/forms');
+    await fillValid(page);
+    await page.locator('#demo_photo').setInputFiles(png('tiny.png'));
+    await page.locator('#demo_attachments').setInputFiles([text('a.txt'), text('b.txt')]);
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await expect(page.getByText('Account created.')).toBeVisible();
+});
+
+// A file over upload_max_filesize (2M) in a body under post_max_size (8M): PHP keeps the other fields and reports the
+// file's upload error, which the field shows. A body over post_max_size is not tested: FrankenPHP's worker (CI's demo)
+// fails the request with a fatal error before Symfony runs (the dropzone README's Limits).
+test('a file over upload_max_filesize gives its field the size error', async ({ page, allowHttpError }) => {
+    allowHttpError(/\/forms$/, 422);
+    await page.goto('/forms');
+    await fillValid(page);
+    await page.locator('#demo_attachments').setInputFiles([text('a.txt'), { name: 'big.txt', mimeType: 'text/plain', buffer: Buffer.alloc(3 * 1024 * 1024, 'a') }]);
+    await page.getByRole('button', { name: 'Create account' }).click();
+    const attachments = page.locator('#demo_attachments');
+    await expect(attachments).toHaveAttribute('aria-invalid', 'true');
+    await expect(attachments).toHaveAccessibleDescription(/too large/);
+    await expect(page.getByText(/CSRF token/i)).toHaveCount(0);
 });
