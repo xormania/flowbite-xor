@@ -8,4 +8,5 @@
 @import "../../../kit.css";
 @import "../../../autocomplete/assets/styles/flowbite-xor-autocomplete.css";
 @import "../../../dropzone/assets/styles/flowbite-xor-dropzone.css";
+@import "../../../editor/assets/styles/flowbite-xor-editor.css";
 @source "../../..";

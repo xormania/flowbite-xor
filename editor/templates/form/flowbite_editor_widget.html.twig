@@ -1,0 +1,29 @@
+{#-
+    The Editor of an `EditorType`, included by the form-theme recipe's `flowbite_editor_widget` block with the field's
+    variables. The editable element takes the field's id, and its label's id names it; the hidden textarea takes the
+    field's name. `attr.placeholder` is the text shown while empty; `attr.class` and the other attributes go to the
+    editor's box, `aria-*` and `data-model` where the Editor places them.
+-#}
+{%- set _attrs = {} -%}
+{%- for _name, _value in attr|filter((v, k) => k not in ['placeholder', 'name', 'id', 'value', 'rows']) -%}
+    {%- if 'title' == _name and translation_domain is not same as(false) and _value is not null -%}
+        {%- set _value = _value|trans(attr_translation_parameters, translation_domain) -%}
+    {%- endif -%}
+    {%- set _attrs = _attrs|merge({(_name): _value}) -%}
+{%- endfor -%}
+{%- if required|default(false) -%}{%- set _attrs = _attrs|merge({'aria-required': 'true'}) -%}{%- endif -%}
+{%- set _attrs = _attrs|filter((v) => v is not null and v is not same as(false)) -%}
+{%- set _placeholder = placeholder ?? null -%}
+{%- if _placeholder is not null and translation_domain is not same as(false) -%}
+    {%- set _placeholder = _placeholder|trans(attr_translation_parameters, translation_domain) -%}
+{%- endif -%}
+<twig:Editor
+    :id="id"
+    :name="full_name"
+    :value="value ?? ''"
+    :labelledBy="label is not same as(false) ? (label_attr.id ?? null) : null"
+    :placeholder="_placeholder"
+    :maxChars="max_chars"
+    :disabled="disabled"
+    {{ ..._attrs }}
+/>

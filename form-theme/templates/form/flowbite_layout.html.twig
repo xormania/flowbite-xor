@@ -130,6 +130,11 @@
     {%- endif -%}
 {%- endblock dropzone_widget -%}
 
+{##- An `EditorType` (the editor recipe's PHP): the editor recipe's widget (a formatting toolbar over an editable area, the hidden textarea with the field's name), rendered from its own template so a project without that recipe never needs it. -#}
+{%- block flowbite_editor_widget -%}
+    {{- include('form/flowbite_editor_widget.html.twig') -}}
+{%- endblock flowbite_editor_widget -%}
+
 {##- A collapsed choice through the Select component. -#}
 {%- block choice_widget_collapsed -%}
     {%- if required and placeholder is none and not placeholder_in_choices and not multiple and (attr.size is not defined or attr.size <= 1) -%}

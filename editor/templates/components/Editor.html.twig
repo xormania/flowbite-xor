@@ -1,0 +1,111 @@
+{%- props
+    ## string The id of the editable element: a `FormField` label's `for` and the help and error ids (`<id>_help`, `<id>_error`) derive from it.
+    id,
+    ## string The name the HTML submits under (a hidden textarea).
+    name,
+    ## string The initial content, HTML; it is sanitized with the editor's policy before it is shown.
+    value = '',
+    ## string|null The editor's accessible name, when no label points at it (`labelledBy`).
+    label = null,
+    ## string|null The id of the element naming the editor, e.g. a `FormField` label given `labelAttr: {id: '<id>_label'}`.
+    labelledBy = null,
+    ## string|null A text shown while the editor is empty.
+    placeholder = null,
+    ## int The most characters of text the server accepts; a counter shows them.
+    maxChars = 20000,
+    ## string The counter's text: `%count%` and `%max%` are replaced.
+    counterText = '%count% / %max% characters',
+    ## string The toolbar's accessible name.
+    toolbarLabel = 'Formatting',
+    ## boolean Whether the content is read-only.
+    readonly = false,
+    ## boolean Whether the editor is disabled (read-only, and the textarea does not submit).
+    disabled = false,
+    ## string|null The Live model the textarea binds to, written as for `data-model` (`on(change)|body`): the content reaches the component when the editor loses the focus.
+    model = null,
+    ## string|null Bumped by a Live Component to replace the content with the textarea's value (an explicit reset or another record).
+    reset = null
+-%}
+{#- `aria-describedby`, `aria-invalid` and `aria-required` go to the editable element; everything else to the root. The textarea holds the sanitized HTML escaped: its text is the HTML -#}
+{%- set _describedby = attributes.all['aria-describedby'] ?? null -%}
+{%- set _invalid = attributes.all['aria-invalid'] ?? null -%}
+{%- set _required = attributes.all['aria-required'] ?? (attributes.all.required ?? false ? 'true' : null) -%}
+{%- set _editable = not readonly and not disabled -%}
+{%- set _content_class = 'relative min-h-40 max-h-[32rem] overflow-y-auto px-4 py-3 text-sm text-heading focus:outline-none [&_a]:font-medium [&_a]:text-fg-brand [&_a]:underline [&_blockquote]:my-3 [&_blockquote]:border-s-4 [&_blockquote]:border-default-medium [&_blockquote]:ps-4 [&_blockquote]:text-body [&_code]:rounded-sm [&_code]:bg-neutral-tertiary [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.875em] [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_hr]:my-4 [&_hr]:border-default-medium [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:ps-6 [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:ps-6 [&>:first-child]:mt-0 [&>:last-child]:mb-0' -%}
+{%- set _button = 'inline-flex h-8 min-w-8 items-center justify-center rounded-base px-1.5 text-sm font-semibold text-body hover:bg-neutral-tertiary-medium hover:text-heading focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-medium disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-brand-softer aria-pressed:text-fg-brand-strong' -%}
+{%- set _separator = '<span class="mx-1 h-5 w-px bg-default-medium" aria-hidden="true"></span>' -%}
+<div
+    {{ attributes.without('aria-describedby', 'aria-invalid', 'aria-required', 'required').defaults({
+        class: ('w-full overflow-hidden rounded-base border border-default-medium bg-neutral-secondary-medium shadow-xs has-[[aria-invalid=true]]:border-danger-subtle has-[.ProseMirror-focused]:border-brand has-[.ProseMirror-focused]:ring-1 has-[.ProseMirror-focused]:ring-brand' ~ (disabled ? ' cursor-not-allowed opacity-60' : ''))|tailwind_classes,
+        'data-controller': 'editor',
+        'data-action': 'click@document->editor#focusFromLabel turbo:before-cache@document->editor#cache',
+    }) }}
+    data-editor-placeholder-value="{{ placeholder }}"
+    data-editor-max-chars-value="{{ maxChars }}"
+    data-editor-editable-value="{{ _editable ? 'true' : 'false' }}"
+    data-editor-reset-value="{{ reset }}"
+    data-editor-class-value="{{ _content_class }}"
+>
+    <div data-live-ignore>
+        {%- if _editable %}
+        <div
+            role="toolbar"
+            aria-label="{{ toolbarLabel }}"
+            aria-controls="{{ id }}"
+            class="flex flex-wrap items-center gap-0.5 border-b border-default-medium bg-neutral-primary-soft px-2 py-1.5"
+            data-editor-target="toolbar"
+            data-action="keydown->editor#navigate"
+        >
+            <button type="button" data-editor-target="button" tabindex="0" class="{{ _button }}" data-action="editor#run" data-editor-command-param="bold" aria-pressed="false" aria-label="Bold"><twig:ux:icon name="flowbite:letter-bold-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="italic" aria-pressed="false" aria-label="Italic"><twig:ux:icon name="flowbite:letter-italic-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="strike" aria-pressed="false" aria-label="Strikethrough"><span class="line-through" aria-hidden="true">S</span></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="code" aria-pressed="false" aria-label="Code"><twig:ux:icon name="flowbite:code-outline" class="size-5" aria-hidden="true" /></button>
+            {{ _separator|raw }}
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="heading2" aria-pressed="false" aria-label="Heading 2"><span aria-hidden="true">H2</span></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="heading3" aria-pressed="false" aria-label="Heading 3"><span aria-hidden="true">H3</span></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="blockquote" aria-pressed="false" aria-label="Quote"><twig:ux:icon name="flowbite:quote-outline" class="size-5" aria-hidden="true" /></button>
+            {{ _separator|raw }}
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="bulletList" aria-pressed="false" aria-label="Bulleted list"><twig:ux:icon name="flowbite:list-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="orderedList" aria-pressed="false" aria-label="Numbered list"><twig:ux:icon name="flowbite:ordered-list-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="outdent" aria-label="Decrease indent"><twig:ux:icon name="flowbite:outdent-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="indent" aria-label="Increase indent"><twig:ux:icon name="flowbite:indent-outline" class="size-5" aria-hidden="true" /></button>
+            {{ _separator|raw }}
+            <twig:Popover id="{{ id }}_link" placement="bottom-start" class="inline-flex" data-action="popover:focus->editor#prepareLink">
+                <twig:Popover:Trigger>
+                    <button data-editor-target="button" tabindex="-1"{% for _name, _value in popover_trigger_attrs %} {{ _name }}="{{ _value }}"{% endfor %} class="{{ _button }}" aria-label="Link"><twig:ux:icon name="flowbite:link-outline" class="size-5" aria-hidden="true" /></button>
+                </twig:Popover:Trigger>
+                <twig:Popover:Content class="w-80" label="Link">
+                    <div class="grid gap-3">
+                        <twig:Label for="{{ id }}_link_url">Link address</twig:Label>
+                        <twig:Input type="url" id="{{ id }}_link_url" placeholder="https://example.com" autofocus data-editor-target="linkInput" data-action="keydown.enter->editor#applyLink" />
+                        <div class="flex justify-end gap-2">
+                            <twig:Button type="button" variant="outline" size="sm" data-action="editor#removeLink">Remove link</twig:Button>
+                            <twig:Button type="button" size="sm" data-action="editor#applyLink">Apply</twig:Button>
+                        </div>
+                    </div>
+                </twig:Popover:Content>
+            </twig:Popover>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="horizontalRule" aria-label="Horizontal line"><twig:ux:icon name="flowbite:minus-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="clear" aria-label="Clear formatting"><twig:ux:icon name="flowbite:text-slash-outline" class="size-5" aria-hidden="true" /></button>
+            {{ _separator|raw }}
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="undo" aria-label="Undo"><twig:ux:icon name="flowbite:undo-outline" class="size-5" aria-hidden="true" /></button>
+            <button type="button" data-editor-target="button" tabindex="-1" class="{{ _button }}" data-action="editor#run" data-editor-command-param="redo" aria-label="Redo"><twig:ux:icon name="flowbite:redo-outline" class="size-5" aria-hidden="true" /></button>
+        </div>
+        {%- endif %}
+        {#- the content as the server renders it; the controller replaces it with the editor -#}
+        <div
+            id="{{ id }}"
+            role="textbox"
+            aria-multiline="true"
+            {%- if _editable %} aria-readonly="false"{% else %} aria-readonly="true"{% endif %}
+            {%- if labelledBy %} aria-labelledby="{{ labelledBy }}"{% elseif label %} aria-label="{{ label }}"{% endif %}
+            {%- if _describedby %} aria-describedby="{{ _describedby }}"{% endif %}
+            {%- if _invalid %} aria-invalid="{{ _invalid }}"{% endif %}
+            {%- if _required %} aria-required="true"{% endif %}
+            class="{{ _content_class }}"
+            data-editor-target="preview"
+        >{{ value|flowbite_editor_html }}</div>
+        <p class="border-t border-default-medium px-4 py-1.5 text-end text-xs text-body data-over:font-medium data-over:text-fg-danger-strong" data-editor-target="counter" data-template="{{ counterText }}"></p>
+    </div>
+    <textarea name="{{ name }}" hidden data-editor-target="value"{% if model %} data-model="{{ model }}"{% endif %}{% if disabled %} disabled{% endif %}>{{ value|flowbite_editor_html|e }}</textarea>
+</div>
