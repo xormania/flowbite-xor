@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Form\ForgotPasswordType;
 use App\Form\LoginType;
+use App\Form\NotificationsType;
 use App\Form\ProfileType;
 use App\Form\RegistrationType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -89,6 +90,26 @@ final class DemoAppController extends AbstractController
         }
 
         return $this->render('demo_app/settings_profile.html.twig', ['form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+
+    #[Route('/settings/notifications', name: 'app_demo_settings_notifications')]
+    public function settingsNotifications(Request $request): Response
+    {
+        $form = $this->createForm(NotificationsType::class, ['orders' => true, 'mentions' => true, 'newsletter' => false]);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->addFlash('success', 'Preferences saved.');
+
+            return $this->redirectToRoute('app_demo_settings_notifications', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('demo_app/settings_notifications.html.twig', ['form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+
+    #[Route('/settings/billing', name: 'app_demo_settings_billing')]
+    public function settingsBilling(): Response
+    {
+        return $this->render('demo_app/settings_billing.html.twig');
     }
 
     #[Route('/blank', name: 'app_demo_blank')]

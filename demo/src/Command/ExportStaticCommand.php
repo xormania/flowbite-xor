@@ -111,7 +111,7 @@ final class ExportStaticCommand
                 }
             }
         }
-        foreach (['', '/login', '/signup', '/forgot-password', '/settings/profile', '/blank'] as $page) {
+        foreach (['', '/login', '/signup', '/forgot-password', '/settings/profile', '/settings/notifications', '/settings/billing', '/blank'] as $page) {
             yield '/demo'.$page => ltrim('demo'.$page.'/index.html', '/');
         }
     }

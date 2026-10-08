@@ -6,7 +6,7 @@
         "templates/": "templates/"
     },
     "dependencies": {
-        "recipe": ["theme-toggle", "toast", "sidebar", "navbar", "page-header"],
+        "recipe": ["theme-toggle", "toast", "sidebar", "navbar", "page-header", "section-nav"],
         "composer": [
             "symfony/asset-mapper",
             "symfony/ux-turbo:^3.5"

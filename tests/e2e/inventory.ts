@@ -28,6 +28,8 @@ export const demoPages = {
     signup: '/demo/signup',
     'forgot-password': '/demo/forgot-password',
     'settings-profile': '/demo/settings/profile',
+    'settings-notifications': '/demo/settings/notifications',
+    'settings-billing': '/demo/settings/billing',
     'not-found': '/demo/not-found',
     blank: '/demo/blank',
 };
