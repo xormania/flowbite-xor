@@ -87,6 +87,43 @@ test('on a desktop the app layout hides the menu button, and its pages use no id
     }
 });
 
+test('on a desktop the navbar menu marks the current page, opens its submenus and visits their links', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/demo/settings/profile');
+    const menu = page.getByRole('navigation', { name: 'Site' });
+    const account = menu.getByRole('button', { name: 'Account' });
+    await expect(account).toHaveAttribute('aria-expanded', 'false');
+    await expect(account).toHaveCSS('font-weight', '600'); // it holds the current page
+    await account.click();
+    await expect(account).toHaveAttribute('aria-expanded', 'true');
+    await expect(menu.getByRole('link', { name: 'Profile' })).toHaveAttribute('aria-current', 'page');
+    await menu.getByRole('button', { name: 'Sign-in pages' }).click();
+    await menu.getByRole('link', { name: 'Sign up' }).click();
+    await expect(page.getByRole('heading', { name: 'Create an account' })).toBeVisible();
+
+    await page.goto('/demo');
+    await menu.getByRole('button', { name: 'Showcase' }).click();
+    await menu.getByRole('button', { name: 'Lab' }).click();
+    await menu.getByRole('link', { name: 'Navbar menus' }).click();
+    await expect(page).toHaveURL(/\/lab\/nav-menu$/);
+});
+
+test('on a phone the drawer holds the navbar menu after the sidebar navigation', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/demo/settings/profile');
+    await expect(page.getByRole('navigation', { name: 'Site' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    const drawer = page.getByRole('dialog', { name: 'Main' });
+    const account = drawer.getByRole('button', { name: 'Account' });
+    await account.click();
+    await expect(account).toHaveAttribute('aria-expanded', 'true');
+    await expect(drawer.getByRole('link', { name: 'Profile' })).toHaveAttribute('aria-current', 'page');
+    await drawer.getByRole('button', { name: 'Showcase' }).click();
+    await expect(account).toHaveAttribute('aria-expanded', 'false');
+    await drawer.getByRole('link', { name: 'Recipes' }).click();
+    await expect(page).toHaveURL(/\/$/);
+});
+
 test('the not-found block answers 404 and passes axe', async ({ page, allowHttpError }) => {
     allowHttpError(/\/demo\/not-found$/, 404);
     const response = await page.goto('/demo/not-found');

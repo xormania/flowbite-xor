@@ -77,4 +77,37 @@ final class ComponentsTest extends KernelTestCase
 
         self::assertSame($expected, $rendered->crawler()->filter('a')->attr('href'));
     }
+
+    public function testANavMenuRenderedTwiceGivesEachSubmenuItsOwnId(): void
+    {
+        // the same items in two menus, as the navbar and the drawer render them; the page's own variables (`name`,
+        // `route`, `active`, `id`) must not reach the parts
+        $items = <<<'TWIG'
+            <twig:NavMenu:Link href="/">Home</twig:NavMenu:Link>
+            <twig:NavMenu:Submenu label="Our Products">
+                <twig:NavMenu:Link href="/products">All products</twig:NavMenu:Link>
+                <twig:NavMenu:Submenu label="Integrations">
+                    <twig:NavMenu:Link href="javascript:alert(1)">Slack</twig:NavMenu:Link>
+                </twig:NavMenu:Submenu>
+                <twig:NavMenu:Submenu label="More" name="tools">
+                    <twig:NavMenu:Link href="/tools" :active="true">Tools</twig:NavMenu:Link>
+                </twig:NavMenu:Submenu>
+            </twig:NavMenu:Submenu>
+            TWIG;
+        $html = self::getContainer()->get('twig')->createTemplate(
+            '<twig:NavMenu id="site">'.$items.'</twig:NavMenu><twig:NavMenu id="drawer" orientation="vertical">'.$items.'</twig:NavMenu>'
+        )->render(['name' => 'page', 'route' => 'app_page', 'active' => true, 'id' => 'outer']);
+        $rendered = new RenderedComponent($html);
+        $crawler = $rendered->crawler();
+
+        $ids = ['site-our-products', 'site-our-products-integrations', 'site-our-products-tools', 'drawer-our-products', 'drawer-our-products-integrations', 'drawer-our-products-tools'];
+        self::assertSame($ids, $crawler->filter('ul[id]')->extract(['id']));
+        self::assertSame($ids, $crawler->filter('button')->extract(['aria-controls']));
+        self::assertSame(['false'], array_values(array_unique($crawler->filter('button')->extract(['aria-expanded']))));
+        self::assertSame(['horizontal', 'vertical'], $crawler->filter('[data-controller="nav-menu"]')->extract(['data-nav-menu-orientation-value']));
+        // only the link given `active` is current; a rejected scheme renders `#`
+        self::assertSame(['Tools', 'Tools'], $crawler->filter('a[aria-current="page"]')->each(static fn ($link) => trim($link->text())));
+        self::assertSame(['#', '#'], $crawler->filterXPath('//a[normalize-space()="Slack"]')->extract(['href']));
+        $this->assertMatchesSnapshot($html, new Html5Driver());
+    }
 }
