@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\FlowbiteXor\Editor\EditorHtmlPolicy;
+use App\FlowbiteXor\MarkdownEditor\MarkdownRenderer;
 use App\Kit\PreviewForms;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -94,6 +95,7 @@ final class HostilePropsCommand
         private readonly Environment $twig,
         private readonly PreviewForms $forms,
         private readonly EditorHtmlPolicy $editorPolicy,
+        private readonly MarkdownRenderer $markdownRenderer,
     ) {
     }
 
@@ -105,6 +107,7 @@ final class HostilePropsCommand
             'urls' => $this->urls(),
             'calendar' => $this->calendar(),
             'editor' => $this->editor(),
+            'markdown' => $this->markdown(),
             'chart' => ['html' => $this->render(self::CHART, [
                 'id' => 'c" onmouseover="window.__xss=1',
                 'title' => '"><svg onload=window.__xss=1>',
@@ -149,6 +152,38 @@ final class HostilePropsCommand
                 return ['input' => $input, 'once' => $once, 'twice' => $this->editorPolicy->sanitize($once)];
             }, $inputs),
             'html' => $this->render('<twig:Editor id="hostile-editor" name="body" label="Body" :value="value" data-testid="editor" />', ['value' => $inputs[4].$inputs[3]]),
+        ];
+    }
+
+    /**
+     * The Markdown renderer on hostile and ordinary Markdown: each input and its HTML; and the MarkdownEditor given a
+     * hostile value.
+     *
+     * @return array{renderer: list<array{input: string, html: string}>, expansion: array{characters: int, kept: int, complete: bool}, html: string}
+     */
+    private function markdown(): array
+    {
+        $inputs = [
+            "**bold** _italic_ ~~strike~~ `code`  \nnext line",
+            "# H1\n\n### H3\n\n- one\n  - nested\n\n3. three\n\n> quote\n\n```js\ncode <b>x</b>\n```\n\n---",
+            '[https](https://example.com "Example") [mail](mailto:a@example.com) [relative](/pricing#faq) <https://example.org>',
+            '[js](javascript:alert(1)) [JS](JAVASCRIPT:alert(1)) [data](data:text/html,x) [vb](vbscript:x) <javascript:alert(1)> [tab](jav&#x09;ascript:x)',
+            '<script>x()</script> <img src=x onerror=x()> <p style="color:red" onclick="x()">raw</p> <iframe src="/"></iframe> <b onmouseover="x()">b</b> <svg onload=x()></svg>',
+            "![picture](https://example.com/a.png) ![ref][pic]\n\n[pic]: https://example.com/b.png",
+            str_repeat('> ', 60).'deep',
+            str_repeat('*a', 3000),
+            "   \n\n  ",
+        ];
+
+        return [
+            'renderer' => array_map(fn (string $input): array => ['input' => $input, 'html' => $this->markdownRenderer->toHtml($input)], $inputs),
+            // Markdown under the limit whose HTML is five times longer: rendered whole, never cut
+            'expansion' => (function (): array {
+                $html = $this->markdownRenderer->toHtml(str_repeat('&', 900_000));
+
+                return ['characters' => 900_000, 'kept' => substr_count($html, '&amp;'), 'complete' => str_ends_with($html, '</p>')];
+            })(),
+            'html' => $this->render('<twig:MarkdownEditor id="hostile-markdown" name="body" label="Body" :value="value" data-testid="markdown" />', ['value' => '</textarea><script>window.__xss=1</script><img src=x onerror="window.__xss=1">']),
         ];
     }
 

@@ -78,6 +78,10 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   goes through `EditorHtmlPolicy::sanitize()` before it is stored. Change the toolbar's formatting and the policy
   together. In a Live Component, `<twig:Editor model="on(change)|field">`, and bump its `reset` prop to replace the
   content from the server.
+- **Markdown: `ux:install markdown-editor`**, and run the printed `composer require` command. In a form,
+  `MarkdownType` (from `App\FlowbiteXor\MarkdownEditor`; `max_chars`, `max_bytes`): its data is the Markdown or
+  `null`. Print it with `|flowbite_markdown_html`, never `|raw` or another Markdown filter: the preview and the page
+  render the same. The editor is its own Live Component: keep it out of another Live Component's re-rendered markup.
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the
   position yourself, as the kit's `Sidebar` does.

@@ -135,6 +135,7 @@ Each recipe's README has its examples, props and usage.
 | [`autocomplete`](autocomplete/README.md) | Searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme: one choice, several, values typed by the user, options searched on the server. Works through the form theme (`'autocomplete' => true`) and as an `Autocomplete` component outside forms. |
 | [`dropzone`](dropzone/README.md) ✦ | File uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of the picked image, several files that add up across picks, keyboard focus kept after a pick or a removal; a `DropzoneType` renders as one through the form theme. |
 | [`editor`](editor/README.md) ✦ | A rich text editor (Tiptap) that stores restricted HTML: paragraphs, bold, italic, strike, code, headings, lists, quotes, links; a keyboard-friendly toolbar, a link dialog, a counter. `EditorType` sanitizes every submit (symfony/html-sanitizer), and `flowbite_editor_html` prints stored HTML. |
+| [`markdown-editor`](markdown-editor/README.md) ✦ | A Markdown field: a native textarea with a small toolbar, and a Preview tab rendered on the server (a Live Component) exactly as the stored Markdown will print; raw HTML, images and unsafe links never reach the page. `MarkdownType` limits the source, and `flowbite_markdown_html` prints it. |
 
 ### Layouts
 
@@ -200,6 +201,7 @@ How the recipes behave with Turbo and Live Components, and what your own pages a
 - **Editors come back with their content.** Before Turbo caches a page, an `editor` turns back into plain markup with
   its content and selection; Back starts it again (not its undo history). In a Live Component it sits in
   `data-live-ignore`: re-renders never overwrite typing, and its `reset` prop replaces the content from the server.
+  A `markdown-editor` keeps what was typed across Back too, and its preview renders it.
 - **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a
   Turbo Frame (`id="stock-{{ row.id }}"`): its generated id would change on every re-render.
 
@@ -245,7 +247,7 @@ each version changes.
 | Symfony UX Toolkit | ^3.5 (blocks need 3.5) |
 | PHP | ≥ 8.4 (required by the toolkit), with the `zip` extension; `intl` for `calendar` and `date-picker` in any locale but `en` |
 | Symfony | 7.4 LTS and 8.1: CI installs the kit on both (8.1 in a fresh Symfony Docker project), and the demo and its browser tests run on 8.1 |
-| Assets | AssetMapper (`chart` also needs `chart.js` in the import map, which Flex adds; `editor` needs the Tiptap modules, which `ux:install` prints as `importmap:require` commands). With Webpack Encore, override the layouts' `stylesheets` and `javascripts` blocks: they load the `app` importmap entrypoint |
+| Assets | AssetMapper (`chart` also needs `chart.js` in the import map, which Flex adds; `editor` needs the Tiptap modules, which `ux:install` prints as `importmap:require` commands; `markdown-editor` needs `symfony/ux-live-component` for its preview). With Webpack Encore, override the layouts' `stylesheets` and `javascripts` blocks: they load the `app` importmap entrypoint |
 | Tailwind CSS | 4.x |
 | Flowbite | 4.x |
 

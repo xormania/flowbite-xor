@@ -26,6 +26,8 @@ services:
     # PHP that ux:install copies into an app's src/ (composer.json's autoload maps it to the recipes)
     App\FlowbiteXor\Editor\:
         resource: '../../editor/src/FlowbiteXor/Editor/'
+    App\FlowbiteXor\MarkdownEditor\:
+        resource: '../../markdown-editor/src/FlowbiteXor/MarkdownEditor/'
 
     # The Content Security Policy nonces of the current request (App\Security\CspNonce): Twig globals printed by
     # the layouts (config/packages/twig.yaml), put in the policy by App\EventListener\SecurityHeadersListener.

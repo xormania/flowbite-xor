@@ -7,6 +7,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `markdown-editor`: a Markdown field, a native textarea with a toolbar writing Markdown and a Preview tab rendered on
+  the server by a Live Component; `MarkdownType` refuses too long input, and the `flowbite_markdown_html` filter prints
+  stored Markdown the same way (CommonMark without raw HTML or images, then sanitized).
 - `editor`: a rich text editor (Tiptap) storing restricted HTML, with a keyboard-friendly toolbar, a link dialog and
   a counter; `EditorType` sanitizes every submit with symfony/html-sanitizer and refuses too long input, and the
   `flowbite_editor_html` filter prints stored HTML.
@@ -37,7 +40,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   its notes on toolkit and platform behavior moved to `docs/NOTES.md`. `NOTICE` keeps the credit.
 - `form-theme`: a single-text `DateType` opted in with `'block_prefix' => 'flowbite_date_picker'` renders as the
   `date-picker` recipe's picker.
-- `form-theme`: an `EditorType` renders as the `editor` recipe's `Editor`.
+- `form-theme`: an `EditorType` renders as the `editor` recipe's `Editor`, and a `MarkdownType` as the
+  `markdown-editor` recipe's `MarkdownEditor`.
 - `form-theme`: a `DropzoneType` renders as the `dropzone` recipe's `Dropzone`, never as UX Dropzone's own theme; a
   field whose valid files a 422 sent back says they were not kept.
 - `form-theme`: an autocomplete field's hidden `<select>` keeps its label's name (`aria-labelledby`) after Tom Select

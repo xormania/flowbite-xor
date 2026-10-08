@@ -1,0 +1,8 @@
+{% extends 'layouts/auth.html.twig' %}
+{% form_theme form 'form/flowbite_layout.html.twig' %}
+
+{% block title %}Note{% endblock %}
+{% block content %}
+    {% if stored %}<div id="stored">{{ stored|flowbite_markdown_html }}</div>{% endif %}
+    {{ form(form) }}
+{% endblock %}

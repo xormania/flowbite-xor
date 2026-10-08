@@ -1,0 +1,4 @@
+<p data-testid="stream-action" class="mb-2 text-sm text-body">{{ action|default('initial') }}</p>
+<twig:FormField for="streamed" label="Streamed notes">
+    <twig:MarkdownEditor id="streamed" name="streamed" rows="3" :value="'Streamed: **' ~ action|default('initial') ~ '**.'" />
+</twig:FormField>
