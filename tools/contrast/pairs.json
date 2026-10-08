@@ -78,5 +78,7 @@
     { "fg": "heading", "bg": "disabled", "min": 4.5, "usage": "disabled dropzone main line" },
     { "fg": "heading", "bg": "neutral-tertiary", "min": 4.5, "usage": "editor inline code" },
     { "fg": "body", "bg": "neutral-primary-soft", "min": 4.5, "usage": "editor toolbar buttons and counter" },
-    { "fg": "fg-brand-strong", "bg": "brand-softer", "min": 4.5, "usage": "editor toolbar button pressed" }
+    { "fg": "fg-brand-strong", "bg": "brand-softer", "min": 4.5, "usage": "editor toolbar button pressed" },
+    { "fg": "fg-brand", "bg": "neutral-primary-soft", "min": 4.5, "usage": "markdown editor selected tab" },
+    { "fg": "heading", "bg": "neutral-secondary-medium", "min": 4.5, "usage": "markdown editor source and preview text" }
 ]

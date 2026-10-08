@@ -19,6 +19,7 @@ type Cases = {
     calendar: { html: string };
     chart: { html: string };
     editor: { policy: { input: string; once: string; twice: string }[]; html: string };
+    markdown: { renderer: { input: string; html: string }[]; html: string };
     sidebar: { path: string; html: string };
 };
 
@@ -273,6 +274,37 @@ test("the editor's policy keeps the preset, removes everything else, and gives t
     expect(foreign.once).toContain('cell');
     expect(tricks.once).toContain('&lt;script&gt;text&lt;/script&gt;');
     expect(empty.once).toBe('');
+});
+
+test('the Markdown renderer keeps what Markdown makes, strips raw HTML and images, refuses unsafe links, and limits nesting', () => {
+    const [plain, blocks, links, hostileLinks, raw, images, deep, delimiters, blank] = cases.markdown.renderer;
+    for (const { html } of cases.markdown.renderer) {
+        // an unsafe autolink keeps its text, never its address
+        expect(html).not.toMatch(/<(script|style|img|svg|iframe|b)\b|\s(style|class|id|on[a-z]+|target)=|="\s*(javascript|vbscript|data):/i);
+    }
+    expect(plain.html).toBe('<p><strong>bold</strong> <em>italic</em> <del>strike</del> <code>code</code><br />\nnext line</p>');
+    expect(blocks.html).toContain('<h1>H1</h1>');
+    expect(blocks.html).toContain('<ol start="3">');
+    // a code block shows its HTML as text, without the language class
+    expect(blocks.html).toContain('<pre><code>code &lt;b&gt;x&lt;/b&gt;\n</code></pre>');
+    expect(links.html).toContain('<a href="/pricing#faq" rel="noopener noreferrer nofollow">relative</a>');
+    expect(links.html).toContain('<a href="https://example.org" rel="noopener noreferrer nofollow">https://example.org</a>');
+    expect(hostileLinks.html).not.toContain('href=');
+    expect(raw.html).toBe('');
+    expect(images.html).not.toContain('example.com');
+    expect(deep.html.match(/<blockquote>/g)).toHaveLength(20);
+    expect(delimiters.html.length).toBeGreaterThan(0);
+    expect(blank.html).toBe('');
+});
+
+test('the MarkdownEditor prints a hostile value as text in its textarea', async ({ page }) => {
+    const dialogs = recordDialogs(page);
+    const found = await parse(page, cases.markdown.html);
+    expect(found.handlers).toEqual([]);
+    expect(found.elements.filter((element) => UNSAFE_ELEMENTS.includes(element) && !['textarea', 'svg'].includes(element))).toEqual([]);
+    expect(found.ran).toBeNull();
+    expect(await page.locator('textarea[name="body"]').inputValue()).toBe('</textarea><script>window.__xss=1</script><img src=x onerror="window.__xss=1">');
+    expect(dialogs).toEqual([]);
 });
 
 test('the Editor prints a hostile value sanitized, in the editable area and the textarea', async ({ page }) => {

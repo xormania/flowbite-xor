@@ -150,3 +150,29 @@ case "$location" in
     *) echo "FAIL: posting a body to /post answered $location" >&2; exit 1 ;;
 esac
 echo "ok: an EditorType renders the Editor and stores sanitized HTML (HTTP 200, 303)"
+
+# the markdown-editor recipe through the form theme: a MarkdownType renders the MarkdownEditor Live Component (the
+# textarea under the field's id and name, the Write and Preview tabs), its `preview` action renders the typed Markdown
+# on the server, and a posted body is stored as Markdown and printed without its raw HTML
+page="$(fetch /note "$@" -c "$work/cookies")"
+for expected in 'data-live-name-value="MarkdownEditor"' 'data-controller="markdown-editor"' 'role="tablist"' 'id="form_body"' 'name="form[body]"' 'role="toolbar"'; do
+    grep -qF -- "$expected" <<< "$page" || { echo "FAIL: the note page lacks $expected" >&2; exit 1; }
+done
+if grep -q ' style="' <<< "$page"; then echo "FAIL: the note page has a style attribute" >&2; exit 1; fi
+body="$("${PHP:-php}" "$(dirname "$0")/live-action.php" "$work/page.html" '{}' '{"value":"**Hi** [bad](javascript:x)"}')"
+status="$(curl -s "$@" -o "$work/action.html" -w '%{http_code}' -X POST "$base/_components/MarkdownEditor/preview" \
+    -H 'Accept: application/vnd.live-component+html' -H 'X-Requested-With: XMLHttpRequest' --data-urlencode "data=$body")"
+[ "$status" = 200 ] || { echo "FAIL: the markdown editor's preview action answered $status" >&2; exit 1; }
+grep -qF '<strong>Hi</strong>' "$work/action.html" && ! grep -qF 'href="javascript' "$work/action.html" \
+    || { echo "FAIL: the markdown editor's preview did not render the Markdown safely" >&2; exit 1; }
+token="$(grep -oE '<input[^>]*name="form\[_token\]"[^>]*>' <<< "$page" | grep -oE 'value="[^"]*"' | sed 's/^value="//; s/"$//' || true)"
+location="$(curl -s "$@" -o /dev/null -w '%{http_code} %{redirect_url}' -b "$work/cookies" -H "Origin: $base" \
+    --data-urlencode 'form[body]=**Hi** <script>x()</script>' ${token:+--data-urlencode "form[_token]=$token"} "$base/note")"
+case "$location" in
+    "303 "*"stored=**Hi**%20%3Cscript%3Ex%28%29%3C/script%3E") ;;
+    *) echo "FAIL: posting a body to /note answered $location" >&2; exit 1 ;;
+esac
+page="$(fetch "/note?${location#*\?}" "$@")"
+grep -qF '<div id="stored"><p><strong>Hi</strong>' <<< "$page" && ! grep -qF '<script>x()' <<< "$page" \
+    || { echo "FAIL: the stored Markdown is not printed as safe HTML" >&2; exit 1; }
+echo "ok: a MarkdownType renders the MarkdownEditor, previews on the server and prints stored Markdown safely (HTTP 200, 303)"
