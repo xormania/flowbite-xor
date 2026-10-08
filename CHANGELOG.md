@@ -33,6 +33,17 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 - `data-table`: a server-driven table (search, filters, sortable columns, page size, pages) in a Turbo Frame, with
   the PHP classes a table extends (`AbstractDataTable`) copied into `src/FlowbiteXor/DataTable/`.
 
+### Fixed
+
+- `dropdown`: a menu open when a link inside it visited another page showed open but no longer worked after Back; it
+  now comes back closed.
+- `modal`, `drawer`: a dialog open when the page was cached came back open but not modal after Back (the page behind
+  it usable); it now comes back closed, and opens as a modal again.
+- `editor`: a frame visit promoted to history (`data-turbo-action="advance"`) destroyed an editor outside the frame;
+  the editor now stays, and Back builds a new one from the cached copy.
+- `markdown-editor`: after Back from a frame visit promoted to history, the textarea showed the server's Markdown
+  instead of what was typed.
+
 ### Changed
 
 - `theme`: chart series roles `chart-1` to `chart-6` and `chart-other`, checked for contrast in both themes.
