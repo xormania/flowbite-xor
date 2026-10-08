@@ -92,7 +92,10 @@ attribute runs, except the few style attributes of README examples it lists.
 
 Against the Docker demo, run `DEMO_URL=https://localhost npx playwright test`: the specs then run PHP in the
 container (`tools/demo-php`). Without `DEMO_URL`, Playwright serves the demo itself with `php -S 127.0.0.1:8000`.
-Either way it starts the browser container, unless something already listens on port 3000. The demo shows all of a recipe's examples at `/r/<recipe>`, and one example
+Either way it starts the browser container, unless something already listens on port 3000. Before the tests, it
+builds the demo's Tailwind CSS when the files it scans changed since the last build (a SHA-256 of their content,
+kept in `demo/var/tailwind/sources.sha256`), so no screenshot is taken against stale CSS; with nothing changed, it
+builds nothing. A demo serving `demo/public/assets/` still needs `asset-map:compile` after that. The demo shows all of a recipe's examples at `/r/<recipe>`, and one example
 alone at `/preview/<recipe>/<example>?theme=light` (or `dark`). `<example>` is the slug of the heading above the
 example: `default` for the one under the title, with `-2`, `-3`… added when a heading repeats.
 
