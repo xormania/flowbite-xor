@@ -9,7 +9,8 @@ _2026-10-08. Decided with the user on 2026-10-08:_
    Components, `flowbite.min.css` and the strict CSP meet. Small component tests only where e2e cannot isolate a
    cost._
 3. _**A baseline first:** timings are recorded on `main` before anything is compared or gated._
-4. _**Every tier must pass for a release.**_
+4. _**Every tier must pass for a release, from 0.3.0.** 0.2.0 ships on the current checks and the security audit;
+   the work in this plan starts after 0.2.0._
 
 _What led here: the theme toggle showed no icon under a dark system with the light theme chosen, and a theme switch
 faded table rows (`fix(theme-toggle)`). Each component's states were tested, not the moves between them, and nothing
