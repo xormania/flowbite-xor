@@ -83,6 +83,26 @@ await expect(dialog).not.toHaveAttribute('open');
 
 Here: [`lab.turbo-restore.spec.ts`](../tests/e2e/lab.turbo-restore.spec.ts), and the Back tests of each `lab.*.spec.ts`.
 
+### State saved after the snapshot
+
+**Catches:** a component that shows the state of Turbo's cached copy after Back, when the user changed it on the next
+page (a tree's open branches, a collapsed panel). The copy is taken when the page is left; whatever is saved later
+must win over it.
+
+Change the state on page one, visit page two, change it again there, go Back: page one shows the second change.
+
+```ts
+await branchToggle(page, 'Reference').click();           // page one: open
+await page.getByRole('link', { name: 'Go to page two' }).click();
+await turboVisitDone(page);
+await branchToggle(page, 'Reference').click();           // page two: closed again
+await page.goBack();
+await turboVisitDone(page);
+await expect(treeitem(page, 'Reference')).toHaveAttribute('aria-expanded', 'false'); // the copy had it open
+```
+
+Here: [`lab.side-nav.spec.ts`](../tests/e2e/lab.side-nav.spec.ts).
+
 ## State × transition
 
 **Catches:** what a test of each state misses: the moves between states. The theme toggle showed no icon only after

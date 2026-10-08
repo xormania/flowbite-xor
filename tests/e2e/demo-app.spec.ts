@@ -41,7 +41,8 @@ test('the forgot-password block confirms without telling whether the account exi
 test('the settings layout marks the current section and the profile block saves', async ({ page }) => {
     await page.goto('/demo/settings/profile');
     await expect(page.getByRole('navigation', { name: 'Settings' }).getByRole('link', { name: 'Profile' })).toHaveAttribute('aria-current', 'page');
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('treeitem', { name: 'Profile' })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('treeitem', { name: 'Settings' })).toHaveAttribute('aria-expanded', 'true');
     await page.getByRole('button', { name: 'Save changes' }).click();
     await expect(page.getByRole('region', { name: 'Notifications' }).getByText('Profile saved.')).toBeVisible();
 });
@@ -81,7 +82,9 @@ test('the app layout scrolls the document, so the keyboard scrolls it and Turbo 
     }));
     await page.evaluate(() => window.scrollTo({ top: 300, behavior: 'instant' }));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(300);
-    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
+    const main = page.getByRole('navigation', { name: 'Main' });
+    await main.getByRole('treeitem', { name: 'Settings' }).locator(':scope > [data-side-nav-toggle]').click();
+    await main.getByRole('treeitem', { name: 'Profile' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
     await page.goBack();
     await turboVisitDone(page);
@@ -120,7 +123,9 @@ test('every layout keeps the same toast region: a toast closed on another layout
     const region = page.getByRole('region', { name: 'Notifications' });
     await expect(region.getByText('Profile saved.')).toBeVisible();
 
-    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Blank' }).click();
+    const main = page.getByRole('navigation', { name: 'Main' });
+    await main.getByRole('treeitem', { name: 'Pages' }).locator(':scope > [data-side-nav-toggle]').click();
+    await main.getByRole('treeitem', { name: 'Blank page' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'A blank page' })).toBeVisible();
     await expect(region.getByText('Profile saved.')).toBeVisible();
     await region.getByRole('button', { name: 'Close' }).click();

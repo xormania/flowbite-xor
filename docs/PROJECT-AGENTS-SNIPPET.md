@@ -83,6 +83,11 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   `MarkdownType` (from `App\FlowbiteXor\MarkdownEditor`; `max_chars`, `max_bytes`): its data is the Markdown or
   `null`. Print it with `|flowbite_markdown_html`, never `|raw` or another Markdown filter: the preview and the page
   render the same. The editor is its own Live Component: keep it out of another Live Component's re-rendered markup.
+- **Navigation more than one level deep: `ux:install side-nav`**, then `<twig:SideNav label="…" storageKey="…">`
+  holding `SideNav:Item`s (links: `href`, plus `route` so the server marks the current page and opens its branches)
+  and `SideNav:Branch`es (`label`, nested at any depth), inside a `<nav>` or the `Sidebar`. It is an ARIA tree: the
+  controller handles the keyboard and keeps the open branches across Turbo visits; never add click or key handlers
+  of your own. One `storageKey` per tree; give a branch `name` when its label changes (a count).
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the
   position yourself, as the kit's `Sidebar` does.
