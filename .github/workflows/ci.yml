@@ -1,13 +1,13 @@
 name: CI
 
-# Every push to a branch runs CI (so a branch is green before its PR opens); pull_request runs only for forks,
-# whose pushes do not reach this repository, to avoid running everything twice. Tag pushes do not run it: release.yml
-# checks a release's install before tagging it. Actions are pinned by commit; Dependabot proposes their updates
+# Every push to a branch runs CI, so a branch is green before its PR opens; there is no pull_request trigger, whose
+# runs would duplicate every check (skipped) on the same commit, and a skipped CI result passes the rulesets before the
+# push's own run ends. A fork's pull request gets CI once its branch is pushed here. Tag pushes do not run it:
+# release.yml checks a release's install before tagging it. Actions are pinned by commit; Dependabot proposes their updates
 # (.github/dependabot.yml).
 on:
     push:
         branches: ['**']
-    pull_request:
     workflow_dispatch:
 
 permissions:
@@ -28,7 +28,6 @@ jobs:
     # branch is compared with where it left dev, so each push checks the whole pull request, not only its last commit.
     changes:
         name: Changes
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
         runs-on: ubuntu-latest
         timeout-minutes: 5
         outputs:
@@ -50,11 +49,8 @@ jobs:
               env:
                   EVENT: ${{ github.event_name }}
                   REF: ${{ github.ref }}
-                  PR_BASE: ${{ github.event.pull_request.base.sha }}
               run: |
-                  if [ "$EVENT" = pull_request ]; then
-                      base="$PR_BASE"
-                  elif [ "$EVENT" = push ] && [ "$REF" != refs/heads/main ] && [ "$REF" != refs/heads/dev ]; then
+                  if [ "$EVENT" = push ] && [ "$REF" != refs/heads/main ] && [ "$REF" != refs/heads/dev ]; then
                       base=$(git merge-base HEAD origin/dev 2>/dev/null || true)
                   else
                       base=
@@ -255,8 +251,8 @@ jobs:
             # the latest Symfony
             - name: ux:install from GitHub in a fresh Symfony Docker project
               env:
-                  KIT_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-                  KIT_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+                  KIT_REPOSITORY: ${{ github.repository }}
+                  KIT_REF: ${{ github.sha }}
               run: tools/tests/docker-install.sh
 
     contrast:
@@ -400,7 +396,7 @@ jobs:
     # pull request pending forever; this passes when every job passed or was skipped as unaffected.
     result:
         name: CI result
-        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)
+        if: always()
         needs: [changes, lint-kit, php, static-site, fresh-install, docker-install, contrast, demo]
         runs-on: ubuntu-latest
         timeout-minutes: 5
