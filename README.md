@@ -264,7 +264,8 @@ tells agents to use the kit's components, color roles and icons, and how they be
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the repository layout, the checks and the conventions, and
-[`CHANGELOG.md`](CHANGELOG.md) for what changed.
+[`CHANGELOG.md`](CHANGELOG.md) for what changed. [`docs/TESTING.md`](docs/TESTING.md) explains how the kit is tested
+(Turbo, Live Components, the Content Security Policy, request limits), with patterns to reuse in your app's tests.
 
 ## License
 

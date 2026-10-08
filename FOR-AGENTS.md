@@ -140,4 +140,5 @@ Versions are git tags `X.Y.Z` ([`CHANGELOG.md`](CHANGELOG.md)). Without a versio
 | Each setup step explained | [`INSTALL.md`](INSTALL.md) |
 | Turbo, Live Components, security | [`README.md`](README.md#turbo-and-live-components) |
 | Every example rendered, light and dark | <https://xormania.github.io/flowbite-xor/> |
+| Testing an app built with the kit (Turbo, Live, CSP, request limits) | [`docs/TESTING.md`](docs/TESTING.md) |
 | Changing the kit itself | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md) |

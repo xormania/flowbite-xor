@@ -17,7 +17,7 @@ and pull request standard.
 | `tools/tests/` | no | `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `FOR-AGENTS.md`, `llms.txt` | no | the page for coding agents given the repository's URL, and the list of every page for them ([llms.txt](https://llmstxt.org/)) |
-| `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
+| `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), the testing patterns ([`docs/TESTING.md`](docs/TESTING.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
 
 `ux:install` downloads GitHub's archive of the whole repository; `export-ignore` in `.gitattributes` keeps
 everything else out of it (the demo, tests, tools, and repository files such as this one, `AGENTS.md`,
@@ -72,6 +72,7 @@ node tools/llms-txt.mjs --check                     # llms.txt matches README.md
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 phpstan analyse --level=8 --autoload-file=demo/vendor/autoload.php data-table/src demo/src/Demo   # PHPStan (any install of it; CI pins one)
+php tools/tests/data-table.php                      # the data tables' limits: the deepest page, the loader calls, the selection (needs demo/vendor)
 tools/tests/fresh-install.sh                        # a new Symfony app installs dashboard-home, signup and data-table from the last commit (PHP=…, COMPOSER_BIN=…: other binaries)
 KIT_REF=<pushed commit SHA or tag> tools/tests/docker-install.sh   # the same in a new Symfony Docker project (Symfony 8.1), kit downloaded from GitHub
 npx playwright test                                 # every browser test: see below
@@ -86,6 +87,10 @@ npx playwright test                                 # every browser test: see be
 - `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
   runs the recipes' own specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`). It fails
   on a committed screenshot that no test compares (`baselines.spec.ts`).
+
+A test that brings a new technique (a way to provoke a state, to observe a cost, to send what a crafted request
+sends) is written up in [`docs/TESTING.md`](docs/TESTING.md), with its core and a link to the spec: apps built with
+the kit reuse those patterns.
 
 Every test of both projects blocks requests leaving the demo, and fails on a console error, a page error, a local
 request that fails or answers >= 400, or a Content Security Policy violation (`tests/e2e/fixtures.ts`).
