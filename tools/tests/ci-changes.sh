@@ -50,6 +50,7 @@ check ''                          LICENSE NOTICE .github/dependabot.yml
 check 'contrast'                  docs/TESTING.md CHANGELOG.md FOR-AGENTS.md .github/pull_request_template.md
 check 'contrast'                  docs/ROADMAP.md CONTRIBUTING.md AGENTS.md
 check 'contrast'                  tools/docs-lint.mjs tools/llms-txt.mjs llms.txt
+check 'contrast'                  tools/test-inventory.mjs
 check 'static-site contrast'      tools/fence-coverage.mjs
 check 'static-site'               tools/build-static.sh
 check "$kit_contrast"             INSTALL.md
@@ -70,15 +71,23 @@ check_git "$all"                  'git mv .github/workflows/pages.yml .github/wo
 check_git "$all"                  'git mv .github/workflows/ci.yml .github/workflows/checks.yml'
 
 # A path no rule names is part of the kit
-check "$kit"                      new-recipe/manifest.json
+# A manifest makes a directory a recipe, which the inventory check (Contrast) reads
+check "$kit_contrast"             new-recipe/manifest.json
+check "$kit_contrast"             tabs/manifest.json
 check "$kit"                      some-new-file.txt
 
 check "$all"                      tools/ci-changes.sh
 check 'workflows'                 tools/release-plan.sh
 check 'workflows'                 tools/tests/release-plan.sh
-check 'demo'                      tests/e2e/lab.side-nav.spec.ts
+# tools/test-inventory.mjs (Contrast) reads which specs and PHPUnit tests exist, the lab's routes and the recipes'
+# controllers; a helper or a baseline it does not read
+check 'contrast demo'             tests/e2e/lab.side-nav.spec.ts
+check 'demo'                      tests/e2e/transitions.ts
+check 'contrast demo'             tabs/tests/tabs.spec.ts
 check 'demo'                      playwright.config.ts tools/prepare-tests.mjs tools/tests/prepare-tests.test.mjs
 check 'demo'                      alert/tests/screenshots/default-light.png
+check 'php static-site contrast demo' demo/tests/Editor/EditorTypeTest.php
+check 'php static-site contrast demo' demo/src/Controller/LabController.php
 check 'contrast demo'             package-lock.json
 check 'contrast'                  tools/contrast/pairs.json
 check 'php static-site demo'      demo/src/Demo/DataTableCollector.php
@@ -90,7 +99,7 @@ check 'fresh-install'             tools/tests/fixtures/fresh-app/templates/home.
 check 'demo'                      tools/tests/fixtures/sync-kit/manifest.json
 check 'php static-site fresh-install demo' demo/compose.yaml
 check 'php static-site fresh-install demo' demo/frankenphp/Caddyfile
-check "$kit"                      side-nav/assets/controllers/side_nav_controller.js
+check "$kit_contrast"             side-nav/assets/controllers/side_nav_controller.js
 check "$kit_contrast"             side-nav/README.md
 check "$kit_contrast"             kit.css
 check "$kit"                      .gitattributes

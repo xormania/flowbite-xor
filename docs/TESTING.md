@@ -555,6 +555,12 @@ Through a real request, the same count comes from the profiler (below, *Counts f
 
 Here: [`demo/tests/DataTable/`](../demo/tests/DataTable/), [`SelectionTest.php`](../demo/tests/DataTableLive/SelectionTest.php).
 
+The same folder holds the data table's extension contracts, through a representative extension
+([`Fixtures/ProductsTable.php`](../demo/tests/DataTable/Fixtures/ProductsTable.php): a server sort field, numeric
+filter choices, a default sort, a prefix): what `TableQuery` makes of untrusted values, what `AbstractDataTable` reads
+from a request and takes as a row's id, and the page window, URLs and hidden fields of `DataTableView`. Each pins a
+boundary an app relies on, not every getter.
+
 ## PHP tests (PHPUnit)
 
 The demo has PHPUnit 13 and Symfony's test tools (what `symfony/test-pack` installs: `phpunit/phpunit`,
@@ -687,6 +693,12 @@ unit tests ([`EditorHtmlPolicyTest.php`](../demo/tests/Editor/EditorHtmlPolicyTe
 [`MarkdownRendererTest.php`](../demo/tests/MarkdownEditor/MarkdownRendererTest.php)); the Editor and the
 MarkdownEditor given a hostile value stay in `hostile-props.spec.ts`, parsed by the browser.
 
+Their form types' limits (bytes against characters, Windows line breaks, null, a refused submit kept as sent) are
+form tests on `form.factory` ([`EditorTypeTest.php`](../demo/tests/Editor/EditorTypeTest.php),
+[`MarkdownTypeTest.php`](../demo/tests/MarkdownEditor/MarkdownTypeTest.php)). A test that finds a fault not fixed yet
+asserts the wanted behavior and calls `markTestIncomplete()` with the finding when it fails, so it reports the fault
+without failing CI, and passes on its own once the fault is fixed.
+
 ## Security headers and the Content Security Policy
 
 **Catches:** a policy that allows more than it says, and what a strict policy silently breaks (an inline theme
@@ -713,7 +725,9 @@ await menu(page).click();                                                       
 await expectA11y(page, { impact: 'all', include: '#drawer-lab-mobile-nav' }, 'open'); // the component's own markup
 ```
 
-Here: [`fixtures.ts`](../tests/e2e/fixtures.ts) (`expectA11y`), [`a11y.spec.ts`](../tests/e2e/a11y.spec.ts) (every page),
+Here: [`fixtures.ts`](../tests/e2e/fixtures.ts) (`expectA11y`), [`a11y.spec.ts`](../tests/e2e/a11y.spec.ts) (every page;
+[`tools/test-inventory.mjs`](../tools/test-inventory.mjs) fails when a lab page of `LabController` is missing from its
+`labPages`),
 and the specs of the dropzone, editor, markdown-editor, forms, demo-app, lab.side-nav, lab.section-nav, lab.mobile-nav
 and lab.nav-menu.
 

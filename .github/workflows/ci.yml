@@ -194,8 +194,9 @@ jobs:
                   (cd demo && composer install --no-interaction --no-progress && bin/console tailwind:build)
 
             # demo/tests: the data tables' limits (the deepest page, the loader calls, the selection), the Live table
-            # through real Live requests, components rendered against their snapshots, and the loader calls of one
-            # request read from its profile, and the editor's HTML policy and the Markdown renderer given hostile input.
+            # through real Live requests, components rendered against their snapshots, the loader calls of one
+            # request read from its profile, the editor's HTML policy and the Markdown renderer given hostile input, and
+            # the extension contracts of the data table and the editors' form types.
             # A missing snapshot fails here instead of being written.
             - name: PHPUnit
               working-directory: demo
@@ -310,6 +311,9 @@ jobs:
 
             - name: Every README example is one the demo reads
               run: node tools/fence-coverage.mjs
+
+            - name: The test inventory has a row per recipe with a controller and names existing tests; a11y scans every lab page
+              run: node tools/test-inventory.mjs
 
     demo:
         name: Demo + Playwright (${{ matrix.shard }}/3)
