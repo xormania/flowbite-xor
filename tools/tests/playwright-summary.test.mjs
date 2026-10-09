@@ -177,6 +177,13 @@ test('JSON that is not a Playwright report is invalid too', () => {
     assert.match(run.summary, /report invalid: .*not a Playwright JSON report/);
 });
 
+test('a report whose config is null is invalid, not a crash', () => {
+    const run = summarize('null-config.json');
+    assert.equal(run.code, EXIT.invalid);
+    assert.match(run.summary, /report invalid: .*not a Playwright JSON report/);
+    assert.deepEqual(run.outputs, { status: 'invalid' });
+});
+
 test('a failed setup step is named: tests not reached, not a report error', () => {
     const run = summarize(null, {
         SETUP_STEPS: 'Build the demo image=success\nStart the demo=failure\nInstall Playwright=skipped',

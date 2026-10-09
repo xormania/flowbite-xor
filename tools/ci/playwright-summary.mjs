@@ -68,7 +68,7 @@ function read() {
     } catch (error) {
         return { status: 'invalid', reason: `report invalid: ${shownPath} does not parse (${error.message})` };
     }
-    if (!report || typeof report !== 'object' || !Array.isArray(report.suites) || typeof report.config !== 'object') {
+    if (!report || typeof report !== 'object' || !Array.isArray(report.suites) || !report.config || typeof report.config !== 'object') {
         return { status: 'invalid', reason: `report invalid: ${shownPath} is not a Playwright JSON report (no config or suites)` };
     }
     return { status: 'valid', ...collect(report) };
