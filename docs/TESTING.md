@@ -202,6 +202,27 @@ expect(await page.evaluate(() => (window as any).__transitions)).toEqual([]);
 
 Here: [`tests/e2e/theme-toggle.spec.ts`](../tests/e2e/theme-toggle.spec.ts) ("a switch … runs no color transition").
 
+### No listener left behind
+
+**Catches:** a controller that adds a `document` or `window` listener and does not remove it on `disconnect()`, so
+each Turbo visit, Stream or re-render adds one more (work on every click or scroll, a closed overlay still reacting).
+
+Wrap `addEventListener` and `removeEventListener` in an init script and count what the page's own scripts add to
+`document` and `window`, by target and type. Take the baseline after the page has done each step once (Turbo adds
+some of its listeners on the first click or submit), then repeat the steps: the counts must not grow.
+
+```ts
+const listeners = await trackGlobalListeners(page); // before the first goto
+await page.goto('/lab/tooltip-turbo');
+// one visit, then: const baseline = await listeners();
+// three more visits, then:
+expect(await listeners()).toEqual(baseline);         // { 'document click': 1, 'window popstate': 1, … }
+```
+
+Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`trackGlobalListeners`),
+[`lab.tooltip.spec.ts`](../tests/e2e/lab.tooltip.spec.ts); [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts)
+counts the document's click listeners the same way, inline.
+
 ### One controller per element: count what it does
 
 **Catches:** a controller connected twice to one element after Turbo visits, whose actions are all idempotent, so no

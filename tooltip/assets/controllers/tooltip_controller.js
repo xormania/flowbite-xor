@@ -4,7 +4,8 @@ import { Controller } from '@hotwired/stimulus';
  * Shows a `Tooltip` while its trigger is hovered or focused, hides it on leave, blur or Escape,
  * and places it next to the trigger, flipping to the opposite side and shifting along it to stay in
  * the viewport. The trigger (the first element child) gets `aria-describedby` pointing at the tooltip.
- * Listeners are Stimulus actions on the wrapper, so it keeps working after the markup moves.
+ * Listeners are Stimulus actions on the wrapper, so it keeps working after the markup moves. On connect it is hidden
+ * unless the focus is already inside, so Turbo's copy of a page never brings back a tooltip shown when the page was left.
  *
  * @target tooltip   The tooltip element.
  * @value  placement Where the tooltip opens: `top`, `bottom`, `left` or `right`.
@@ -15,8 +16,18 @@ export default class extends Controller {
     static targets = ['tooltip'];
     static values = { placement: { type: String, default: 'top' } };
 
+    // Starts from what the page shows now, not from the markup: Turbo restores its copy of the page (Back, Forward, a
+    // frame visit promoted to history) as it was when left, a tooltip shown then included. Only the focus can already
+    // be inside (a data-turbo-permanent element moved by a visit); a hover shows the tooltip with the next mouseenter.
     connect() {
-        this.describe();
+        this.hovered = false;
+        this.focused = this.element.matches(':focus-within');
+        if (this.focused) {
+            this.show();
+        } else {
+            this.describe();
+            this.tooltipTarget.hidden = true;
+        }
     }
 
     disconnect() {

@@ -59,6 +59,10 @@
                 </twig:Drawer:Body>
             </twig:Drawer:Content>
         </twig:Drawer>
+
+        <twig:Tooltip content="Opens page two" id="restore-tooltip">
+            <a href="{{ path('app_lab_turbo_restore', {page: 'two'}) }}" class="text-fg-brand hover:underline">Page two from the tooltip link</a>
+        </twig:Tooltip>
     </div>
     {%- endif %}
 {% endblock %}

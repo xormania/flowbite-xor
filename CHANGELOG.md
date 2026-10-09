@@ -48,6 +48,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `tooltip`: a tooltip shown when its link visited another page (or when a frame visit was promoted to history) came
+  back shown after Back or Forward, its trigger no longer hovered; it now comes back hidden. A tooltip in a
+  `data-turbo-permanent` element stays shown through a visit while its trigger keeps the focus.
 - `dropdown`: a menu open when a link inside it visited another page showed open but no longer worked after Back; it
   now comes back closed.
 - `modal`, `drawer`: a dialog open when the page was cached came back open but not modal after Back (the page behind
