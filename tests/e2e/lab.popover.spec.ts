@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
-import { visit, visitAndBack } from './transitions';
+import { back, forward, recordFirstFrames, stepFromCode, visit, visitAndBack } from './transitions';
 
 // counts the click listeners added to the document minus those removed: an open popover adds one, a closed one none
 test.beforeEach(async ({ page }) => {
@@ -57,7 +57,7 @@ test('repeated Turbo visits leave one controller per popover and no document lis
         await page.getByRole('link', { name: /Go to page/ }).click();
         await turboVisitDone(page);
     }
-    await expect(page.locator('[data-controller~="popover"]')).toHaveCount(5);
+    await expect(page.locator('[data-controller~="popover"]')).toHaveCount(6);
     expect(await documentClicks(page)).toBe(baseline);
 
     // one toggle per click: a second controller would open and close it again
@@ -86,7 +86,7 @@ test('inside a Turbo Frame reloaded three times, the popover works', async ({ pa
     }
     await page.getByRole('button', { name: 'Framed' }).click();
     await expect(page.getByLabel('Note')).toBeFocused();
-    await expect(page.locator('[data-controller~="popover"]')).toHaveCount(5);
+    await expect(page.locator('[data-controller~="popover"]')).toHaveCount(6);
 });
 
 test('replaced or updated by a Turbo Stream, the new popover works and the old one left no listener', async ({ page }) => {
@@ -128,4 +128,56 @@ test('a popover stays open and keeps the focus while its Live Component re-rende
     await expect(dialog).toBeHidden();
     await trigger.click();
     await expect(dialog).toBeVisible();
+});
+
+test('a popover whose link steps a frame promoted to history stays open with the focus, and Back shows it closed', async ({ page }) => {
+    await page.goto('/lab/popover-turbo');
+    const baseline = await documentClicks(page);
+    const firstFrames = await recordFirstFrames(page, { steps: '#steps-content' });
+    const trigger = page.getByRole('button', { name: 'Steps' });
+    const dialog = page.getByRole('dialog', { name: 'Steps' });
+    await trigger.click();
+    await expect(page.getByRole('link', { name: 'Go to step 5' })).toBeFocused();
+
+    // Turbo copies the page as the frame visit starts, then dispatches turbo:before-cache with the page still shown
+    await visit(page, 'Go to step 5', { step: 5 });
+    await expect(dialog).toBeVisible();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('link', { name: 'Go to step 5' })).toBeFocused();
+    expect(await documentClicks(page)).toBe(baseline + 1);
+
+    // the copy holds the popover open: Back shows it closed from the first frame, and it works
+    await back(page, { step: 0 });
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(await firstFrames()).toEqual([{ steps: false }]);
+    expect(await documentClicks(page)).toBe(baseline);
+    await trigger.click();
+    await expect(dialog).toBeVisible();
+    await page.getByRole('heading', { level: 1 }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.locator('[data-controller~="popover"]')).toHaveCount(6);
+});
+
+test('a popover open while the page code steps a frame promoted to history stays open; Back and Forward show it closed', async ({ page }) => {
+    await page.goto('/lab/popover-turbo');
+    const baseline = await documentClicks(page);
+    const dialog = page.getByRole('dialog', { name: 'Details' });
+    await page.getByRole('button', { name: 'Details' }).click();
+    await expect(page.getByRole('link', { name: 'Open the order' })).toBeFocused();
+
+    await stepFromCode(page, 1);
+    await expect(dialog).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open the order' })).toBeFocused();
+
+    await back(page, { step: 0 });
+    await expect(dialog).toBeHidden();
+    await forward(page, { step: 1 });
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Details' })).toHaveAttribute('aria-expanded', 'false');
+    expect(await documentClicks(page)).toBe(baseline);
+    await page.getByRole('button', { name: 'Details' }).click();
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
 });

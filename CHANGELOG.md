@@ -48,6 +48,11 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `popover`, `date-picker`: beside a frame whose visits are promoted to history (a data table's pages), an open popover
+  or picker no longer closes and drops the focus when the frame changes, and Back no longer shows it open; the
+  templates no longer close it on `turbo:before-cache`, a copy of the page opened by the browser connects closed.
+- `toast`: a toast outside the region stays on screen while such a frame changes, and Back no longer shows it again; it
+  is no longer marked `data-turbo-temporary`.
 - `tooltip`: a tooltip shown when its link visited another page (or when a frame visit was promoted to history) came
   back shown after Back or Forward, its trigger no longer hovered; it now comes back hidden. A tooltip in a
   `data-turbo-permanent` element stays shown through a visit while its trigger keeps the focus.

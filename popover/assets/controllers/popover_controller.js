@@ -6,7 +6,10 @@ import { Controller } from '@hotwired/stimulus';
  * closes it. Opening moves the focus into the content, places the content next to the trigger (flipping
  * and shifting like `Dropdown`) and keeps it there on scroll and resize. Popovers sharing a `name` close
  * each other. The open state is the `open` value, an attribute, so Live Components keep it across
- * re-renders; before Turbo caches the page, an open popover closes, so Back never restores it open.
+ * re-renders. While the browser has it open, the element also carries `data-popover-opened`: a copy of
+ * the page Turbo cached with it open (Back, Forward, a preview) connects closed. Turbo copies the page
+ * before `turbo:before-cache` when a frame visit is promoted to history, and keeps it on screen, so the
+ * popover does not close on that event: it stays open beside the frame, with the focus.
  * The document listeners exist only while it is open, and are removed when it closes or disconnects.
  * Before moving the focus, it dispatches a cancelable `popover:focus` on its element (detail: `content`):
  * cancel it to place the focus yourself; the popover stays open.
@@ -23,7 +26,7 @@ import { Controller } from '@hotwired/stimulus';
  * @action closeIfGrouped Closes the popover when another popover of its group opens.
  * @action escape         Closes the popover and focuses the trigger.
  * @action closeOnFocusOut Closes the popover when the focus moves to an element outside it.
- * @action closeSilently  Closes the popover without moving the focus or dispatching events, before Turbo caches the page.
+ * @action closeSilently  Closes the popover without moving the focus or dispatching events.
  */
 export default class extends Controller {
     static targets = ['trigger', 'content'];
@@ -39,6 +42,11 @@ export default class extends Controller {
 
     connect() {
         this.#connected = true;
+        // opened by the browser before this connect: a cached copy of the page (or the element moved), shown closed
+        if (this.element.hasAttribute('data-popover-opened')) {
+            this.element.removeAttribute('data-popover-opened');
+            this.openValue = false;
+        }
         this.#render();
     }
 
@@ -56,6 +64,7 @@ export default class extends Controller {
         if (!open || undefined === previous) {
             return;
         }
+        this.element.setAttribute('data-popover-opened', '');
         if (this.nameValue) {
             window.dispatchEvent(new CustomEvent('popover:open', { detail: { name: this.nameValue, source: this.element } }));
         }
@@ -130,6 +139,7 @@ export default class extends Controller {
             this.#listen();
             this.position();
         } else {
+            this.element.removeAttribute('data-popover-opened');
             this.#unlisten();
         }
     }

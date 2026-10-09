@@ -21,7 +21,7 @@
     {{ attributes.defaults({
         class: 'relative inline-block'|tailwind_classes,
         'data-controller': 'popover',
-        'data-action': 'popover:open@window->popover#closeIfGrouped keydown.esc->popover#escape focusout->popover#closeOnFocusOut turbo:before-cache@document->popover#closeSilently',
+        'data-action': 'popover:open@window->popover#closeIfGrouped keydown.esc->popover#escape focusout->popover#closeOnFocusOut',
     }) }}
 >
     {##- A `Popover:Trigger` and a `Popover:Content`. -#}

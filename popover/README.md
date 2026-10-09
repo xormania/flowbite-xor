@@ -63,7 +63,7 @@ anything else next to a control.
 
 - The open state is an attribute: a Live Component re-render keeps an open popover open, and an action inside it
   (a button with `data-action="live#action"`) does not close it.
-- Before Turbo caches a page, open popovers close: Back shows them closed.
+- Back and Forward show a popover the user had opened closed. Beside a frame whose visits are promoted to history (a data table's pages), an open popover stays open, with the focus, when the frame changes.
 - Without `id`, the popover gets a random one on every render. Inside a Live Component or a Turbo Frame, pass a stable
   `id` (e.g. `id="row-{{ row.id }}-details"`).
 

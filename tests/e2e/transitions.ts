@@ -57,3 +57,46 @@ export async function visitAndBack(page: Page, { link = 'Go to page two', there 
     await visit(page, link, there);
     await back(page, here);
 }
+
+/**
+ * Starts a visit of the `history-steps` frame to `?step=<step>` from the page's code, as a debounced search or a poll
+ * would, and waits for it: no click or focus change reaches what is open beside the frame. The visit is promoted to
+ * history like the frame's own links.
+ */
+export async function stepFromCode(page: Page, step: number): Promise<void> {
+    await page.evaluate((step) => {
+        const url = new URL(location.href);
+        url.searchParams.set('step', String(step));
+        (window as any).Turbo.visit(url.href, { frame: 'history-steps', action: 'advance' });
+    }, step);
+    await shown(page, { step });
+}
+
+/**
+ * From now on, records for each page Turbo renders (a cached copy included) which of `selectors` match a visible
+ * element at the first animation frame after the new body is in place: what the user first sees, once the page's
+ * controllers have connected. Returns a function reading the records, one `{ [name]: visible }` per render.
+ */
+export async function recordFirstFrames(page: Page, selectors: Record<string, string>): Promise<() => Promise<Record<string, boolean>[]>> {
+    await page.evaluate((selectors) => {
+        const records: Record<string, boolean>[] = ((window as any).__firstFrames = []);
+        document.addEventListener('turbo:before-render', (event: any) => {
+            const body = event.detail.newBody;
+            let frames = 0;
+            const record = () => {
+                // a frame visit promoted to history renders no body: give up after a second
+                if (document.body !== body) {
+                    return ++frames < 60 && requestAnimationFrame(record);
+                }
+                records.push(
+                    Object.fromEntries(
+                        Object.entries(selectors).map(([name, selector]) => [name, [...document.querySelectorAll(selector)].some((element) => element.checkVisibility())]),
+                    ),
+                );
+            };
+            requestAnimationFrame(record);
+        });
+    }, selectors);
+
+    return () => page.evaluate(() => (window as any).__firstFrames as Record<string, boolean>[]);
+}

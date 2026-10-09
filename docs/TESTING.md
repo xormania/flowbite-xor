@@ -144,6 +144,33 @@ await page.goBack();                                                        // r
 
 Here: [`lab.mobile-nav.spec.ts`](../tests/e2e/lab.mobile-nav.spec.ts), [`lab.nav-menu.spec.ts`](../tests/e2e/lab.nav-menu.spec.ts).
 
+### Beside a frame visit promoted to history
+
+**Catches:** a component next to a data table (or any `data-turbo-action="advance"` frame) that closes, loses the
+focus or disappears when the frame changes, or comes back open on Back. Turbo copies the page when the frame visit
+starts, then dispatches `turbo:before-cache` on the page still shown and caches the earlier copy: a reset on that
+event hits the screen and misses the copy ([`NOTES.md`](NOTES.md)).
+
+Start the frame visit with the component open: from a link inside it (`data-turbo-frame="history-steps"`), or from
+the page's code, which no click or focus change precedes (a click on the frame's own link closes most overlays first,
+and the copy is then taken closed). Check the screen after the step, then Back and Forward, and what the first frame
+of each rendered copy shows:
+
+```ts
+const firstFrames = await recordFirstFrames(page, { steps: '#steps-content' }); // visible at the first frame of each render
+await page.getByRole('button', { name: 'Steps' }).click();
+await visit(page, 'Go to step 5', { step: 5 });     // a link inside the popover, targeting the frame
+await expect(dialog).toBeVisible();                  // still open, the focus still inside
+await back(page, { step: 0 });                       // the copy taken as the visit started: open
+await expect(dialog).toBeHidden();
+expect(await firstFrames()).toEqual([{ steps: false }]);
+await stepFromCode(page, 1);                          // Turbo.visit(url, { frame: 'history-steps', action: 'advance' })
+```
+
+Here: [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts), [`lab.date-picker.spec.ts`](../tests/e2e/lab.date-picker.spec.ts),
+[`lab.turbo-restore.spec.ts`](../tests/e2e/lab.turbo-restore.spec.ts) (a dropdown, a toast);
+[`transitions.ts`](../tests/e2e/transitions.ts) (`stepFromCode`, `recordFirstFrames`).
+
 ### State saved after the snapshot
 
 **Catches:** a component that shows the state of Turbo's cached copy after Back, when the user changed it on the next
