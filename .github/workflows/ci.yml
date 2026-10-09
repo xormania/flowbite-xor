@@ -446,10 +446,11 @@ jobs:
               run: npx playwright test --shard=${{ matrix.shard }}/3
 
             # What the shard's tests did, read from playwright-results/results.json (tools/ci/playwright-summary.mjs): the
-            # counts, each failed and flaky (passed on retry) test with its error, the tested commit and versions, on the
-            # job's summary page and as annotations at the failing lines. It never turns a red run green: Playwright's exit
-            # status is the verdict. It fails when there is no evidence to read: a step before the tests failed ("tests
-            # not reached: setup failed at <step>"), or the report is missing or invalid (never a pass with zero tests).
+            # counts, each failed and flaky (passed on retry) test with its error, the tested commit and versions, and
+            # the durations (report-only, no threshold), on the job's summary page and as annotations at the failing
+            # lines. It never turns a red run green: Playwright's exit status is the verdict. It fails when there is no
+            # evidence to read: a step before the tests failed ("tests not reached: setup failed at <step>"), or the
+            # report is missing or invalid (never a pass with zero tests).
             - name: Read the results
               id: results
               if: ${{ !cancelled() }}
@@ -477,8 +478,9 @@ jobs:
                   node tools/ci/playwright-summary.mjs playwright-results/results.json
 
             # Every shard keeps its results, green or red: results.json (each test's attempts, durations and outcome:
-            # passed, failed, flaky), failed-attempts.json (every failed attempt, retry-recovered ones included) and
-            # summary.md, so a test that failed once and passed on its retry leaves a record
+            # passed, failed, flaky), failed-attempts.json (every failed attempt, retry-recovered ones included),
+            # durations.json (wall time, summed test time, slowest tests, per-file totals: report-only, to compare runs)
+            # and summary.md, so a test that failed once and passed on its retry leaves a record
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               if: ${{ !cancelled() }}
               with:

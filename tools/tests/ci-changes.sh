@@ -94,6 +94,10 @@ check 'fresh-install'             tools/tests/fresh-install.sh
 check 'fresh-install'             tools/tests/live-action.php
 check 'fresh-install'             tools/tests/fixtures/fresh-app/templates/home.html.twig
 check 'demo'                      tools/tests/fixtures/sync-kit/manifest.json
+check 'demo'                      tools/ci/playwright-summary.mjs
+check 'demo'                      tools/tests/playwright-summary.test.mjs
+check 'demo'                      tools/tests/fixtures/playwright-results/timed.json
+check 'php static-site demo'      tools/sync-demo
 check 'php static-site fresh-install demo' demo/compose.yaml
 check 'php static-site fresh-install demo' demo/frankenphp/Caddyfile
 check "$kit_contrast"             side-nav/assets/controllers/side_nav_controller.js

@@ -783,7 +783,13 @@ each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summa
   reached or report not written* (Playwright ran but left no report), *report invalid* (it does not parse).
 - **Kept 30 days** in `playwright-results-<shard>`: `results.json` (every test's attempts), `summary.md`, and
   `failed-attempts.json`, one entry per failed attempt, retry-recovered ones included (test id, file, line, title,
-  project, shard, retry, status, error, duration, error location), for tools that read them one by one.
+  project, shard, retry, status, error, duration, error location), for tools that read them one by one, and
+  `durations.json` (below).
+- **Durations, report-only:** the summary ends with the shard's wall time (Playwright's, start to end) and workers,
+  the summed time of every attempt (retries included; workers overlap, so it is larger than the wall time and the two
+  are not compared), the 10 slowest tests (a test's time is the sum of its attempts) and each file's total.
+  `durations.json` holds the same numbers and every test's attempt times, with the commit, shard and versions, to
+  compare runs. No threshold: it never fails a step, and an attempt with no recorded time counts as unknown, not 0.
 
 The script's exit status says what it found: 0 a report it read (whatever its tests did), 2 no report, 3 an invalid
 report, 4 tests not reached. Run it on a local report with `node tools/ci/playwright-summary.mjs` after
