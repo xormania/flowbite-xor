@@ -234,6 +234,7 @@ row there, never the copies, then run `node tools/llms-txt.mjs` and commit what 
 it with `--check`, which fails when:
 
 - a directory with a `manifest.json` is missing from the tables, listed twice, or a row names no recipe;
+- a plan's status does not match the recipes that ship (*Plans* below);
 - `llms.txt`, or the table between `<!-- recipes:start` and `<!-- recipes:end -->` in `FOR-AGENTS.md`, is not what
   the script writes;
 - `FOR-AGENTS.md` or `docs/PROJECT-AGENTS-SNIPPET.md` names a recipe that does not exist (`ux:install <name>`, a
@@ -243,6 +244,20 @@ it with `--check`, which fails when:
 heading in `CHANGELOG.md` (the tag `release.yml` puts on the commit that adds it), or `dev` while
 `## [Unreleased]` has entries. A release pull request therefore rewrites it to the new tag, and the first pull
 request that adds an unreleased entry after a release rewrites it back to `dev`: `--check` says when.
+
+**Plans.** `docs/PLAN-*.md` and `docs/ROADMAP.md` record decisions; they are not instructions. Each plan opens
+with front matter naming its status and the recipes it adds:
+
+```yaml
+---
+status: open        # open, shipped or abandoned
+recipes: chart      # comma-separated, or none for a plan that adds no recipe
+---
+```
+
+The roadmap's *Sequence* table has the same two columns per package. `--check` fails an `open` plan or roadmap row
+whose recipes are all in `README.md`'s tables, and a `shipped` one naming a recipe that is not: the pull request
+that adds a plan's last recipe marks the plan `shipped`. `llms.txt` never links a plan that is not `open`.
 
 ## Screenshots
 

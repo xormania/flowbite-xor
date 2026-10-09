@@ -9,7 +9,9 @@
 // - FOR-AGENTS.md, *Which recipe*: the table between the `recipes:start` and `recipes:end` comments.
 //
 // It also checks that FOR-AGENTS.md and docs/PROJECT-AGENTS-SNIPPET.md name only recipes that exist
-// (`ux:install <name>`, `<name>/README.md` links).
+// (`ux:install <name>`, `<name>/README.md` links), and the plans' status (docs/PLAN-*.md front matter and the
+// docs/ROADMAP.md table, see CONTRIBUTING.md *Plans*): an `open` plan whose recipes all ship, or a `shipped` one
+// whose recipe is missing, fails.
 //
 //   node tools/llms-txt.mjs           # writes llms.txt and the FOR-AGENTS.md table
 //   node tools/llms-txt.mjs --check   # fails when either is not what this script writes, or a check fails (CI)
@@ -145,6 +147,63 @@ for (const path of ['FOR-AGENTS.md', 'docs/PROJECT-AGENTS-SNIPPET.md']) {
     }
 }
 
+// --- plans: docs/PLAN-*.md front matter, docs/ROADMAP.md's *Sequence* table
+const statuses = ['open', 'shipped', 'abandoned'];
+const checkStatus = (where, status, names) => {
+    if (!statuses.includes(status)) {
+        errors.push(`${where}: status "${status ?? ''}" is not one of ${statuses.join(', ')}.`);
+        return;
+    }
+    if (status === 'open' && names.length > 0 && names.every(ships)) {
+        errors.push(`${where}: status open, but ${names.join(', ')} ${names.length > 1 ? 'ship' : 'ships'} (README.md's tables): mark it shipped.`);
+    }
+    if (status === 'shipped') {
+        const gone = names.filter((name) => !ships(name));
+        if (gone.length) {
+            errors.push(`${where}: status shipped, but ${gone.join(', ')} ${gone.length > 1 ? 'are' : 'is'} not a recipe in README.md's tables.`);
+        }
+    }
+};
+const recipeList = (text) => (/^\s*(none|—|-)?\s*$/.test(text) ? [] : text.split(',').map((name) => name.trim().replace(/`/g, '')));
+const plans = readdirSync(join(root, 'docs')).filter((file) => /^PLAN-.+\.md$/.test(file)).sort();
+const closedPlans = [];
+for (const file of plans) {
+    const front = read(`docs/${file}`).match(/^---\n([\s\S]*?)\n---\n/);
+    if (!front) {
+        errors.push(`docs/${file}: no front matter (---, status: open|shipped|abandoned, recipes: …, ---) on its first lines.`);
+        continue;
+    }
+    // "key: value", a trailing "# comment" left out
+    const field = (key) => front[1].match(new RegExp(`^${key}:[ \\t]*(.*?)[ \\t]*(#.*)?$`, 'm'))?.[1];
+    if (field('recipes') === undefined) {
+        errors.push(`docs/${file}: no "recipes:" line in the front matter (the recipes it adds, or none).`);
+        continue;
+    }
+    checkStatus(`docs/${file}`, field('status'), recipeList(field('recipes')));
+    if (field('status') !== 'open') {
+        closedPlans.push(`docs/${file}`);
+    }
+}
+const roadmap = read('docs/ROADMAP.md');
+const header = roadmap.match(/^\| # \|.*\| Recipes \| Status \|$/m);
+if (!header) {
+    errors.push('docs/ROADMAP.md: the *Sequence* table has no "Recipes" and "Status" columns (last two).');
+} else {
+    for (const line of roadmap.slice(header.index).split('\n').slice(2)) {
+        if (!line.startsWith('|')) {
+            break;
+        }
+        const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+        checkStatus(`docs/ROADMAP.md, ${plain(cells[1]).replace(/\*/g, '')}`, cells.at(-1).replace(/\*/g, ''), recipeList(cells.at(-2)));
+    }
+}
+// a plan that is no longer open is a record, not an instruction: llms.txt never offers one
+for (const page of closedPlans) {
+    if (llms.includes(`/${page}`)) {
+        errors.push(`llms.txt links ${page}, which is not an open plan: agents would take it as instructions.`);
+    }
+}
+
 // --- write or check
 const outputs = [['llms.txt', llms], ['FOR-AGENTS.md', forAgentsOutput]];
 if (process.argv.includes('--check')) {
@@ -158,7 +217,7 @@ if (process.argv.includes('--check')) {
         errors.forEach((error) => console.error(error));
         process.exit(1);
     }
-    console.log(`llms.txt and FOR-AGENTS.md are up to date (${listed.length} recipes, links at ${ref}).`);
+    console.log(`llms.txt and FOR-AGENTS.md are up to date (${listed.length} recipes, links at ${ref}); ${plans.length} plans and the roadmap checked.`);
 } else {
     for (const [path, output] of outputs) {
         writeFileSync(join(root, path), output);

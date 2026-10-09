@@ -1,3 +1,8 @@
+---
+status: shipped
+recipes: dropzone
+---
+
 # Plan: E2. Files
 
 _2026-10-08. This plan implements the E2 decision in [`ROADMAP.md`](ROADMAP.md): UX Dropzone, styled with the theme and wired into the form theme. The default path is a Turbo-submitted multipart form. A Live Component uses a `files` action. Queues, resumable uploads and image processing are out of scope. Decided with the user on 2026-10-08: the recommended answers to the open questions at the end, including automatic wiring for every `DropzoneType` (4) and, in Live Components, only `<twig:Dropzone>` with a `files` upload action (7). Delivery is two pull requests: (1) the `dropzone` recipe and its Turbo gate, then (2) the form-theme wiring, the server side and the Live lab._
