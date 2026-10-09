@@ -280,6 +280,9 @@ jobs:
             - name: llms.txt matches README.md's recipe tables
               run: node tools/llms-txt.mjs --check
 
+            - name: The markdown teaches no Flowbite JS, palette color, inline handler or style
+              run: node tools/docs-lint.mjs
+
     demo:
         name: Demo + Playwright (${{ matrix.shard }}/3)
         needs: changes

@@ -81,6 +81,7 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
 node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
+node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles (see Docs)
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 (cd demo && bin/phpunit)                            # the PHP tests (demo/tests/): the data tables' limits, Live and Twig components, snapshots, profiler counts
@@ -114,7 +115,7 @@ Every test of both projects blocks requests leaving the demo, and fails on a con
 request that fails or answers >= 400, or a Content Security Policy violation (`tests/e2e/fixtures.ts`).
 The demo enforces a strict policy (`demo/src/EventListener/SecurityHeadersListener.php`): scripts and styles run
 only with the request's nonces, which the layouts print (`layouts/README.md`), and no inline event handler or style
-attribute runs, except the few style attributes of README examples it lists.
+attribute runs, README previews included.
 
 Against the Docker demo, run `DEMO_URL=https://localhost npx playwright test`: the specs then run PHP in the
 container (`tools/demo-php`). Without `DEMO_URL`, Playwright serves the demo itself with `php -S 127.0.0.1:8000`.
@@ -244,6 +245,21 @@ it with `--check`, which fails when:
 heading in `CHANGELOG.md` (the tag `release.yml` puts on the commit that adds it), or `dev` while
 `## [Unreleased]` has entries. A release pull request therefore rewrites it to the new tag, and the first pull
 request that adds an unreleased entry after a release rewrites it back to `dev`: `--check` says when.
+
+**What the docs teach.** Agents copy examples from the markdown, so `node tools/docs-lint.mjs` (also in *Contrast*)
+fails a code block, in any markdown file outside `demo/`, that shows `initFlowbite`, `import 'flowbite'` or a
+`flowbite.js` file; a palette color (a color utility naming a Tailwind palette color that is not a theme role, from
+`tailwindcss/theme.css` and `kit.css` as the contrast check reads them: `bg-blue-700`, `text-white`); a `dark:` color
+override; an inline `on…=` handler; or a `style=` attribute. Raw HTML in prose counts too. Inline code does not: the
+rules quote what they forbid there. A block that shows what not to do says so after its language:
+
+````markdown
+```twig do-not
+<button onclick="openMenu()">Menu</button>
+```
+````
+
+A `markdown` block is read as a document: its code blocks are checked, its prose is not.
 
 **Plans.** `docs/PLAN-*.md` and `docs/ROADMAP.md` record decisions; they are not instructions. Each plan opens
 with front matter naming its status and the recipes it adds:
