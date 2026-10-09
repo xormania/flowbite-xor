@@ -817,8 +817,8 @@ each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summa
   the summed time of every attempt (retries included; workers overlap, so it is larger than the wall time and the two
   are not compared), the 10 slowest tests (a test's time is the sum of its attempts) and each file's total.
   `durations.json` holds the same numbers and every test's attempt times, with the commit, shard and versions, to
-  compare runs. No threshold: it never fails a step, and an attempt with no recorded time counts as unknown, not 0, and a test or file holding one shows its time as a lower
-  bound (≥).
+  compare runs. No threshold: it never fails a step. An attempt with no recorded time counts as unknown, not 0, and
+  a test or file holding one shows its time as a lower bound (≥).
 
 The script's exit status says what it found: 0 a report it read (whatever its tests did), 2 no report, 3 an invalid
 report, 4 tests not reached. Run it on a local report with `node tools/ci/playwright-summary.mjs` after
