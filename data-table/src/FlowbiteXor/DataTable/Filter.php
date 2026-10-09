@@ -8,7 +8,7 @@ namespace App\FlowbiteXor\DataTable;
 final class Filter
 {
     /**
-     * @param array<string, string> $choices value => label
+     * @param array<int|string, string> $choices value => label
      */
     private function __construct(
         public readonly string $key,
@@ -18,7 +18,8 @@ final class Filter
     }
 
     /**
-     * @param array<string, string> $choices value => label
+     * @param array<int|string, string> $choices value => label; PHP keys a numeric value (`'2024'`) as an integer, and
+     *                                         the query holds it as a string
      */
     public static function choice(string $key, string $label, array $choices): self
     {

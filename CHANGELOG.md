@@ -51,6 +51,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `data-table`: `Filter::choice()` documents its choices as `array<int|string, string>`: PHP keys numeric values
+  (`'2024'`) as integers, which PHPStan refused against the former `array<string, string>`. The query and the select
+  already handled them.
 - `data-table`: after Back or Forward, the search field showed the search applied next, or typed before leaving the
   page, instead of the URL's; the filters and the page size could too. The form now shows the URL's state in every
   field: a new `data-table` controller resets it to the values the server rendered when a restored copy connects.

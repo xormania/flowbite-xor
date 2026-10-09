@@ -555,6 +555,12 @@ Through a real request, the same count comes from the profiler (below, *Counts f
 
 Here: [`demo/tests/DataTable/`](../demo/tests/DataTable/), [`SelectionTest.php`](../demo/tests/DataTableLive/SelectionTest.php).
 
+The same folder holds the data table's extension contracts, through a representative extension
+([`Fixtures/ProductsTable.php`](../demo/tests/DataTable/Fixtures/ProductsTable.php): a server sort field, numeric
+filter choices, a default sort, a prefix): what `TableQuery` makes of untrusted values, what `AbstractDataTable` reads
+from a request and takes as a row's id, and the page window, URLs and hidden fields of `DataTableView`. Each pins a
+boundary an app relies on, not every getter.
+
 ## PHP tests (PHPUnit)
 
 The demo has PHPUnit 13 and Symfony's test tools (what `symfony/test-pack` installs: `phpunit/phpunit`,
