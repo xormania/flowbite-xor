@@ -21,6 +21,7 @@ kit='lint-kit php static-site fresh-install demo'
 
 check ''                          LICENSE .github/dependabot.yml
 check 'contrast'                  .github/pull_request_template.md tools/docs-lint.mjs
+check 'static-site contrast'      tools/fence-coverage.mjs
 check "$all"                      INSTALL.md
 check 'contrast'                  docs/TESTING.md CHANGELOG.md FOR-AGENTS.md
 check ''                          .github/workflows/audit.yml

@@ -82,6 +82,7 @@ node tools/contrast/check.mjs                       # every pair in tools/contra
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
 node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
 node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles (see Docs)
+node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 (cd demo && bin/phpunit)                            # the PHP tests (demo/tests/): the data tables' limits, Live and Twig components, snapshots, profiler counts
@@ -260,6 +261,14 @@ rules quote what they forbid there. A block that shows what not to do says so af
 ````
 
 A `markdown` block is read as a document: its code blocks are checked, its prose is not.
+
+**Every example has its page.** `node tools/fence-coverage.mjs` (in *Contrast*) reads each recipe's README as the
+demo does (`demo/src/Kit/KitReader.php`): a block opening at the start of a line with
+```` ```<language> {"preview":true} ```` is an example, named after the heading above it. A block that looks like
+one but that the demo skips (indented in a list, JSON that does not parse, `"preview"` not `true`) fails, and so does
+a recipe without a README. *Static site* runs it again with `--site _site` after `app:export-static`: every recipe
+needs its `r/<recipe>/` page and a link from the index, every example its light and dark preview pages, and a saved
+page that no source names fails too.
 
 **Plans.** `docs/PLAN-*.md` and `docs/ROADMAP.md` record decisions; they are not instructions. Each plan opens
 with front matter naming its status and the recipes it adds:
