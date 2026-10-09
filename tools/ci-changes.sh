@@ -38,12 +38,14 @@ while IFS= read -r path; do
         .github/workflows/audit.yml | .github/workflows/codeql.yml | .github/actionlint.yaml) on workflows ;;
         .github/*) all ;;
 
-        # The browser tests and their tools
+        # The browser tests and their tools. tools/test-inventory.mjs (Contrast) reads which specs exist, the accessibility
+        # scan's list of lab pages and, below, the PHPUnit tests, the lab's routes and which recipes ship a controller
+        tests/e2e/*.spec.ts) on contrast demo ;;
         tests/* | playwright.config.ts) on demo ;;
         package.json | package-lock.json) on contrast demo ;;
 
         # Repository tools, each with the jobs that run it
-        tools/contrast/* | tools/llms-txt.mjs | tools/docs-lint.mjs | llms.txt) on contrast ;;
+        tools/contrast/* | tools/llms-txt.mjs | tools/docs-lint.mjs | tools/test-inventory.mjs | llms.txt) on contrast ;;
         tools/fence-coverage.mjs) on contrast static-site ;;
         tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh) on fresh-install ;;
         tools/tests/live-action.php | tools/tests/fixtures/fresh-app/*) on fresh-install ;;
@@ -56,16 +58,19 @@ while IFS= read -r path; do
         # The demo app: its PHP tests, its static export and the browser tests run against it. docker-install.sh copies
         # the demo's Compose file and Caddyfile into a fresh Symfony Docker project.
         demo/compose.yaml | demo/frankenphp/Caddyfile) on php static-site demo fresh-install ;;
+        demo/tests/* | demo/src/Controller/LabController.php) on php static-site demo contrast ;;
         demo/*) on php static-site demo ;;
 
-        # A recipe's own tests (upstream specs, screenshot baselines): only the browser tests read them
+        # A recipe's own tests (upstream specs, screenshot baselines): only the browser tests read them, and the
+        # inventory check which specs exist
+        */tests/*.spec.ts) on contrast demo ;;
         */tests/*) on demo ;;
 
         # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...)
         *)
             on lint-kit php static-site fresh-install demo
             case "$path" in
-                kit.css | theme/* | README.md | */README.md | INSTALL.md) on contrast ;;
+                kit.css | theme/* | README.md | */README.md | INSTALL.md | */assets/controllers/* | */manifest.json) on contrast ;;
             esac
             ;;
     esac
