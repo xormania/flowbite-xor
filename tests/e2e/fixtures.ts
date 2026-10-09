@@ -180,3 +180,4 @@ export async function trackGlobalListeners(page: Page): Promise<() => Promise<Re
 
     return () => page.evaluate(() => (window as any).__globalListeners() as Record<string, number>);
 }
+

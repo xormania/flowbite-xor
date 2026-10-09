@@ -64,6 +64,15 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   now comes back closed.
 - `modal`, `drawer`: a dialog open when the page was cached came back open but not modal after Back (the page behind
   it usable); it now comes back closed, and opens as a modal again.
+- `modal`, `drawer`: a dialog open when the page was left (Back, Forward, a visit started by the page) left its
+  trigger `aria-expanded="true"` in the copy Turbo shows on Back or Forward, and kept it there, on a closed dialog,
+  when Turbo copied the page after the dialog had disconnected; the dialog now closes and its trigger collapses before
+  Turbo caches the page, except for a frame visit promoted to history (a data table's pages), which keeps the page on
+  screen: the dialog stays open, and the copy Back shows connects closed. A drawer reopened after a move in the DOM (a `data-turbo-permanent` element) no longer shows
+  its trigger collapsed.
+- `dropdown`: the copy of the page Turbo shows on Back or Forward held a menu left open, until its controller closed
+  it; the menu now closes before Turbo caches the page, except for a frame visit promoted to history, which keeps the
+  page on screen: the menu stays open, and the copy Back shows connects closed.
 - `editor`: a frame visit promoted to history (`data-turbo-action="advance"`) destroyed an editor outside the frame;
   the editor now stays, and Back builds a new one from the cached copy.
 - `markdown-editor`: after Back from a frame visit promoted to history, the textarea showed the server's Markdown

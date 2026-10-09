@@ -1,13 +1,26 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
+ * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
+ * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
+ * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
+ * Copy it into a controller that needs it, as `position()` is.
+ */
+function isPromotedFrameCache() {
+    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
+}
+
+/**
  * Opens a `Dropdown` menu on click or hover, places it next to its trigger and handles the keyboard.
  *
  * It replaces Flowbite's `Dropdown` (and its Popper dependency) with the same behavior: the content
  * toggles `hidden`/`block` and `aria-hidden`, closes on a click outside, follows its trigger on scroll
  * and resize while open, flips to the opposite side when it does not fit, and is shifted back into the
- * viewport along the trigger. Every listener is removed when it closes or disconnects. The menu starts closed on
- * every connect: a copy of the page Turbo cached while it was open (Back) shows it closed, not open and inert.
+ * viewport along the trigger. Every listener is removed when it closes or disconnects. The menu closes before Turbo
+ * caches the page, and starts closed on every connect: a copy of the page Turbo cached while it was open (Back) shows
+ * it closed, not open and inert. A frame visit promoted to history (`data-turbo-action="advance"`) dispatches
+ * `turbo:before-cache` too, but keeps the page on screen and caches a copy taken when it started: the menu then stays
+ * open, and the copy is closed as it connects.
  *
  * @target trigger        The button opening the menu.
  * @target content        The menu, positioned next to the trigger.
@@ -50,6 +63,9 @@ export default class extends Controller {
         }
         on(this.triggerTarget, 'keydown', (event) => this.handleTriggerKeydown(event));
         on(this.contentTarget, 'keydown', (event) => this.handleContentKeydown(event));
+        // closed in the copy of the page Turbo shows on Back and Forward, not only once that copy connects; a frame
+        // visit promoted to history took its copy already and keeps the page on screen, so the menu stays open
+        on(document, 'turbo:before-cache', () => isPromotedFrameCache() || this.hide());
 
         if (this.openValue) {
             this.show();

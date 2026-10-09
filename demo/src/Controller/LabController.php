@@ -50,6 +50,12 @@ final class LabController extends AbstractController
         'live-popover' => 'A Popover open while its Live Component re-renders (action and model change).',
         'tooltip-turbo' => 'Tooltips across Turbo visits, Back and Forward: on the link that visits, on an icon button, inside a data-turbo-permanent element, inside a Turbo Frame that reloads, and on the link of a frame whose visits are promoted to history.',
         'tooltip-stream' => 'A Tooltip replaced and updated by Turbo Streams.',
+        'dropdown-turbo' => 'Dropdowns across Turbo visits and Back: a plain one with a link to the other page, one inside a data-turbo-permanent element, one inside a Turbo Frame that its own menu reloads; page two waits for a stylesheet, so Turbo copies page one before its controllers disconnect. Beside a frame whose visits are promoted to history, stepped from a link in the menu or from the page\'s code, the open menu stays open; Back shows it closed.',
+        'dropdown-stream' => 'A Dropdown replaced and updated by Turbo Streams while open.',
+        'modal-turbo' => 'Modals across Turbo visits and Back: a plain one with a link to the other page, one inside a data-turbo-permanent element, one inside a Turbo Frame that a link in the open modal reloads; page two waits for a stylesheet, so Turbo copies page one before its controllers disconnect. Beside a frame whose visits are promoted to history, stepped from a link in the open modal or from the page\'s code, the open modal stays open; Back shows it closed.',
+        'modal-stream' => 'A Modal replaced and updated by Turbo Streams while open.',
+        'drawer-turbo' => 'Drawers across Turbo visits and Back: a plain one with a link to the other page, one inside a data-turbo-permanent element, one inside a Turbo Frame that a link in the open drawer reloads; page two waits for a stylesheet, so Turbo copies page one before its controllers disconnect. Beside a frame whose visits are promoted to history, stepped from a link in the open drawer or from the page\'s code, the open drawer stays open; Back shows it closed.',
+        'drawer-stream' => 'A Drawer replaced and updated by Turbo Streams while open.',
         'calendar-turbo' => 'Calendars in a GET form (one date, a range, several dates) across Turbo visits and Back, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'calendar-stream' => 'A Calendar replaced and updated by Turbo Streams.',
         'live-calendar' => 'Calendars bound to Live Component properties: a date, a range, bounds and a locale changed by the server.',
@@ -292,6 +298,39 @@ final class LabController extends AbstractController
         }
 
         return $this->render('lab/tooltip_stream.html.twig', ['description' => self::SCENARIOS['tooltip-stream']]);
+    }
+
+    #[Route('/dropdown-turbo/{page}', name: 'app_lab_dropdown_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    #[Route('/modal-turbo/{page}', name: 'app_lab_modal_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    #[Route('/drawer-turbo/{page}', name: 'app_lab_drawer_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    public function overlayTurbo(Request $request, string $page, string $_route): Response
+    {
+        $name = str_replace('_', '-', substr($_route, \strlen('app_lab_')));
+
+        return $this->render(\sprintf('lab/%s.html.twig', str_replace('-', '_', $name)), [
+            'page' => $page,
+            'load' => $request->query->getInt('load'),
+            'step' => $request->query->getInt('step'),
+            'description' => self::SCENARIOS[$name],
+        ]);
+    }
+
+    #[Route('/dropdown-stream', name: 'app_lab_dropdown_stream', methods: ['GET', 'POST'])]
+    #[Route('/modal-stream', name: 'app_lab_modal_stream', methods: ['GET', 'POST'])]
+    #[Route('/drawer-stream', name: 'app_lab_drawer_stream', methods: ['GET', 'POST'])]
+    public function overlayStream(Request $request, string $_route): Response
+    {
+        $name = str_replace('_', '-', substr($_route, \strlen('app_lab_')));
+        $template = str_replace('-', '_', $name);
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render(\sprintf('lab/%s.stream.html.twig', $template), [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render(\sprintf('lab/%s.html.twig', $template), ['description' => self::SCENARIOS[$name]]);
     }
 
     #[Route('/side-nav/{page}', name: 'app_lab_side_nav', requirements: ['page' => 'one|two|three|four'], defaults: ['page' => 'one'])]
