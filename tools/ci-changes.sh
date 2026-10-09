@@ -39,7 +39,7 @@ while IFS= read -r path; do
         .github/*) all ;;
 
         # The browser tests and their tools
-        tests/* | playwright.config.ts) on demo ;;
+        tests/* | playwright.config.ts | tools/prepare-tests.mjs | tools/tests/prepare-tests.test.mjs) on demo ;;
         package.json | package-lock.json) on contrast demo ;;
 
         # Repository tools, each with the jobs that run it

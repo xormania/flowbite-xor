@@ -76,6 +76,7 @@ check "$all"                      tools/ci-changes.sh
 check 'workflows'                 tools/release-plan.sh
 check 'workflows'                 tools/tests/release-plan.sh
 check 'demo'                      tests/e2e/lab.side-nav.spec.ts
+check 'demo'                      playwright.config.ts tools/prepare-tests.mjs tools/tests/prepare-tests.test.mjs
 check 'demo'                      alert/tests/screenshots/default-light.png
 check 'contrast demo'             package-lock.json
 check 'contrast'                  tools/contrast/pairs.json

@@ -759,13 +759,13 @@ each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summa
   container). The same text is the last step of the job log (*Playwright summary*), after the demo's logs.
 - **Annotations:** an error at the line that failed for each failed test, a warning for each flaky one. They show on
   the run's page and on the commit; GitHub shows at most 10 of each kind per step, so the summary is the full list. A
-  recipe's own spec runs as a generated copy in `tests/e2e/examples/recipes/`: its annotation points at the committed
+  recipe's own spec runs as a copy `tools/prepare-tests.mjs` generates in `tests/e2e/examples/recipes/`: its annotation points at the committed
   `<recipe>/tests/*.spec.ts` instead.
 - **Flaky** means failed, then passed on its retry. The run stays green, but the summary says *flaky (passed on retry)*
   instead of *all N passed*, and the shard keeps the traces (`playwright-report-<shard>`, 7 days). A flaky test is a
   test to fix or a bug to find (see *Wait for the operation to complete*), not noise.
 - **No evidence** is said as such, and fails the step: *tests not reached: setup failed at &lt;step&gt;* (the image,
-  the demo's start, a check on shard 1 or the Playwright install failed, so no test ran), *no test evidence: tests not
+  the demo's start, a check on shard 1, the Playwright install or the tests' preparation failed, so no test ran), *no test evidence: tests not
   reached or report not written* (Playwright ran but left no report), *report invalid* (it does not parse).
 - **Kept 30 days** in `playwright-results-<shard>`: `results.json` (every test's attempts), `summary.md`, and
   `failed-attempts.json`, one entry per failed attempt, retry-recovered ones included (test id, file, line, title,

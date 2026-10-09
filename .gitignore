@@ -8,3 +8,4 @@
 
 # The demo app keeps its own .gitignore (vendor/, var/, public/assets/, assets/vendor/)
 /tests/e2e/examples/recipes/
+/tests/.prepare/

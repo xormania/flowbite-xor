@@ -414,7 +414,6 @@ jobs:
                       exit 1
                   fi
 
-            # The CSS is built by playwright.config.ts, which records what it was built from: no build here
             - name: The demo's composer.json and composer.lock are valid
               id: composer
               if: matrix.shard == 1
@@ -434,6 +433,14 @@ jobs:
               run: |
                   npm ci
                   docker pull "mcr.microsoft.com/playwright:v$(node -p "require('@playwright/test/package.json').version")-noble"
+
+            # The recipe specs' runnable copies and the demo's CSS, recorded with what it was built from
+            # (tools/prepare-tests.mjs): Playwright finds both up to date, and a failed build reads as a setup failure
+            - name: Prepare the tests
+              id: prepare
+              env:
+                  DEMO_URL: https://localhost
+              run: node tools/prepare-tests.mjs
 
             - name: Playwright (smoke + every README example + upstream recipe specs)
               id: tests
@@ -462,6 +469,7 @@ jobs:
                       The demo's composer.json and composer.lock are valid=${{ steps.composer.outcome }}
                       sync-demo copies what ux:install copies=${{ steps.sync-parity.outcome }}
                       Install Playwright=${{ steps.install.outcome }}
+                      Prepare the tests=${{ steps.prepare.outcome }}
               run: |
                   if [ "$DEMO_STARTED" = success ]; then
                       # the PHP snippet is single-quoted on purpose: its $m is PHP's, not the shell's
