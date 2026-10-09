@@ -46,8 +46,15 @@ export default class extends Controller {
 
     closeOnLink(event) {
         const link = event.target.closest('a[href]');
+        if (!link || !this.dialog?.contains(link) || event.defaultPrevented) {
+            return;
+        }
+        // a modifier click or another button opens a new tab; a target other than this tab, or a download, does not
+        // navigate this one either: the drawer stays open
         const newTab = event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button > 0;
-        if (link && this.dialog?.contains(link) && !event.defaultPrevented && !newTab) {
+        const target = (link.getAttribute('target') ?? '').trim().toLowerCase();
+        const otherContext = '' !== target && !['_self', '_top', '_parent'].includes(target);
+        if (!newTab && !otherContext && !link.hasAttribute('download')) {
             this.close();
         }
     }

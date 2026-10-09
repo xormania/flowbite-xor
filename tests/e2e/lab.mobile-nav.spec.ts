@@ -149,6 +149,35 @@ test.describe('on a phone', () => {
         expect(await page.evaluate(() => (window as any).__sameDocument)).toBeUndefined(); // the reload was a full load
     });
 
+    test('a link opening another tab or window, a download or a modifier click leaves the drawer open', async ({ page }) => {
+        await page.goto('/lab/mobile-nav');
+        await menu(page).click();
+        await expectDrawer(page, true, 'drawer: Overview');
+        // links this tab does not follow; the page cancels them after the controller has seen the click (bubble order)
+        await page.evaluate(() => {
+            const dialog = document.getElementById(document.querySelector('[aria-haspopup="dialog"]')!.getAttribute('aria-controls')!)!;
+            for (const [text, attribute, value] of [['Blank', 'target', '_blank'], ['Named', 'target', 'docs'], ['File', 'download', '']]) {
+                const link = document.createElement('a');
+                link.href = '/lab/mobile-nav/two';
+                link.textContent = text;
+                link.setAttribute(attribute, value);
+                dialog.querySelector('nav')!.append(link);
+            }
+            window.addEventListener('click', (event) => {
+                if ((event.target as Element).closest('[target], [download]')) {
+                    event.preventDefault();
+                }
+            });
+        });
+        const dialog = page.getByRole('dialog');
+        for (const name of ['Blank', 'Named', 'File']) {
+            await dialog.getByRole('link', { name, exact: true }).click();
+            await expect(page.getByRole('dialog')).toBeVisible();
+        }
+        await dialog.getByRole('treeitem', { name: 'Overview' }).click({ modifiers: ['ControlOrMeta'] });
+        await expect(page.getByRole('dialog')).toBeVisible();
+    });
+
     test('Back and Forward while the drawer is open: the copy Turbo cached shows it closed', async ({ page }) => {
         // the open state of the drawer in each page Turbo renders from its cache
         await page.addInitScript(() => {

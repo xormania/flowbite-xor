@@ -64,7 +64,12 @@ controllers. Previewing untrusted code would need a separate origin and containe
 
 ## Checks
 
-CI runs all of them on every push. The PHP ones run on your machine as shown, or in the container: prefix them with
+CI runs them on every push, each job only when the change could affect what it checks
+([`tools/ci-changes.sh`](tools/ci-changes.sh): a docs-only change runs none, a recipe change runs all but *Contrast*,
+a change to the workflow runs everything); pushes to `main` and `dev` run everything. The rulesets require the one
+*CI result* check, which passes when every job passed or was skipped. CI runs the script as the base branch has it, so a
+branch cannot change its own checks; a new top-level path counts as part of the kit until `tools/ci-changes.sh` and
+its test (`tools/tests/ci-changes.sh`) say otherwise. The PHP ones run on your machine as shown, or in the container: prefix them with
 `docker compose exec php` from `demo/`, with paths relative to `demo/`
 (`docker compose exec php bash ../tools/tests/sync-demo.sh`).
 
@@ -246,7 +251,8 @@ a release is a pull request from `dev` to `main` (*Releases* below).
 - *Why* gives the problem or the goal.
 - *Coverage map* lists each guarantee the change adds or touches, at which scope it is tested and whether that
   coverage is new, extended, moved or removed, then what was reused, the new shared test support and the gaps left
-  (see [`docs/TESTING.md`](docs/TESTING.md)). A pull request with no behavior or test change says so.
+  (see [`docs/TESTING.md`](docs/TESTING.md)), and updates the rows it changes in the suite-wide map,
+  [`docs/TEST-INVENTORY.md`](docs/TEST-INVENTORY.md). A pull request with no behavior or test change says so.
 - *Checks* says whether CI passed on the last commit and what you verified by hand.
 
 Use plain words throughout, and no AI attribution lines (`Co-Authored-By`, "Generated with" footers). Pull requests
