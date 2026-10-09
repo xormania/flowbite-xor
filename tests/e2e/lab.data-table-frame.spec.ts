@@ -14,9 +14,8 @@ const tableUrl = (state: TableState) => `/lab/data-table-frame${Object.keys(stat
 async function expectTable(page: Page, { params: expected, status: text, current }: TableState) {
     expect(params(page)).toEqual(expected);
     await expect(status(page)).toHaveText(text);
-    // KNOWN KIT BUG, kept on purpose: Turbo's copy of the page keeps the text typed in the search field before the
-    // search was submitted, so Back to the page before the search shows `bonnie` with no `q` in the URL. The
-    // data-table fix (restored copies reset their form controls to the URL's state) makes this pass.
+    // Turbo's copy of the page keeps the text typed before the search was submitted; the data-table controller
+    // resets restored fields, so Back to the page before the search shows no search
     await expect(page.getByLabel('Search', { exact: true }), 'the search field shows the URL\'s search').toHaveValue(expected.q ?? '');
     await expect(page.getByLabel('Status')).toHaveValue(expected['f[status]'] ?? '');
     await expect(page.getByLabel('Rows per page'), 'rows per page shows the URL\'s page size').toHaveValue(expected.size ?? '10');
