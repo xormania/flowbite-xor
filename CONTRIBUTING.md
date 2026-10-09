@@ -15,7 +15,7 @@ and pull request standard.
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
 | `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
 | `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
-| `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` | no | each recipe README states its manifest's dependency versions, and changes with the recipe's code unless a commit waives it (*Docs*) |
+| `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` | no | each recipe README renders its manifest's dependencies (`::: installation`) and writes no version table, and changes with the recipe's code unless a commit waives it (*Docs*) |
 | `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations, `failed-attempts.json` and `durations.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
 | `tools/ci/jev-diagnosis.mjs`, `tools/ci/jev-ci.json` | no | the advisory Jev diagnosis of each failed attempt in `failed-attempts.json`, and its policy ([`docs/TESTING.md`](docs/TESTING.md), *Jev diagnosis*) |
 | `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
@@ -127,7 +127,7 @@ node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md
 node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles (see Docs)
 node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
 node tools/test-inventory.mjs                       # docs/TEST-INVENTORY.md has a matrix row per recipe with a controller, a row per rule of FOR-AGENTS.md's Working well, and names existing tests; a11y.spec.ts scans every lab page
-node tools/readme-versions.mjs                      # each recipe README's version table matches its manifest.json, or it renders ::: installation (see Docs)
+node tools/readme-versions.mjs                      # each recipe README renders its manifest.json with ::: installation and has no version table (see Docs)
 node tools/readme-pairing.mjs [--base <ref>]        # each recipe whose code your commits change has its README changed, or a Docs-waiver trailer; base: where HEAD left origin/dev (see Docs)
 node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer and of the Jev diagnosis (tools/ci/), of tools/prepare-tests.mjs and of the README checks
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
@@ -335,19 +335,11 @@ a recipe without a README. `tools/build-static.sh` (*Static site*, `pages.yml`) 
 `app:export-static`: every recipe needs its `r/<recipe>/` page and a link from the index, every example its light and
 dark preview pages, and a saved page that no source names fails too.
 
-**READMEs state the manifest.** `node tools/readme-versions.mjs` (in *Contrast*) reads each recipe's `README.md`
-against its `manifest.json`, which is what `ux:install` reads. A README either has the `::: installation` line, which
-the toolkit renders from the manifest, or a version table listing exactly the manifest's Composer, npm and importmap
-packages with the manifest's constraints (`any` for none; recipe dependencies are not listed):
-
-```markdown
-| Package | Version | Via |
-|---|---|---|
-| `twig/html-extra` | `^3.24.0` | composer |
-| `chart.js` | any | importmap |
-```
-
-A missing package, an extra one or another constraint fails, and there is no waiver: fix the README.
+**READMEs state the manifest.** `node tools/readme-versions.mjs` (in *Contrast*) reads each recipe's `README.md`.
+It must have the `::: installation` line, on a line of its own outside code blocks: the toolkit renders the install
+steps from the recipe's `manifest.json`, which is what `ux:install` reads, so the versions match by construction. A
+README writes no version of its own: a table with a Version column outside code blocks fails, even one that matches
+the manifest. There is no waiver: fix the README.
 
 **A recipe change comes with its README.** `node tools/readme-pairing.mjs` (in *Contrast*) reads the branch's changes
 since where it left `dev`, the base the *Changes* job computes in the workflow (a merge that brings `dev` in adds

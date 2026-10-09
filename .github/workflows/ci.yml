@@ -325,7 +325,7 @@ jobs:
             - name: The README checks' own cases
               run: node --test tools/tests/readme-versions.test.mjs tools/tests/readme-pairing.test.mjs
 
-            - name: Each recipe README states its manifest's dependency versions
+            - name: Each recipe README renders its manifest's dependencies and writes no version table
               run: node tools/readme-versions.mjs
 
             # The Changes job's base: none for main, dev or a run by hand, which compares nothing
