@@ -170,10 +170,26 @@ test('the vertical tabs follow the keyboard of the tabs pattern: Up, Down, Home,
     await press('End', 'Advanced');
     expect(await page.evaluate(() => window.scrollX)).toBe(0);
 
+    // Tab moves on to the panel (a Tab stop of its own, as the pattern's panels are), then into it
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('tabpanel', { name: 'Advanced' })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('tabpanel', { name: 'Advanced' }).getByRole('link')).toBeFocused();
     await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Shift+Tab');
     await expect(tab(page, 'Advanced')).toBeFocused();
+
+    // a tab disabled in place (a Live morph) hands the Tab stop on to an enabled tab
+    await tab(page, 'General').click();
+    await tab(page, 'General').evaluate((trigger) => trigger.setAttribute('disabled', ''));
+    await expect(tablist(page).locator('[role="tab"][tabindex="0"]')).toHaveText(['Privacy']);
+});
+
+test('a panel with no focusable content is a Tab stop after its tab', async ({ page }) => {
+    await page.goto('/preview/tabs/default?theme=light');
+    await page.getByRole('tab', { name: 'Profile', exact: true }).focus();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('tabpanel', { name: 'Profile' })).toBeFocused();
 });
 
 test('horizontal tabs take Left and Right instead, and a list without a selected tab keeps a Tab stop', async ({ page }) => {

@@ -25,9 +25,13 @@ export default class extends Controller {
 
     connect() {
         this.connected = true;
+        // a tab disabled or enabled in place (a Live morph) moves the Tab stop
+        this.disabledObserver = new MutationObserver(() => this.updateTabStop());
+        this.disabledObserver.observe(this.element, { attributes: true, attributeFilter: ['disabled'], subtree: true });
     }
 
     disconnect() {
+        this.disabledObserver.disconnect();
         // the targets disconnect after this: they must not pick a Tab stop again
         this.connected = false;
         this.renderedTabindex.forEach((value, trigger) => (null === value ? trigger.removeAttribute('tabindex') : trigger.setAttribute('tabindex', value)));

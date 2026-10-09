@@ -54,7 +54,8 @@ Use the following default tabs component example to show a list of links that th
 - **Tabs switch panels within the page.** For a group of pages, each with its own URL (settings sections), use
   the `section-nav` recipe: links with `aria-current="page"`, not tabs.
 - **Keyboard,** as the WAI-ARIA tabs pattern describes it: the selected tab is the list's one Tab stop, and Tab
-  moves on to its panel. In a horizontal list Left and Right select the previous and next tab, in a vertical one
+  moves on to its panel, a Tab stop of its own (`tabindex="0"`, so a panel of plain text is reachable); a tab
+  disabled in place, by a Live re-render, hands the Tab stop on. In a horizontal list Left and Right select the previous and next tab, in a vertical one
   (`orientation="vertical"`, which also sets `aria-orientation` on the list) Up and Down; both wrap around, and Home
   and End select the first and last. Disabled tabs are skipped.
 - **Ids:** each tab is `<idPrefix>-<value>` and its panel `<idPrefix>-<value>-description`. Give each `Tabs` of a
