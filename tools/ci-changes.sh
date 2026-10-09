@@ -70,7 +70,7 @@ while IFS= read -r path; do
         *)
             on lint-kit php static-site fresh-install demo
             case "$path" in
-                kit.css | theme/* | README.md | */README.md | INSTALL.md | */assets/controllers/*) on contrast ;;
+                kit.css | theme/* | README.md | */README.md | INSTALL.md | */assets/controllers/* | */manifest.json) on contrast ;;
             esac
             ;;
     esac

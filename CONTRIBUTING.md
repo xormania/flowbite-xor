@@ -83,7 +83,7 @@ change to both paths.
 | `LICENSE`, `NOTICE`, `.github/dependabot.yml` | nothing |
 | `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md`, `FOR-AGENTS.md`, `SECURITY.md`, `.github/pull_request_template.md` | *Contrast*, which checks the docs (*Docs*) |
 | a recipe, `kit.js`, `manifest.json`, `.gitattributes`, any path no other row names | *Lint kit*, *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
-| `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md` or controller (`assets/controllers/`) | the same and *Contrast* |
+| `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md`, controller (`assets/controllers/`) or `manifest.json` | the same and *Contrast* |
 | a spec: `tests/e2e/*.spec.ts`, a recipe's `tests/*.spec.ts` | *Contrast* (`tools/test-inventory.mjs`), *Demo + Playwright* |
 | any other file in `tests/` or a recipe's `tests/`, `playwright.config.ts`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
 | `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |

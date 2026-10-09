@@ -70,7 +70,9 @@ check_git "$all"                  'git mv .github/workflows/pages.yml .github/wo
 check_git "$all"                  'git mv .github/workflows/ci.yml .github/workflows/checks.yml'
 
 # A path no rule names is part of the kit
-check "$kit"                      new-recipe/manifest.json
+# A manifest makes a directory a recipe, which the inventory check (Contrast) reads
+check "$kit_contrast"             new-recipe/manifest.json
+check "$kit_contrast"             tabs/manifest.json
 check "$kit"                      some-new-file.txt
 
 check "$all"                      tools/ci-changes.sh

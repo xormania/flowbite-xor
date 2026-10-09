@@ -119,9 +119,19 @@ if (null === a11y) {
     errors.push('tests/e2e/a11y.spec.ts: no `const labPages = [...]`');
 }
 const scanned = [...(a11y?.[1] ?? '').matchAll(/'([^']*)'/g)].map(([, page]) => page);
+const pages = read('tests/e2e/a11y.spec.ts').match(/const pages = \[([^\]]*)\]/)?.[1] ?? '';
 for (const { path, get } of routes) {
-    if ('' === path || path in notPages) {
-        continue; // /lab itself is in the scan's pages
+    if ('' === path) {
+        if (get && !/^\s*'\/lab',$/m.test(pages)) {
+            errors.push('tests/e2e/a11y.spec.ts: the lab index /lab is not in pages');
+        }
+        continue;
+    }
+    if (path in notPages) {
+        if (get) {
+            errors.push(`tools/test-inventory.mjs: notPages lists /lab/${path}, which now accepts GET: remove it there and add the page to labPages`);
+        }
+        continue;
     }
     if (!get) {
         errors.push(`demo/src/Controller/LabController.php: /lab/${path} has no GET: add it to notPages in tools/test-inventory.mjs with its reason`);
