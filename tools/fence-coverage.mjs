@@ -27,23 +27,33 @@ const recipes = readdirSync(root, { withFileTypes: true })
     .map((entry) => entry.name)
     .sort();
 
-// AsciiSlugger without a locale: ASCII letters and digits, everything else one "-", trimmed, then lowercased
-const slug = (text) =>
-    text
-        .normalize('NFKD')
-        .replace(/[̀-ͯ]/g, '')
-        .replace(/[^A-Za-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .toLowerCase();
+// AsciiSlugger without a locale (UnicodeString::ascii(), then every run of other characters one "-", trimmed, then
+// lowercased). Accents go with NFKD; the Latin letters NFKD keeps whole are mapped as ascii() maps them. Any other
+// character outside ASCII would need ICU's transliteration: only the punctuation checked to become a "-" is accepted,
+// and anything else (another script, ©, €, ½…) is reported instead of guessed.
+const latin = {
+    ß: 'ss', ẞ: 'SS', Æ: 'AE', æ: 'ae', Ø: 'O', ø: 'o', Œ: 'OE', œ: 'oe', Ł: 'L', ł: 'l', Đ: 'D', đ: 'd', Ð: 'D', ð: 'd',
+    Þ: 'TH', þ: 'th', ı: 'i', Ŀ: 'L', ŀ: 'l', Ħ: 'H', ħ: 'h', Ŧ: 'T', ŧ: 't', Ŋ: 'N', ŋ: 'n', ĸ: 'q', ƒ: 'f',
+};
+const separators = /[\p{Zs}\p{Pd}\p{Pi}\p{Pf}…·×→✦✓°§¿«»ʼ]/gu;
+function slug(text) {
+    const ascii = [...text].map((char) => latin[char] ?? char).join('').normalize('NFKD').replace(/\p{M}/gu, '');
+    const left = ascii.replace(separators, '-').match(/[^\x00-\x7F]/u);
+    if (left) {
+        return { error: `"${left[0]}"` };
+    }
+    return { id: ascii.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() };
+}
 
 // KitReader::getExampleBaseId(): the last heading above, outside code blocks; none, or the title: "default"
 function baseId(before) {
     const prose = before.replace(/^```[\s\S]*?^```[ \t]*$/gm, '');
     const headings = [...prose.matchAll(/^(#{1,6})[ \t]+(.+)$/gm)];
     if (headings.length === 0 || headings.at(-1)[1] === '#') {
-        return 'default';
+        return { id: 'default' };
     }
-    return slug(headings.at(-1)[2]) || 'default';
+    const { id, error } = slug(headings.at(-1)[2]);
+    return error ? { error, heading: headings.at(-1)[2] } : { id: id || 'default' };
 }
 
 const lineOf = (text, index) => text.slice(0, index).split('\n').length;
@@ -69,7 +79,11 @@ for (const recipe of recipes) {
             continue; // reported below, as a block the demo skips
         }
         read.add(lineOf(doc, match.index));
-        const base = baseId(doc.slice(0, match.index));
+        const { id: base, error, heading } = baseId(doc.slice(0, match.index));
+        if (error) {
+            problems.push(`${path}:${lineOf(doc, match.index)}: can't derive the example id of heading "${heading}" the way the demo does (${error} needs ICU's transliteration): keep example headings in Latin script.`);
+            continue;
+        }
         let id = base;
         for (let i = 2; ids.includes(id); i++) {
             id = `${base}-${i}`;
