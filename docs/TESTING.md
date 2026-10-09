@@ -32,7 +32,8 @@ export const test = base.extend({
 });
 ```
 
-Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`guardPage`, `recordCspViolations`, `allowHttpError`).
+Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`guardPage`, `recordCspViolations`, `allowHttpError`; `allowCancelledRequest`
+for a request a test cancels on purpose, *Back during a frame visit promoted to history*).
 
 ## Turbo
 
@@ -186,6 +187,54 @@ const isPromotedFrameCache = () => false === window.Turbo?.session?.navigator?.c
 
 lab.popover "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…" records
 the popover's state right after each `turbo:before-cache` and in each copy Turbo renders.
+
+### Back during a frame visit promoted to history
+
+**Catches:** a URL, rows and controls that disagree after the user presses Back while a frame visit promoted to
+history is still running: new rows at the old URL, or the old URL with a control showing the new value. Losing the
+change is acceptable; confusion is not.
+
+Turbo 8.0.23 runs such a visit in phases, and each has a different owner of the request and of history: the request
+out (nothing changed yet), the response in and history pushed but the frame not rendered (`FrameController`
+`#loadFrameResponse` calls `changeHistory()` before it renders), the frame rendered but the page visit completing the
+promotion (`turbo:load`) not over. "Back while loading" is three tests, each holding one phase, never a timeout:
+
+```ts
+// 1. before the response: hold the frame's request (its Turbo-Frame header, not a prefetch), release it after Back
+await page.route((url) => url.pathname === '/lab/data-table-frame', (route, request) =>
+    'orders' === request.headers()['turbo-frame'] && !request.headers()['x-sec-purpose'] ? (held = route) : route.fallback());
+// 2. history changed, frame not rendered: Turbo's own pause, `event.detail.resume`
+document.addEventListener('turbo:before-frame-render', (event) => { event.preventDefault(); window.__resume = event.detail.resume; });
+// 3. frame rendered, promotion not over: the same on the page render of the visit that renders nothing
+document.addEventListener('turbo:before-render', (event) => {
+    if (false === window.Turbo.session.navigator.currentVisit?.willRender) { event.preventDefault(); window.__resume = event.detail.resume; }
+});
+await page.goBack();
+await held.continue();                                // or: page.evaluate(() => window.__resume())
+```
+
+Arm a hold for one event only, and check the phase was reached before Back (the URL unchanged in 1, changed and no
+`turbo:frame-render` in 2, `turbo:frame-load` and no `turbo:load` in 3): without the hold, the test proves nothing. In
+phase 3, Back's restoration waits for the held render (`Visit` awaits `view.renderPromise`), so wait for quiet with the
+visit still busy, then resume.
+
+After the release, wait until Turbo is quiet, not for an expected event: when the late response is handled right,
+nothing happens. Quiet is no request in flight, then no Turbo event or history change for 20 animation frames (a frame
+render spans three) and no `<html aria-busy>`. Then compare what the page shows (status line, rows, current page,
+sorted column, every control's value) with a fresh load of `location.href` parsed with `DOMParser`: one assertion
+covers every way the URL and the table can disagree. Do it again after Forward and Back over the entries left, and
+check the table takes the next change.
+
+Back can cancel the frame's request on purpose (Back disconnects the frame, which aborts its `src` load). Allow
+exactly that request, never every `ERR_ABORTED`: `allowCancelledRequest({ url, method: 'GET', frame: 'orders',
+count: 1 })` drops at most `count` failures that are exactly `net::ERR_ABORTED`, of that exact URL, method and
+`Turbo-Frame` header; any other failed request still fails the test.
+
+A phase that ends inconsistent is a defect of Turbo or the kit: keep the test, marked `test.fail(condition, '<the
+defect>')` with the source lines in a comment, so it reports an unexpected pass once fixed, instead of `skip`.
+
+Here: [`lab.data-table-interrupt.spec.ts`](../tests/e2e/lab.data-table-interrupt.spec.ts) (`instrument`, `quiet`,
+`consistency`), [`fixtures.ts`](../tests/e2e/fixtures.ts) (`allowCancelledRequest`).
 
 ### State saved after the snapshot
 
