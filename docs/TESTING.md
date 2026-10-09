@@ -376,7 +376,8 @@ expect(counts.controllers).toBe(counts.elements);
 ```
 
 Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`stimulusControllers`),
-[`lab.section-nav.spec.ts`](../tests/e2e/lab.section-nav.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts).
+[`lab.section-nav.spec.ts`](../tests/e2e/lab.section-nav.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts),
+[`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts).
 
 ## State × transition
 
@@ -409,6 +410,9 @@ await page.addInitScript(() => new MutationObserver((_, observer) => {
     }
 }).observe(document, { childList: true, subtree: true }));
 ```
+
+The same spec blocks `localStorage` (a getter that throws, as blocked site data does) and checks the choice still
+holds across a Turbo visit: the controller keeps it on `<html data-theme-choice>`.
 
 Here: [`tests/e2e/theme-toggle.spec.ts`](../tests/e2e/theme-toggle.spec.ts).
 
@@ -456,9 +460,22 @@ await page.goto('/lab/tooltip-turbo');
 expect(await listeners()).toEqual(baseline);         // { 'document click': 1, 'window popstate': 1, … }
 ```
 
-Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`trackGlobalListeners`),
-[`lab.tooltip.spec.ts`](../tests/e2e/lab.tooltip.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts); [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts)
-counts the document's click listeners the same way, inline.
+For one component, declare its listeners and compare what changed: the keys carry the target, type and capture, so a
+listener removed without its `capture` flag (still registered) shows, and so does one on `window`.
+
+```ts
+const OPEN = { 'document click capture': 1, 'window scroll capture': 1, 'window resize': 1 }; // what an open popover adds
+const listeners = await trackGlobalListeners(page, Object.keys(OPEN));
+// open it: expect(listenerChanges(baseline, await listeners())).toEqual(OPEN); close it, or after visits: toEqual({})
+```
+
+It counts explicit `addEventListener`/`removeEventListener` calls on `document` and `window` only, not listeners
+removed by `{ once: true }` or an `AbortSignal`, on elements or media queries, nor observers or timers. Keep the
+behavior check beside it (one toggle per click), and the instance count (*One controller per element, counted*).
+
+Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`trackGlobalListeners`, `listenerChanges`),
+[`lab.tooltip.spec.ts`](../tests/e2e/lab.tooltip.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts),
+[`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts).
 
 ### One controller per element: count what it does
 
@@ -542,8 +559,8 @@ Here: [`demo/tests/DataTable/`](../demo/tests/DataTable/), [`SelectionTest.php`]
 
 The demo has PHPUnit 13 and Symfony's test tools (what `symfony/test-pack` installs: `phpunit/phpunit`,
 `symfony/browser-kit`, `symfony/css-selector`), set up by the PHPUnit Flex recipe (`phpunit.dist.xml`,
-`tests/bootstrap.php`, `.env.test`). The tests are in `demo/tests/`, by area (`DataTable/`, `Live/`, `Twig/`,
-`Functional/`). Run them from `demo/`:
+`tests/bootstrap.php`, `.env.test`). The tests are in `demo/tests/`, by area (`DataTable/`, `Editor/`, `MarkdownEditor/`, `Live/`,
+`Twig/`, `Functional/`). Run them from `demo/`:
 
 ```sh
 bin/phpunit                                  # all of them
@@ -664,6 +681,12 @@ parse each rendering and check the DOM: no extra element, no `on*` attribute, li
 
 Here: [`hostile-props.spec.ts`](../tests/e2e/hostile-props.spec.ts), [`HostilePropsCommand.php`](../demo/src/Command/HostilePropsCommand.php).
 
+What a server-side sanitizer or renderer returns is a string: test it where it runs, with PHPUnit, on the same hostile
+inputs, and keep the browser for the component that prints it. The editor's HTML policy and the Markdown renderer are
+unit tests ([`EditorHtmlPolicyTest.php`](../demo/tests/Editor/EditorHtmlPolicyTest.php),
+[`MarkdownRendererTest.php`](../demo/tests/MarkdownEditor/MarkdownRendererTest.php)); the Editor and the
+MarkdownEditor given a hostile value stay in `hostile-props.spec.ts`, parsed by the browser.
+
 ## Security headers and the Content Security Policy
 
 **Catches:** a policy that allows more than it says, and what a strict policy silently breaks (an inline theme
@@ -676,15 +699,23 @@ Here: [`csp.spec.ts`](../tests/e2e/csp.spec.ts), [`SecurityHeadersListener.php`]
 
 ## Accessibility
 
-**Catches:** serious and critical axe violations on every page, in both themes.
+**Catches:** serious and critical axe violations on every page, in both themes; and, in a component's own specs, the
+states a page load does not reach (open, focused, invalid, after a pick) and every violation in a component's own
+markup.
+
+One helper owns the scan, the policy and the report; the spec drives the state and keeps its own expectations of it.
+The policy is explicit at each call: `serious` fails on serious and critical violations, `all` on any, and `include`
+or `exclude` scope the scan. Each violation is reported as `<rule> (<impact>): <targets>`.
 
 ```ts
-import AxeBuilder from '@axe-core/playwright';
-const results = await new AxeBuilder({ page }).analyze();
-expect(results.violations.filter((v) => ['serious', 'critical'].includes(v.impact ?? ''))).toEqual([]);
+await expectA11y(page, { impact: 'serious', exclude: 'iframe' });                 // a whole page, its previews scanned on their own
+await menu(page).click();                                                          // the spec drives the state
+await expectA11y(page, { impact: 'all', include: '#drawer-lab-mobile-nav' }, 'open'); // the component's own markup
 ```
 
-Here: [`a11y.spec.ts`](../tests/e2e/a11y.spec.ts).
+Here: [`fixtures.ts`](../tests/e2e/fixtures.ts) (`expectA11y`), [`a11y.spec.ts`](../tests/e2e/a11y.spec.ts) (every page),
+and the specs of the dropzone, editor, markdown-editor, forms, demo-app, lab.side-nav, lab.section-nav, lab.mobile-nav
+and lab.nav-menu.
 
 ## The install itself
 

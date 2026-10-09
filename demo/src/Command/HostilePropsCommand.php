@@ -2,8 +2,6 @@
 
 namespace App\Command;
 
-use App\FlowbiteXor\Editor\EditorHtmlPolicy;
-use App\FlowbiteXor\MarkdownEditor\MarkdownRenderer;
 use App\Kit\PreviewForms;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -97,8 +95,6 @@ final class HostilePropsCommand
     public function __construct(
         private readonly Environment $twig,
         private readonly PreviewForms $forms,
-        private readonly EditorHtmlPolicy $editorPolicy,
-        private readonly MarkdownRenderer $markdownRenderer,
     ) {
     }
 
@@ -130,62 +126,30 @@ final class HostilePropsCommand
     }
 
     /**
-     * The editor's policy on hostile and ordinary HTML: each input, its sanitized form, and that form sanitized again;
-     * and the Editor component given a hostile value.
+     * The Editor component given hostile HTML (elements, attributes, link schemes), for the browser to parse. What the
+     * policy itself returns is tested in demo/tests/Editor/EditorHtmlPolicyTest.php.
      *
-     * @return array{policy: list<array{input: string, once: string, twice: string}>, html: string}
+     * @return array{html: string}
      */
     private function editor(): array
     {
-        $inputs = [
-            '<p>Plain <strong>bold</strong> <em>italic</em> <u>under</u> <s>strike</s> <code>code</code><br>next</p>',
-            '<h2>Title</h2><h3>Sub</h3><ul><li><p>one</p><ul><li><p>nested</p></li></ul></li></ul><ol start="3"><li><p>three</p></li></ol><blockquote><p>quote</p></blockquote><hr>',
-            '<p><a href="https://example.com" title="Example">https</a> <a href="mailto:a@example.com">mail</a> <a href="/pricing#faq">relative</a></p>',
-            '<p><a href="javascript:alert(1)">js</a><a href=" jav&#x09;ascript:alert(1)">js2</a><a href="data:text/html,x">data</a><a href="vbscript:x">vb</a><a href="https://example.com" target="_blank" rel="opener" onclick="x()">target</a></p>',
-            '<p style="color:red" class="x" id="y" data-controller="z" onmouseover="x()">attributes</p><script>x()</script><style>p{}</style><img src=x onerror=x()><svg onload=x()></svg><math><mi>x</mi></math><iframe src="/"></iframe><form><input></form>',
-            '<h1>H1</h1><div><span style="font-weight:bold">span</span> <b>b</b> <i>i</i></div><table><tr><td>cell</td></tr></table><p></p>',
-            '<p><!-- comment --><scr<script>ipt>x()</script></p><p>&lt;script&gt;text&lt;/script&gt;</p>',
-            '<p></p><p>   </p>',
-        ];
+        $value = '<p style="color:red" class="x" id="y" data-controller="z" onmouseover="x()">attributes</p><script>x()</script><style>p{}</style><img src=x onerror=x()><svg onload=x()></svg><math><mi>x</mi></math><iframe src="/"></iframe><form><input></form>'
+            .'<p><a href="javascript:alert(1)">js</a><a href=" jav&#x09;ascript:alert(1)">js2</a><a href="data:text/html,x">data</a><a href="vbscript:x">vb</a><a href="https://example.com" target="_blank" rel="opener" onclick="x()">target</a></p>';
 
         return [
-            'policy' => array_map(function (string $input): array {
-                $once = $this->editorPolicy->sanitize($input);
-
-                return ['input' => $input, 'once' => $once, 'twice' => $this->editorPolicy->sanitize($once)];
-            }, $inputs),
-            'html' => $this->render('<twig:Editor id="hostile-editor" name="body" label="Body" :value="value" data-testid="editor" />', ['value' => $inputs[4].$inputs[3]]),
+            'html' => $this->render('<twig:Editor id="hostile-editor" name="body" label="Body" :value="value" data-testid="editor" />', ['value' => $value]),
         ];
     }
 
     /**
-     * The Markdown renderer on hostile and ordinary Markdown: each input and its HTML; and the MarkdownEditor given a
-     * hostile value.
+     * The MarkdownEditor component given a hostile value, for the browser to parse. What the renderer itself returns is
+     * tested in demo/tests/MarkdownEditor/MarkdownRendererTest.php.
      *
-     * @return array{renderer: list<array{input: string, html: string}>, expansion: array{characters: int, kept: int, complete: bool}, html: string}
+     * @return array{html: string}
      */
     private function markdown(): array
     {
-        $inputs = [
-            "**bold** _italic_ ~~strike~~ `code`  \nnext line",
-            "# H1\n\n### H3\n\n- one\n  - nested\n\n3. three\n\n> quote\n\n```js\ncode <b>x</b>\n```\n\n---",
-            '[https](https://example.com "Example") [mail](mailto:a@example.com) [relative](/pricing#faq) <https://example.org>',
-            '[js](javascript:alert(1)) [JS](JAVASCRIPT:alert(1)) [data](data:text/html,x) [vb](vbscript:x) <javascript:alert(1)> [tab](jav&#x09;ascript:x)',
-            '<script>x()</script> <img src=x onerror=x()> <p style="color:red" onclick="x()">raw</p> <iframe src="/"></iframe> <b onmouseover="x()">b</b> <svg onload=x()></svg>',
-            "![picture](https://example.com/a.png) ![ref][pic]\n\n[pic]: https://example.com/b.png",
-            str_repeat('> ', 60).'deep',
-            str_repeat('*a', 3000),
-            "   \n\n  ",
-        ];
-
         return [
-            'renderer' => array_map(fn (string $input): array => ['input' => $input, 'html' => $this->markdownRenderer->toHtml($input)], $inputs),
-            // Markdown under the limit whose HTML is five times longer: rendered whole, never cut
-            'expansion' => (function (): array {
-                $html = $this->markdownRenderer->toHtml(str_repeat('&', 900_000));
-
-                return ['characters' => 900_000, 'kept' => substr_count($html, '&amp;'), 'complete' => str_ends_with($html, '</p>')];
-            })(),
             'html' => $this->render('<twig:MarkdownEditor id="hostile-markdown" name="body" label="Body" :value="value" data-testid="markdown" />', ['value' => '</textarea><script>window.__xss=1</script><img src=x onerror="window.__xss=1">']),
         ];
     }

@@ -1,6 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import type { Locator, Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, expectA11y } from './fixtures';
 
 /*
  * The Dropzone component: UX Dropzone's controller with the kit's markup, and the kit's dropzone-assist controller
@@ -34,14 +33,6 @@ const drag = (target: Locator, type: string) =>
 
         return event.defaultPrevented;
     }, type);
-
-async function expectNoSeriousA11yIssue(page: Page) {
-    const results = await new AxeBuilder({ page }).analyze();
-    const serious = results.violations
-        .filter((violation) => 'serious' === violation.impact || 'critical' === violation.impact)
-        .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
-    expect(serious).toEqual([]);
-}
 
 test('the keyboard reaches the input, opens the chooser, moves to Remove after a pick and back after Remove', async ({ page }) => {
     await page.goto(preview('default'));
@@ -94,7 +85,7 @@ test('a picked image shows its name and its preview; a text file shows no image'
     await expect(page.getByText('notes.txt')).toBeVisible();
     await expect(image).toBeHidden();
     expect(await changes(page)).toBe(2);
-    await expectNoSeriousA11yIssue(page);
+    await expectA11y(page, { impact: 'serious' });
 });
 
 test('several files add up across picks, once each; Remove focuses the next file, then the input', async ({ page }) => {
@@ -122,7 +113,7 @@ test('several files add up across picks, once each; Remove focuses the next file
     for (const name of ['a.txt', 'b.txt', 'c.png', 'd.txt']) {
         await expect(page.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
     }
-    await expectNoSeriousA11yIssue(page);
+    await expectA11y(page, { impact: 'serious' });
 
     await page.getByRole('button', { name: 'Remove b.txt' }).click();
     await expect(listItems(page)).toHaveCount(3);
@@ -181,7 +172,7 @@ test('an invalid zone is red and described by its error', async ({ page }) => {
             return getComputedStyle(probe).backgroundColor;
         }),
     );
-    await expectNoSeriousA11yIssue(page);
+    await expectA11y(page, { impact: 'serious' });
 });
 
 test('a disabled zone is disabled and described by its hint', async ({ page }) => {

@@ -1,32 +1,21 @@
-import type { Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect, listenerChanges, stimulusControllers, trackGlobalListeners, turboVisitDone } from './fixtures';
 import { back, forward, recordFirstFrames, shown, stepFromCode, visit, visitAndBack } from './transitions';
 
-// counts the click listeners added to the document minus those removed: an open popover adds one, a closed one none
+// the listeners an open popover adds to the document and the window, and closing it removes (popover_controller.js)
+const OPEN = { 'document click capture': 1, 'window scroll capture': 1, 'window resize': 1 };
+let listeners: () => Promise<Record<string, number>>;
 test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-        const add = EventTarget.prototype.addEventListener;
-        const remove = EventTarget.prototype.removeEventListener;
-        const listeners = new Set<unknown>();
-        (window as any).__documentClicks = () => listeners.size;
-        EventTarget.prototype.addEventListener = function (type: string, listener: any, options?: any) {
-            if (this === document && 'click' === type) listeners.add(listener);
-            return add.call(this, type, listener, options);
-        };
-        EventTarget.prototype.removeEventListener = function (type: string, listener: any, options?: any) {
-            if (this === document && 'click' === type) listeners.delete(listener);
-            return remove.call(this, type, listener, options);
-        };
-    });
+    listeners = await trackGlobalListeners(page, Object.keys(OPEN));
 });
-const documentClicks = (page: Page) => page.evaluate(() => (window as any).__documentClicks() as number);
+// the popover listeners added since `baseline` minus those removed
+const listenersSince = async (baseline: Record<string, number>) => listenerChanges(baseline, await listeners());
 
 test('an open popover is closed after a Turbo visit and Back, and still works', async ({ page }) => {
     await page.goto('/lab/popover-turbo');
-    const baseline = await documentClicks(page);
+    const baseline = await listeners();
     await page.getByRole('button', { name: 'Details' }).click();
     await expect(page.getByRole('dialog', { name: 'Details' })).toBeVisible();
-    expect(await documentClicks(page)).toBe(baseline + 1);
+    expect(await listenersSince(baseline)).toEqual(OPEN);
 
     await visitAndBack(page);
 
@@ -49,16 +38,17 @@ test('the focus leaving the popover closes it', async ({ page }) => {
     await expect(page.getByRole('dialog', { name: 'Details' })).toBeHidden();
 });
 
-test('repeated Turbo visits leave one controller per popover and no document listener behind', async ({ page }) => {
+test('repeated Turbo visits leave one controller per popover and no document or window listener behind', async ({ page }) => {
     await page.goto('/lab/popover-turbo');
-    const baseline = await documentClicks(page);
+    const baseline = await listeners();
     for (let visit = 0; visit < 3; visit++) {
         await page.getByRole('button', { name: 'Owner' }).click();
         await page.getByRole('link', { name: /Go to page/ }).click();
         await turboVisitDone(page);
     }
     await expect(page.locator('[data-controller~="popover"]')).toHaveCount(6);
-    expect(await documentClicks(page)).toBe(baseline);
+    expect(await stimulusControllers(page, 'popover')).toEqual({ controllers: 6, elements: 6, distinctElements: 6 });
+    expect(await listenersSince(baseline)).toEqual({});
 
     // one toggle per click: a second controller would open and close it again
     await page.getByRole('button', { name: 'Owner' }).click();
@@ -91,19 +81,19 @@ test('inside a Turbo Frame reloaded three times, the popover works', async ({ pa
 
 test('replaced or updated by a Turbo Stream, the new popover works and the old one left no listener', async ({ page }) => {
     await page.goto('/lab/popover-stream');
-    const baseline = await documentClicks(page);
+    const baseline = await listeners();
     await page.getByRole('button', { name: 'Streamed' }).click();
     await expect(page.getByRole('dialog', { name: 'Streamed' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Replace the popover' }).click();
     await expect(page.getByTestId('stream-action')).toHaveText('replace');
-    expect(await documentClicks(page)).toBe(baseline);
+    expect(await listenersSince(baseline)).toEqual({});
     await page.getByRole('button', { name: 'Streamed' }).click();
     await expect(page.getByRole('dialog', { name: 'Streamed' })).toHaveText('Version replace.');
 
     await page.getByRole('button', { name: 'Update the popover' }).click();
     await expect(page.getByTestId('stream-action')).toHaveText('update');
-    expect(await documentClicks(page)).toBe(baseline);
+    expect(await listenersSince(baseline)).toEqual({});
     await page.getByRole('button', { name: 'Streamed' }).click();
     await expect(page.getByRole('dialog', { name: 'Streamed' })).toHaveText('Version update.');
     await expect(page.locator('[data-controller~="popover"]')).toHaveCount(1);
@@ -132,7 +122,7 @@ test('a popover stays open and keeps the focus while its Live Component re-rende
 
 test('a popover whose link steps a frame promoted to history stays open with the focus, and Back shows it closed', async ({ page }) => {
     await page.goto('/lab/popover-turbo');
-    const baseline = await documentClicks(page);
+    const baseline = await listeners();
     const firstFrames = await recordFirstFrames(page, { steps: '#steps-content' });
     const trigger = page.getByRole('button', { name: 'Steps' });
     const dialog = page.getByRole('dialog', { name: 'Steps' });
@@ -144,14 +134,14 @@ test('a popover whose link steps a frame promoted to history stays open with the
     await expect(dialog).toBeVisible();
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');
     await expect(page.getByRole('link', { name: 'Go to step 5' })).toBeFocused();
-    expect(await documentClicks(page)).toBe(baseline + 1);
+    expect(await listenersSince(baseline)).toEqual(OPEN);
 
     // the copy holds the popover open: Back shows it closed from the first frame, and it works
     await back(page, { step: 0 });
     await expect(dialog).toBeHidden();
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(await firstFrames(1)).toEqual([{ render: 1, url: '/lab/popover-turbo', visible: { steps: false } }]);
-    expect(await documentClicks(page)).toBe(baseline);
+    expect(await listenersSince(baseline)).toEqual({});
     await trigger.click();
     await expect(dialog).toBeVisible();
     await page.getByRole('heading', { level: 1 }).click();
@@ -161,7 +151,7 @@ test('a popover whose link steps a frame promoted to history stays open with the
 
 test('a popover open while the page code steps a frame promoted to history stays open; Back and Forward show it closed', async ({ page }) => {
     await page.goto('/lab/popover-turbo');
-    const baseline = await documentClicks(page);
+    const baseline = await listeners();
     const dialog = page.getByRole('dialog', { name: 'Details' });
     await page.getByRole('button', { name: 'Details' }).click();
     await expect(page.getByRole('link', { name: 'Open the order' })).toBeFocused();
@@ -175,7 +165,7 @@ test('a popover open while the page code steps a frame promoted to history stays
     await forward(page, { step: 1 });
     await expect(dialog).toBeHidden();
     await expect(page.getByRole('button', { name: 'Details' })).toHaveAttribute('aria-expanded', 'false');
-    expect(await documentClicks(page)).toBe(baseline);
+    expect(await listenersSince(baseline)).toEqual({});
     await page.getByRole('button', { name: 'Details' }).click();
     await expect(dialog).toBeVisible();
     await page.keyboard.press('Escape');
@@ -216,7 +206,7 @@ test('turbo:before-cache closes an open popover before a Turbo visit copies the 
 
 test('a popover opened by the user and moved in the DOM stays open, with one controller and its listener', async ({ page }) => {
     await page.goto('/lab/popover-turbo');
-    const baseline = await documentClicks(page);
+    const baseline = await listeners();
     const trigger = page.getByRole('button', { name: 'Details' });
     const dialog = page.getByRole('dialog', { name: 'Details' });
     await trigger.click();
@@ -229,10 +219,11 @@ test('a popover opened by the user and moved in the DOM stays open, with one con
     });
     await expect(dialog).toBeVisible();
     await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    expect(await documentClicks(page)).toBe(baseline + 1);
+    expect(await stimulusControllers(page, 'popover')).toEqual({ controllers: 6, elements: 6, distinctElements: 6 });
+    expect(await listenersSince(baseline)).toEqual(OPEN);
     await trigger.click();
     await expect(dialog).toBeHidden();
-    expect(await documentClicks(page)).toBe(baseline);
+    expect(await listenersSince(baseline)).toEqual({});
 });
 
 test('a popover rendered open beside a frame visit promoted to history stays open; Back shows it closed', async ({ page }) => {

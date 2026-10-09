@@ -1,6 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { test, expect, stimulusControllers, turboVisitDone } from './fixtures';
+import { test, expect, expectA11y, stimulusControllers, turboVisitDone } from './fixtures';
 import { viewports } from './inventory';
 
 /*
@@ -350,12 +349,10 @@ for (const system of ['light', 'dark'] as const) {
                         await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
                     }
                     await nav(page).getByRole('link', { name: 'Billing' }).focus(); // a visible focus ring on the current section
-                    const results = await new AxeBuilder({ page }).analyze();
-                    expect(results.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`)).toEqual([]);
+                    await expectA11y(page, { impact: 'all' }, 'the current section focused');
                     await tab(page, 'Privacy').click();
                     await expect(tab(page, 'Privacy')).toBeFocused(); // and on the selected tab
-                    const again = await new AxeBuilder({ page }).include('[data-testid="tabs"]').analyze();
-                    expect(again.violations.map((violation) => violation.id)).toEqual([]);
+                    await expectA11y(page, { impact: 'all', include: '[data-testid="tabs"]' }, 'the selected tab focused');
                 });
             }
         });

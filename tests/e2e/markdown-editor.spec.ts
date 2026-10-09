@@ -1,6 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, expectA11y } from './fixtures';
 
 /*
  * The MarkdownEditor component: a native textarea, a toolbar writing Markdown, Write and Preview tabs (the preview is
@@ -133,11 +132,7 @@ test('the markdown editor has no serious accessibility issue, invalid or not, in
         for (const name of ['Write', 'Preview']) {
             await tab(page, name).click();
             await expect(tab(page, name)).toHaveAttribute('aria-selected', 'true');
-            const results = await new AxeBuilder({ page }).analyze();
-            const serious = results.violations
-                .filter((violation) => 'serious' === violation.impact || 'critical' === violation.impact)
-                .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
-            expect(serious, `${id} ${name}`).toEqual([]);
+            await expectA11y(page, { impact: 'serious' }, `${id} ${name}`);
         }
     }
     await tab(page, 'Write').click();

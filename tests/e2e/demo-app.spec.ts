@@ -1,5 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect, expectA11y, turboVisitDone } from './fixtures';
 
 test('the login block signs in through form_login and shows the authentication error', async ({ page }) => {
     await page.goto('/demo/login');
@@ -129,8 +128,7 @@ test('the not-found block answers 404 and passes axe', async ({ page, allowHttpE
     const response = await page.goto('/demo/not-found');
     expect(response?.status()).toBe(404);
     await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
-    const results = await new AxeBuilder({ page }).analyze();
-    expect(results.violations.filter((v) => 'serious' === v.impact || 'critical' === v.impact).map((v) => v.id)).toEqual([]);
+    await expectA11y(page, { impact: 'serious' });
 });
 
 test('the app layout scrolls the document, so the keyboard scrolls it and Turbo restores it on Back', async ({ page }) => {
@@ -163,8 +161,7 @@ test('the dashboard passes axe at phone width, its channel bars are meters', asy
     await page.goto('/demo');
     await expect(page.getByRole('meter', { name: 'Online store' })).toHaveAttribute('aria-valuenow', '64');
     await expect(page.getByRole('region', { name: 'Recent orders' })).toHaveAttribute('tabindex', '0');
-    const results = await new AxeBuilder({ page }).analyze();
-    expect(results.violations.filter((v) => 'serious' === v.impact || 'critical' === v.impact).map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
+    await expectA11y(page, { impact: 'serious' });
 });
 
 test('flash messages show on every layout: the logout notice on the auth layout, not later on the dashboard', async ({ page }) => {

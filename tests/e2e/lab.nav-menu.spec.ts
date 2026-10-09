@@ -1,6 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import type { Locator, Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, expectA11y } from './fixtures';
 import { shown } from './transitions';
 
 /*
@@ -435,26 +434,21 @@ for (const theme of ['light', 'dark'] as const) {
             await page.setViewportSize(desktop);
             await page.goto('/lab/nav-menu/three');
             await expect(page.locator('html')).toHaveClass('dark' === theme ? /\bdark\b/ : /^(?!.*\bdark\b)/);
-            const serious = async (include?: string) => {
-                const builder = new AxeBuilder({ page });
-                const results = await (include ? builder.include(include) : builder).analyze();
-                return results.violations.filter((v) => 'serious' === v.impact || 'critical' === v.impact).map((v) => `${v.id}: ${v.nodes.map((node) => node.target.join(' ')).join(', ')}`);
-            };
-            expect(await serious()).toEqual([]);
+            await expectA11y(page, { impact: 'serious' }, 'closed');
             await button(barMenu(page), 'Guides').click();
             await button(barMenu(page), 'Advanced').click();
             await button(accountMenu(page), 'Account').click();
             await button(barMenu(page), 'Guides').click(); // the account menu closes
             await button(barMenu(page), 'Advanced').click();
             await expectMenu(barMenu(page), { expanded: ['Guides', 'Advanced'] });
-            expect(await serious()).toEqual([]);
+            await expectA11y(page, { impact: 'serious' }, 'open');
 
             await page.setViewportSize(phone);
             await mobileMenuButton(page).click();
             await button(drawerMenu(page), 'Guides').click();
             await button(drawerMenu(page), 'Advanced').click();
             await expectMenu(drawerMenu(page), { expanded: ['Guides', 'Advanced'] });
-            expect(await serious('#drawer-lab-nav-menu')).toEqual([]);
+            await expectA11y(page, { impact: 'serious', include: '#drawer-lab-nav-menu' }, 'open in the drawer');
         });
     });
 }

@@ -97,7 +97,7 @@ class at first paint and after, `aria-pressed`, the icon shown, the saved choice
 | Toggle, then Turbo visit, Back, reload | E2E demo | theme-toggle "the toggle switches the theme, saves it, and the choice holds across a Turbo visit, Back and a reload" (6) |
 | System changes while open | E2E demo | theme-toggle "the system switching to … is followed / ignored" (6) |
 | No color transition on a switch, running ones left alone | E2E demo | theme-toggle "a switch › by the toggle / by the system runs no color transition", "leaves a transition already running to finish on its own" |
-| Storage blocked, Turbo visit | E2E demo | smoke "storage blocked › keeps the choice across Turbo visits without localStorage" |
+| Storage blocked, Turbo visit | E2E demo | theme-toggle "storage blocked › the toggle switches the theme, and the choice holds across a Turbo visit without localStorage" (moved from smoke) |
 | Storage blocked, Back and reload | | G10 |
 | Theme before paint without a toggle (auth layout), under the CSP nonce | E2E demo | csp "the layout sets the theme before the first paint" |
 | Theme kept by a permanent panel's page | E2E lab | lab.turbo-nav "a data-turbo-permanent panel is kept across Turbo visits (not its scroll) and the theme persists" |
@@ -244,10 +244,10 @@ States: closed or open (`open` value, an attribute Live keeps), focus inside, gr
 | Toggle, focus first field, Escape, click outside, group, flip, form, hidden controls, canceled `popover:focus` | E2E demo | popover (6 tests) |
 | Focus leaving closes | E2E lab | lab.popover "the focus leaving the popover closes it" |
 | Open, visit, Back | E2E lab | lab.popover "an open popover is closed after a Turbo visit and Back, and still works" |
-| N visits, no document listener left | E2E lab | lab.popover "repeated Turbo visits leave one controller per popover and no document listener behind" |
+| N visits, one Stimulus controller per element, no document or window listener left | E2E lab | lab.popover "repeated Turbo visits leave one controller per popover and no document or window listener behind" |
 | Permanent, frame ×3, Stream replace and update, Live re-render | E2E lab | lab.popover (4 tests) |
 | Open beside a frame visit promoted to history, started from a link inside it or from the page's code: stays open with the focus; Back and Forward show it closed from the first frame, no listener left (failed before the fix: it closed, the focus fell to `<body>`, Back showed it open) | E2E lab | lab.popover "a popover whose link steps a frame promoted to history…", "a popover open while the page code steps…", "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…", "a popover rendered open beside a frame visit promoted to history…" |
-| Opened, then moved in the DOM (the same controller reconnects): stays open, one listener | E2E lab | lab.popover "a popover opened by the user and moved in the DOM stays open…" |
+| Opened, then moved in the DOM (the same controller reconnects): stays open, one Stimulus controller per element, one set of listeners | E2E lab | lab.popover "a popover opened by the user and moved in the DOM stays open…" |
 
 The editor's link dialog is a Popover: its cells are the popover's.
 
@@ -313,6 +313,8 @@ States: content, selection, toolbar states, counter, read-only; markdown's Write
 | editor | Form post 422; Back (content and selection); N visits; permanent; frame ×3; Stream; Live (typing kept, focused re-render); frame advance | E2E lab | lab.editor (9 tests) |
 | markdown-editor | Preview through Live, unsafe Markdown, toolbar, tab keys, counter, read-only, axe | E2E demo | markdown-editor (7 tests) |
 | markdown-editor | Form post 422; Back; N visits; permanent; frame ×3; Stream; frame advance | E2E lab | lab.markdown-editor (7 tests) |
+| editor | Server policy (`EditorHtmlPolicy`): the preset kept, everything else removed, the same output twice | unit | `EditorHtmlPolicyTest` (moved from hostile-props "the editor's policy keeps the preset…"); the Editor given a hostile value, parsed by the browser: hostile-props |
+| markdown-editor | Server renderer (`MarkdownRenderer`): Markdown kept, raw HTML and images stripped, unsafe links refused, nesting limited, long HTML whole | unit | `MarkdownRendererTest` (moved from hostile-props "the Markdown renderer keeps what Markdown makes…"); the MarkdownEditor given a hostile value, parsed by the browser: hostile-props |
 
 ### autocomplete
 
@@ -368,13 +370,13 @@ where the guarantee stays.
 
 | | Tests | Same guarantee? | Proposal |
 |---|---|---|---|
-| R1 | smoke "theme toggle › system in light mode › toggles dark mode and keeps it across Turbo visits and reloads, without a flash", "› system in dark mode › follows the system preference until a choice is saved" | Yes: theme-toggle's matrix runs both (system light, no choice: toggle, visit, Back, reload, first paint; system dark, no choice: first paint, system switching followed) | Move "storage blocked" (unique) into theme-toggle, remove the other two |
+| R1 | ~~smoke "theme toggle › system in light mode › toggles dark mode and keeps it across Turbo visits and reloads, without a flash", "› system in dark mode › follows the system preference until a choice is saved"~~ | Yes: theme-toggle's matrix runs both (system light, no choice: toggle, visit, Back, reload, first paint; system dark, no choice: first paint, system switching followed) | **Done:** "storage blocked" (unique) moved into theme-toggle, now with the icon checked too; the other two removed from smoke |
 | R2 | `SelectionTest::testFiveThousandIdsSentKeepTheFirstThousand`, `OrdersTableTest::testASelectionTheBrowserSendsIsCutToMaxSelection`, lab.data-table-live "a selection the browser sends is cut…" | The Live component test goes through the endpoint, checksum and `hydrateWith`, as the E2E one does through the live controller. The unit test is the rule alone | Keep unit and Live; the E2E one is TESTING.md's example of a crafted request: drop it only with that section updated. `testSelectThisPageStopsAtMaxSelection` exists in both `SelectionTest` and `OrdersTableTest`: the Live one is the action, keep both |
 | R3 | lab.data-table-frame "a page number too large for an offset shows the last page", "a search matching nothing shows the empty state", lab.data-table-frame and lab.data-table-live "a URL with values the table does not accept renders a valid table" | Server rendering only: the functional and Live tests already reach those requests | Move to `WebTestCase` crawler assertions (smallest scope), once checked that they assert nothing browser-side |
 | R4 | demo-app "on a phone the app layout hides the sidebar behind the navbar menu button", lab.turbo-nav "on a small screen the navbar button opens the sidebar over the page" | The lab one covers it and more (focus, `aria-expanded`, a visit) | Leave until `claude/mobile-nav` lands, which changes both |
 | R5 | lab.turbo-nav "a flash toast written as a Turbo Stream shows once across Turbo visits", demo-app "every layout keeps the same toast region…" | Partly: one region on a lab page, one across layouts | Keep both: different layouts are the boundary |
 | R6 | shot:dropzone, shot:tabs, shot:modal `act()` assertions, and the same behavior in dropzone, recipe:tabs, recipe:modal | The screenshot is the distinct guarantee; the behavior asserted in `act()` runs twice (both themes) | Keep; behavior assertions belong in the behavior spec, `act()` only waits for the state |
-| R7 | dropzone "an invalid zone is red and described by its error" ends with axe on `/preview/dropzone/invalid` | a11y scans that page in both themes | Drop that axe call; keep the ones after picks (states a11y cannot reach) and the editor's (mounted editor) |
+| R7 | dropzone "an invalid zone is red and described by its error" ends with axe on `/preview/dropzone/invalid` | a11y scans that page in both themes | Kept (reviewed in the consolidation): a11y scans right after the load, without waiting for the dropzone's controllers; this scan follows the invalid state's own checks. Keep the ones after picks too (states a11y cannot reach) and the editor's (mounted editor) |
 | (checked) | csp "the layout sets the theme before the first paint" and theme-toggle first paint | No: the auth layout has no toggle, only the inline script under the nonce | Keep |
 
 ## Duplicated helpers (candidates for one shared owner)
@@ -386,11 +388,11 @@ where the guarantee stays.
 | ~~`recordFirstFrames()` read at once, giving up silently after 60 frames~~ **Done:** `firstFrames(count)` waits for `count` observed renders, each with its number and URL; missing ones fail with how far each render got | lab.popover, lab.date-picker, lab.turbo-restore, lab.overlays | `tests/e2e/transitions.ts` |
 | "Reload the frame" three times; Stream replace and update | 9 lab specs each | the same driver |
 | The lab scaffold itself: `<recipe>-turbo` (page one and two, a Kept permanent copy, a Framed copy), `<recipe>-stream` with `_<recipe>_streamed`, `live-<recipe>` | `demo/templates/lab/` | reused as is by each step 6 group (dropdown, modal, drawer, tooltip, tabs); the overlays' pages share `LabController::overlayTurbo()` and `overlayStream()` |
-| Axe filtered to serious and critical | a11y, dropzone (`expectNoSeriousA11yIssue`), editor, markdown-editor, forms, lab.side-nav, demo-app ×2 | `fixtures.ts` |
+| ~~Axe filtered to serious and critical~~ **Done:** `expectA11y(page, { impact, include, exclude })`: one scan, an explicit policy per call (`serious` or `all`), one report format; each spec keeps driving its own state | a11y, dropzone, editor, markdown-editor, forms, demo-app ×2, lab.side-nav, lab.section-nav, lab.mobile-nav, lab.nav-menu | `fixtures.ts` |
 | `__sameDocument` marker | 13 times in 9 specs | `fixtures.ts` (mark, then expect) |
-| `__darkAtFirstBody` init script | smoke, csp, theme-toggle | `fixtures.ts` |
+| `__darkAtFirstBody` init script | csp, theme-toggle (smoke's copy left with its theme tests) | `fixtures.ts` |
 | Event counters (`countChanges`/`changes`, `countEvents`, `__events`) | lab.calendar, lab.date-picker, dropzone, calendar, lab.dropzone | `fixtures.ts`; the Stimulus instance count is there (`stimulusControllers`, used by lab.overlays) |
-| Document listener counter | lab.popover (inline) | `fixtures.ts` `trackGlobalListeners` (added with G1, used by lab.tooltip and lab.overlays); lab.popover to move onto it |
+| ~~Document listener counter, lab.popover inline~~ **Done:** lab.popover uses `trackGlobalListeners` scoped to the popover's three listeners (`only`) and `listenerChanges`; the inline counter missed `window` listeners and a removal without `capture` | lab.popover, lab.tooltip, lab.overlays | `fixtures.ts` `trackGlobalListeners` |
 | `day(scope, date)` | calendar, date-picker, lab.calendar, lab.date-picker | a calendar helper module |
 | `PNG`, `png()`, `text()` | dropzone, forms, lab.dropzone | `tests/e2e/files.ts` |
 | `/preview/<recipe>/<id>?theme=light` builders | dropzone, editor, popover, markdown-editor; `gotoExample` | `inventory.ts` |
