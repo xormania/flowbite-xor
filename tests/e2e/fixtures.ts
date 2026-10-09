@@ -139,3 +139,44 @@ export async function stimulusControllers(page: Page, identifier: string): Promi
         };
     }, identifier);
 }
+
+/**
+ * Counts the listeners the page's scripts put on `document` and `window`, by `<target> <type>` (`document click`,
+ * `window resize capture`): those added minus those removed, from the start of each page. Playwright's own listeners
+ * (added by scripts without a URL) are left out. Call it before the first `goto`, take a baseline once the page has
+ * done each kind of step once (Turbo adds some of its listeners on the first click or submit), and compare after more
+ * Turbo visits, Streams or re-renders: a controller that leaves a listener behind shows as a count above the baseline.
+ */
+export async function trackGlobalListeners(page: Page): Promise<() => Promise<Record<string, number>>> {
+    await page.addInitScript(() => {
+        const add = EventTarget.prototype.addEventListener;
+        const remove = EventTarget.prototype.removeEventListener;
+        const listeners = new Map<string, Set<unknown>>();
+        const key = (target: EventTarget, type: string, options?: boolean | EventListenerOptions) => {
+            const name = target === document ? 'document' : target === window ? 'window' : null;
+            if (!name || !/\bhttps?:\/\//.test(new Error().stack ?? '')) {
+                return null;
+            }
+            const capture = 'boolean' === typeof options ? options : Boolean(options?.capture);
+            return `${name} ${type}${capture ? ' capture' : ''}`;
+        };
+        (window as any).__globalListeners = () =>
+            Object.fromEntries([...listeners].filter(([, set]) => set.size > 0).map(([name, set]) => [name, set.size]));
+        EventTarget.prototype.addEventListener = function (type: string, listener: any, options?: any) {
+            const name = key(this, type, options);
+            if (name && listener) {
+                listeners.set(name, (listeners.get(name) ?? new Set()).add(listener));
+            }
+            return add.call(this, type, listener, options);
+        };
+        EventTarget.prototype.removeEventListener = function (type: string, listener: any, options?: any) {
+            const name = key(this, type, options);
+            if (name) {
+                listeners.get(name)?.delete(listener);
+            }
+            return remove.call(this, type, listener, options);
+        };
+    });
+
+    return () => page.evaluate(() => (window as any).__globalListeners() as Record<string, number>);
+}

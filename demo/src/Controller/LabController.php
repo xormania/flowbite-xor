@@ -48,6 +48,8 @@ final class LabController extends AbstractController
         'popover-turbo' => 'Popovers across Turbo visits and Back: a plain one, a group, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'popover-stream' => 'A Popover replaced and updated by Turbo Streams.',
         'live-popover' => 'A Popover open while its Live Component re-renders (action and model change).',
+        'tooltip-turbo' => 'Tooltips across Turbo visits, Back and Forward: on the link that visits, on an icon button, inside a data-turbo-permanent element, inside a Turbo Frame that reloads, and on the link of a frame whose visits are promoted to history.',
+        'tooltip-stream' => 'A Tooltip replaced and updated by Turbo Streams.',
         'calendar-turbo' => 'Calendars in a GET form (one date, a range, several dates) across Turbo visits and Back, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'calendar-stream' => 'A Calendar replaced and updated by Turbo Streams.',
         'live-calendar' => 'Calendars bound to Live Component properties: a date, a range, bounds and a locale changed by the server.',
@@ -66,7 +68,7 @@ final class LabController extends AbstractController
         'editor-turbo' => 'Editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'editor-stream' => 'An Editor replaced and updated by Turbo Streams.',
         'live-editor' => 'An Editor bound to a Live Component property: unrelated re-renders leave the typing alone, a save reads the content, a reset from the server replaces it.',
-        'turbo-restore' => 'Overlays left open when a link inside them visits another page: Back shows them closed and working, also when the next page waits for a new stylesheet (Turbo then caches the page before the controllers disconnect). A toast outside the permanent region is not shown again on Back.',
+        'turbo-restore' => 'Overlays left open when a link inside them visits another page, and a tooltip shown on such a link: Back shows them closed and working, also when the next page waits for a new stylesheet (Turbo then caches the page before the controllers disconnect). A toast outside the permanent region is not shown again on Back.',
         'markdown-turbo' => 'Markdown editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'markdown-stream' => 'A MarkdownEditor replaced and updated by Turbo Streams.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
@@ -258,6 +260,31 @@ final class LabController extends AbstractController
             'load' => $request->query->getInt('load'),
             'description' => self::SCENARIOS['popover-turbo'],
         ]);
+    }
+
+    #[Route('/tooltip-turbo/{page}', name: 'app_lab_tooltip_turbo', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
+    public function tooltipTurbo(Request $request, string $page): Response
+    {
+        return $this->render('lab/tooltip_turbo.html.twig', [
+            'page' => $page,
+            'load' => $request->query->getInt('load'),
+            'step' => $request->query->getInt('step'),
+            'description' => self::SCENARIOS['tooltip-turbo'],
+        ]);
+    }
+
+    #[Route('/tooltip-stream', name: 'app_lab_tooltip_stream', methods: ['GET', 'POST'])]
+    public function tooltipStream(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/tooltip_stream.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/tooltip_stream.html.twig', ['description' => self::SCENARIOS['tooltip-stream']]);
     }
 
     #[Route('/side-nav/{page}', name: 'app_lab_side_nav', requirements: ['page' => 'one|two|three|four'], defaults: ['page' => 'one'])]
