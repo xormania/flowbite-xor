@@ -9,7 +9,8 @@ import { Controller } from '@hotwired/stimulus';
  * Which branches are open is saved in `sessionStorage` and restored on every connect, so it holds across Turbo
  * visits, Back and Forward, and the copy of the page Turbo cached. The branches holding the current page are opened.
  * In a `data-turbo-permanent` element, Turbo keeps the same tree and the controller re-marks the current page on
- * every reconnect.
+ * every reconnect. A hidden tree restores the saved state again when it is shown, so two trees sharing a key (a
+ * `Sidebar`'s and a `MobileNav`'s) agree.
  *
  * @target item       The link treeitems; the one matching the current URL's path gets `aria-current="page"`, never a `#…` link.
  * @target branch     The branch treeitems, open when `aria-expanded="true"`.
@@ -34,7 +35,7 @@ export default class extends Controller {
         const stop = [current, this.treeitems().find((item) => '0' === item.getAttribute('tabindex'))].find((item) => item && visible.includes(item));
         this.setTabStop(stop ?? visible[0]);
         // a Sidebar collapsing around the tree hides the nested treeitems without telling the tree: its width changes
-        this.resizeObserver = new ResizeObserver(() => this.keepTabStopShown());
+        this.resizeObserver = new ResizeObserver(() => this.shownOrResized());
         this.resizeObserver.observe(this.element);
     }
 
@@ -148,6 +149,21 @@ export default class extends Controller {
         if (item) {
             this.setTabStop(item);
             item.focus();
+        }
+    }
+
+    shownOrResized() {
+        const shown = this.element.getClientRects().length > 0;
+        const focused = this.treeitems().find((item) => item === document.activeElement);
+        if (shown && false === this.shown) {
+            // shown again (a MobileNav's drawer opening, the screen growing to show the Sidebar): another tree with the
+            // same storageKey may have saved changes meanwhile
+            this.restore();
+        }
+        this.shown = shown;
+        this.keepTabStopShown();
+        if (focused && !this.visibleItems().includes(focused)) {
+            this.treeitems().find((item) => '0' === item.getAttribute('tabindex'))?.focus();
         }
     }
 

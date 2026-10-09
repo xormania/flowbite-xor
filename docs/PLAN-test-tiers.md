@@ -35,7 +35,8 @@ list the transitions (toggle, system change, Turbo visit, Back, reload), and aft
 state (class, `aria-pressed`, visible icon, saved choice, first paint).
 
 - **Per recipe with behavior:** an inventory of its states and transitions, and which spec covers each. The inventory
-  is the first deliverable: it shows the gaps before any test is written.
+  is the first deliverable: it shows the gaps before any test is written. It is
+  [`TEST-INVENTORY.md`](TEST-INVENTORY.md), with its ranked gaps.
 - **Transitions every interactive recipe is checked against:** Turbo Drive visit, Back and Forward, the cache
   snapshot, a frame visit (with and without `data-turbo-action="advance"`), a Stream `replace` and `update`, a Live
   re-render, `data-turbo-permanent`, the theme switch, and the system theme changing while the page is open.
@@ -112,7 +113,10 @@ One pull request each, in order:
    `tools/tests/data-table.php` ported to PHPUnit; Live and Twig component tests with the UX packages' helpers
    (`InteractsWithLiveComponents`, `InteractsWithTwigComponents`), snapshot tests of rendered components, and
    `composer audit` in CI.
-3. **The inventory:** per recipe, its states and transitions and the spec covering each, as a table in this file.
+3. **The inventory:** per recipe, its states and transitions and the spec covering each:
+   [`TEST-INVENTORY.md`](TEST-INVENTORY.md). A file of its own, not a table here: every pull request that changes
+   coverage updates its rows, while this plan stays the record of what was decided. Its ranked gaps are step 6's
+   input.
 4. **Baseline:** the timing harness, `release-checks.yml` with `workflow_dispatch` and `record`, report only, and the
    first `tests/perf/baseline.json`.
 5. **Tier 2:** the count checks and the byte budgets, in the existing specs.

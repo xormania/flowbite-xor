@@ -88,6 +88,11 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   and `SideNav:Branch`es (`label`, nested at any depth), inside a `<nav>` or the `Sidebar`. It is an ARIA tree: the
   controller handles the keyboard and keeps the open branches across Turbo visits; never add click or key handlers
   of your own. One `storageKey` per tree; give a branch `name` when its label changes (a count).
+- **The navigation on phones: `ux:install mobile-nav`** (the `layouts` app layout already has it): a
+  `<twig:MobileNav>` in the `Navbar`'s `menu` block, holding the same `SideNav` as the `Sidebar`, with the same
+  `storageKey`, and the brand in its `header` block. It is a modal `Drawer`; the controller focuses the current page
+  and closes it on links, Escape, the backdrop and Turbo visits: add no handlers of your own, and no fixed `id`s in
+  the navigation, which renders twice.
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the
   position yourself, as the kit's `Sidebar` does.

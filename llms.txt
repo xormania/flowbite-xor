@@ -51,7 +51,8 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 - [date-picker](https://raw.githubusercontent.com/xormania/flowbite-xor/main/date-picker/README.md): A date or a range picked in a calendar that opens from a button or a typed field; a `DateType` opts in through the form theme.
 - [drawer](https://raw.githubusercontent.com/xormania/flowbite-xor/main/drawer/README.md): A panel sliding over one side of the page, for navigation, filters or details, as a native `<dialog>`.
 - [empty-state](https://raw.githubusercontent.com/xormania/flowbite-xor/main/empty-state/README.md): What a list or page shows when it has nothing yet, with a way forward.
-- [navbar](https://raw.githubusercontent.com/xormania/flowbite-xor/main/navbar/README.md): The bar on top of the app: brand, search, actions, and the menu button opening the sidebar on small screens.
+- [mobile-nav](https://raw.githubusercontent.com/xormania/flowbite-xor/main/mobile-nav/README.md): The app's navigation on small screens: a menu button in the navbar opening a modal drawer that holds the side nav, closed by a link, Escape, the backdrop and every Turbo visit.
+- [navbar](https://raw.githubusercontent.com/xormania/flowbite-xor/main/navbar/README.md): The bar on top of the app: brand, search, actions, and the menu button opening the sidebar or a mobile nav on small screens.
 - [page-header](https://raw.githubusercontent.com/xormania/flowbite-xor/main/page-header/README.md): The top of a page: its title, a short description and the page's actions.
 - [popover](https://raw.githubusercontent.com/xormania/flowbite-xor/main/popover/README.md): Free content anchored to a button (text, links, a small form) in a non-modal dialog that closes on Escape, a click outside or when the focus leaves it.
 - [progress](https://raw.githubusercontent.com/xormania/flowbite-xor/main/progress/README.md): A bar showing how far a task has come.
@@ -72,7 +73,7 @@ A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <rec
 
 ## Layouts
 
-- [layouts](https://raw.githubusercontent.com/xormania/flowbite-xor/main/layouts/README.md): Page layouts to extend: an app shell with sidebar and navbar, a centered column for login, signup and password reset, settings, errors and a blank page.
+- [layouts](https://raw.githubusercontent.com/xormania/flowbite-xor/main/layouts/README.md): Page layouts to extend: an app shell with sidebar, navbar and mobile nav, a centered column for login, signup and password reset, settings, errors and a blank page.
 
 ## Blocks
 
