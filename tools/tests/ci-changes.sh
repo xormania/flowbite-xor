@@ -52,6 +52,7 @@ check 'contrast'                  docs/ROADMAP.md CONTRIBUTING.md AGENTS.md
 check 'contrast'                  tools/docs-lint.mjs tools/llms-txt.mjs llms.txt
 check 'contrast'                  tools/test-inventory.mjs
 check 'static-site contrast'      tools/fence-coverage.mjs
+check 'static-site'               tools/build-static.sh
 check "$kit_contrast"             INSTALL.md
 
 # A workflow: actionlint reads it, and the jobs that run what it runs check that part (a workflow's own triggers run
@@ -83,6 +84,7 @@ check 'workflows'                 tools/tests/release-plan.sh
 check 'contrast demo'             tests/e2e/lab.side-nav.spec.ts
 check 'demo'                      tests/e2e/transitions.ts
 check 'contrast demo'             tabs/tests/tabs.spec.ts
+check 'demo'                      playwright.config.ts tools/prepare-tests.mjs tools/tests/prepare-tests.test.mjs
 check 'demo'                      alert/tests/screenshots/default-light.png
 check 'php static-site contrast demo' demo/tests/Editor/EditorTypeTest.php
 check 'php static-site contrast demo' demo/src/Controller/LabController.php
@@ -91,6 +93,7 @@ check 'contrast'                  tools/contrast/pairs.json
 check 'php static-site demo'      demo/src/Demo/DataTableCollector.php
 check 'php'                       tools/phpstan.neon
 check 'fresh-install'             tools/tests/fresh-install.sh
+check 'fresh-install'             tools/tests/install-scenario.sh
 check 'fresh-install'             tools/tests/live-action.php
 check 'fresh-install'             tools/tests/fixtures/fresh-app/templates/home.html.twig
 check 'demo'                      tools/tests/fixtures/sync-kit/manifest.json
