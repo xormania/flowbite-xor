@@ -288,7 +288,16 @@ count: 1 })` drops at most `count` failures that are exactly `net::ERR_ABORTED`,
 `Turbo-Frame` header; any other failed request still fails the test.
 
 A phase that ends inconsistent is a defect of Turbo or the kit: keep the test, marked `test.fail(condition, '<the
-defect>')` with the source lines in a comment, so it reports an unexpected pass once fixed, instead of `skip`.
+defect>')` with the source lines in a comment, so it reports an unexpected pass once fixed, instead of `skip`. Remove
+the mark with the fix, after running the test unmarked without the fix (it fails) and with it (it passes).
+
+The fixes live in a controller on the frame, not on its content: the frame element outlives its renders, sees its
+form's submission (`turbo:submit-start` gives the `FormSubmission`, whose `stop()` cancels it) and its own `src`
+loads, and disconnects only when Back or a visit replaces the page. Before the page is cached (`turbo:before-cache`,
+not for a promoted frame visit), cancel what is still loading: Turbo clears the busy marks and re-enables the submit
+button before it copies the page (`cacheSnapshot` waits a tick). Fix what a copy taken earlier kept as it connects
+(`busy`, `aria-busy`), and make a frame that left the document inert (no `src`). The defects and their workarounds
+are in [`NOTES.md`](NOTES.md).
 
 Here: [`lab.data-table-interrupt.spec.ts`](../tests/e2e/lab.data-table-interrupt.spec.ts) (`instrument`, `quiet`,
 `consistency`), [`fixtures.ts`](../tests/e2e/fixtures.ts) (`allowCancelledRequest`).
@@ -320,10 +329,11 @@ await expect.soft(page.getByLabel('Rows per page')).toHaveValue('10');
 expect(await firstFrames()).toEqual([{ search: '', status: '', size: '10' }]);
 ```
 
-Leave with an edit not applied too (a link away, then Back). The fix is a controller on the form that calls
-`form.reset()` as it connects, unless the focus is inside it: a copy is a new element, and `reset()` puts back the
-`value` and `selected` attributes the server rendered. A Live Component needs none: its controller sets each
-`data-model` field from the component's state as it connects.
+Leave with an edit not applied too (a link away, then Back). The fix is a controller that calls the form's `reset()`
+as the form connects (a target of the controller on the table's frame), unless the focus is inside it: a copy is a new
+element, and `reset()` puts back the `value` and `selected` attributes the server rendered. Call it as
+`HTMLFormElement.prototype.reset.call(form)`: a field named `reset` (a kept URL parameter) shadows the method. A Live
+Component needs none: its controller sets each `data-model` field from the component's state as it connects.
 
 Here: [`lab.data-table-back.spec.ts`](../tests/e2e/lab.data-table-back.spec.ts),
 [`data_table_controller.js`](../data-table/assets/controllers/data_table_controller.js).

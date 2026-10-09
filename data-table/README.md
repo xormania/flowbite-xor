@@ -155,5 +155,7 @@ form load whole pages and still work.
 The search, filters and page size apply when the form is submitted (the Apply button, or Enter in the search field).
 After Back or Forward, the form shows the state of the URL on screen, never an edit made before leaving: its
 `data-table` controller resets the fields to the values the server rendered when a copy Turbo restores connects.
+Back pressed while a change is still loading drops the change: the URL, the rows and the controls stay those of the
+entry Back went to.
 
 Changing the search, a filter, the sort or the page size goes back to the first page.
