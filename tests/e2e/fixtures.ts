@@ -5,6 +5,11 @@ const PLACEHOLDER_IMAGE = fileURLToPath(new URL('./examples/placeholder.png', im
 
 type CollectedError = { message: string; httpStatus?: number; url?: string };
 
+/** A request a test cancels on purpose: its exact URL, method, `Turbo-Frame` header, and how many times at most. */
+export type CancelledRequest = { url: string; method: 'GET' | 'POST'; frame: string; count: number };
+
+type Guard = Awaited<ReturnType<typeof guardPage>>;
+
 /**
  * Records every Content Security Policy violation of the page and its frames. The demo enforces a strict policy
  * (demo/src/EventListener/SecurityHeadersListener.php): a violation means some markup needs `'unsafe-inline'`.
@@ -36,10 +41,16 @@ export async function recordCspViolations(page: Page): Promise<string[]> {
  * `allowHttpError(url, status)` accepts exactly that response, `url` being a RegExp or 'document' (the page's own
  * document, in the main frame): the response itself and Chromium's matching "Failed to load resource" console message
  * are dropped, nothing else.
+ *
+ * `allowCancelledRequest({ url, method, frame, count })` accepts at most `count` requests that fail with exactly
+ * `net::ERR_ABORTED` and match all of: this exact URL (same origin), this method, and the `Turbo-Frame` header naming
+ * `frame`. Only for a test that interrupts that request on purpose (Back while a frame visit runs: Turbo cancels its
+ * fetch); any other failed request, or one more than `count`, still fails the test.
  */
 export async function guardPage(page: Page, baseURL: string | undefined) {
     const errors: CollectedError[] = [];
     const allowed: { url: RegExp | 'document'; status: number }[] = [];
+    const cancellable: CancelledRequest[] = [];
     const documents = new Set<string>(); // the URLs the main frame navigated to
     const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
     const cspViolations = await recordCspViolations(page);
@@ -74,10 +85,23 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
         }
     });
     page.on('requestfailed', (request) => {
+        const aborted = 'net::ERR_ABORTED' === request.failure()?.errorText;
         // Turbo 8 prefetches a link on hover and cancels the request when the pointer leaves it
-        const cancelledPrefetch = 'prefetch' === request.headers()['x-sec-purpose'] && 'net::ERR_ABORTED' === request.failure()?.errorText;
-        if (isLocal(request.url()) && !cancelledPrefetch) {
-            errors.push({ message: `requestfailed: ${request.url()} ${request.failure()?.errorText}` });
+        const cancelledPrefetch = 'prefetch' === request.headers()['x-sec-purpose'] && aborted;
+        // a request the test interrupts on purpose (allowCancelledRequest), each allowance used at most `count` times
+        const expected =
+            aborted &&
+            cancellable.find(
+                (allowance) =>
+                    allowance.count > 0 &&
+                    allowance.url === request.url() &&
+                    allowance.method === request.method() &&
+                    allowance.frame === request.headers()['turbo-frame'],
+            );
+        if (expected) {
+            expected.count--;
+        } else if (isLocal(request.url()) && !cancelledPrefetch) {
+            errors.push({ message: `requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText}` });
         }
     });
 
@@ -88,6 +112,12 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
 
     return {
         allowHttpError: (url: RegExp | 'document', status: number) => void allowed.push({ url, status }),
+        allowCancelledRequest: (allowance: CancelledRequest) => {
+            if (!isLocal(allowance.url)) {
+                throw new Error(`allowCancelledRequest: ${allowance.url} is not a URL of the demo`);
+            }
+            cancellable.push({ ...allowance });
+        },
         check: () => {
             const unexpected = [
                 ...errors.filter((error) => !isAllowed(error)).map(({ message }) => message),
@@ -98,16 +128,25 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
     };
 }
 
-/** The checks of guardPage() on every test; a test expecting an HTTP error allows it with `allowHttpError`. */
-export const test = base.extend<{ allowHttpError: (url: RegExp, status: number) => void }>({
-    allowHttpError: [
+/**
+ * The checks of guardPage() on every test; a test expecting an HTTP error allows it with `allowHttpError`, a test
+ * interrupting a frame visit on purpose allows its cancelled request with `allowCancelledRequest`.
+ */
+export const test = base.extend<{
+    pageGuard: Guard;
+    allowHttpError: (url: RegExp, status: number) => void;
+    allowCancelledRequest: (allowance: CancelledRequest) => void;
+}>({
+    pageGuard: [
         async ({ page, baseURL }, use) => {
             const guard = await guardPage(page, baseURL);
-            await use(guard.allowHttpError);
+            await use(guard);
             guard.check();
         },
         { auto: true },
     ],
+    allowHttpError: async ({ pageGuard }, use) => use(pageGuard.allowHttpError),
+    allowCancelledRequest: async ({ pageGuard }, use) => use(pageGuard.allowCancelledRequest),
 });
 
 export { expect };
