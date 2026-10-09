@@ -20,13 +20,13 @@ import { test, expect } from './fixtures';
 const FRAME = 'orders';
 
 /*
- * Turbo 8.0.23, also without an interruption: the copy of the page Back restores keeps the text typed in the search
- * field. The promotion caches the page as it was when the frame visit started, the user's edit included, then puts
- * back the frame's old content from FrameController#willRenderFrame (`cloneNode(true)` of the frame just before it
- * renders: it carries an input's value, not a select's selection). So Back shows the old rows at the old URL with the
- * new search text.
+ * Each Turbo 8.0.23 defect these tests found is worked around by the data-table controller (docs/NOTES.md), and the
+ * comment in the test names it. Also without an interruption, the copy of the page Back restores keeps the text typed
+ * in the search field: the promotion caches the page as it was when the frame visit started, the user's edit
+ * included, then puts back the frame's old content from FrameController#willRenderFrame (`cloneNode(true)` of the
+ * frame just before it renders: it carries an input's value, not a select's selection). The controller resets the
+ * form as it connects.
  */
-const SEARCH_KEPT = 'Turbo 8.0.23: the copy restored on Back keeps the search text typed before the change';
 const PATH = '/lab/data-table-frame';
 
 type Change = { name: string; param: [string, string]; apply: (page: Page) => Promise<void> };
@@ -140,7 +140,8 @@ function trackRequests(page: Page) {
  * page visit running (`<html aria-busy>`, unless `busy`: Back waiting on a render held on purpose). Bounded: fails
  * with what was still going on after 10 s.
  *
- * Not a frame's `busy` attribute: the copy Turbo restores on Back can keep one for good (the busy test below).
+ * Not a frame's `busy` attribute: Turbo 8.0.23's copy restored on Back keeps one for good unless the data-table
+ * controller clears it (the busy test below).
  */
 async function quiet(page: Page, { busy = false, except }: { busy?: boolean; except?: Request } = {}) {
     const deadline = Date.now() + 10_000;
@@ -275,18 +276,16 @@ async function afterwards(page: Page, { back, forward }: { back: string; forward
 }
 
 for (const change of changes) {
-    const form = 'page link' !== change.name;
-
     test(`${change.name}: Back before the response arrives leaves the table, the URL and the controls of the entry Back went to`, async ({ page, allowCancelledRequest }) => {
         // Turbo 8.0.23: Back restores the page and disconnects the frame, which cancels a frame `src` load (a link)
         // but not the frame's FormSubmission (FrameController#disconnect cancels #currentFetchRequest only). The form's
         // response then still runs #loadFrameResponse on the detached frame: changeHistory() pushes the new URL over
         // the restored page, which keeps showing the old rows and controls, and the promotion caches the old page under
-        // the restored URL (Back then shows page 2 at the first URL).
-        test.fail(form, 'Turbo 8.0.23: a frame form submission outlives Back and pushes its URL over the restored page');
+        // the restored URL (Back then shows page 2 at the first URL). The controller stops the submission on
+        // turbo:before-cache, and when the frame disconnects.
         // A link: the cancelled src load is right, but the page left by Back is cached with the frame's pending `src`;
-        // Forward restores it, the frame reconnects, loads that src and shows page 3 at the page 2 URL.
-        test.fail(!form, 'Turbo 8.0.23: the page cached on Back keeps the frame\'s pending src, which Forward then loads without its URL');
+        // Forward restores it, the frame reconnects, loads that src and shows page 3 at the page 2 URL. The controller
+        // removes a pending `src` on turbo:before-cache, which also cancels its request.
         const { first, second } = await start(page);
 
         let held: { route: Route; request: Request } | undefined;
@@ -329,7 +328,8 @@ for (const change of changes) {
         // (FrameController#disconnect), and once the render resumes, the promotion reads the response body again
         // (proposeVisitIfNavigatedWithAction: `await fetchResponse.responseHTML`, a new clone() of the aborted
         // response). FetchRequest#receive does not await the delegate, so the AbortError is uncaught: a page error.
-        test.fail('page link' === change.name, 'Turbo 8.0.23: resuming the render of a frame link aborted by Back throws an uncaught AbortError');
+        // The controller removes the frame's `src` before (a load still pending on turbo:before-cache, and a frame that
+        // left the document), and the promotion proposes no visit without one.
         const { second } = await start(page);
         await page.evaluate(() => ((window as any).__hold = 'frame-render'));
         const from = (await log(page)).length;
@@ -352,7 +352,6 @@ for (const change of changes) {
 
     test(`${change.name}: Back after the frame rendered, before the promotion's turbo:load, leaves a consistent table`, async ({ page }) => {
         // the copy Back restores was cached as the promotion started, before the hold: the same as the control below
-        test.fail('search' === change.name, SEARCH_KEPT);
         const { second } = await start(page);
         await page.evaluate(() => ((window as any).__hold = 'promotion'));
         const from = (await log(page)).length;
@@ -375,7 +374,6 @@ for (const change of changes) {
 
 for (const change of changes) {
     test(`control, ${change.name}: left to finish, then Back and Forward, each show a consistent table`, async ({ page }) => {
-        test.fail('search' === change.name, SEARCH_KEPT);
         const { second } = await start(page);
         await promoted(page, () => change.apply(page), change.param);
         const changed = page.url();
@@ -395,7 +393,7 @@ test('Back after a form change restores the table not marked busy', async ({ pag
     // the copy of the page that Back restores when the response arrives (formSubmissionSucceededWithResponse →
     // proposeVisitIfNavigatedWithAction), and clears the mark only after (formSubmissionFinished): the copy keeps
     // `busy` and `aria-busy="true"`, and nothing clears them once restored. A link's copy is taken before its request.
-    test.fail(true, 'Turbo 8.0.23: the copy restored on Back after a frame form submission keeps the frame aria-busy');
+    // The controller clears both as the frame connects with no load of its own pending.
     const { second } = await start(page);
     await promoted(page, () => changes[0].apply(page), changes[0].param);
     await quiet(page);
@@ -405,4 +403,6 @@ test('Back after a form change restores the table not marked busy', async ({ pag
     const frame = page.locator(`turbo-frame#${FRAME}`);
     await expect(frame).not.toHaveAttribute('aria-busy');
     await expect(frame).not.toHaveAttribute('busy');
+    await expect(page.locator(`#${FRAME} form`)).not.toHaveAttribute('aria-busy');
+    await expect(page.getByRole('button', { name: 'Apply' })).toBeEnabled();
 });
