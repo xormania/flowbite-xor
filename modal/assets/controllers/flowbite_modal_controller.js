@@ -1,5 +1,15 @@
 import { Controller } from '@hotwired/stimulus';
 
+/**
+ * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
+ * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
+ * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
+ * Copy it into a controller that needs it, as `position()` is.
+ */
+function isPromotedFrameCache() {
+    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
+}
+
 export default class extends Controller {
     static targets = ['trigger', 'modal'];
 
@@ -77,9 +87,11 @@ export default class extends Controller {
     }
 
     // Closes the modal before Turbo caches the page, so the copy shown on Back and Forward has it closed and its
-    // trigger collapsed. A data-turbo-permanent modal is not in that copy: Turbo moves the live one in.
+    // trigger collapsed. A data-turbo-permanent modal is not in that copy: Turbo moves the live one in. A frame visit
+    // promoted to history keeps the page on screen and took its copy when it started (closed as it connects): the
+    // modal stays open.
     #closeBeforeCache = () => {
-        if (this.modalTarget.open && !this.element.closest('[data-turbo-permanent]')) {
+        if (this.modalTarget.open && !this.element.closest('[data-turbo-permanent]') && !isPromotedFrameCache()) {
             this.#closeNow();
         }
     };

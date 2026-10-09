@@ -1,12 +1,15 @@
 import type { Page } from '@playwright/test';
 import { test, expect, stimulusControllers, trackGlobalListeners, turboVisitDone } from './fixtures';
+import { back, forward, recordFirstFrames, shown, stepFromCode } from './transitions';
 
 /*
  * The dropdown, modal and drawer beyond Back and Live (lab.turbo-restore, lab.live-*): what Turbo Drive, Frames and
  * Streams do to them while they are open. Each runs the same steps on its own lab pages, `/lab/<recipe>-turbo` (pages
  * one and two, a Kept copy inside a data-turbo-permanent element, a Framed copy inside a Turbo Frame) and
  * `/lab/<recipe>-stream`. Page two links a stylesheet page one lacks: delayed, it makes Turbo copy page one before its
- * controllers disconnect, the order a slow stylesheet gives in production.
+ * controllers disconnect, the order a slow stylesheet gives in production. Page one also holds the `history-steps`
+ * frame, whose visits are promoted to history: Turbo copies the page as such a visit starts, then dispatches
+ * `turbo:before-cache` with the page still on screen.
  */
 
 type Overlay = {
@@ -19,6 +22,8 @@ type Overlay = {
     main: { id: string; name: string };
     /** the link inside the open main overlay that visits the other page */
     visitLink: (page: Page, other: string) => ReturnType<Page['getByRole']>;
+    /** the link inside the open main overlay that steps the `history-steps` frame to step 5 */
+    stepLink: (page: Page) => ReturnType<Page['getByRole']>;
     /** the link inside the open Framed overlay that reloads its frame */
     reloadLink: (page: Page) => ReturnType<Page['getByRole']>;
     /** the overlay's panel, by the name of its trigger */
@@ -34,6 +39,7 @@ const overlays: Overlay[] = [
         prefix: 'dropdown',
         main: { id: 'actions', name: 'Actions' },
         visitLink: (page, other) => page.getByRole('menuitem', { name: `Page ${other} from the menu` }),
+        stepLink: (page) => page.getByRole('menuitem', { name: 'Step 5 from the menu' }),
         reloadLink: (page) => page.getByRole('menuitem', { name: 'Reload the frame' }),
         panel: (page, name) => page.getByRole('menu', { name, includeHidden: true }),
         keptOpenAcrossVisit: false,
@@ -44,6 +50,7 @@ const overlays: Overlay[] = [
         prefix: 'modal',
         main: { id: 'details', name: 'Details' },
         visitLink: (page, other) => page.getByRole('link', { name: `Page ${other} from the dialog` }),
+        stepLink: (page) => page.getByRole('link', { name: 'Step 5 from the dialog' }),
         reloadLink: (page) => page.getByRole('link', { name: 'Reload the frame' }),
         panel: (page, name) => page.getByRole('dialog', { name, includeHidden: true }),
         keptOpenAcrossVisit: true,
@@ -54,6 +61,7 @@ const overlays: Overlay[] = [
         prefix: 'drawer',
         main: { id: 'details', name: 'Details' },
         visitLink: (page, other) => page.getByRole('link', { name: `Page ${other} from the dialog` }),
+        stepLink: (page) => page.getByRole('link', { name: 'Step 5 from the dialog' }),
         reloadLink: (page) => page.getByRole('link', { name: 'Reload the frame' }),
         panel: (page, name) => page.getByRole('dialog', { name, includeHidden: true }),
         keptOpenAcrossVisit: true,
@@ -153,6 +161,42 @@ for (const overlay of overlays) {
             expect(rendered.map(({ open, expanded }) => ({ open, expanded: 'true' === expanded }))).toEqual(Array(3).fill({ open: false, expanded: false }));
             expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
         });
+
+        for (const from of ['a link inside it', "the page's code"] as const) {
+            test(`open while ${from} steps a frame promoted to history, it stays open with the focus; Back and Forward show it closed from the first frame`, async ({ page }) => {
+                await page.goto(turboPage('one'));
+                const firstFrames = await recordFirstFrames(page, { panel: `#${overlay.prefix}-${overlay.main.id}` });
+                await trigger(page, overlay.main.name).click();
+                await expectOpen(page, overlay, overlay.main.name);
+                const step = 'a link inside it' === from ? 5 : 1;
+                if ('a link inside it' === from) {
+                    await overlay.stepLink(page).focus();
+                }
+                // the focused element: the trigger, the dialog's first field or the link
+                const focused = await page.evaluateHandle(() => document.activeElement);
+                expect(await focused.evaluate((element) => element !== document.body)).toBe(true);
+
+                // Turbo copies the page as the frame visit starts, then dispatches turbo:before-cache with the page still shown
+                if ('a link inside it' === from) {
+                    await overlay.stepLink(page).click();
+                    await shown(page, { step });
+                } else {
+                    await stepFromCode(page, step);
+                }
+                await expectOpen(page, overlay, overlay.main.name);
+                expect(await focused.evaluate((element) => element === document.activeElement)).toBe(true);
+
+                // the copy taken as the visit started holds it open: Back shows it closed from the first frame, and so
+                // does Forward (the copy of the step, taken as Back left it)
+                await back(page, { step: 0 });
+                await expectClosed(page, overlay, overlay.main.name);
+                await forward(page, { step });
+                await expectClosed(page, overlay, overlay.main.name);
+                expect(await firstFrames()).toEqual([{ panel: false }, { panel: false }]);
+                await expectWorks(page, overlay, overlay.main.name);
+                expect(await stimulusControllers(page, overlay.controller)).toEqual({ controllers: 3, elements: 3, distinctElements: 3 });
+            });
+        }
 
         test('repeated Turbo visits from inside the open overlay leave one controller per element and no document or window listener behind', async ({ page }) => {
             const listeners = await trackGlobalListeners(page);

@@ -1,13 +1,23 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
+ * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
+ * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
+ * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
+ * Copy it into a controller that needs it, as `position()` is.
+ */
+function isPromotedFrameCache() {
+    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
+}
+
+/**
  * Opens a `Drawer`, a native `<dialog>` docked to a side of the viewport: modal by default (the page is
  * inert, focus is trapped, Escape or a click on the backdrop closes it) or beside the page.
  * Like the `Modal`, a drawer open when its element is moved in the DOM (Turbo, Live re-renders) is
  * reopened on reconnect, and a closed one stays closed. It closes before Turbo caches the page, unless it is inside a
  * `data-turbo-permanent` element, so the copy shown on Back and Forward has it closed and its triggers collapsed; a
- * copy cached open anyway (the page left before `turbo:before-cache`) is closed when it connects, unless its `open`
- * value says otherwise.
+ * copy cached open anyway (the page left before `turbo:before-cache`, or a frame visit promoted to history, which
+ * keeps the page on screen with the drawer open) is closed when it connects, unless its `open` value says otherwise.
  *
  * @target trigger             The elements opening the drawer, kept in sync through `aria-expanded`.
  * @target dialog              The `<dialog>` element.
@@ -69,9 +79,10 @@ export default class extends Controller {
         }
     }
 
-    // a data-turbo-permanent drawer is not in the copy Turbo shows on Back: Turbo moves the live one in
+    // a data-turbo-permanent drawer is not in the copy Turbo shows on Back: Turbo moves the live one in; a frame visit
+    // promoted to history keeps the page on screen and took its copy when it started: the drawer stays open
     #closeBeforeCache = () => {
-        if (this.dialogTarget.open && !this.element.closest('[data-turbo-permanent]')) {
+        if (this.dialogTarget.open && !this.element.closest('[data-turbo-permanent]') && !isPromotedFrameCache()) {
             this.#closeNow();
         }
     };

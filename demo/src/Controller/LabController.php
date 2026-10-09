@@ -50,11 +50,11 @@ final class LabController extends AbstractController
         'live-popover' => 'A Popover open while its Live Component re-renders (action and model change).',
         'tooltip-turbo' => 'Tooltips across Turbo visits, Back and Forward: on the link that visits, on an icon button, inside a data-turbo-permanent element, inside a Turbo Frame that reloads, and on the link of a frame whose visits are promoted to history.',
         'tooltip-stream' => 'A Tooltip replaced and updated by Turbo Streams.',
-        'dropdown-turbo' => 'Dropdowns across Turbo visits and Back: a plain one with a link to the other page, one inside a data-turbo-permanent element, one inside a Turbo Frame that its own menu reloads; page two waits for a stylesheet, so Turbo copies page one before its controllers disconnect.',
+        'dropdown-turbo' => 'Dropdowns across Turbo visits and Back: a plain one with a link to the other page, one inside a data-turbo-permanent element, one inside a Turbo Frame that its own menu reloads; page two waits for a stylesheet, so Turbo copies page one before its controllers disconnect. Beside a frame whose visits are promoted to history, stepped from a link in the menu or from the page\'s code, the open menu stays open; Back shows it closed.',
         'dropdown-stream' => 'A Dropdown replaced and updated by Turbo Streams while open.',
-        'modal-turbo' => 'Modals across Turbo visits and Back: a plain one with a link to the other page, one inside a data-turbo-permanent element, one inside a Turbo Frame that a link in the open modal reloads; page two waits for a stylesheet, so Turbo copies page one before its controllers disconnect.',
+        'modal-turbo' => 'Modals across Turbo visits and Back: a plain one with a link to the other page, one inside a data-turbo-permanent element, one inside a Turbo Frame that a link in the open modal reloads; page two waits for a stylesheet, so Turbo copies page one before its controllers disconnect. Beside a frame whose visits are promoted to history, stepped from a link in the open modal or from the page\'s code, the open modal stays open; Back shows it closed.',
         'modal-stream' => 'A Modal replaced and updated by Turbo Streams while open.',
-        'drawer-turbo' => 'Drawers across Turbo visits and Back: a plain one with a link to the other page, one inside a data-turbo-permanent element, one inside a Turbo Frame that a link in the open drawer reloads; page two waits for a stylesheet, so Turbo copies page one before its controllers disconnect.',
+        'drawer-turbo' => 'Drawers across Turbo visits and Back: a plain one with a link to the other page, one inside a data-turbo-permanent element, one inside a Turbo Frame that a link in the open drawer reloads; page two waits for a stylesheet, so Turbo copies page one before its controllers disconnect. Beside a frame whose visits are promoted to history, stepped from a link in the open drawer or from the page\'s code, the open drawer stays open; Back shows it closed.',
         'drawer-stream' => 'A Drawer replaced and updated by Turbo Streams while open.',
         'calendar-turbo' => 'Calendars in a GET form (one date, a range, several dates) across Turbo visits and Back, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'calendar-stream' => 'A Calendar replaced and updated by Turbo Streams.',
@@ -308,6 +308,7 @@ final class LabController extends AbstractController
         return $this->render(\sprintf('lab/%s.html.twig', str_replace('-', '_', $name)), [
             'page' => $page,
             'load' => $request->query->getInt('load'),
+            'step' => $request->query->getInt('step'),
             'description' => self::SCENARIOS[$name],
         ]);
     }

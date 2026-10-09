@@ -12,6 +12,7 @@
     {%- set other = page == 'one' ? 'two' : 'one' %}
     <h2 class="mb-4 text-lg font-semibold" data-testid="page">Page {{ page }}</h2>
     <p class="mb-6"><a href="{{ path('app_lab_drawer_turbo', {page: other}) }}" class="text-fg-brand hover:underline">Go to page {{ other }}</a></p>
+    {{ include('lab/_history_steps.html.twig', {route: 'app_lab_drawer_turbo', params: {page: page}, step: step}) }}
     <div class="flex flex-wrap items-start gap-6">
         <twig:Drawer id="details">
             <twig:Drawer:Trigger>
@@ -25,6 +26,7 @@
                     <label for="details-note" class="mb-2 block text-heading">Note</label>
                     <twig:Input type="text" id="details-note" />
                     <p class="mt-4"><a href="{{ path('app_lab_drawer_turbo', {page: other}) }}" class="text-fg-brand hover:underline">Page {{ other }} from the dialog</a></p>
+                    <p class="mt-4"><a href="{{ path('app_lab_drawer_turbo', {page: page, step: 5}) }}" data-turbo-frame="history-steps" class="text-fg-brand hover:underline">Step 5 from the dialog</a></p>
                 </twig:Drawer:Body>
             </twig:Drawer:Content>
         </twig:Drawer>
