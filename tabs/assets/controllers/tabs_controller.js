@@ -28,6 +28,8 @@ export default class extends Controller {
         // a tab disabled or enabled in place (a Live morph) moves the Tab stop
         this.disabledObserver = new MutationObserver(() => this.disabledChanged());
         this.disabledObserver.observe(this.element, { attributes: true, attributeFilter: ['disabled'], subtree: true });
+        // a selected tab rendered disabled is handled as one disabled later
+        this.disabledChanged();
     }
 
     disconnect() {

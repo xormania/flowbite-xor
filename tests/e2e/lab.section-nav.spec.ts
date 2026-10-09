@@ -189,6 +189,22 @@ test('the vertical tabs follow the keyboard of the tabs pattern: Up, Down, Home,
     await expect(page.getByRole('tabpanel', { name: 'General' })).toBeHidden();
 });
 
+test('a selected tab already disabled when the controller connects hands the selection on', async ({ page }) => {
+    await page.goto('/preview/tabs/default?theme=light');
+    const list = page.locator('[data-controller="tabs"]').first();
+    const handle = await list.elementHandle();
+    await expect(page.getByRole('tab', { name: 'Profile', exact: true })).toHaveAttribute('aria-selected', 'true');
+    // disabled while no controller watches (rendered so), then connected
+    await handle!.evaluate((element) => element.removeAttribute('data-controller'));
+    await expect(page.locator('[role="tab"][tabindex]')).toHaveCount(0); // disconnected
+    await handle!.evaluate((element) => element.querySelector('[role="tab"]')!.setAttribute('disabled', ''));
+    await handle!.evaluate((element) => element.setAttribute('data-controller', 'tabs'));
+    const dashboard = page.getByRole('tab', { name: 'Dashboard', exact: true });
+    await expect(dashboard).toHaveAttribute('aria-selected', 'true');
+    await expect(dashboard).toHaveAttribute('tabindex', '0');
+    await expect(page.getByRole('tabpanel', { name: 'Dashboard' })).toBeVisible();
+});
+
 test('a panel with no focusable content is a Tab stop after its tab', async ({ page }) => {
     await page.goto('/preview/tabs/default?theme=light');
     await page.getByRole('tab', { name: 'Profile', exact: true }).focus();
