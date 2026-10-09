@@ -10,6 +10,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 - `section-nav`: vertical tabs that navigate between the pages of one area (settings): links with
   `aria-current="page"` marked by the server or from the URL, a column on large screens and a strip that scrolls
   sideways, with the current section in view, on small ones.
+- `mobile-nav`: the app's navigation on small screens, in a modal `Drawer` opened by a menu button in the `Navbar`
+  (`menu` block); the focus goes to the current page, and the drawer closes on a link, Escape, the backdrop, before
+  Turbo caches the page and when the screen grows to the sidebar's width.
 - `side-nav`: a multi-level navigation tree (WAI-ARIA tree view): links in branches that open and close at any depth,
   arrow keys, Home, End and type-ahead, the branch of the current page open, and the open branches kept across Turbo
   visits, Back and Forward in `sessionStorage`.
@@ -66,6 +69,11 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   from sharing ids.
 - `layouts`: the `settings` layout renders its navigation with `section-nav`; fill `settings_nav` with
   `SectionNav:Item`s (plain `<li><a>` items still render, without the controller's marking).
+- `layouts`: on small screens, the app layout's menu button opens the `sidebar` block's navigation in a `MobileNav`
+  (a modal drawer) instead of the `Sidebar` over the page; the recipe now depends on `mobile-nav`.
+- `navbar`: a `menu` block, at the start of the bar, for a `MobileNav`.
+- `side-nav`: a tree hidden then shown again (a `MobileNav` opening, the screen growing to show the `Sidebar`)
+  restores the open branches saved meanwhile, so two trees sharing a `storageKey` agree.
 - `theme`: chart series roles `chart-1` to `chart-6` and `chart-other`, checked for contrast in both themes.
 - The docs no longer track the official `flowbite-4` kit, an initial reference only: `UPSTREAM.md` is removed, and
   its notes on toolkit and platform behavior moved to `docs/NOTES.md`. `NOTICE` keeps the credit.

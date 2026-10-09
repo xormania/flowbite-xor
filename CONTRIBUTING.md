@@ -251,7 +251,8 @@ a release is a pull request from `dev` to `main` (*Releases* below).
 - *Why* gives the problem or the goal.
 - *Coverage map* lists each guarantee the change adds or touches, at which scope it is tested and whether that
   coverage is new, extended, moved or removed, then what was reused, the new shared test support and the gaps left
-  (see [`docs/TESTING.md`](docs/TESTING.md)). A pull request with no behavior or test change says so.
+  (see [`docs/TESTING.md`](docs/TESTING.md)), and updates the rows it changes in the suite-wide map,
+  [`docs/TEST-INVENTORY.md`](docs/TEST-INVENTORY.md). A pull request with no behavior or test change says so.
 - *Checks* says whether CI passed on the last commit and what you verified by hand.
 
 Use plain words throughout, and no AI attribution lines (`Co-Authored-By`, "Generated with" footers). Pull requests

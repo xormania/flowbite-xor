@@ -5,6 +5,9 @@
 
 {##- The layout around the page content. -#}
 {% block body %}
+    {#- rendered here, apart from the sidebar's copy: `outerBlocks` does not reach into a component inside a component -#}
+    {%- set _mobile_nav_brand %}{{ block('brand') }}{% endset -%}
+    {%- set _mobile_nav_content %}{{ block('sidebar') }}{% endset -%}
     <div class="flex min-h-svh">
         {#- the document scrolls (keyboard scrolling, Turbo's scroll restoration); the sidebar sticks -#}
         <twig:Sidebar id="sidebar" data-turbo-permanent class="md:sticky md:top-0 md:h-svh!">
@@ -13,7 +16,14 @@
             {{- block(outerBlocks.sidebar) -}}
         </twig:Sidebar>
         <div class="flex min-w-0 flex-1 flex-col">
-            <twig:Navbar sidebarId="sidebar" class="sticky top-0 z-30">
+            <twig:Navbar class="sticky top-0 z-30">
+                <twig:block name="menu">
+                    {#- small screens: the same navigation in a modal drawer, opened by the menu button -#}
+                    <twig:MobileNav>
+                        <twig:block name="header">{{ _mobile_nav_brand }}</twig:block>
+                        {{- _mobile_nav_content -}}
+                    </twig:MobileNav>
+                </twig:block>
                 <twig:block name="brand"><span class="md:hidden">{{ block(outerBlocks.brand) }}</span></twig:block>
                 <twig:block name="search">{##- A search form in the navbar. -#}{{ block(outerBlocks.navbar_search) }}</twig:block>
                 <twig:block name="actions">{##- Actions on the right of the navbar; by default the theme toggle. -#}{{ block(outerBlocks.navbar_actions) }}</twig:block>
