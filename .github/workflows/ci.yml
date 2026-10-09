@@ -440,6 +440,8 @@ jobs:
                       Install Playwright=${{ steps.install.outcome }}
               run: |
                   if [ "$DEMO_STARTED" = success ]; then
+                      # the PHP snippet is single-quoted on purpose: its $m is PHP's, not the shell's
+                      # shellcheck disable=SC2016
                       RUNTIME=$(cd demo && timeout 60 docker compose exec -T php php -r 'require "vendor/autoload.php"; $m = require "importmap.php";
                           echo "PHP=", PHP_VERSION, "\nSymfony=", Symfony\Component\HttpKernel\Kernel::VERSION, "\nTurbo=", $m["@hotwired/turbo"]["version"] ?? "", "\n";') || true
                       export RUNTIME
