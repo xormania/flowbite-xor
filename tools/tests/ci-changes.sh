@@ -51,6 +51,7 @@ check 'contrast'                  docs/TESTING.md CHANGELOG.md FOR-AGENTS.md .gi
 check 'contrast'                  docs/ROADMAP.md CONTRIBUTING.md AGENTS.md
 check 'contrast'                  tools/docs-lint.mjs tools/llms-txt.mjs llms.txt
 check 'static-site contrast'      tools/fence-coverage.mjs
+check 'static-site'               tools/build-static.sh
 check "$kit_contrast"             INSTALL.md
 
 # A workflow: actionlint reads it, and the jobs that run what it runs check that part (a workflow's own triggers run

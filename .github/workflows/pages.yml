@@ -26,10 +26,6 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
         timeout-minutes: 15
-        # every console command without debug, from composer's cache:clear on, so the assets compile with Stimulus's
-        # debug logging off (a compiled asset is cached whatever the debug mode)
-        env:
-            APP_DEBUG: '0'
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -41,26 +37,9 @@ jobs:
                   extensions: intl # the calendar formats dates with twig/intl-extra
                   tools: composer
                   coverage: none
-            - name: Copy the recipes into the demo
-              run: php tools/sync-demo
-            - name: Install the demo
-              working-directory: demo
-              run: composer install --no-interaction --no-progress
-            - name: Build the CSS and compile the assets
-              working-directory: demo
-              run: |
-                  bin/console tailwind:build --minify
-                  bin/console asset-map:compile
-            - name: Save the pages
-              working-directory: demo
-              run: |
-                  # release tags only (X.Y.Z): the install commands name the release only when the site is one
-                  match='[0-9]*.[0-9]*.[0-9]*'
-                  bin/console app:export-static ../_site \
-                      --base-path="/${GITHUB_REPOSITORY#*/}" \
-                      --release="$(git describe --tags --exact-match --match "$match" 2>/dev/null || true)" \
-                      --latest-release="$(git describe --tags --abbrev=0 --match "$match" 2>/dev/null || true)" \
-                      --commit="$(git rev-parse --short HEAD)"
+            # the same build and checks as CI's Static site job; the install commands name the release
+            - name: Build and check the site
+              run: tools/build-static.sh _site --base-path="/${GITHUB_REPOSITORY#*/}" --release-from-tags
             - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
               with:
                   path: _site

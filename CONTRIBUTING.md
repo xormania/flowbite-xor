@@ -21,6 +21,7 @@ and pull request standard.
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
 | `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs`, `tools/ci/jev-diagnosis.mjs`, `tools/prepare-tests.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
+| `tools/build-static.sh` | no | builds and checks the gallery as a static site, for CI's *Static site* job and `pages.yml` (*Releases*) |
 | `tools/prepare-tests.mjs` | no | what the browser tests need, safe with several Playwright processes in one checkout: the recipe specs' runnable copies and the demo's CSS (*Checks*) |
 | `FOR-AGENTS.md`, `llms.txt` | no | the page for coding agents given the repository's URL, and the list of every page for them ([llms.txt](https://llmstxt.org/)) |
 | `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), the testing patterns ([`docs/TESTING.md`](docs/TESTING.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
@@ -89,13 +90,14 @@ change to both paths.
 | `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
 | `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `llms.txt` | *Contrast* |
 | `tools/fence-coverage.mjs` | *Contrast*, *Static site* |
+| `tools/build-static.sh` | *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
 | `tools/release-plan.sh`, `tools/tests/release-plan.sh` | *Workflows* |
 | `tools/tests/fresh-install.sh`, `check-fresh-app.sh`, `docker-install.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
 | any other file in `tools/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
 | `demo/compose.yaml`, `demo/frankenphp/Caddyfile` | *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
 | any other file in `demo/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
-| `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, without the upload) |
+| `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, `tools/build-static.sh`, without the upload) |
 | `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, *Workflows* runs its plan as a dry run |
 | `.github/workflows/audit.yml`, `.github/workflows/codeql.yml` | *Workflows*; each also runs itself on the pull request that changes it |
 | `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
@@ -317,9 +319,9 @@ A `markdown` block is read as a document: its code blocks are checked, its prose
 demo does (`demo/src/Kit/KitReader.php`): a block opening at the start of a line with
 ```` ```<language> {"preview":true} ```` is an example, named after the heading above it. A block that looks like
 one but that the demo skips (indented in a list, JSON that does not parse, `"preview"` not `true`) fails, and so does
-a recipe without a README. *Static site* runs it again with `--site _site` after `app:export-static`: every recipe
-needs its `r/<recipe>/` page and a link from the index, every example its light and dark preview pages, and a saved
-page that no source names fails too.
+a recipe without a README. `tools/build-static.sh` (*Static site*, `pages.yml`) runs it again with `--site` after
+`app:export-static`: every recipe needs its `r/<recipe>/` page and a link from the index, every example its light and
+dark preview pages, and a saved page that no source names fails too.
 
 **Plans.** `docs/PLAN-*.md` and `docs/ROADMAP.md` record decisions; they are not instructions. Each plan opens
 with front matter naming its status and the recipes it adds:
@@ -414,5 +416,8 @@ whose commit's workflows differed from `main`'s), push the tag by hand
 checks the tag and publishes the Release. After a release, it publishes the gallery on GitHub Pages (`pages.yml`);
 if that part fails, use *Re-run failed jobs* (a full re-run finds the release done and skips the gallery), or run
 `pages.yml` by hand on `main`. CI's *Static site* job builds the same pages on every push, so a page that does not render fails a pull request,
-not the release. In that copy, Live Components are switched off and the recipe pages say what needs the server
+not the release: both run `tools/build-static.sh <dir> --base-path=/<repository>` (`pages.yml` adds
+`--release-from-tags`, so the install commands name the release), which installs the demo, saves the pages with
+`app:export-static` and checks them. Locally, delete `demo/public/assets/` after it, or the demo serves those copies.
+In that copy, Live Components are switched off and the recipe pages say what needs the server
 (`ExportStaticCommand::SERVER_ONLY`): add a recipe there when its examples need Symfony behind them.
