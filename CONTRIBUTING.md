@@ -15,11 +15,12 @@ and pull request standard.
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
 | `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
 | `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
+| `tools/icon-lint.mjs` | no | every icon in the recipes' templates and the markdown is a `flowbite:` name written in full (*Docs*) |
 | `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations, `failed-attempts.json` and `durations.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
 | `tools/ci/jev-diagnosis.mjs`, `tools/ci/jev-ci.json` | no | the advisory Jev diagnosis of each failed attempt in `failed-attempts.json`, and its policy ([`docs/TESTING.md`](docs/TESTING.md), *Jev diagnosis*) |
 | `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
-| `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs`, `tools/ci/jev-diagnosis.mjs`, `tools/prepare-tests.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
+| `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs`, `tools/ci/jev-diagnosis.mjs`, `tools/prepare-tests.mjs`, `tools/icon-lint.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `tools/build-static.sh` | no | builds and checks the gallery as a static site, for CI's *Static site* job and `pages.yml` (*Releases*) |
 | `tools/prepare-tests.mjs` | no | what the browser tests need, safe with several Playwright processes in one checkout: the recipe specs' runnable copies and the demo's CSS (*Checks*) |
@@ -85,12 +86,14 @@ change to both paths.
 | `LICENSE`, `NOTICE`, `.github/dependabot.yml` | nothing |
 | `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md`, `FOR-AGENTS.md`, `SECURITY.md`, `.github/pull_request_template.md` | *Contrast*, which checks the docs (*Docs*) |
 | a recipe, `kit.js`, `manifest.json`, `.gitattributes`, any path no other row names | *Lint kit*, *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
-| `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md`, controller (`assets/controllers/`) or `manifest.json` | the same and *Contrast* |
+| `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md`, templates (`templates/`), controller (`assets/controllers/`) or `manifest.json` | the same and *Contrast* |
 | a spec: `tests/e2e/*.spec.ts`, a recipe's `tests/*.spec.ts` | *Contrast* (`tools/test-inventory.mjs`), *Demo + Playwright* |
 | any other file in `tests/` or a recipe's `tests/`, `playwright.config.ts`, `tools/prepare-tests.mjs`, `tools/tests/prepare-tests.test.mjs`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
 | `tools/ci/`, the other `tools/tests/*.test.mjs`, `tools/tests/fixtures/playwright-results/` (the browser job's own tools and their cases) | *Demo + Playwright* |
 | `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
+| any other markdown file outside `demo/` | *Contrast* (`tools/docs-lint.mjs`, `tools/icon-lint.mjs`), and the jobs its path runs |
 | `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `tools/test-inventory.mjs`, `llms.txt` | *Contrast* |
+| `tools/icon-lint.mjs`, `tools/tests/icon-lint.test.mjs` | *Contrast*, *Demo + Playwright* (its cases) |
 | `tools/fence-coverage.mjs` | *Contrast*, *Static site* |
 | `tools/build-static.sh` | *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
@@ -123,9 +126,10 @@ node tools/contrast/check.mjs                       # every pair in tools/contra
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
 node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
 node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles; no recipe template uses a palette color (see Docs)
+node tools/icon-lint.mjs                            # every icon in the recipes' templates and the markdown is a flowbite: name written in full; lists the names chosen by a Twig expression (see Docs)
 node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
 node tools/test-inventory.mjs                       # docs/TEST-INVENTORY.md has a matrix row per recipe with a controller, a row per rule of FOR-AGENTS.md's Working well, and names existing tests; a11y.spec.ts scans every lab page
-node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer and of the Jev diagnosis (tools/ci/), and of tools/prepare-tests.mjs
+node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer and of the Jev diagnosis (tools/ci/), and of tools/prepare-tests.mjs and tools/icon-lint.mjs
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 (cd demo && bin/phpunit)                            # the PHP tests (demo/tests/): the data tables' limits, Live and Twig components, snapshots, profiler counts
@@ -324,6 +328,14 @@ block that shows what not to do says so after its language:
 ````
 
 A `markdown` block is read as a document: its code blocks are checked, its prose is not.
+
+**Icons.** `node tools/icon-lint.mjs` (in *Contrast*) reads every `<twig:ux:icon>` and `ux_icon()` in the recipes'
+templates and in the markdown, as docs-lint reads it, and fails a name that is not a quoted name of UX Icons'
+`flowbite` set written in full (`flowbite:search-outline`): `ux:icons:lock` only finds those. A name chosen by a Twig
+expression (`name="{{ icons[variant] }}"`) passes when it builds no name (no `~`, no text around `{{ }}`), changes
+none with a filter other than `default`, every quoted value it can take is a `flowbite:` name written in full (keys
+and compared strings are not values), and its template or code block writes the names in full (Toast's `icons` map);
+the check lists each one. Its cases are in `tools/tests/icon-lint.test.mjs`.
 
 **Every example has its page.** `node tools/fence-coverage.mjs` (in *Contrast*) reads each recipe's README as the
 demo does (`demo/src/Kit/KitReader.php`): a block opening at the start of a line with
