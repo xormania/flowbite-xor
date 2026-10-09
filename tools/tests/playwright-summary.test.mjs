@@ -227,7 +227,7 @@ test('durations, report-only: wall time, summed test time, the 10 slowest tests 
     assert.ok(slowest.includes('| 12.5 s | 1 | [examples] alert/tests/alert.spec.ts:8 › dismisses \\\\\\| each alert |'));
     assert.ok(slowest.includes('| 10.0 s | 2 | [smoke] tests/e2e/lab.turbo-stream-toast.spec.ts:19 › pauses while hovered |'));
     assert.doesNotMatch(slowest, /page 1 passes axe/, 'the 11th slowest is left out');
-    assert.match(run.summary, /\| 45\.0 s \| 9 \| tests\/e2e\/a11y\.spec\.ts \|\n\| 12\.5 s \| 1 \| alert\/tests\/alert\.spec\.ts \|\n\| 10\.0 s \| 3 \| tests\/e2e\/lab\.turbo-stream-toast\.spec\.ts \|/);
+    assert.match(run.summary, /\| 45\.0 s \| 9 \| tests\/e2e\/a11y\.spec\.ts \|\n\| 12\.5 s \| 1 \| alert\/tests\/alert\.spec\.ts \|\n\| ≥ 10\.0 s \| 3 \| tests\/e2e\/lab\.turbo-stream-toast\.spec\.ts \|/);
     // report-only: no annotation beyond the flaky test's, the outputs unchanged
     assert.deepEqual(annotations(run.stdout, 'error'), []);
     assert.equal(annotations(run.stdout, 'warning').length, 1);
@@ -245,15 +245,17 @@ test('durations, report-only: wall time, summed test time, the 10 slowest tests 
     assert.deepEqual(d.workers, { configured: 2, actual: 2 });
     assert.equal(d.slowest.length, 10);
     assert.deepEqual(d.slowest[1], {
-        project: 'smoke', file: 'tests/e2e/lab.turbo-stream-toast.spec.ts', line: 19, title: 'pauses while hovered', outcome: 'flaky', durationMs: 10000, attemptMs: [4000, 6000],
+        project: 'smoke', file: 'tests/e2e/lab.turbo-stream-toast.spec.ts', line: 19, title: 'pauses while hovered', outcome: 'flaky', durationMs: 10000, untimedAttempts: 0, attemptMs: [4000, 6000],
     });
-    assert.deepEqual(d.files.map(({ file, tests, durationMs }) => [file, tests, durationMs]), [
-        ['tests/e2e/a11y.spec.ts', 9, 45000],
-        ['alert/tests/alert.spec.ts', 1, 12500],
-        ['tests/e2e/lab.turbo-stream-toast.spec.ts', 3, 10000],
+    // a file holding an attempt without a time has a lower bound, never a total that counts it as 0
+    assert.deepEqual(d.files.map(({ file, tests, durationMs, untimedAttempts }) => [file, tests, durationMs, untimedAttempts]), [
+        ['tests/e2e/a11y.spec.ts', 9, 45000, 0],
+        ['alert/tests/alert.spec.ts', 1, 12500, 0],
+        ['tests/e2e/lab.turbo-stream-toast.spec.ts', 3, 10000, 1],
     ]);
     assert.equal(d.tests.length, 13);
     assert.equal(d.tests.find((test) => test.title === 'closes from its button').durationMs, null);
+    assert.equal(d.tests.find((test) => test.title === 'closes from its button').untimedAttempts, 1);
 });
 
 test('durations of a clean run are written too, and a run with no report has none, with the reason', () => {

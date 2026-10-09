@@ -234,7 +234,8 @@ function finish(status, reason, shard, data) {
  * What the run's time went to, report-only: never a verdict, no threshold. The wall time is Playwright's own (the run,
  * start to end); the summed time adds every attempt, retries included, so with several workers it exceeds the wall
  * time and the two are not compared. A test's time is the sum of its attempts. Times Playwright did not record count
- * as unknown, never as 0; a report it cannot time leaves the durations null with the reason, the summary still written.
+ * as unknown, never as 0: a test or file holding one shows its time as a lower bound (≥), with the count in
+ * durations.json; a report it cannot time leaves the durations null with the reason, the summary still written.
  */
 function durations(data) {
     const empty = { wallMs: null, summedTestMs: null, attempts: 0, untimedAttempts: 0, workers: null, slowest: [], files: [], tests: [] };
@@ -246,14 +247,20 @@ function durations(data) {
         const tests = data.tests.map((test) => {
             const attempts = test.attemptMs.map(ms);
             const timed = attempts.filter((value) => value !== null);
-            return { project: test.project, file: test.file, line: test.line, title: test.title, outcome: test.outcome, durationMs: timed.length ? timed.reduce((sum, value) => sum + value, 0) : null, attemptMs: attempts };
+            return {
+                project: test.project, file: test.file, line: test.line, title: test.title, outcome: test.outcome,
+                durationMs: timed.length ? timed.reduce((sum, value) => sum + value, 0) : null,
+                untimedAttempts: attempts.length - timed.length,
+                attemptMs: attempts,
+            };
         });
         const all = tests.flatMap((test) => test.attemptMs);
         const files = new Map();
         for (const test of tests) {
-            const file = files.get(test.file) ?? { file: test.file, tests: 0, durationMs: 0 };
+            const file = files.get(test.file) ?? { file: test.file, tests: 0, durationMs: 0, untimedAttempts: 0 };
             file.tests += 1;
             file.durationMs += test.durationMs ?? 0;
+            file.untimedAttempts += test.untimedAttempts;
             files.set(test.file, file);
         }
         const byTime = (a, b) => (b.durationMs ?? -1) - (a.durationMs ?? -1);
@@ -287,19 +294,24 @@ function durationsSection(timing) {
     if (timing.slowest.length) {
         lines.push(`### Slowest ${timing.slowest.length} tests`, '', '| Time | Attempts | Test |', '|---:|---:|---|');
         for (const test of timing.slowest) {
-            lines.push(`| ${seconds(test.durationMs)} | ${test.attemptMs.length} | [${cell(test.project)}] ${cell(`${test.file}:${test.line} › ${test.title}`)} |`);
+            lines.push(`| ${atLeast(test)} | ${test.attemptMs.length} | [${cell(test.project)}] ${cell(`${test.file}:${test.line} › ${test.title}`)} |`);
         }
         lines.push('');
     }
     if (timing.files.length) {
         lines.push('### Per file', '', '| Time | Tests | File |', '|---:|---:|---|');
         for (const file of timing.files) {
-            lines.push(`| ${seconds(file.durationMs)} | ${file.tests} | ${cell(file.file ?? 'unknown')} |`);
+            lines.push(`| ${atLeast(file)} | ${file.tests} | ${cell(file.file ?? 'unknown')} |`);
         }
         lines.push('');
     }
     lines.push('The same numbers, each test included: `durations.json` in the shard\'s `playwright-results-<shard>` artifact.', '');
     return lines.join('\n');
+}
+
+/** A test's or a file's time: a lower bound (≥), never a total, when an attempt in it has no time */
+function atLeast({ durationMs, untimedAttempts }) {
+    return `${untimedAttempts ? '≥ ' : ''}${seconds(durationMs)}`;
 }
 
 /** Text for a Markdown table cell: a backslash of its own first, so it can't escape the \| that follows */
