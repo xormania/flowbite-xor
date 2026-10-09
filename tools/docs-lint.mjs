@@ -55,7 +55,8 @@ function check(file, line, text, shown = text) {
 function scan(file, lines, offset, inner) {
     for (let i = 0; i < lines.length; i++) {
         const open = lines[i].match(fence);
-        if (!open) {
+        // a backtick fence's info string has no backtick (CommonMark): "```` ```twig ````" is inline code
+        if (!open || open[2][0] === '`' && open[3].includes('`')) {
             if (!inner) {
                 // prose: raw HTML is markup, inline code is quoted
                 check(file, offset + i + 1, lines[i].replace(/(`+)[^`]*?\1/g, ''), lines[i]);
