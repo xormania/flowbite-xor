@@ -774,3 +774,37 @@ each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summa
 The script's exit status says what it found: 0 a report it read (whatever its tests did), 2 no report, 3 an invalid
 report, 4 tests not reached. Run it on a local report with `node tools/ci/playwright-summary.mjs` after
 `CI=1 npx playwright test` (CI writes the JSON report); its cases: `node --test tools/tests/*.test.mjs`.
+
+### Jev diagnosis (advisory)
+
+When a shard has a failed or flaky test, a later step,
+[`tools/ci/jev-diagnosis.mjs`](../tools/ci/jev-diagnosis.mjs), asks Jev (TypeSafe's model, pinned in
+[`tools/ci/jev-ci.json`](../tools/ci/jev-ci.json)) two questions about each failed attempt in
+`failed-attempts.json`, retry-recovered ones included: which category of the policy's rubric the cause likely belongs
+to (`environment_failure`, `product_defect`, `test_defect`, `timing_assertion`, or `unknown`), and which of the
+supplied excerpts best helps investigate it (or none). It is a starting hypothesis for whoever investigates, not a
+verdict: the test result decides, the step may fail or time out (2 minutes) without changing the job, and a missing
+key, a provider error or an answer that does not validate gives an *unavailable* assessment, never a failure.
+
+- **Where:** a warning per assessed attempt at the line that failed (the category, its confidence, and where the
+  selected excerpt comes from: `test error lines a-b` or `server log lines a-b`, with its text); a *Jev diagnosis*
+  section on the run's *Summary* page; and the `jev-<shard>-<run>-<attempt>` artifact, kept 30 days, with one
+  `attempts/<NN>-<test>/assessment.json` per failed attempt (the request sent, the validated answer with its
+  probabilities, the policy, the model, the elapsed time) and `summary.md`.
+- **Confidence:** each answer comes with Jev's confidence. Below 0.65 (the policy's `min_confidence`) the category is
+  shown as `unknown` and no excerpt is selected; the answer itself stays in `assessment.json`. The threshold decides
+  what is shown, it is not a measured accuracy: nothing here says how often Jev is right on this repository's
+  failures. A timeout or an assertion alone does not prove a timing problem, and neither does a pass on retry.
+- **Bounds:** at most 10 attempts per shard, first attempts of every test before their retries; the rest are listed as
+  *not assessed: cap*. Attempts left when the 90-second budget runs out are *not assessed: deadline*. Each request
+  holds at most 8 excerpts and 28,000 bytes (server log excerpts are dropped first, then error excerpts, and the
+  omissions are recorded); one retry on 429 or 529, 8 seconds per request.
+- **What leaves the runner:** the attempt's identity (file, line, title, project, retry, outcome), excerpts of its
+  error and of the demo's server log during the attempt (`docker compose logs --timestamps php`, ±5 seconds), sent to
+  TypeSafe. They are filtered first: the key and every environment value whose name looks like a secret, bearer
+  strings, and JSON fields named like credentials, passwords or tokens are replaced with `[REDACTED]`. The filter
+  cannot find every secret in arbitrary text, so a test must not print one.
+
+The `TYPESAFE_API_KEY` secret is given to this step alone; without it (a fork's run, for instance) every attempt is
+*unavailable (missing_credential)*. Turn the step off with `"enabled": false` in the policy. Its cases run with the summarizer's, against a local stand-in for the provider:
+`node --test tools/tests/*.test.mjs`. They check what is sent and accepted, not how good the diagnosis is.
