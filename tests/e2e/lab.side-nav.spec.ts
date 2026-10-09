@@ -52,6 +52,8 @@ test('the tree has the ARIA tree structure, and the branch of the current page r
 });
 
 test('the keyboard moves through the shown treeitems, opens and closes branches and follows links', async ({ page }) => {
+    // the type-ahead's timer on Playwright's clock: runFor() moves it on at once
+    await page.clock.install();
     await page.goto('/lab/side-nav');
     await expectTree(page, { open: [], current: ['Overview'], tabStop: 'Overview' });
     await page.getByTestId('page').click();
@@ -86,7 +88,7 @@ test('the keyboard moves through the shown treeitems, opens and closes branches 
     await press('g', 'Guides');
     await press('g', 'Getting started');
     await press('g', 'Glossary');
-    await page.waitForTimeout(600); // the typed letters are forgotten
+    await page.clock.runFor(600); // the typed letters are forgotten after 500 ms
     await press('a', 'Advanced');
     await press('p', 'API');
     await press('Home', 'Overview');

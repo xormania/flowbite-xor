@@ -416,6 +416,30 @@ holds across a Turbo visit: the controller keeps it on `<html data-theme-choice>
 
 Here: [`tests/e2e/theme-toggle.spec.ts`](../tests/e2e/theme-toggle.spec.ts).
 
+## Timers on Playwright's clock
+
+**Catches:** a timer contract (a toast's countdown and its pause, a type-ahead that forgets what was typed) checked by
+waiting real time: seconds on every run, and a wait that means something else on a slower machine.
+
+Install Playwright's clock before the page loads. Time still passes as it does; `runFor(ms)` moves it on at once,
+firing every timer due on the way:
+
+```ts
+await page.clock.install();
+await page.goto('/lab/turbo-stream-toast');
+// show a toast (1500 ms), then:
+await toast.hover();
+await page.clock.runFor(2000);   // past its timeout: paused, so still shown
+await expect(toast).toBeVisible();
+```
+
+The clock also fakes `requestAnimationFrame` and `performance.now()`: keep the real clock where a test observes frames
+or paint (`recordFirstFrames`, the data table's frame recorders), waits for a scroll to settle, or measures time. An
+upstream recipe spec stays as upstream wrote it.
+
+Here: [`lab.turbo-stream-toast.spec.ts`](../tests/e2e/lab.turbo-stream-toast.spec.ts) (the pause tests),
+[`lab.side-nav.spec.ts`](../tests/e2e/lab.side-nav.spec.ts) (type-ahead).
+
 ## Basic performance: counts, not timings
 
 Counts give the same result on every run, so they fail like any other assertion; timings belong to separate,
