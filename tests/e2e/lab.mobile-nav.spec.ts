@@ -1,6 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, expectA11y } from './fixtures';
 import { shown } from './transitions';
 
 /*
@@ -295,12 +294,10 @@ for (const theme of ['light', 'dark'] as const) {
             } else {
                 await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
             }
-            const closed = await new AxeBuilder({ page }).analyze();
-            expect(closed.violations.filter((v) => 'serious' === v.impact || 'critical' === v.impact).map((v) => v.id)).toEqual([]);
+            await expectA11y(page, { impact: 'serious' }, 'closed');
             await menu(page).click();
             await expectDrawer(page, true, 'drawer: Deep page');
-            const results = await new AxeBuilder({ page }).include('#drawer-lab-mobile-nav').analyze();
-            expect(results.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`)).toEqual([]);
+            await expectA11y(page, { impact: 'all', include: '#drawer-lab-mobile-nav' }, 'open');
         });
     });
 }

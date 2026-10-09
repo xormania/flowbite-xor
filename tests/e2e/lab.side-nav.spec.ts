@@ -1,6 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect, expectA11y, turboVisitDone } from './fixtures';
 import { back, forward, shown, visit } from './transitions';
 
 /*
@@ -236,8 +235,7 @@ for (const system of ['light', 'dark'] as const) {
                 await treeitem(page, 'Reference').locator(':scope > [data-side-nav-toggle]').click();
                 await page.keyboard.press('ArrowUp'); // a visible focus ring on the current item
                 await expect(treeitem(page, 'Deep page')).toBeFocused();
-                const results = await new AxeBuilder({ page }).include('[role="tree"]').analyze();
-                expect(results.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`)).toEqual([]);
+                await expectA11y(page, { impact: 'all', include: '[role="tree"]' });
 
                 // the page's own text follows the chosen theme, not the system (no `dark:` class of flowbite.min.css)
                 const colors = await page.evaluate(() => {

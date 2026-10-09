@@ -1,6 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, expectA11y } from './fixtures';
 
 /*
  * The Editor component: Tiptap mounted over the server-rendered content, the toolbar (one tab stop, arrow keys,
@@ -172,11 +171,7 @@ test('the editor has no serious accessibility issue, invalid or not', async ({ p
     for (const id of ['default', 'invalid']) {
         await open(page, id);
         await expect(page.locator('.ProseMirror')).toHaveCount(1);
-        const results = await new AxeBuilder({ page }).analyze();
-        const serious = results.violations
-            .filter((violation) => 'serious' === violation.impact || 'critical' === violation.impact)
-            .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
-        expect(serious, id).toEqual([]);
+        await expectA11y(page, { impact: 'serious' }, id);
     }
     await expect(page.getByRole('textbox', { name: 'Summary' })).toHaveAccessibleDescription('This value should not be blank.');
 });

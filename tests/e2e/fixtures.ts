@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '@axe-core/playwright';
 import { test as base, expect, type Page } from '@playwright/test';
 
 const PLACEHOLDER_IMAGE = fileURLToPath(new URL('./examples/placeholder.png', import.meta.url));
@@ -237,4 +238,34 @@ export function listenerChanges(before: Record<string, number>, after: Record<st
             .map((name) => [name, (after[name] ?? 0) - (before[name] ?? 0)] as const)
             .filter(([, change]) => 0 !== change),
     );
+}
+
+
+/**
+ * What an axe scan fails on: `impact` `serious` counts serious and critical violations (the suite's gate for whole
+ * pages), `all` every violation (a component's own markup, scoped with `include`); `include` and `exclude` are CSS
+ * selectors of the part scanned.
+ */
+export type A11yPolicy = { impact: 'serious' | 'all'; include?: string; exclude?: string };
+
+/**
+ * Scans the page as it is now with axe and fails on the violations the policy counts, each as
+ * `<rule> (<impact>): <targets>`. The spec drives the state first (opened, focused, invalid, themed) and keeps its own
+ * expectations of it; this owns only the scan, the policy and the report. Not a conformance claim: axe finds what
+ * automated rules can find.
+ */
+export async function expectA11y(page: Page, policy: A11yPolicy, label?: string): Promise<void> {
+    let builder = new AxeBuilder({ page });
+    if (policy.include) {
+        builder = builder.include(policy.include);
+    }
+    if (policy.exclude) {
+        builder = builder.exclude(policy.exclude);
+    }
+    const results = await builder.analyze();
+    const counted = results.violations
+        .filter((violation) => 'all' === policy.impact || 'serious' === violation.impact || 'critical' === violation.impact)
+        .map((violation) => `${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
+    const scope = [policy.include && `in ${policy.include}`, policy.exclude && `without ${policy.exclude}`].filter(Boolean).join(' ');
+    expect(counted, [label, `${'all' === policy.impact ? 'any' : 'serious/critical'} axe violations`, scope].filter(Boolean).join(': ')).toEqual([]);
 }

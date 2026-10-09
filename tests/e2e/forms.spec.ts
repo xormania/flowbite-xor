@@ -1,6 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, expectA11y } from './fixtures';
 
 const pairs = ['name', 'email', 'country', 'bio', 'photo', 'startsOn', 'plan', 'terms', 'save'];
 
@@ -64,11 +63,7 @@ test('an empty submit shows the server-side errors, wired to the controls', asyn
 
     for (const colorScheme of ['light', 'dark'] as const) {
         await page.emulateMedia({ colorScheme });
-        const results = await new AxeBuilder({ page }).analyze();
-        const serious = results.violations
-            .filter((violation) => 'serious' === violation.impact || 'critical' === violation.impact)
-            .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
-        expect(serious, `serious/critical axe violations (${colorScheme})`).toEqual([]);
+        await expectA11y(page, { impact: 'serious' }, colorScheme);
     }
 });
 

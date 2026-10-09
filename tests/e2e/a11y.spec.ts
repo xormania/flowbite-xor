@@ -1,5 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
-import { test, expect } from './fixtures';
+import { test, expect, expectA11y } from './fixtures';
 import { examples, recipes } from './inventory';
 
 // Every page of the demo: the shell pages, every lab scenario, and every README example in both themes.
@@ -34,11 +33,6 @@ for (const path of pages) {
             await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
         }
         // the /r/ pages embed the previews, scanned on their own
-        const results = await new AxeBuilder({ page }).exclude('iframe').analyze();
-        const serious = results.violations
-            .filter((violation) => 'serious' === violation.impact || 'critical' === violation.impact)
-            .map((violation) => `${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
-
-        expect(serious, 'serious/critical axe violations').toEqual([]);
+        await expectA11y(page, { impact: 'serious', exclude: 'iframe' });
     });
 }

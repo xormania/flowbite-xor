@@ -699,15 +699,23 @@ Here: [`csp.spec.ts`](../tests/e2e/csp.spec.ts), [`SecurityHeadersListener.php`]
 
 ## Accessibility
 
-**Catches:** serious and critical axe violations on every page, in both themes.
+**Catches:** serious and critical axe violations on every page, in both themes; and, in a component's own specs, the
+states a page load does not reach (open, focused, invalid, after a pick) and every violation in a component's own
+markup.
+
+One helper owns the scan, the policy and the report; the spec drives the state and keeps its own expectations of it.
+The policy is explicit at each call: `serious` fails on serious and critical violations, `all` on any, and `include`
+or `exclude` scope the scan. Each violation is reported as `<rule> (<impact>): <targets>`.
 
 ```ts
-import AxeBuilder from '@axe-core/playwright';
-const results = await new AxeBuilder({ page }).analyze();
-expect(results.violations.filter((v) => ['serious', 'critical'].includes(v.impact ?? ''))).toEqual([]);
+await expectA11y(page, { impact: 'serious', exclude: 'iframe' });                 // a whole page, its previews scanned on their own
+await menu(page).click();                                                          // the spec drives the state
+await expectA11y(page, { impact: 'all', include: '#drawer-lab-mobile-nav' }, 'open'); // the component's own markup
 ```
 
-Here: [`a11y.spec.ts`](../tests/e2e/a11y.spec.ts).
+Here: [`fixtures.ts`](../tests/e2e/fixtures.ts) (`expectA11y`), [`a11y.spec.ts`](../tests/e2e/a11y.spec.ts) (every page),
+and the specs of the dropzone, editor, markdown-editor, forms, demo-app, lab.side-nav, lab.section-nav, lab.mobile-nav
+and lab.nav-menu.
 
 ## The install itself
 
