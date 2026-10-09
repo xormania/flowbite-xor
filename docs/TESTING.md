@@ -693,6 +693,12 @@ unit tests ([`EditorHtmlPolicyTest.php`](../demo/tests/Editor/EditorHtmlPolicyTe
 [`MarkdownRendererTest.php`](../demo/tests/MarkdownEditor/MarkdownRendererTest.php)); the Editor and the
 MarkdownEditor given a hostile value stay in `hostile-props.spec.ts`, parsed by the browser.
 
+Their form types' limits (bytes against characters, Windows line breaks, null, a refused submit kept as sent) are
+form tests on `form.factory` ([`EditorTypeTest.php`](../demo/tests/Editor/EditorTypeTest.php),
+[`MarkdownTypeTest.php`](../demo/tests/MarkdownEditor/MarkdownTypeTest.php)). A test that finds a fault not fixed yet
+asserts the wanted behavior and calls `markTestIncomplete()` with the finding when it fails, so it reports the fault
+without failing CI, and passes on its own once the fault is fixed.
+
 ## Security headers and the Content Security Policy
 
 **Catches:** a policy that allows more than it says, and what a strict policy silently breaks (an inline theme

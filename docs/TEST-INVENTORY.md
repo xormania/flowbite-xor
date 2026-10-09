@@ -315,6 +315,9 @@ States: content, selection, toolbar states, counter, read-only; markdown's Write
 | markdown-editor | Form post 422; Back; N visits; permanent; frame ×3; Stream; frame advance | E2E lab | lab.markdown-editor (7 tests) |
 | editor | Server policy (`EditorHtmlPolicy`): the preset kept, everything else removed, the same output twice | unit | `EditorHtmlPolicyTest` (moved from hostile-props "the editor's policy keeps the preset…"); the Editor given a hostile value, parsed by the browser: hostile-props |
 | markdown-editor | Server renderer (`MarkdownRenderer`): Markdown kept, raw HTML and images stripped, unsafe links refused, nesting limited, long HTML whole | unit | `MarkdownRendererTest` (moved from hostile-props "the Markdown renderer keeps what Markdown makes…"); the MarkdownEditor given a hostile value, parsed by the browser: hostile-props |
+| editor | `EditorType` limits: `max_bytes` counts the bytes sent, before sanitizing; `max_chars` the characters of the sanitized text, an entity as one; no text is null; a refused submit keeps what was sent | form type | `EditorTypeTest`; two findings marked incomplete until fixed: white space between blocks counts as characters (the counter counts none), and a submit over `EditorHtmlPolicy::MAX_INPUT_BYTES` is a 500 when the form shows its error |
+| markdown-editor | `MarkdownType` limits: Windows line breaks made `\n` and counted as one, bytes and characters, blank is null, a refused submit keeps what was sent (over the renderer's input limit too: 422 with the error) | form type; functional | `MarkdownTypeTest` |
+| markdown-editor | The counter counts as `MarkdownType` and the browser do (a Windows line break one, a character beyond the BMP one), marked over the limit; the Preview of Markdown too long to render says so, the longest it reads renders | Live component | `MarkdownEditorTest` |
 
 ### autocomplete
 
