@@ -18,6 +18,21 @@ export default class extends Controller {
     static targets = ['trigger', 'tab'];
     static values = { activeTab: String };
 
+    initialize() {
+        // each tab's tabindex as rendered, given back on disconnect
+        this.renderedTabindex = new Map();
+    }
+
+    connect() {
+        this.connected = true;
+    }
+
+    disconnect() {
+        // the targets disconnect after this: they must not pick a Tab stop again
+        this.connected = false;
+        this.renderedTabindex.forEach((value, trigger) => (null === value ? trigger.removeAttribute('tabindex') : trigger.setAttribute('tabindex', value)));
+    }
+
     // A tab list without panels (e.g. used as navigation) must not point aria-controls at missing panels.
     triggerTargetConnected(trigger) {
         const panelId = trigger.getAttribute('aria-controls');
@@ -29,7 +44,9 @@ export default class extends Controller {
 
     // The selected tab removed (a Stream, a Live re-render) leaves the list without a Tab stop: pick one again.
     triggerTargetDisconnected() {
-        this.updateTabStop();
+        if (this.connected) {
+            this.updateTabStop();
+        }
     }
 
     open(e) {
@@ -86,7 +103,12 @@ export default class extends Controller {
     updateTabStop() {
         const enabled = this.enabledTriggers();
         const stop = enabled.find((trigger) => trigger.dataset.tabId === this.activeTabValue) ?? enabled[0];
-        this.triggerTargets.forEach((trigger) => trigger.setAttribute('tabindex', trigger === stop ? '0' : '-1'));
+        this.triggerTargets.forEach((trigger) => {
+            if (!this.renderedTabindex.has(trigger)) {
+                this.renderedTabindex.set(trigger, trigger.getAttribute('tabindex'));
+            }
+            trigger.setAttribute('tabindex', trigger === stop ? '0' : '-1');
+        });
     }
 
     enabledTriggers() {

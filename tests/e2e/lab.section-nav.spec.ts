@@ -200,6 +200,12 @@ test('horizontal tabs take Left and Right instead, and a list without a selected
     await page.goto('/preview/tabs/default?theme=light');
     await page.getByRole('tab', { name: 'Profile', exact: true }).evaluate((trigger) => trigger.remove());
     await expect(page.locator('[role="tab"][tabindex="0"]')).toHaveText(['Dashboard']);
+
+    // the controller disconnected from a list that stays: the tabs get back their rendered tabindex (none), all reachable
+    await page.goto('/preview/tabs/default?theme=light');
+    await expect(page.locator('[role="tab"][tabindex="-1"]')).not.toHaveCount(0);
+    await page.locator('[data-controller="tabs"]').evaluate((element) => element.removeAttribute('data-controller'));
+    await expect(page.locator('[role="tab"][tabindex]')).toHaveCount(0);
 });
 
 test('a controller disconnected from a navigation that stays gives the links back their rendered current state', async ({ page }) => {
