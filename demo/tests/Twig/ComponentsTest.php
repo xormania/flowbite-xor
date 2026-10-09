@@ -6,6 +6,7 @@ use App\Tests\Snapshot\Html5Driver;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Snapshots\MatchesSnapshots;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
 use Symfony\UX\TwigComponent\Test\RenderedComponent;
 
@@ -108,6 +109,37 @@ final class ComponentsTest extends KernelTestCase
         // only the link given `active` is current; a rejected scheme renders `#`
         self::assertSame(['Tools', 'Tools'], $crawler->filter('a[aria-current="page"]')->each(static fn ($link) => trim($link->text())));
         self::assertSame(['#', '#'], $crawler->filterXPath('//a[normalize-space()="Slack"]')->extract(['href']));
+        $this->assertMatchesSnapshot($html, new Html5Driver());
+    }
+
+    public function testASectionNavIsANavigationListOfLinksMarkingTheCurrentSection(): void
+    {
+        // the page of the route `app_settings_account`, as the router leaves it on the request
+        self::getContainer()->get('request_stack')->push(new Request(attributes: ['_route' => 'app_settings_account']));
+
+        $html = self::getContainer()->get('twig')->createTemplate(<<<'TWIG'
+            <twig:SectionNav label="Settings" orientation="sideways">
+                <twig:SectionNav:Item href="/settings/profile" route="app_settings_profile">Profile</twig:SectionNav:Item>
+                <twig:SectionNav:Item href="/settings/account" route="app_settings_account">Account</twig:SectionNav:Item>
+                <twig:SectionNav:Item href="/settings/billing" route="app_settings_account" :active="false">Billing</twig:SectionNav:Item>
+                <twig:SectionNav:Item href="/settings/security" :active="true">Security</twig:SectionNav:Item>
+                <twig:SectionNav:Item href="/settings/team">Team</twig:SectionNav:Item>
+                <twig:SectionNav:Item :href="hostile">Hostile</twig:SectionNav:Item>
+            </twig:SectionNav>
+            TWIG)->render(['hostile' => " JaVa\tScRiPt:alert(1)"]);
+        $crawler = (new RenderedComponent($html))->crawler();
+
+        $nav = $crawler->filter('nav');
+        self::assertSame('Settings', $nav->attr('aria-label'));
+        self::assertSame('section-nav', $nav->attr('data-controller'));
+        // an orientation it does not know is the responsive one
+        self::assertStringContainsString('lg:flex-col', (string) $crawler->filter('nav > ul')->attr('class'));
+        self::assertCount(6, $crawler->filter('nav > ul > li > a'));
+        self::assertSame(['/settings/profile', '/settings/account', '/settings/billing', '/settings/security', '/settings/team', '#'], $crawler->filter('a')->extract(['href']));
+        // the current route marks Account, `active` overrides the route either way; only an item with neither is
+        // left to the controller, which compares the URL's path
+        self::assertSame(['Account', 'Security'], $crawler->filter('a[aria-current="page"]')->each(static fn ($link) => trim($link->text())));
+        self::assertSame(['Team', 'Hostile'], $crawler->filter('a[data-section-nav-match-url]')->each(static fn ($link) => trim($link->text())));
         $this->assertMatchesSnapshot($html, new Html5Driver());
     }
 }

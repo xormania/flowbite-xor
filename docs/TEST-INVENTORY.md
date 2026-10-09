@@ -198,6 +198,7 @@ States: the current section (`aria-current="page"`, from the server or the URL),
 | Transition | Scope | Covered by |
 |---|---|---|
 | A landmark of links, the current one marked, no tab roles, in each viewport | E2E lab | lab.section-nav "the section nav is a landmark of links…" (2) |
+| Server rendering: the landmark's name, one link per item, `route` against the current route, `active` overriding it either way, only an item with neither left to the controller (`data-section-nav-match-url`), a rejected scheme rendered `#`, an unknown orientation responsive | Twig component | `ComponentsTest::testASectionNavIsANavigationListOfLinksMarkingTheCurrentSection` (snapshot) |
 | Visit, Back over the cached copy, Forward, reload; in a permanent element, marked from the URL | E2E lab | lab.section-nav "Turbo visits, Back, Forward and a reload…" (2) |
 | A fragment link never current | E2E lab | lab.section-nav "a link to a fragment of the page is never the current section" (2) |
 | N visits | E2E lab | lab.section-nav "repeated Turbo visits leave one controller per navigation and tab list" (2) |
