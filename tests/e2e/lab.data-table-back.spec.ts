@@ -194,26 +194,24 @@ async function expectControlsMatchUrl(page: Page): Promise<void> {
 }
 
 test('data-table-live: Back to the table shows the URL\'s state in every control, not a search typed before leaving', async ({ page }) => {
-    await page.goto('/lab/data-table-live');
-    await size(page).selectOption('25');
-    await expect(page.locator('tbody tr')).toHaveCount(25);
-    await statusFilter(page).selectOption('paid');
-    await expect.poll(() => params(page)['f[status]']).toBe('paid');
-    await expect(shownRows(page)).not.toHaveText('Showing 1–25 of 57');
-    await turboVisitDone(page);
+    // opened at its URL, so Turbo caches its copy under the URL Back returns to, and Back shows that copy
+    await page.goto('/lab/data-table-live?size=25&f%5Bstatus%5D=paid');
+    await expect(statusFilter(page)).toHaveValue('paid');
     const paidRows = await shownRows(page).textContent();
-    // typed, and the page left before the search is sent (when it is sent first, the URL holds it: both pass)
-    await search(page).fill('bonnie');
+    // a search typed and not sent yet when the page is left: set without an input event, so the live controller never
+    // sends it (typing would, 300 ms later, racing the visit away)
+    await search(page).evaluate((input: HTMLInputElement) => (input.value = 'bonnie'));
     await page.getByRole('link', { name: 'Leave the table' }).click();
     await expect(page).toHaveURL(/\/lab\/turbo-nav\/two$/);
     await turboVisitDone(page);
 
+    const requests: string[] = [];
+    page.on('request', (request) => request.url().includes('/lab/data-table-live') && requests.push(request.url()));
     await page.goBack();
     await expect(page).toHaveURL(/\/lab\/data-table-live\?/);
     await turboVisitDone(page);
+    expect(requests, 'Back showed the cached copy').toEqual([]);
+    expect(params(page)).toEqual({ size: '25', 'f[status]': 'paid' });
     await expectControlsMatchUrl(page);
-    expect(params(page)).toMatchObject({ size: '25', 'f[status]': 'paid' });
-    if (!params(page).q) {
-        await expect(shownRows(page)).toHaveText(paidRows ?? '');
-    }
+    await expect(shownRows(page)).toHaveText(paidRows ?? '');
 });
