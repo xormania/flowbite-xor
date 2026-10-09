@@ -51,6 +51,15 @@ check 'contrast'                  docs/TESTING.md CHANGELOG.md FOR-AGENTS.md .gi
 check 'contrast'                  docs/ROADMAP.md CONTRIBUTING.md AGENTS.md
 check 'contrast'                  tools/docs-lint.mjs tools/llms-txt.mjs llms.txt
 check 'contrast'                  tools/test-inventory.mjs
+check 'contrast'                  tools/icon-lint.mjs
+# What the lints read wherever it lies: a recipe's templates (icon-lint) and any markdown outside demo/ (docs-lint,
+# icon-lint); the demo's copies of the recipes are not read
+check "$kit_contrast"             input/templates/components/Input.html.twig
+check "$kit_contrast"             dropdown/templates/components/Dropdown/SubTrigger.html.twig
+check 'contrast demo'             tests/e2e/NOTES.md
+check 'php static-site contrast demo' tools/NOTES.md
+check 'php static-site demo'      demo/templates/components/Input.html.twig
+check 'php static-site demo'      demo/README.md
 check 'static-site contrast'      tools/fence-coverage.mjs
 check 'static-site'               tools/build-static.sh
 check "$kit_contrast"             INSTALL.md
