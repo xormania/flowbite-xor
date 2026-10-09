@@ -343,6 +343,9 @@ jobs:
             - name: Every README example is one the demo reads
               run: node tools/fence-coverage.mjs
 
+            - name: The test inventory has a row per recipe with a controller and names existing tests; a11y scans every lab page
+              run: node tools/test-inventory.mjs
+
     demo:
         name: Demo + Playwright (${{ matrix.shard }}/3)
         needs: changes

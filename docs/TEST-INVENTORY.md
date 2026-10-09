@@ -25,8 +25,9 @@ the recipes' templates and PHP for `data-controller`, `symfony--ux-*`, `AsLiveCo
 `turbo-frame` and `turbo-stream`):
 
 1. **It ships a Stimulus controller:** alert, avatar, calendar (with `calendar_display`), chart, data-table, date-picker, drawer,
-   dropdown, dropzone (`dropzone_assist`), editor, markdown-editor, modal (`flowbite_modal`), navbar, popover,
-   side-nav, sidebar, tabs, theme-toggle, toast, tooltip.
+   dropdown, dropzone (`dropzone_assist`), editor, markdown-editor, mobile-nav, modal (`flowbite_modal`), nav-menu,
+   navbar, popover, section-nav, side-nav, sidebar, tabs, theme-toggle, toast, tooltip. `tools/test-inventory.mjs`
+   (CI's *Contrast*) fails when one has no row in the matrix.
 2. **It wires a Symfony UX controller:** autocomplete (and form-theme's `AutocompleteType` rows), chart (UX Chart.js),
    dropzone (UX Dropzone).
 3. **It is a Live Component:** data-table-live, markdown-editor.
@@ -56,6 +57,8 @@ the transition cannot change the recipe's state, not that it is untested.
 | layouts | demo-app | · | G10 | · | lab.turbo-nav, demo-app | · | · | lab.turbo-nav | · | csp (first paint) | css |
 | sidebar, navbar | G6 | · | G6 | T2 | lab.turbo-nav | · | · | · | · | css | · |
 | side-nav | lab.side-nav | · | lab.side-nav | lab.side-nav | lab.side-nav | · | · | · | · | lab.side-nav (on load) | css |
+| mobile-nav | lab.mobile-nav | · | lab.mobile-nav | lab.mobile-nav | G10 | · | G10 | · | · | css | · |
+| nav-menu | lab.nav-menu | · | lab.nav-menu | lab.nav-menu | lab.nav-menu | · | G10 | · | · | css | · |
 | toast | lab.turbo-restore, demo-app | · | G10 | · | lab.turbo-stream-toast, lab.turbo-restore | · | lab.turbo-restore | lab.turbo-stream-toast, lab.turbo-nav | · | css | · |
 | alert | G10 | · | · | · | · | · | · | G10 | G10 | css | · |
 | avatar | avatar | · | · | · | · | · | · | · | · | · | · |
@@ -148,6 +151,24 @@ States: open branches (saved in `sessionStorage`), the current item, the roving 
 | In a permanent sidebar | E2E demo | lab.side-nav "in the demo's data-turbo-permanent sidebar, the tree follows the current page across visits" |
 | Both themes under both systems | E2E lab | lab.side-nav "the tree passes axe, its current item and focus ring in the theme's colors" (4) |
 | `sessionStorage` blocked | | G10 |
+
+### mobile-nav, nav-menu
+
+States: mobile-nav's drawer open or closed and the focus it moves; nav-menu's open submenus, their placement, the
+current page and its submenus marked.
+
+| Recipe | Transition | Scope | Covered by |
+|---|---|---|---|
+| mobile-nav | Open as a modal, Escape, backdrop, close button, the focus given back; a link closes and visits, Back, Forward and reload show it closed; links to another tab or a download leave it open; the screen growing closes it | E2E lab | lab.mobile-nav "on a phone" (5 tests) |
+| mobile-nav | Back and Forward while open: the cached copy shows it closed; N visits | E2E lab | lab.mobile-nav "Back and Forward while the drawer is open…", "repeated Turbo visits leave one controller on the drawer" |
+| mobile-nav | Desktop: the tree beside the page, no id twice | E2E lab | lab.mobile-nav "the menu button is hidden, the tree is beside the page, and no id is used twice" |
+| mobile-nav | axe on the open drawer, both themes | E2E lab | lab.mobile-nav "the open drawer passes axe" (2) |
+| nav-menu | Buttons and submenus, current page marked, clicks, keyboard, placement and the sticky bar, links and fragments, a disconnected controller | E2E lab | lab.nav-menu "on a desktop" (its first 7 tests) |
+| nav-menu | Back, Forward, reload show every submenu closed (cached copies too); permanent navbar; N visits | E2E lab | lab.nav-menu (3 tests) |
+| nav-menu | In a MobileNav: submenus open in place, Escape closes a submenu before the drawer, a link closes both | E2E lab | lab.nav-menu "on a phone" (2 tests) |
+| nav-menu | axe closed and open, on a desktop and in the drawer, both themes | E2E lab | lab.nav-menu "the menu passes axe…" (2) |
+| nav-menu | Server rendering: ids per menu, `aria-controls`, the current link, a rejected scheme | Twig component | `ComponentsTest::testANavMenuRenderedTwiceGivesEachSubmenuItsOwnId` (snapshot) |
+| both | A permanent mobile-nav; either beside a frame visit promoted to history (both close on every `turbo:before-cache`) | | G10 |
 
 ### toast
 
@@ -362,13 +383,8 @@ States: search, filter, sort and direction, page, page size (in the URL); data-t
 
 ## Pending: branches in flight
 
-Rows to fill by the pull request that lands each branch, in its coverage map. Their tests are not listed here.
-
-| Branch | Recipes touched | Rows it extends |
-|---|---|---|
-| `claude/mobile-nav` (the app's navigation in a drawer on small screens) | sidebar, navbar, drawer, layouts | sidebar's mobile rows, drawer, G6 |
-| navbar dropdown submenus | navbar, dropdown | dropdown's submenu states and keys (G7) |
-| `claude/vtabs` (vertical tabs, section-nav) | tabs, layouts | tabs' keyboard, Back and N visits covered; G5 narrowed to Live, frame reload and Stream |
+None. `claude/mobile-nav` (mobile-nav) and `claude/vtabs` (section-nav, vertical tabs) have landed, with their rows
+above. The navbar's submenus landed as nav-menu, a disclosure navigation: the dropdown's own submenus stay G7.
 
 ## Redundancy
 
@@ -425,7 +441,7 @@ a browser, so E2E lab, on the existing scaffold.
 | G7 | **dropdown keys and placement**: Home, End, Tab, submenus, flip and shift | The submenu code exists and is unexercised; placement is shared with popover, whose flip test is the model | E2E demo on the dropdown previews | Overlays, or the navbar submenus branch |
 | G8 | **drawer** own interactions: backdrop click, open on load, moved in the DOM | Modal has them in its recipe spec; the drawer copies its logic without the tests | A drawer recipe spec mirroring modal's | Overlays |
 | G9 | **layouts** `data-turbo-track="reload"`: changed assets after a deploy force a full load | Fails only after a deploy; one test, low cost | E2E lab: change the tracked asset's URL between two visits | Navigation |
-| G10 | Low: alert dismissed then Back, Stream, Live; theme-toggle with storage blocked on Back and reload, two toggles in sync; Forward for the recipes covered on Back (each stateful row's Forward cell: Forward restores page two's cached copy and reconnects its controllers, with what was open there); chart and a system change; side-nav with `sessionStorage` blocked | Same code path as a covered transition, or a small state | Fold into the groups above when a spec is open anyway | Any |
+| G10 | Low: alert dismissed then Back, Stream, Live; theme-toggle with storage blocked on Back and reload, two toggles in sync; Forward for the recipes covered on Back (each stateful row's Forward cell: Forward restores page two's cached copy and reconnects its controllers, with what was open there); chart and a system change; side-nav with `sessionStorage` blocked; mobile-nav in a permanent element, mobile-nav and nav-menu beside a frame visit promoted to history (each closes on every `turbo:before-cache`) | Same code path as a covered transition, or a small state | Fold into the groups above when a spec is open anyway | Any |
 
 Tier 2 (step 5) turns every "N visits" cell above into a Stimulus instance count, and tier 3 (step 7) takes the
 overlays and editors × both themes (wide matrices), which this map marks T3.

@@ -83,16 +83,18 @@ change to both paths.
 | `LICENSE`, `NOTICE`, `.github/dependabot.yml` | nothing |
 | `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md`, `FOR-AGENTS.md`, `SECURITY.md`, `.github/pull_request_template.md` | *Contrast*, which checks the docs (*Docs*) |
 | a recipe, `kit.js`, `manifest.json`, `.gitattributes`, any path no other row names | *Lint kit*, *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
-| `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md` | the same and *Contrast* |
-| `tests/`, `playwright.config.ts`, a recipe's `tests/`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
+| `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md` or controller (`assets/controllers/`) | the same and *Contrast* |
+| a spec: `tests/e2e/*.spec.ts`, a recipe's `tests/*.spec.ts` | *Contrast* (`tools/test-inventory.mjs`), *Demo + Playwright* |
+| any other file in `tests/` or a recipe's `tests/`, `playwright.config.ts`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
 | `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
-| `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `llms.txt` | *Contrast* |
+| `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `tools/test-inventory.mjs`, `llms.txt` | *Contrast* |
 | `tools/fence-coverage.mjs` | *Contrast*, *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
 | `tools/release-plan.sh`, `tools/tests/release-plan.sh` | *Workflows* |
 | `tools/tests/fresh-install.sh`, `check-fresh-app.sh`, `docker-install.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
 | any other file in `tools/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
 | `demo/compose.yaml`, `demo/frankenphp/Caddyfile` | *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
+| `demo/tests/`, `demo/src/Controller/LabController.php` | *Kit PHP*, *Static site*, *Contrast* (`tools/test-inventory.mjs`), *Demo + Playwright* |
 | any other file in `demo/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
 | `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, without the upload) |
 | `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, *Workflows* runs its plan as a dry run |
@@ -118,6 +120,7 @@ cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit
 node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
 node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles (see Docs)
 node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
+node tools/test-inventory.mjs                       # docs/TEST-INVENTORY.md has a matrix row per recipe with a controller and names existing tests; a11y.spec.ts scans every lab page
 node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer and of the Jev diagnosis (tools/ci/)
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
@@ -264,7 +267,11 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
    - add the scenario to `SCENARIOS`, with a route, in `demo/src/Controller/LabController.php`;
    - add its template to `demo/templates/lab/`;
    - write the spec as `tests/e2e/lab.<scenario>.spec.ts`;
-   - add its path to `labPages` in `tests/e2e/a11y.spec.ts`.
+   - add its path to `labPages` in `tests/e2e/a11y.spec.ts` (a route without GET goes to `notPages` in
+     `tools/test-inventory.mjs` instead, with its reason).
+
+   Either way, add the recipe's row to the matrix of `docs/TEST-INVENTORY.md`: `node tools/test-inventory.mjs` fails
+   while a recipe with a controller has no row, or a lab page is not scanned.
 
    If the recipe puts a text, icon or bar color on a background that `tools/contrast/pairs.json` does not cover yet,
    add a row there: `fg`, `bg`, `min` (4.5 for text, 3 for icons, bars and focus rings) and `usage`.
