@@ -308,7 +308,7 @@ for (const change of changes) {
         const from = (await log(page)).length;
         await change.apply(page);
         await arrived;
-        // Back cancels this request (a link's), or it outlives Back (a form's): no other failure is accepted
+        // Back cancels this request (Turbo a link's, the data-table controller a form's): no other failure is accepted
         allowCancelledRequest({ url: held!.request.url(), method: 'GET', frame: FRAME, count: 1 });
         expect(page.url(), 'phase 1: history not changed yet').toBe(second);
         expect((await log(page)).slice(from), 'phase 1: no response yet').not.toContain(`turbo:before-fetch-response #${FRAME}`);
