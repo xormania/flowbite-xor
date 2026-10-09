@@ -73,7 +73,7 @@ the transition cannot change the recipe's state, not that it is untested.
 | editor | lab.editor | · | G10 | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | css | · |
 | markdown-editor | lab.markdown-editor | · | G10 | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | markdown-editor | css | · |
 | autocomplete | lab.autocomplete (G4) | · | G10 | lab.autocomplete | G4 | lab.autocomplete | G4 | lab.autocomplete | lab.autocomplete | T3 | · |
-| data-table | lab.data-table-frame, lab.data-table-back | · | lab.data-table-frame, lab.data-table-back | lab.data-table-frame | · | lab.data-table-frame | lab.data-table-frame, lab.data-table-back | · | · | css | · |
+| data-table | lab.data-table-frame, lab.data-table-back, lab.data-table-interrupt | · | lab.data-table-frame, lab.data-table-back, lab.data-table-interrupt | lab.data-table-frame | · | lab.data-table-frame | lab.data-table-frame, lab.data-table-back, lab.data-table-interrupt | · | · | css | · |
 | data-table-live | lab.data-table-live, lab.data-table-back (G4) | · | G10 | lab.data-table-live | lab.data-table-live | lab.data-table-live | G4 | lab.data-table-live | lab.data-table-live | css | · |
 
 "Back, slow" is `·` for the recipes whose cached copy does not depend on the disconnect order: they save their state
@@ -333,6 +333,9 @@ States: search, filter, sort and direction, page, page size (in the URL); data-t
 | Guarantee | Scope | Covered by |
 |---|---|---|
 | Each change adds a history entry; Back and Forward walk them | E2E lab | lab.data-table-frame "search, filter, sort, page and page size each add a history entry that Back and Forward walk through" |
+| After a change and Back, then Forward, the URL, the rows and every control agree (the same as a fresh load of the URL) | E2E lab | lab.data-table-interrupt "control, …" (page size, search, filter, page link); search fails, marked `test.fail`: Turbo 8.0.23's copy restored on Back keeps the typed search text |
+| Back during a change, at each phase of the promoted frame visit (request out; history changed, frame not rendered; frame rendered, `turbo:load` not yet): the URL, the rows and every control agree, also after Forward and Back, and the table takes the next change. Losing the change is accepted | E2E lab | lab.data-table-interrupt (3 phases × page size, search, filter, page link). Turbo 8.0.23 defects, each marked `test.fail` with its source lines: before the response, a form's response outlives Back and pushes its URL over the restored rows; a link's pending `src` is cached on Back and loaded by Forward at the wrong URL; history changed, a link's resumed render throws an uncaught AbortError; frame rendered, the search text kept (as in the control) |
+| Back after a form change does not leave the frame `aria-busy` | E2E lab | lab.data-table-interrupt "Back after a form change restores the table not marked busy": fails, marked `test.fail` (Turbo 8.0.23 copies the page while the frame is busy) |
 | Visits away and back keep one table | E2E lab | lab.data-table-frame "Turbo visits away and back keep a single working table"; lab.data-table-live "repeated Turbo visits away and back keep one working table" |
 | URL state survives a visit and Back, still live | E2E lab | lab.data-table-live "its state is in the URL: a Turbo visit away and Back show the same rows, and the table is still live" |
 | After Back or Forward every field of the form shows the URL's state (search, filter, page size), from the first frame of the restored copy: never the state applied next, nor edits left unapplied | E2E lab | lab.data-table-back (5 tests: each field applied then Back and Forward, all fields twice, edits left unapplied) |
