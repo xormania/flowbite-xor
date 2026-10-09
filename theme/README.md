@@ -1,6 +1,6 @@
 # Theme
 
-The Flowbite color roles (light and dark) with this kit's contrast fixes, as one stylesheet for `assets/styles/app.css`.
+The Flowbite color roles (light and dark) with this kit's contrast fixes and its roles for text on a solid fill, as one stylesheet for `assets/styles/app.css`.
 
 ## Installation
 
@@ -27,6 +27,29 @@ The recipe copies `assets/styles/flowbite-xor.css`, Flowbite's theme with every 
 
 Dark mode is class based: the `.dark` overrides and the `dark:` variant apply below an element with the `dark` class, normally `<html class="dark">`. The `theme-toggle` recipe switches it and documents a snippet that sets it before the first paint.
 
+### On-fill roles
+
+Text on a solid fill, such as a brand button, an indicator, a calendar's selected day, the active pill tab, a tooltip
+or an avatar group's count, uses the `fg-on-*` role of that fill: `text-fg-on-brand` on `bg-brand`, and
+`fg-on-success`, `fg-on-danger`, `fg-on-warning` and `fg-on-dark` on theirs. The toggle's knob is `bg-knob`. Flowbite's
+theme has no such roles: they are this kit's addition to `flowbite-xor.css`. Every one is white, in both themes.
+
+With a light brand color, white text on it is hard to read: in your copy of `flowbite-xor.css` (the project owns it,
+like every file a recipe copies), set `--color-fg-on-brand` to a dark color, in `@theme` and in `.dark`:
+
+```css
+@theme {
+    --color-fg-on-brand: var(--color-gray-900);
+}
+
+.dark {
+    --color-fg-on-brand: var(--color-gray-900);
+}
+```
+
+Every component that puts text on the brand fill follows. Check that it reaches 4.5:1 on your brand color, and on its
+hover color (`brand-strong`), in both themes.
+
 ### Chart series
 
 `chart-1` to `chart-6` color the series of a chart, in that order, and `chart-other` any series after the sixth.
@@ -35,4 +58,4 @@ deficiencies. The `chart` recipe applies them; use them yourself as `bg-chart-1`
 
 ### Contrast
 
-In both themes, text roles reach a contrast of 4.5:1 on the backgrounds they are meant for, and the focus ring 3:1. The kit's repository checks [these pairs](https://github.com/xormania/flowbite-xor/blob/main/tools/contrast/pairs.json) on every change. Keep small `fg-brand` text off `brand-soft` backgrounds: in dark mode that pair is below 4.5:1, so use `fg-brand-strong` there.
+In both themes, text roles reach a contrast of 4.5:1 on the backgrounds they are meant for (the `fg-on-*` roles on their fills), and the focus ring 3:1. The kit's repository checks [these pairs](https://github.com/xormania/flowbite-xor/blob/main/tools/contrast/pairs.json) on every change. Keep small `fg-brand` text off `brand-soft` backgrounds: in dark mode that pair is below 4.5:1, so use `fg-brand-strong` there.

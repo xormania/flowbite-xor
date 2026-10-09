@@ -93,6 +93,11 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `theme`: on-fill roles in `flowbite-xor.css`, the color of text on a solid fill (`fg-on-brand`, `fg-on-success`,
+  `fg-on-danger`, `fg-on-warning`, `fg-on-dark`) and of the toggle's knob (`knob`). All are white, so nothing looks
+  different, and a project with a light brand color can set `fg-on-brand` to a dark one. `button`, `indicator`,
+  `calendar`, `tabs` (pill), `tooltip`, `avatar` (group count) and `toggle` use them instead of `text-white` and
+  `bg-white`. **Upgrading:** reinstall `theme` with those recipes, or those components lose their white text.
 - `layouts`: Back and Forward show a GET form with the values of the URL, and a POST form as the user left it; the
   `form-reset` controller on `<body>` resets each GET form of a restored page, and autocomplete fields, calendars and
   date pickers follow it. The `data-table` search form goes through it (its own reset is gone), and a `calendar`

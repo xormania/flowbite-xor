@@ -70,11 +70,13 @@ while IFS= read -r path; do
         */tests/*.spec.ts) on contrast demo ;;
         */tests/*) on demo ;;
 
-        # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...)
+        # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...).
+        # Contrast checks the theme's roles, what the markdown teaches and the palette
+        # colors of the recipes' templates (tools/docs-lint.mjs), the README tables and the controllers' rows
         *)
             on lint-kit php static-site fresh-install demo
             case "$path" in
-                kit.css | theme/* | README.md | */README.md | INSTALL.md | */assets/controllers/* | */manifest.json) on contrast ;;
+                kit.css | theme/* | README.md | */README.md | INSTALL.md | */templates/* | */assets/controllers/* | */manifest.json) on contrast ;;
             esac
             ;;
     esac
