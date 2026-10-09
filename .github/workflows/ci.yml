@@ -195,7 +195,8 @@ jobs:
 
             # demo/tests: the data tables' limits (the deepest page, the loader calls, the selection), the Live table
             # through real Live requests, components rendered against their snapshots, and the loader calls of one
-            # request read from its profile. A missing snapshot fails here instead of being written.
+            # request read from its profile, and the editor's HTML policy and the Markdown renderer given hostile input.
+            # A missing snapshot fails here instead of being written.
             - name: PHPUnit
               working-directory: demo
               env:
