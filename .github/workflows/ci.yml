@@ -316,6 +316,9 @@ jobs:
             - name: The markdown teaches no Flowbite JS, palette color, inline handler or style
               run: node tools/docs-lint.mjs
 
+            - name: Icons are flowbite names written in full, in the recipes' templates and the markdown
+              run: node tools/icon-lint.mjs
+
             - name: Every README example is one the demo reads
               run: node tools/fence-coverage.mjs
 
