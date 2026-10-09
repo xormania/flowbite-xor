@@ -106,6 +106,10 @@ check 'php static-site fresh-install demo' demo/frankenphp/Caddyfile
 check "$kit_contrast"             side-nav/assets/controllers/side_nav_controller.js
 check "$kit_contrast"             side-nav/README.md
 check "$kit_contrast"             kit.css
+# the theme recipe's copy of kit.css (contrast check) and a recipe's template (tools/docs-lint.mjs: no palette color)
+check "$kit_contrast"             theme/assets/styles/flowbite-xor.css
+check "$kit_contrast"             button/templates/components/Button.html.twig
+check "$kit_contrast"             layouts/templates/layouts/app.html.twig
 check "$kit"                      .gitattributes
 # tools/readme-pairing.mjs (Contrast) pairs a recipe's code with its README, tools/readme-versions.mjs its README with
 # its manifest: any file of a recipe runs Contrast, a README alone and a manifest alone too
