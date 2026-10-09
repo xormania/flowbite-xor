@@ -232,6 +232,46 @@ test.describe('on a desktop', () => {
         await expectMenu(menu, { expanded: [], shown: [], current: ['Getting started'] });
     });
 
+    test('a link opening another tab or window, a download or a modifier click leaves the submenu open', async ({ page }) => {
+        await page.goto('/lab/nav-menu');
+        const menu = barMenu(page);
+        await button(menu, 'Guides').click();
+        // links this tab does not follow; the page cancels them after the controller has seen the click (bubble order)
+        await menu.evaluate((root) => {
+            const panel = root.querySelector(`#${CSS.escape(root.querySelector('button[aria-controls]')!.getAttribute('aria-controls')!)}`)!;
+            for (const [text, attribute, value] of [['Blank', 'target', '_blank'], ['Named', 'target', 'docs'], ['File', 'download', '']]) {
+                const item = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = '/lab/nav-menu/two';
+                link.textContent = text;
+                link.setAttribute(attribute, value);
+                item.append(link);
+                panel.append(item);
+            }
+            window.addEventListener('click', (event) => {
+                if ((event.target as Element).closest('[target], [download]')) {
+                    event.preventDefault();
+                }
+            });
+        });
+        for (const name of ['Blank', 'Named', 'File']) {
+            await menu.getByRole('link', { name, exact: true }).click();
+            await expectMenu(menu, { expanded: ['Guides'] });
+        }
+        await link(menu, 'Getting started').click({ modifiers: ['ControlOrMeta'] });
+        await expectMenu(menu, { expanded: ['Guides'] });
+    });
+
+    test('a controller disconnected from a menu that stays gives the links back their rendered current state', async ({ page }) => {
+        await page.goto('/lab/nav-menu/two');
+        const menu = barMenu(page);
+        await expectMenu(menu, { current: ['Getting started'] }); // marked from the URL, not rendered
+        await menu.evaluate((root) => root.removeAttribute('data-controller'));
+        await expectMenu(menu, { current: [] });
+        await menu.evaluate((root) => root.setAttribute('data-controller', 'nav-menu'));
+        await expectMenu(menu, { current: ['Getting started'] });
+    });
+
     test('Back, Forward and a reload show every submenu closed, the copies Turbo cached included', async ({ page }) => {
         await page.addInitScript(() => {
             (window as any).__rendered = [];

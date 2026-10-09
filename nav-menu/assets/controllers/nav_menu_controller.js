@@ -22,7 +22,8 @@ import { Controller } from '@hotwired/stimulus';
  * @action toggle      Opens or closes the clicked button's submenu.
  * @action keydown     Escape closes the innermost open submenu holding the focus.
  * @action focusout    Closes every submenu when the focus leaves the menu.
- * @action closeOnLink Closes every submenu when a link inside is followed in the same tab.
+ * @action closeOnLink Closes every submenu when a link inside is followed in the same tab (not one opened in another
+ *                     tab or window by a modifier key or a `target`, nor a `download`).
  * @action closeOutside Closes every submenu on a click outside the menu.
  * @action reposition  Opens the shown submenus towards the side where they fit, after a resize or a scroll.
  * @action closeAll    Closes every submenu (before Turbo caches the page).
@@ -34,11 +35,14 @@ export default class extends Controller {
     connect() {
         // a copy of the page cached with a submenu open, or a data-turbo-permanent menu, comes back closed
         this.closeAll();
+        // the links' current state as rendered, given back on disconnect
+        this.renderedCurrent = new Map(this.linkTargets.map((link) => [link, link.getAttribute('aria-current')]));
         this.markCurrentLink();
     }
 
     disconnect() {
         this.closeAll();
+        this.renderedCurrent.forEach((value, link) => (null === value ? link.removeAttribute('aria-current') : link.setAttribute('aria-current', value)));
     }
 
     toggle({ currentTarget }) {
@@ -70,8 +74,14 @@ export default class extends Controller {
 
     closeOnLink(event) {
         const link = event.target.closest('a[href]');
+        if (!link || !this.element.contains(link) || event.defaultPrevented) {
+            return;
+        }
+        // a link this tab does not follow (a modifier click, another tab or window, a download) leaves the menu open
         const newTab = event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button > 0;
-        if (link && this.element.contains(link) && !event.defaultPrevented && !newTab) {
+        const target = (link.getAttribute('target') ?? '').trim().toLowerCase();
+        const otherContext = '' !== target && !['_self', '_top', '_parent'].includes(target);
+        if (!newTab && !otherContext && !link.hasAttribute('download')) {
             this.closeAll();
         }
     }
