@@ -221,7 +221,8 @@ States: closed or open (`open` value, an attribute Live keeps), focus inside, gr
 | Open, visit, Back | E2E lab | lab.popover "an open popover is closed after a Turbo visit and Back, and still works" |
 | N visits, no document listener left | E2E lab | lab.popover "repeated Turbo visits leave one controller per popover and no document listener behind" |
 | Permanent, frame ×3, Stream replace and update, Live re-render | E2E lab | lab.popover (4 tests) |
-| Open beside a frame visit promoted to history, started from a link inside it or from the page's code: stays open with the focus; Back and Forward show it closed from the first frame, no listener left (failed before the fix: it closed, the focus fell to `<body>`, Back showed it open) | E2E lab | lab.popover "a popover whose link steps a frame promoted to history…", "a popover open while the page code steps…", "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…" |
+| Open beside a frame visit promoted to history, started from a link inside it or from the page's code: stays open with the focus; Back and Forward show it closed from the first frame, no listener left (failed before the fix: it closed, the focus fell to `<body>`, Back showed it open) | E2E lab | lab.popover "a popover whose link steps a frame promoted to history…", "a popover open while the page code steps…", "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…", "a popover rendered open beside a frame visit promoted to history…" |
+| Opened, then moved in the DOM (the same controller reconnects): stays open, one listener | E2E lab | lab.popover "a popover opened by the user and moved in the DOM stays open…" |
 
 The editor's link dialog is a Popover: its cells are the popover's.
 

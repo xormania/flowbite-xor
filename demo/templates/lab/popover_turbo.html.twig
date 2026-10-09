@@ -30,7 +30,7 @@
             <twig:Popover:Content label="Status">Paid.</twig:Popover:Content>
         </twig:Popover>
         {#- its link steps the frame above, so the frame visit starts with the popover open -#}
-        <twig:Popover id="steps">
+        <twig:Popover id="steps" :open="open">
             <twig:Popover:Trigger>
                 <twig:Button variant="outline" {{ ...popover_trigger_attrs }}>Steps</twig:Button>
             </twig:Popover:Trigger>

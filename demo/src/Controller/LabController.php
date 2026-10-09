@@ -45,7 +45,7 @@ final class LabController extends AbstractController
         'autocomplete-frame' => 'An Autocomplete inside a Turbo Frame that reloads.',
         'autocomplete-stream' => 'An Autocomplete replaced by a Turbo Stream.',
         'live-autocomplete' => 'Autocomplete fields in a Live form that re-renders.',
-        'popover-turbo' => 'Popovers across Turbo visits and Back: a plain one, a group, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads, and one whose link steps a frame whose visits are promoted to history.',
+        'popover-turbo' => 'Popovers across Turbo visits and Back: a plain one, a group, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads, and one whose link steps a frame whose visits are promoted to history (rendered open with ?open=1).',
         'popover-stream' => 'A Popover replaced and updated by Turbo Streams.',
         'live-popover' => 'A Popover open while its Live Component re-renders (action and model change).',
         'tooltip-turbo' => 'Tooltips across Turbo visits, Back and Forward: on the link that visits, on an icon button, inside a data-turbo-permanent element, inside a Turbo Frame that reloads, and on the link of a frame whose visits are promoted to history.',
@@ -263,6 +263,7 @@ final class LabController extends AbstractController
             'page' => $page,
             'load' => $request->query->getInt('load'),
             'step' => $request->query->getInt('step'),
+            'open' => $request->query->getBoolean('open'),
             'description' => self::SCENARIOS['popover-turbo'],
         ]);
     }
