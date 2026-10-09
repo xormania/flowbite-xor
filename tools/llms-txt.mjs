@@ -1,19 +1,39 @@
 #!/usr/bin/env node
-// Writes llms.txt (https://llmstxt.org/): the kit's pages for agents, one line each, linked as raw markdown. The
-// recipes come from README.md's tables (the row a person reads is the line an agent reads), checked against the
-// directories holding a manifest.json, so a recipe cannot be left out or listed twice.
+// Writes the agent-facing lists of recipes from README.md's tables (the row a person reads is the line an agent
+// reads), checked against the directories holding a manifest.json, so a recipe cannot be left out or listed twice:
 //
-//   node tools/llms-txt.mjs           # writes llms.txt
-//   node tools/llms-txt.mjs --check   # fails when llms.txt is not what this script writes (CI)
+// - llms.txt (https://llmstxt.org/): the kit's pages for agents, one line each, linked as raw markdown. The links
+//   point at the tree this file describes: the version of CHANGELOG.md's latest `## [X.Y.Z]` heading, which is the
+//   tag release.yml puts on the commit that adds the heading, or `dev` while `## [Unreleased]` has entries. Never
+//   `main`, which moves away from an installed tag.
+// - FOR-AGENTS.md, *Which recipe*: the table between the `recipes:start` and `recipes:end` comments.
+//
+// It also checks that FOR-AGENTS.md and docs/PROJECT-AGENTS-SNIPPET.md name only recipes that exist
+// (`ux:install <name>`, `<name>/README.md` links).
+//
+//   node tools/llms-txt.mjs           # writes llms.txt and the FOR-AGENTS.md table
+//   node tools/llms-txt.mjs --check   # fails when either is not what this script writes, or a check fails (CI)
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const raw = 'https://raw.githubusercontent.com/xormania/flowbite-xor/main';
 const read = (path) => readFileSync(join(root, path), 'utf8');
 // table text as plain markdown: links keep their text, the ✦ marker goes
 const plain = (text) => text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\s*✦\s*/g, ' ').trim();
+const errors = [];
+
+// The ref the links name: CHANGELOG.md's first section is `## [Unreleased]` (with or without entries), then the
+// versions, newest first
+const changelog = read('CHANGELOG.md');
+const unreleased = changelog.match(/^## \[Unreleased\][^\n]*\n([\s\S]*?)(?=^## \[)/m);
+const version = changelog.match(/^## \[(\d+\.\d+\.\d+)\]/m)?.[1];
+const ref = unreleased && /^\s*- /m.test(unreleased[1]) ? 'dev' : version;
+if (!ref) {
+    console.error('CHANGELOG.md has no unreleased entry and no `## [X.Y.Z]` heading: no ref for the links.');
+    process.exit(1);
+}
+const raw = `https://raw.githubusercontent.com/xormania/flowbite-xor/${ref}`;
 
 const manifest = JSON.parse(read('manifest.json'));
 const recipes = readdirSync(root, { withFileTypes: true })
@@ -33,7 +53,7 @@ for (const line of section.split('\n')) {
     }
     const row = line.match(/^\| \[`([a-z0-9-]+)`\]\(\1\/README\.md\)[^|]*\| (.+) \|$/);
     if (row && groups.length > 0) {
-        groups.at(-1).rows.push({ name: row[1], description: plain(row[2]) });
+        groups.at(-1).rows.push({ name: row[1], description: row[2].trim() });
     }
 }
 
@@ -50,13 +70,20 @@ if (missing.length || unknown.length || twice.length) {
     }
     process.exit(1);
 }
+// a recipe ships when its directory has a manifest.json and README.md lists it
+const ships = (name) => recipes.includes(name) && listed.includes(name);
 
+// --- llms.txt
 const lines = [
     '# flowbite-xor',
     '',
     `> ${manifest.description}`,
     '',
     'A Symfony UX Toolkit kit: install a recipe with `php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor`, which copies its files into the project. Each recipe\'s README gives its props, examples and how it behaves in forms, Live Components and Turbo Frames.',
+    '',
+    ref === 'dev'
+        ? 'The links below point at `dev`, the work merged since the last release: install with `--kit=https://github.com/xormania/flowbite-xor:dev` to get what they describe.'
+        : `The links below point at release \`${ref}\`, the version this file was written for: install it with \`--kit=https://github.com/xormania/flowbite-xor:${ref}\`.`,
     '',
     '## Start here',
     '',
@@ -69,7 +96,7 @@ const lines = [
 for (const group of groups) {
     lines.push(`## ${group.title}`, '');
     for (const row of group.rows) {
-        lines.push(`- [${row.name}](${raw}/${row.name}/README.md): ${row.description}`);
+        lines.push(`- [${row.name}](${raw}/${row.name}/README.md): ${plain(row.description)}`);
     }
     lines.push('');
 }
@@ -82,16 +109,61 @@ lines.push(
     `- [Contributing](${raw}/CONTRIBUTING.md): changing the kit itself: layout, conventions, checks`,
     '',
 );
-const output = lines.join('\n');
+const llms = lines.join('\n');
 
+// --- FOR-AGENTS.md, *Which recipe*: one table per README group, as README.md has them (without the ✦)
+const start = '<!-- recipes:start: written by tools/llms-txt.mjs from README.md\'s recipe tables; edit those, then run it -->';
+const end = '<!-- recipes:end -->';
+const table = [start];
+for (const group of groups) {
+    table.push('', `**${group.title}**`, '', '| Install | What it is |', '|---|---|');
+    for (const row of group.rows) {
+        table.push(`| [\`${row.name}\`](${row.name}/README.md) | ${row.description} |`);
+    }
+}
+table.push('', end);
+const forAgents = read('FOR-AGENTS.md');
+const from = forAgents.indexOf('<!-- recipes:start');
+const to = forAgents.indexOf(end);
+if (from < 0 || to < from) {
+    console.error(`FOR-AGENTS.md has no "<!-- recipes:start" … "${end}" pair: put them where the recipe table goes.`);
+    process.exit(1);
+}
+const forAgentsOutput = forAgents.slice(0, from) + table.join('\n') + forAgents.slice(to + end.length);
+
+// --- the agent pages name only recipes that exist
+for (const path of ['FOR-AGENTS.md', 'docs/PROJECT-AGENTS-SNIPPET.md']) {
+    const text = read(path);
+    const named = [
+        ...[...text.matchAll(/ux:install ([a-z0-9][a-z0-9-]*)/g)].map((match) => match[1]),
+        ...[...text.matchAll(/\]\(([a-z0-9][a-z0-9-]*)\/README\.md/g)].map((match) => match[1]),
+    ];
+    for (const name of new Set(named)) {
+        if (!ships(name)) {
+            errors.push(`${path} names \`${name}\`, which is not a recipe (no ${name}/manifest.json, or not in README.md's tables).`);
+        }
+    }
+}
+
+// --- write or check
+const outputs = [['llms.txt', llms], ['FOR-AGENTS.md', forAgentsOutput]];
 if (process.argv.includes('--check')) {
-    const current = existsSync(join(root, 'llms.txt')) ? read('llms.txt') : '';
-    if (current !== output) {
-        console.error('llms.txt is stale: run `node tools/llms-txt.mjs` and commit the result.');
+    for (const [path, output] of outputs) {
+        const current = existsSync(join(root, path)) ? read(path) : '';
+        if (current !== output) {
+            errors.push(`${path} is stale: run \`node tools/llms-txt.mjs\` and commit the result.`);
+        }
+    }
+    if (errors.length) {
+        errors.forEach((error) => console.error(error));
         process.exit(1);
     }
-    console.log(`llms.txt is up to date (${listed.length} recipes).`);
+    console.log(`llms.txt and FOR-AGENTS.md are up to date (${listed.length} recipes, links at ${ref}).`);
 } else {
-    writeFileSync(join(root, 'llms.txt'), output);
-    console.log(`Wrote llms.txt (${listed.length} recipes).`);
+    for (const [path, output] of outputs) {
+        writeFileSync(join(root, path), output);
+    }
+    errors.forEach((error) => console.error(error));
+    console.log(`Wrote llms.txt and FOR-AGENTS.md (${listed.length} recipes, links at ${ref}).`);
+    process.exit(errors.length ? 1 : 0);
 }

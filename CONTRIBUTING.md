@@ -13,7 +13,7 @@ and pull request standard.
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
 | `tools/demo-php` | no | runs PHP in the demo's container, for the Playwright specs (`DEMO_URL`) |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
-| `tools/llms-txt.mjs` | no | writes `llms.txt` from `README.md`'s recipe tables |
+| `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
 | `tools/tests/` | no | `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
@@ -65,7 +65,7 @@ controllers. Previewing untrusted code would need a separate origin and containe
 ## Checks
 
 CI runs them on every push, each job only when the change could affect what it checks
-([`tools/ci-changes.sh`](tools/ci-changes.sh): a docs-only change runs none, a recipe change runs all but *Contrast*,
+([`tools/ci-changes.sh`](tools/ci-changes.sh): a docs-only change runs only *Contrast*, which checks the docs, a recipe change runs all but *Contrast*,
 a change to the workflow runs everything); pushes to `main` and `dev` run everything. The rulesets require the one
 *CI result* check, which passes when every job passed or was skipped. CI runs the script as the base branch has it, so a
 branch cannot change its own checks; a new top-level path counts as part of the kit until `tools/ci-changes.sh` and
@@ -80,7 +80,7 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
-node tools/llms-txt.mjs --check                     # llms.txt matches README.md's recipe tables (without --check: rewrites it)
+node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 (cd demo && bin/phpunit)                            # the PHP tests (demo/tests/): the data tables' limits, Live and Twig components, snapshots, profiler counts
@@ -221,10 +221,28 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
    If the recipe puts a text, icon or bar color on a background that `tools/contrast/pairs.json` does not cover yet,
    add a row there: `fg`, `bg`, `min` (4.5 for text, 3 for icons, bars and focus rings) and `usage`.
 7. Add a row for the recipe to the matching table under *Recipes* in `README.md` (mark it ✦ if it ships a Stimulus
-   controller), run `node tools/llms-txt.mjs` to add it to `llms.txt`, and add an entry to `CHANGELOG.md` (see
-   *Changelog*). If agents need it for a common task, add it to *Which recipe* in `FOR-AGENTS.md`. Commit, then run
+   controller), run `node tools/llms-txt.mjs` to add it to `llms.txt` and to `FOR-AGENTS.md`'s table, and add an
+   entry to `CHANGELOG.md` (see *Changelog*). If it is close to another recipe, say which to pick in the list under
+   that table (*Which recipe*). Commit, then run
    the checks that cover a new recipe: the kit lint, `ux-toolkit-kit-debug`, `node tools/contrast/check.mjs` if you added pairs, and
    `npx playwright test`. CI runs all of them.
+
+## Docs
+
+The lists of recipes that agents read are written from `README.md`'s recipe tables by `tools/llms-txt.mjs`: edit a
+row there, never the copies, then run `node tools/llms-txt.mjs` and commit what it writes. CI's *Contrast* job runs
+it with `--check`, which fails when:
+
+- a directory with a `manifest.json` is missing from the tables, listed twice, or a row names no recipe;
+- `llms.txt`, or the table between `<!-- recipes:start` and `<!-- recipes:end -->` in `FOR-AGENTS.md`, is not what
+  the script writes;
+- `FOR-AGENTS.md` or `docs/PROJECT-AGENTS-SNIPPET.md` names a recipe that does not exist (`ux:install <name>`, a
+  `<name>/README.md` link).
+
+`llms.txt` links the raw files of the tree it describes, never `main`: the version of the newest `## [X.Y.Z]`
+heading in `CHANGELOG.md` (the tag `release.yml` puts on the commit that adds it), or `dev` while
+`## [Unreleased]` has entries. A release pull request therefore rewrites it to the new tag, and the first pull
+request that adds an unreleased entry after a release rewrites it back to `dev`: `--check` says when.
 
 ## Screenshots
 
@@ -274,7 +292,7 @@ install a `v` tag (see [`docs/NOTES.md`](docs/NOTES.md)). The version is declare
 
 A release is a pull request from `dev` to `main`, opened as a draft when the maintainer decides to release. Its own
 commit moves the entries under `## [Unreleased]` to the new `## [X.Y.Z] - YYYY-MM-DD` section and updates the compare
-links at the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor
+links at the bottom. It also runs `node tools/llms-txt.mjs`, which points `llms.txt`'s links at the new tag (*Docs*). Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor
 version, *Removed* or anything that breaks an installed recipe a major version (a minor one while the version is
 `0.x`). CI runs on this pull request like on any other. The release checks (`docs/PLAN-test-tiers.md`: timings,
 harsh conditions, long sessions, fuzzing) will run on it too, and `main`'s ruleset will require them, once their

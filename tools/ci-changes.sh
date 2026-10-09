@@ -23,8 +23,10 @@ while IFS= read -r path; do
         # The workflow and this script decide what runs: a change to either runs everything
         .github/workflows/ci.yml | tools/ci-changes.sh | tools/tests/ci-changes.sh) all ;;
 
-        # Read by people only: no job checks them
-        docs/* | CHANGELOG.md | CONTRIBUTING.md | FOR-AGENTS.md | AGENTS.md | SECURITY.md | LICENSE | NOTICE) ;;
+        # Read by people and agents: Contrast checks the generated lists and the plans' status (tools/llms-txt.mjs
+        # reads CHANGELOG.md for the links' ref)
+        docs/* | CHANGELOG.md | CONTRIBUTING.md | FOR-AGENTS.md | AGENTS.md | SECURITY.md) on contrast ;;
+        LICENSE | NOTICE) ;;
         .github/pull_request_template.md | .github/dependabot.yml | .github/workflows/*.yml) ;;
 
         # The browser tests and their tools

@@ -19,7 +19,8 @@ check() {
 all='lint-kit php static-site fresh-install contrast demo'
 kit='lint-kit php static-site fresh-install demo'
 
-check ''                          docs/TESTING.md CHANGELOG.md .github/pull_request_template.md
+check ''                          LICENSE .github/pull_request_template.md
+check 'contrast'                  docs/TESTING.md CHANGELOG.md FOR-AGENTS.md
 check ''                          .github/workflows/audit.yml
 check "$all"                      .github/workflows/ci.yml
 check "$all"                      tools/ci-changes.sh
