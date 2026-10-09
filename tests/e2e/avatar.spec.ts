@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect } from './fixtures';
+import { back, visit } from './transitions';
 
 /*
  * `Avatar:Image` starts hidden behind its `Avatar:Fallback`: the avatar controller shows it once it has loaded, also
@@ -49,15 +50,11 @@ test('shows the picture of a page reached by a Turbo visit or restored from its 
     await expect(fallback).toBeHidden();
     await page.evaluate(() => ((window as any).__sameDocument = true));
 
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     await expect(picture).toBeVisible();
     await expect(fallback).toBeHidden();
 
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await back(page, 'Page one');
     await expect(picture).toBeVisible();
     await expect(fallback).toBeHidden();
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);

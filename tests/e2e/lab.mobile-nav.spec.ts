@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect } from './fixtures';
+import { shown } from './transitions';
 
 /*
  * The MobileNav on /lab/mobile-nav/<page>: a menu button in a Navbar opens a modal Drawer holding a SideNav, and the same
@@ -57,11 +58,6 @@ async function treeState(tree: ReturnType<typeof drawerTree>) {
     });
 }
 
-async function visitDone(page: Page, heading: string) {
-    await expect(page.getByTestId('page')).toHaveText(heading);
-    await turboVisitDone(page);
-}
-
 test.describe('on a phone', () => {
     test.use({ viewport: phone });
 
@@ -116,7 +112,7 @@ test.describe('on a phone', () => {
         await expectDrawer(page, true, 'drawer: Overview');
         await toggle(drawerTree(page), 'Guides').click();
         await drawerTree(page).getByRole('treeitem', { name: 'Getting started' }).click();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         await expectDrawer(page, false);
         expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
 
@@ -131,7 +127,7 @@ test.describe('on a phone', () => {
 
         await page.goBack(); // the fragment
         await page.goBack();
-        await visitDone(page, 'Page one');
+        await shown(page, 'Page one');
         await expectDrawer(page, false);
         await menu(page).click();
         await expectDrawer(page, true, 'drawer: Overview');
@@ -139,7 +135,7 @@ test.describe('on a phone', () => {
         await page.keyboard.press('Escape');
 
         await page.goForward();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         await expectDrawer(page, false);
         await page.reload();
         await expectDrawer(page, false);
@@ -190,18 +186,18 @@ test.describe('on a phone', () => {
         });
         await page.goto('/lab/mobile-nav');
         await page.getByRole('link', { name: 'Go to page two' }).click();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
 
         await menu(page).click();
         await expectDrawer(page, true, 'drawer: Getting started');
         await page.goBack();
-        await visitDone(page, 'Page one');
+        await shown(page, 'Page one');
         await expectDrawer(page, false);
 
         await menu(page).click();
         await expectDrawer(page, true, 'drawer: Overview');
         await page.goForward();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         await expectDrawer(page, false);
         // every page rendered so far, the cached copies included, had the drawer closed
         expect(await page.evaluate(() => (window as any).__restored)).toEqual(Array(3).fill({ open: false, expanded: 'false' }));
@@ -223,17 +219,17 @@ test.describe('on a phone', () => {
         await page.evaluate(() => ((window as any).__sameDocument = true));
         for (const [link, heading] of [['Go to page two', 'Page two'], ['Go to page three', 'Page three'], ['Go to page one', 'Page one']]) {
             await page.getByRole('link', { name: link }).click();
-            await visitDone(page, heading);
+            await shown(page, heading);
         }
         for (const [item, heading] of [['Getting started', 'Page two'], ['Overview', 'Page one']]) {
             await menu(page).click();
             await drawerTree(page).getByRole('treeitem', { name: item }).click();
-            await visitDone(page, heading);
+            await shown(page, heading);
         }
         await page.goBack();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         await page.goForward();
-        await visitDone(page, 'Page one');
+        await shown(page, 'Page one');
         expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
         await expect(page.locator('[data-controller~="mobile-nav"]')).toHaveCount(1);
         await expect(page.locator('dialog')).toHaveCount(1);

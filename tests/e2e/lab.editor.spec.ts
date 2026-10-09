@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect } from './fixtures';
+import { back, visit, visitAndBack } from './transitions';
 
 /*
  * Editors under Turbo and Live: a form posts sanitized HTML (303) or shows its errors (422); Back shows the content and
@@ -54,12 +55,7 @@ test('after a visit and Back, the content and selection come back in one editor'
     await page.keyboard.press('Shift+ArrowLeft');
     await page.keyboard.press('Shift+ArrowLeft');
 
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await turboVisitDone(page);
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await page.goBack();
-    await turboVisitDone(page);
-    await expect(page.getByTestId('page')).toHaveText('Page one');
+    await visitAndBack(page);
     await mounted(page);
     await expect(editors(page)).toHaveCount(3);
     await expect(page.getByRole('toolbar', { name: 'Formatting' })).toHaveCount(3);
@@ -74,12 +70,10 @@ test('after a visit and Back, the content and selection come back in one editor'
 test('repeated visits leave one editor per field', async ({ page }) => {
     await page.goto('/lab/editor-turbo');
     for (let round = 0; round < 3; round++) {
-        await page.getByRole('link', { name: 'Go to page two' }).click();
-        await turboVisitDone(page);
+        await visit(page, 'Go to page two', 'Page two');
         await mounted(page);
         await expect(editors(page)).toHaveCount(3);
-        await page.getByRole('link', { name: 'Go to page one' }).click();
-        await turboVisitDone(page);
+        await visit(page, 'Go to page one', 'Page one');
         await mounted(page);
         await expect(editors(page)).toHaveCount(3);
     }
@@ -93,8 +87,7 @@ test('a data-turbo-permanent editor keeps its content across visits and stays ed
     await kept.click();
     await page.keyboard.press('ControlOrMeta+End');
     await page.keyboard.type(' Typed.');
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     await mounted(page);
     await expect(page.getByRole('textbox', { name: 'Kept notes' })).toHaveText('Kept across visits. Typed.');
     await page.getByRole('textbox', { name: 'Kept notes' }).click();
@@ -182,19 +175,14 @@ test('a frame visit promoted to history leaves the editor beside the frame worki
     await page.keyboard.type('Before the step');
 
     // Turbo copies the page and dispatches turbo:before-cache, but the editor stays on screen
-    await page.getByRole('link', { name: 'Next step' }).click();
-    await expect(page.getByTestId('history-step')).toHaveText('1');
-    await expect.poll(() => new URL(page.url()).searchParams.get('step')).toBe('1');
-    await turboVisitDone(page);
+    await visit(page, 'Next step', { step: 1 });
     await expect(editors(page)).toHaveCount(3);
     await page.getByRole('textbox', { name: 'Body' }).click();
     await page.keyboard.press('ControlOrMeta+End');
     await page.keyboard.type(' and after');
     expect(await page.locator('textarea[name="editor_demo[body]"]').inputValue()).toBe('<p>Before the step and after</p>');
 
-    await page.goBack();
-    await expect(page.getByTestId('history-step')).toHaveText('0');
-    await turboVisitDone(page);
+    await back(page, { step: 0 });
     await mounted(page);
     await expect(editors(page)).toHaveCount(3);
     await expect(page.getByRole('toolbar', { name: 'Formatting' })).toHaveCount(3);

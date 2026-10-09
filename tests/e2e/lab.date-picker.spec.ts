@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
+import { back, recordFirstFrames, stepFromCode, visit, visitAndBack } from './transitions';
 
 const day = (scope: Locator, date: string) => scope.locator(`[data-slot="calendar-day"][data-day="${date}"] button`);
 const pick = async (page: Page, label: string, date: string) => {
@@ -27,12 +28,7 @@ test('a pick is submitted by the form; the day buttons never submit it', async (
 test('a Turbo visit and Back show the picked date in the field, the calendar and the hidden input, closed', async ({ page }) => {
     await page.goto('/lab/date-picker-turbo');
     await pick(page, 'Due date', '2026-03-12');
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await visitAndBack(page);
 
     await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 12, 2026');
     await expect(page.locator('input[name="due"]')).toHaveValue('2026-03-12');
@@ -58,8 +54,7 @@ test('repeated Turbo visits leave one controller per picker and one change per p
 
 test('inside a data-turbo-permanent element and a Turbo Frame reloaded three times, the pickers work', async ({ page }) => {
     await page.goto('/lab/date-picker-turbo');
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     await pick(page, 'Kept date', '2026-03-05');
     await expect(page.getByLabel('Kept date', { exact: true })).toHaveValue('Mar 5, 2026');
 
@@ -100,4 +95,36 @@ test('in a Live form, a pick reaches the server and the end date follows the sta
     await expect(page.getByRole('textbox', { name: 'End' })).toHaveValue('Mar 12, 2026');
     await expect(page.getByRole('textbox', { name: 'Start' })).toHaveValue('Mar 10, 2026');
     await expect(page.locator('[data-calendar-target="input"]')).toHaveCount(2);
+});
+
+test('a date picker open while the page code steps a frame promoted to history stays open on its day; Back shows it closed with the pick', async ({ page }) => {
+    await page.goto('/lab/date-picker-turbo');
+    const firstFrames = await recordFirstFrames(page, { calendar: '#due-picker-content' });
+    await pick(page, 'Due date', '2026-03-12');
+    await page.getByRole('button', { name: 'Due date: choose date' }).click();
+    const calendar = page.getByRole('dialog', { name: 'Choose a date' });
+    await expect(day(calendar, '2026-03-12')).toBeFocused();
+
+    await stepFromCode(page, 1);
+    await expect(calendar).toBeVisible();
+    await expect(day(calendar, '2026-03-12')).toBeFocused();
+    await day(calendar, '2026-03-13').click();
+    await expect(calendar).toBeHidden();
+    await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 13, 2026');
+
+    // the copy was taken as the frame visit started: open, on the first pick
+    await back(page, { step: 0 });
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Due date: choose date' })).toHaveAttribute('aria-expanded', 'false');
+    expect(await firstFrames()).toEqual([{ calendar: false }]);
+    await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 12, 2026');
+    await expect(page.locator('input[name="due"]')).toHaveValue('2026-03-12');
+    await pick(page, 'Due date', '2026-03-05');
+    await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 5, 2026');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    // a click on the frame's own link closes the picker first, as any click outside it
+    await page.getByRole('button', { name: 'Due date: choose date' }).click();
+    await visit(page, 'Next step', { step: 1 });
+    await expect(page.getByRole('dialog')).toHaveCount(0);
 });

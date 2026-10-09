@@ -56,18 +56,18 @@ the transition cannot change the recipe's state, not that it is untested.
 | layouts | demo-app | · | G10 | · | lab.turbo-nav, demo-app | · | · | lab.turbo-nav | · | csp (first paint) | css |
 | sidebar, navbar | G6 | · | G6 | T2 | lab.turbo-nav | · | · | · | · | css | · |
 | side-nav | lab.side-nav | · | lab.side-nav | lab.side-nav | lab.side-nav | · | · | · | · | lab.side-nav (on load) | css |
-| toast | lab.turbo-restore, demo-app | · | G10 | · | lab.turbo-stream-toast, lab.turbo-restore | · | G2 | lab.turbo-stream-toast, lab.turbo-nav | · | css | · |
+| toast | lab.turbo-restore, demo-app | · | G10 | · | lab.turbo-stream-toast, lab.turbo-restore | · | lab.turbo-restore | lab.turbo-stream-toast, lab.turbo-nav | · | css | · |
 | alert | G10 | · | · | · | · | · | · | G10 | G10 | css | · |
 | avatar | avatar | · | · | · | · | · | · | · | · | · | · |
 | tabs | lab.section-nav | · | lab.section-nav | lab.section-nav | · | G5 | · | G5 (removing the selected tab: lab.section-nav) | G5 | css | · |
 | section-nav | lab.section-nav | · | lab.section-nav | lab.section-nav | lab.section-nav | · | · | · | · | css | · |
-| dropdown | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | lab.turbo-frame-detail | G2 | G3 | lab.live-dropdown, lab.live-table | T3 | · |
+| dropdown | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | lab.turbo-frame-detail | lab.turbo-restore | G3 | lab.live-dropdown, lab.live-table | T3 | · |
 | modal | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | G3 | · | G3 | lab.live-modal | T3 | · |
 | drawer | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | G3 | · | G3 | lab.live-drawer | T3 | · |
-| popover | lab.popover | · | G10 | lab.popover | lab.popover | lab.popover | G2 | lab.popover | lab.popover | T3 | · |
+| popover | lab.popover | · | G10 | lab.popover | lab.popover | lab.popover | lab.popover | lab.popover | lab.popover | T3 | · |
 | tooltip | lab.turbo-restore, lab.tooltip | lab.turbo-restore | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.live-table | T3 | lab.tooltip |
 | calendar | lab.calendar | · | G10 | lab.calendar | lab.calendar | lab.calendar | G4 | lab.calendar | lab.calendar | css | · |
-| date-picker | lab.date-picker | · | G10 | lab.date-picker | lab.date-picker | lab.date-picker | G2 | lab.date-picker | lab.date-picker (G4) | css | · |
+| date-picker | lab.date-picker | · | G10 | lab.date-picker | lab.date-picker | lab.date-picker | lab.date-picker | lab.date-picker | lab.date-picker (G4) | css | · |
 | chart | lab.chart | · | G10 | lab.chart | lab.chart | lab.chart | G4 | lab.chart | lab.chart | lab.chart | G10 |
 | dropzone | lab.dropzone | · | G10 | lab.dropzone | lab.dropzone | lab.dropzone | G4 | lab.dropzone | lab.dropzone | css | · |
 | editor | lab.editor | · | G10 | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | css | · |
@@ -77,7 +77,8 @@ the transition cannot change the recipe's state, not that it is untested.
 | data-table-live | lab.data-table-live (G4) | · | G10 | lab.data-table-live | lab.data-table-live | lab.data-table-live | G4 | lab.data-table-live | lab.data-table-live | css | · |
 
 "Back, slow" is `·` for the recipes whose cached copy does not depend on the disconnect order: they save their state
-on `turbo:before-cache` (popover, date-picker, editor, markdown-editor), on every change (side-nav, calendar's
+on `turbo:before-cache` (popover, date-picker, editor, markdown-editor; popover and date-picker also close a copy the
+browser opened as it connects), on every change (side-nav, calendar's
 inputs), or read it back on connect.
 
 ## Per recipe
@@ -160,7 +161,7 @@ States: counting down, paused (hovered, focused), closing, removed; in the perma
 | Temporary toast not shown again on Back | E2E lab | lab.turbo-restore "a toast outside the permanent region is not shown again on Back" |
 | Moved into the region | E2E lab | lab.turbo-restore "a toast moved into the permanent region stays across visits" |
 | Flash written as a Stream shows once | E2E lab | lab.turbo-nav "a flash toast written as a Turbo Stream shows once across Turbo visits" |
-| Temporary toast on a page whose frame advances (Turbo copies the page while it is shown) | | G2 |
+| A toast outside the region while a frame visit is promoted to history: stays on screen; Back and Forward do not show it, from their first frame (failed before the fix: Turbo removed it from the screen on `turbo:before-cache` and Back showed the copy's) | E2E lab | lab.turbo-restore "a toast outside the permanent region stays shown while a frame visit is promoted to history…" |
 
 ### alert, avatar
 
@@ -219,6 +220,7 @@ drawer closed, open as a modal, open on load, static backdrop, drawer non-modal;
 | dropdown | Home, End, Tab; submenus (ArrowRight, ArrowLeft); flip and shift | | G7 (submenus: pending navbar branch) |
 | dropdown | Live re-render while open; rows re-sorted | E2E lab | lab.live-dropdown "a dropdown stays open and working while its Live Component re-renders"; lab.live-table "dropdowns in rows re-sorted by a Live action keep working" |
 | dropdown | Frame reloaded | E2E lab | lab.turbo-frame-detail "a dropdown inside a Turbo Frame works after every frame reload" |
+| dropdown | Open beside a frame visit promoted to history (its own item targets the frame): stays open, Escape closes it; Back shows it closed from the first frame and it opens again. The copy holds it open with `aria-expanded="true"` until it connects (G3) | E2E lab | lab.turbo-restore "a dropdown menu whose item steps a frame promoted to history…" |
 | dropdown, modal, drawer | Left open by a visit, Back, fast and slow | E2E lab | lab.turbo-restore "… left open by a visit is closed after Back, and opens again[, the next page waiting for a stylesheet]" (6) |
 | modal | Closed until opened; Escape; close buttons; backdrop; static backdrop; several openings; open on load | E2E demo | recipe:modal (8 tests) |
 | modal | Moved in the DOM, open and closed | screenshot | shot:modal "stays modal after being moved in the DOM", "stays closed after being moved in the DOM once closed" |
@@ -239,7 +241,8 @@ States: closed or open (`open` value, an attribute Live keeps), focus inside, gr
 | Open, visit, Back | E2E lab | lab.popover "an open popover is closed after a Turbo visit and Back, and still works" |
 | N visits, no document listener left | E2E lab | lab.popover "repeated Turbo visits leave one controller per popover and no document listener behind" |
 | Permanent, frame ×3, Stream replace and update, Live re-render | E2E lab | lab.popover (4 tests) |
-| Open beside a frame visit promoted to history: `closeSilently` runs on `turbo:before-cache` with the page still shown, and the copy may be taken first | | G2 |
+| Open beside a frame visit promoted to history, started from a link inside it or from the page's code: stays open with the focus; Back and Forward show it closed from the first frame, no listener left (failed before the fix: it closed, the focus fell to `<body>`, Back showed it open) | E2E lab | lab.popover "a popover whose link steps a frame promoted to history…", "a popover open while the page code steps…", "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…", "a popover rendered open beside a frame visit promoted to history…" |
+| Opened, then moved in the DOM (the same controller reconnects): stays open, one listener | E2E lab | lab.popover "a popover opened by the user and moved in the DOM stays open…" |
 
 The editor's link dialog is a Popover: its cells are the popover's.
 
@@ -271,7 +274,8 @@ modifiers, locale; the picker closed or open, typed text valid or invalid.
 | date-picker | Form submit; Back (picked, closed); N visits; permanent and frame ×3; Stream; Live form | E2E lab | lab.date-picker (6 tests) |
 | date-picker | Server refusal comes back as typed | E2E demo | forms "the date picker opt-in submits the pick; a date the server refuses comes back as typed, with its error" |
 | date-picker | Live re-render while the calendar is open | | G4 |
-| both | Beside a frame visit promoted to history | | G2 (date-picker), G4 (calendar) |
+| date-picker | Open beside a frame visit promoted to history (the page's code): stays open on its day; Back shows it closed with the pick of the copy; the frame's own link closes it first (failed before the fix like popover) | E2E lab | lab.date-picker "a date picker open while the page code steps a frame promoted to history…" |
+| calendar | Beside a frame visit promoted to history | | G4 |
 
 ### chart
 
@@ -367,7 +371,7 @@ where the guarantee stays.
 
 | Helper | Where | Owner |
 |---|---|---|
-| Visit page two and Back, waiting on `turboVisitDone`; local `visit()` | inline in about 12 specs; `visit()` in lab.dropzone, lab.side-nav | `tests/e2e/transitions.ts`, one driver for the lab scaffold below |
+| ~~Visit page two and Back, waiting on `turboVisitDone`; local `visit()`~~ **Done:** `tests/e2e/transitions.ts` (`visit`, `back`, `forward`, `reload`, `shown`, `visitAndBack`; a page by its heading or a `history-steps` frame step) | 17 specs moved onto it (the `lab.*` specs with visits, and avatar); `visit()` of lab.dropzone and lab.side-nav and `visitDone()` of lab.mobile-nav and lab.nav-menu removed. Left inline: the N-visit loops following `/Go to page/` without a heading, lab.data-table-live's visits to turbo-nav, lab.side-nav's Settings pages, lab.data-table-frame's Back steps (their own state checks) | `tests/e2e/transitions.ts` ([`TESTING.md`](TESTING.md), *One driver for the transitions*) |
 | "Reload the frame" three times; Stream replace and update | 9 lab specs each | the same driver |
 | The lab scaffold itself: `<recipe>-turbo` (page one and two, a Kept permanent copy, a Framed copy), `<recipe>-stream` with `_<recipe>_streamed`, `live-<recipe>` | `demo/templates/lab/` | reused as is by each step 6 group (dropdown, modal, drawer, tooltip, tabs) |
 | Axe filtered to serious and critical | a11y, dropzone (`expectNoSeriousA11yIssue`), editor, markdown-editor, forms, lab.side-nav, demo-app ×2 | `fixtures.ts` |
@@ -390,7 +394,7 @@ a browser, so E2E lab, on the existing scaffold.
 | | Gap | Why the risk | Proposed coverage | Step 6 group |
 |---|---|---|---|---|
 | G1 | ~~**tooltip** has no Turbo coverage~~ **Closed:** `connect()` now hides the tooltip unless the focus is inside it; lab.tooltip and lab.turbo-restore cover it | Both snapshot orders failed, not only the slow one | — | Overlays |
-| G2 | **Frame visit promoted to history** beside popover, dropdown, date-picker and a temporary toast | Covered only for editor, markdown-editor and the data table. Their cache safety is `turbo:before-cache`, which a promoted frame visit dispatches with the page still on screen (the editor spec): an open popover beside a data table closes on each page change, or is copied open (`open` is an attribute, reconnected open); Turbo removes `data-turbo-temporary` toasts on the same event. Data tables are the common source of promoted frame visits | A `data-turbo-action="advance"` frame on the popover, date-picker and turbo-restore labs (the turbo-restore lab holds the dropdown and the toast) (the editor lab's `history-steps` pattern) | Overlays |
+| G2 | ~~**Frame visit promoted to history** beside popover, dropdown, date-picker and a temporary toast~~ **Closed:** popover and date-picker skip their `turbo:before-cache` close for a promoted frame visit (`isPromotedFrameCache()`) and close a copy the browser opened as it connects; toast is no longer `data-turbo-temporary` and leaves a copy as it connects; lab.popover, lab.date-picker, lab.turbo-restore cover it (`history-steps` frame on the three labs). Was: | Covered only for editor, markdown-editor and the data table. Their cache safety is `turbo:before-cache`, which a promoted frame visit dispatches with the page still on screen (the editor spec): an open popover beside a data table closes on each page change, or is copied open (`open` is an attribute, reconnected open); Turbo removes `data-turbo-temporary` toasts on the same event. Data tables are the common source of promoted frame visits | A `data-turbo-action="advance"` frame on the popover, date-picker and turbo-restore labs (the turbo-restore lab holds the dropdown and the toast) (the editor lab's `history-steps` pattern) | Overlays |
 | G3 | **dropdown, modal, drawer** beyond Back and Live: Stream replace and update while open, N visits, permanent, frame reload (modal, drawer) | An open dropdown holds document and window listeners; popover has these exact tests (listener counter) and dropdown, the most used overlay, has none | lab.popover's tests, applied to each, with the shared listener counter | Overlays |
 | G4 | **Form widgets' values** across transitions: autocomplete values after Back, permanent and frame advance; data-table-live selection after a visit and Back; calendar, chart and dropzone beside a promoted frame visit; date-picker re-rendered by Live while open | Values are what the user typed or chose; the Back tests check only instance counts (autocomplete) or URL state (data-table-live) | Extend the existing lab specs | Form widgets |
 | G5 | **tabs**: Live re-render, frame reload, Stream replace (Back, N visits and the keyboard are covered by lab.section-nav: Back keeps the selected tab) | A Live re-render may keep or reset the value attribute the controller writes; nothing says which is wanted yet. Decide the expected state first | A `tabs-turbo` lab page with a Framed copy, a Stream and a Live component | Tabs |

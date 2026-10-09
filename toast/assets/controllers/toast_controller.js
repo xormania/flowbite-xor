@@ -6,8 +6,10 @@ import { Controller } from '@hotwired/stimulus';
  * any other, so the timer starts as soon as it appears.
  *
  * In a `ToastRegion` (`data-turbo-permanent`), a toast stays across Turbo visits until it times out or is closed. A
- * toast outside a permanent region belongs to its page: it is marked `data-turbo-temporary`, so Turbo removes it
- * before caching the page, and Back never shows it again.
+ * toast outside a permanent region belongs to its page: once shown, it is marked `data-toast-shown`, and a copy of the
+ * page Turbo cached (Back, Forward, a preview) removes it as it connects, so it is never shown again. It is not
+ * `data-turbo-temporary`: Turbo removes those on `turbo:before-cache`, which a frame visit promoted to history
+ * dispatches with the page still on screen, after copying the page.
  *
  * @value  timeout Milliseconds before the toast dismisses itself, `0` to keep it until closed.
  * @action pause   Stops the countdown while the toast is hovered or focused, keeping the time left.
@@ -20,15 +22,14 @@ export default class extends Controller {
     connect() {
         this.hovered = false;
         this.focused = false;
-        // re-checked on each connect: a toast moved into the region drops the marker this controller added
-        const temporary = !this.element.closest('[data-turbo-permanent]');
-        if (temporary && !this.element.hasAttribute('data-turbo-temporary')) {
-            this.element.setAttribute('data-turbo-temporary', '');
-            this.markedTemporary = true;
-        } else if (!temporary && this.markedTemporary) {
-            this.element.removeAttribute('data-turbo-temporary');
-            this.markedTemporary = false;
+        // shown before, but not by this controller: a copy of the page Turbo cached, where a toast of the page is gone.
+        // A reconnect of the same element (the permanent region kept by a visit, a toast moved) keeps the controller
+        if (!this.shown && this.element.hasAttribute('data-toast-shown') && !this.element.closest('[data-turbo-permanent]')) {
+            this.element.remove();
+            return;
         }
+        this.shown = true;
+        this.element.setAttribute('data-toast-shown', '');
         if (this.closing) {
             // moved in the DOM while fading out: finish the removal
             this.element.remove();

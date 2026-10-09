@@ -1,12 +1,27 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
+ * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
+ * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
+ * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
+ * Copy it into a controller that needs it, as `position()` is.
+ */
+function isPromotedFrameCache() {
+    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
+}
+
+/**
  * Opens a `Popover`, a non-modal dialog anchored to its trigger: a click on the trigger toggles it,
  * Escape closes it and returns the focus to the trigger, and a click outside or the focus leaving it
  * closes it. Opening moves the focus into the content, places the content next to the trigger (flipping
  * and shifting like `Dropdown`) and keeps it there on scroll and resize. Popovers sharing a `name` close
  * each other. The open state is the `open` value, an attribute, so Live Components keep it across
- * re-renders; before Turbo caches the page, an open popover closes, so Back never restores it open.
+ * re-renders. Before Turbo caches the page, an open popover closes, so Back never restores it open. A
+ * frame visit promoted to history (`data-turbo-action="advance"`, a data table's pages) dispatches
+ * `turbo:before-cache` too, but keeps the page on screen and caches a copy taken when it started: the
+ * popover then stays open, with the focus, and the copy is closed as it connects (while it is open on
+ * screen, rendered open or opened since, the element carries `data-popover-opened`; a new controller on
+ * an element carrying it is a copy, while the same controller reconnecting after a DOM move stays open).
  * The document listeners exist only while it is open, and are removed when it closes or disconnects.
  * Before moving the focus, it dispatches a cancelable `popover:focus` on its element (detail: `content`):
  * cancel it to place the focus yourself; the popover stays open.
@@ -23,7 +38,7 @@ import { Controller } from '@hotwired/stimulus';
  * @action closeIfGrouped Closes the popover when another popover of its group opens.
  * @action escape         Closes the popover and focuses the trigger.
  * @action closeOnFocusOut Closes the popover when the focus moves to an element outside it.
- * @action closeSilently  Closes the popover without moving the focus or dispatching events, before Turbo caches the page.
+ * @action closeSilently  Closes the popover without moving the focus or dispatching events; on `turbo:before-cache`, only when the page is about to be replaced.
  */
 export default class extends Controller {
     static targets = ['trigger', 'content'];
@@ -35,10 +50,17 @@ export default class extends Controller {
     };
 
     #connected = false;
+    #connectedBefore = false;
     #listening = false;
 
     connect() {
         this.#connected = true;
+        // open in this browser before, but not by this controller: a copy of the page Turbo cached, shown closed. A
+        // reconnect of the same element (moved in the DOM, a morph) keeps its controller, and stays open
+        if (!this.#connectedBefore && this.element.hasAttribute('data-popover-opened')) {
+            this.openValue = false;
+        }
+        this.#connectedBefore = true;
         this.#render();
     }
 
@@ -109,7 +131,10 @@ export default class extends Controller {
         }
     }
 
-    closeSilently() {
+    closeSilently(event) {
+        if ('turbo:before-cache' === event?.type && isPromotedFrameCache()) {
+            return;
+        }
         this.openValue = false;
     }
 
@@ -126,6 +151,8 @@ export default class extends Controller {
         const content = this.contentTarget;
         content.dataset.state = state;
         content.hidden = !open;
+        // open on screen, whether rendered open or opened since: a copy of the page taken now connects closed
+        this.element.toggleAttribute('data-popover-opened', open);
         if (open) {
             this.#listen();
             this.position();

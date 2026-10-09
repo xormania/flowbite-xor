@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
+import { visit } from './transitions';
 
 const status = (page: Page) => page.getByRole('status').filter({ hasText: /Showing|No rows/ });
 const selected = (page: Page) => page.getByRole('status').filter({ hasText: 'selected' });
@@ -153,9 +154,7 @@ test('inside a data-turbo-permanent element, it keeps its state across Turbo vis
     await page.getByRole('link', { name: 'Page 2' }).click();
     await expect(status(page)).toHaveText('Showing 11–20 of 57');
 
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     await expect(status(page)).toHaveText('Showing 11–20 of 57');
 
     await page.getByRole('link', { name: 'Page 3' }).click();

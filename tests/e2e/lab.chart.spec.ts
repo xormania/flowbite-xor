@@ -1,4 +1,5 @@
 import { test, expect, turboVisitDone } from './fixtures';
+import { back, visit } from './transitions';
 import { chartCount, chartState, roleColor, toggleDark } from './chart-helpers';
 
 // counts the charts the theme redraws (chart:themed bubbles to the document)
@@ -14,15 +15,11 @@ const charts = (page: import('@playwright/test').Page) => page.locator('canvas[d
 test('after a Turbo visit and Back, every chart is drawn once and none is left behind', async ({ page }) => {
     await page.goto('/lab/chart-turbo');
     await expect.poll(() => chartCount(page)).toBe(4);
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     // page two: the line, the permanent one, the framed one
     await expect.poll(() => chartCount(page)).toBe(3);
 
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await back(page, 'Page one');
     await expect.poll(() => chartCount(page)).toBe(4);
     for (const id of ['lab-bar', 'lab-doughnut', 'lab-kept', 'lab-framed']) {
         expect(await chartState(page, id), id).not.toBeNull();
@@ -46,8 +43,7 @@ test('inside a data-turbo-permanent element the chart keeps its canvas and follo
     await page.goto('/lab/chart-turbo');
     await page.locator('#lab-kept canvas').evaluate((canvas) => ((canvas as any).__kept = true));
     const { id } = (await chartState(page, 'lab-kept'))!;
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     expect(await page.locator('#lab-kept canvas').evaluate((canvas) => (canvas as any).__kept)).toBe(true);
     await toggleDark(page);
     const line = await roleColor(page, 'chart-1');

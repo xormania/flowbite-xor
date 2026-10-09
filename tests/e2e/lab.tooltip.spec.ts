@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, trackGlobalListeners, turboVisitDone } from './fixtures';
+import { back, forward, shown } from './transitions';
 
 /*
  * A tooltip is shown only while its trigger is hovered or focused. Turbo copies the page as it is when it is left,
@@ -39,21 +40,16 @@ test('a tooltip shown on the link that visits is hidden after Back, Forward and 
     await toTwo.focus();
     await expect(tooltip(page, 'Opens page two')).toBeVisible();
     await page.keyboard.press('Enter');
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await shown(page, 'Page two');
 
     // page two's link focused, and left with Back: Turbo copies page two with its tooltip shown
     await toOne.focus();
     await expect(tooltip(page, 'Opens page one')).toBeVisible();
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await back(page, 'Page one');
     await expect(tooltip(page, 'Opens page two')).toBeHidden();
     await expectWorks(page, toTwo, 'Opens page two');
 
-    await page.goForward();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await forward(page, 'Page two');
     await expect(tooltip(page, 'Opens page one')).toBeHidden();
     await expectWorks(page, toOne, 'Opens page one');
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
@@ -81,9 +77,7 @@ test('a tooltip shown while a frame visit adds a history entry is hidden after B
     await expect(tooltip(page, 'Delete the draft')).toBeVisible();
 
     await page.mouse.move(0, 0);
-    await page.goBack();
-    await expect(page.getByTestId('history-step')).toHaveText('0');
-    await turboVisitDone(page);
+    await back(page, { step: 0 });
     await expect(tooltip(page, 'Delete the draft')).toBeHidden();
     await expect(tooltip(page, 'Adds a history entry')).toBeHidden();
     await expectWorks(page, remove, 'Delete the draft');
@@ -114,8 +108,7 @@ test('inside a data-turbo-permanent element, a tooltip shown by the focus stays 
     await kept.focus();
     await expect(tooltip(page, 'In a permanent element')).toBeVisible();
     await page.evaluate(() => (window as any).Turbo.visit('/lab/tooltip-turbo/two'));
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await shown(page, 'Page two');
 
     // Turbo moves the permanent element into page two with the focus still on its trigger: the tooltip stays shown
     await expect(kept).toBeFocused();

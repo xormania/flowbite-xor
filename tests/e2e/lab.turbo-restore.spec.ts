@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect } from './fixtures';
+import { back, forward, recordFirstFrames, visit, visitAndBack } from './transitions';
 
 /*
  * Overlays left open when a link inside them visits another page, and a tooltip shown on such a link: Back shows them
@@ -85,12 +86,8 @@ for (const slow of [false, true]) {
             await overlay.open(page);
             await overlay.expectOpen(page);
 
-            await overlay.link(page).click();
-            await expect(page.getByTestId('page')).toHaveText('Page two');
-            await turboVisitDone(page);
-            await page.goBack();
-            await expect(page.getByTestId('page')).toHaveText('Page one');
-            await turboVisitDone(page);
+            await visit(page, overlay.link(page), 'Page two');
+            await back(page, 'Page one');
 
             await overlay.expectClosed(page);
             await overlay.open(page);
@@ -103,12 +100,7 @@ for (const slow of [false, true]) {
 test('a toast outside the permanent region is not shown again on Back', async ({ page }) => {
     await page.goto('/lab/turbo-restore');
     await expect(page.getByTestId('page-toast')).toHaveText('Saved on page one.');
-    await page.getByRole('link', { name: 'Go to page two', exact: true }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await visitAndBack(page);
     await expect(page.getByTestId('page-toast')).toHaveCount(0);
 
     // a full load renders the page's toast again
@@ -120,16 +112,49 @@ test('a toast moved into the permanent region stays across visits', async ({ pag
     await page.goto('/lab/turbo-restore');
     await page.evaluate(() => ((window as any).__sameDocument = true));
     const toast = page.getByTestId('page-toast');
-    await expect(toast).toHaveAttribute('data-turbo-temporary', '');
     await toast.evaluate((element) => document.getElementById('toasts')!.append(element));
-    await expect(toast).not.toHaveAttribute('data-turbo-temporary');
-    await page.getByRole('link', { name: 'Go to page two', exact: true }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     await expect(toast).toHaveText('Saved on page one.');
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await back(page, 'Page one');
     await expect(toast).toHaveCount(1);
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
+});
+
+test('a toast outside the permanent region stays shown while a frame visit is promoted to history, and Back does not show it again', async ({ page }) => {
+    await page.goto('/lab/turbo-restore');
+    const firstFrames = await recordFirstFrames(page, { toast: '[data-testid="page-toast"]' });
+    const toast = page.getByTestId('page-toast');
+    await expect(toast).toHaveText('Saved on page one.');
+
+    // Turbo copies the page as the frame visit starts, then dispatches turbo:before-cache with the page still shown
+    await visit(page, 'Next step', { step: 1 });
+    await expect(toast).toHaveText('Saved on page one.');
+
+    await back(page, { step: 0 });
+    await expect(toast).toHaveCount(0);
+    await forward(page, { step: 1 });
+    await expect(toast).toHaveCount(0);
+    expect(await firstFrames()).toEqual([{ toast: false }, { toast: false }]);
+});
+
+test('a dropdown menu whose item steps a frame promoted to history stays open, and Back shows it closed', async ({ page }) => {
+    await page.goto('/lab/turbo-restore');
+    const menu = overlays[0];
+    const firstFrames = await recordFirstFrames(page, { menu: '#dropdown-restore-menu' });
+    await menu.open(page);
+    await menu.expectOpen(page);
+
+    await visit(page, page.getByRole('menuitem', { name: 'Step 5 from the menu' }), { step: 5 });
+    await menu.expectOpen(page);
+    await page.keyboard.press('Escape');
+    await menu.expectClosed(page);
+    await menu.open(page);
+
+    await back(page, { step: 0 });
+    await menu.expectClosed(page);
+    expect(await firstFrames()).toEqual([{ menu: false }]);
+    await menu.open(page);
+    await menu.expectOpen(page);
+    await page.getByRole('heading', { level: 1 }).click();
+    await menu.expectClosed(page);
 });

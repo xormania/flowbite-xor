@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { Locator, Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect } from './fixtures';
+import { shown } from './transitions';
 
 /*
  * The NavMenu on /lab/nav-menu/<page>: a disclosure navigation in a sticky Navbar, submenus nested two levels deep,
@@ -39,11 +40,6 @@ async function menuState(menu: Locator) {
 
 async function expectMenu(menu: Locator, expected: Partial<Awaited<ReturnType<typeof menuState>>>) {
     await expect.poll(() => menuState(menu)).toMatchObject(expected);
-}
-
-async function visitDone(page: Page, heading: string) {
-    await expect(page.getByTestId('page')).toHaveText(heading);
-    await turboVisitDone(page);
 }
 
 async function duplicateIds(page: Page) {
@@ -221,7 +217,7 @@ test.describe('on a desktop', () => {
         const menu = barMenu(page);
         await button(menu, 'Guides').click();
         await link(menu, 'Getting started').click();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         await expectMenu(menu, { expanded: [], shown: [], current: ['Getting started'], highlighted: ['Guides'] });
         expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
 
@@ -291,15 +287,15 @@ test.describe('on a desktop', () => {
         await button(menu, 'Advanced').click();
         // a visit that leaves them open (a link closes them): one the page's own code starts
         await page.evaluate(() => (window as any).Turbo.visit('/lab/nav-menu'));
-        await visitDone(page, 'Page one');
+        await shown(page, 'Page one');
         await page.goBack();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         await expectMenu(menu, { expanded: [], shown: [], current: ['Getting started'], highlighted: ['Guides'] });
 
         await button(menu, 'Reference').click();
         await button(accountMenu(page), 'Account').click(); // the permanent bar's menu: in the copy too
         await page.goForward();
-        await visitDone(page, 'Page one');
+        await shown(page, 'Page one');
         await expectMenu(menu, { expanded: [], shown: [], current: ['Overview'], highlighted: [] });
         await expectMenu(accountMenu(page), { expanded: [], shown: [] });
         // every body rendered, the cached copies included, had every button collapsed
@@ -321,12 +317,12 @@ test.describe('on a desktop', () => {
         await button(account, 'Account').click();
         await button(account, 'Preferences').click();
         await link(account, 'Notifications').click();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         expect(await account.evaluate((element) => (element as any).__kept)).toBe(true);
         await expectMenu(account, { expanded: [], shown: [], current: ['Notifications'], highlighted: ['Account', 'Preferences'] });
 
         await page.goBack();
-        await visitDone(page, 'Page four');
+        await shown(page, 'Page four');
         expect(await account.evaluate((element) => (element as any).__kept)).toBe(true);
         await expectMenu(account, { expanded: [], shown: [], current: ['Profile'], highlighted: ['Account'] });
         await button(account, 'Account').click();
@@ -339,18 +335,18 @@ test.describe('on a desktop', () => {
         const menu = barMenu(page);
         for (const [name, heading] of [['Go to page two', 'Page two'], ['Go to page three', 'Page three'], ['Go to page one', 'Page one']]) {
             await page.getByRole('link', { name }).click();
-            await visitDone(page, heading);
+            await shown(page, heading);
         }
         await button(menu, 'Guides').click();
         await link(menu, 'Getting started').click();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         await button(menu, 'Reference').click();
         await link(menu, 'API').click();
-        await visitDone(page, 'Page four');
+        await shown(page, 'Page four');
         await page.goBack();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         await page.goForward();
-        await visitDone(page, 'Page four');
+        await shown(page, 'Page four');
         expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
         await expect(page.locator('[data-controller~="nav-menu"]')).toHaveCount(3);
 
@@ -416,7 +412,7 @@ test.describe('on a phone', () => {
         await mobileMenuButton(page).click();
         await button(menu, 'Guides').click();
         await link(menu, 'Getting started').click();
-        await visitDone(page, 'Page two');
+        await shown(page, 'Page two');
         await expect(drawer(page)).toBeHidden();
         await expectMenu(menu, { expanded: [], shown: [], current: ['Getting started'], highlighted: ['Guides'] });
 
@@ -424,7 +420,7 @@ test.describe('on a phone', () => {
         await button(menu, 'Reference').click();
         await expectMenu(menu, { expanded: ['Reference'] });
         await page.goBack();
-        await visitDone(page, 'Page one');
+        await shown(page, 'Page one');
         await expect(drawer(page)).toBeHidden();
         await expectMenu(menu, { expanded: [], shown: [], current: ['Overview'] });
         expect(await duplicateIds(page)).toEqual([]);
