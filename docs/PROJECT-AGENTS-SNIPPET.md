@@ -8,8 +8,7 @@ on the project how to use the kit's recipes.
 
 The UI is built from the [flowbite-xor](https://github.com/xormania/flowbite-xor) Symfony UX Toolkit kit.
 Its recipes are copied into `templates/components/`, `templates/layouts/`, `templates/form/`,
-`assets/controllers/`, `assets/styles/flowbite-xor.css` (the theme's color roles) and
-`assets/styles/flowbite-xor-on-fill.css` (the roles of text on a solid fill); we own those files.
+`assets/controllers/` and `assets/styles/flowbite-xor.css` (the theme's color roles); we own those files.
 
 - **Use the kit's components, not raw Flowbite HTML.** `<twig:Button>`, `<twig:Modal>`, `<twig:Dropdown>`,
   `<twig:Toast:Stream>`, `<twig:FormField>`… A missing one is installed with

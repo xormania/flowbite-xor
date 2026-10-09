@@ -312,9 +312,8 @@ request that adds an unreleased entry after a release rewrites it back to `dev`:
 **What the docs teach.** Agents copy examples from the markdown, so `node tools/docs-lint.mjs` (also in *Contrast*)
 fails a code block, in any markdown file outside `demo/`, that shows `initFlowbite`, `import 'flowbite'` or a
 `flowbite.js` file; a palette color (a color utility naming a Tailwind palette color that is not a theme role, from
-`tailwindcss/theme.css`, `kit.css` and the theme recipe's `flowbite-xor-on-fill.css` as the contrast check reads them:
-`bg-blue-700`, `text-white`); a `dark:` color override; an inline `on…=` handler; or a `style=` attribute. Raw HTML in
-prose counts too. Inline code does not: the rules quote what they forbid there. Every line of a recipe's templates
+`tailwindcss/theme.css` and `kit.css` as the contrast check reads them: `bg-blue-700`, `text-white`); a `dark:` color
+override; an inline `on…=` handler; or a `style=` attribute. Raw HTML in prose counts too. Inline code does not: the rules quote what they forbid there. Every line of a recipe's templates
 (`<recipe>/templates/**/*.twig`) is checked for palette colors too: text on a solid fill uses its `fg-on-*` role. A
 block that shows what not to do says so after its language:
 

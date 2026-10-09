@@ -5,8 +5,7 @@
 // - Flowbite's JavaScript: `initFlowbite`, `import 'flowbite'`, `from 'flowbite'`, a `flowbite(.min).js` file;
 // - palette colors: a color utility (`bg-`, `text-`, `border-`, `ring-`, `fill-`…) naming a color of Tailwind's
 //   palette (tailwindcss/theme.css, as tools/contrast/check.mjs reads it) that is not one of the theme's roles
-//   (kit.css and the theme recipe's flowbite-xor-on-fill.css): `bg-blue-700` and `text-white` fail, `bg-brand`,
-//   `text-fg-danger-strong` and `text-fg-on-brand` pass;
+//   (kit.css): `bg-blue-700` and `text-white` fail, `bg-brand`, `text-fg-danger-strong` and `text-fg-on-brand` pass;
 // - `dark:` color overrides (`dark:bg-…`, `dark:text-…`): the roles already switch with the theme;
 // - inline event handlers (`onclick="…"`, any `on…=` attribute) and `style="…"` attributes.
 //
@@ -27,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
 const colors = (css) => new Set([...css.matchAll(/--color-([\w-]+)\s*:/g)].map((match) => match[1]));
-const roles = new Set(['kit.css', 'theme/assets/styles/flowbite-xor-on-fill.css'].flatMap((file) => [...colors(readFileSync(join(root, file), 'utf8'))]));
+const roles = colors(readFileSync(join(root, 'kit.css'), 'utf8'));
 const palette = [...colors(readFileSync(require.resolve('tailwindcss/theme.css'), 'utf8'))]
     .filter((name) => !roles.has(name))
     // longest first, so `blue-700` is matched before a shorter name could be

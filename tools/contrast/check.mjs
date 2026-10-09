@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /*
- * Token contrast gate: resolves the color roles of kit.css and of the theme recipe's on-fill roles
- * (theme/assets/styles/flowbite-xor-on-fill.css, imported after it; light: @theme, dark: .dark) through
+ * Token contrast gate: resolves the color roles of kit.css (light: @theme, dark: .dark) through
  * Tailwind's palette (tailwindcss/theme.css, OKLCH), converts them to sRGB and checks every pair of
  * pairs.json against its WCAG 2 contrast minimum, in both themes. Exits 1 on any failure.
  *
- * Usage: node tools/contrast/check.mjs [kit.css [flowbite-xor-on-fill.css]]
+ * Usage: node tools/contrast/check.mjs [kit.css]
  */
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -13,16 +12,14 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const require = createRequire(import.meta.url);
-// in import order: a later file overrides an earlier one
-const sheets = [process.argv[2] ?? `${root}kit.css`, process.argv[3] ?? `${root}theme/assets/styles/flowbite-xor-on-fill.css`]
-    .map((path) => ({ path, css: readFileSync(path, 'utf8') }));
+const kitCss = readFileSync(process.argv[2] ?? `${root}kit.css`, 'utf8');
 const themeCss = readFileSync(require.resolve('tailwindcss/theme.css'), 'utf8');
 const pairs = JSON.parse(readFileSync(new URL('./pairs.json', import.meta.url), 'utf8'));
 
 const declarations = (css) => Object.fromEntries([...css.matchAll(/--color-([\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
-const block = ({ path, css }, selector) => {
+const block = (css, selector) => {
     const start = css.indexOf(`${selector} {`);
-    if (start < 0) throw new Error(`No "${selector} {" block in ${path}`);
+    if (start < 0) throw new Error(`No "${selector} {" block in kit.css`);
     let depth = 0;
     for (let i = css.indexOf('{', start); i < css.length; i++) {
         if (css[i] === '{') depth++;
@@ -32,9 +29,8 @@ const block = ({ path, css }, selector) => {
 };
 
 const palette = declarations(themeCss);
-const merged = (selector) => Object.assign({}, ...sheets.map((sheet) => declarations(block(sheet, selector))));
-const light = merged('@theme');
-const scopes = { light, dark: { ...light, ...merged('.dark') } };
+const light = declarations(block(kitCss, '@theme'));
+const scopes = { light, dark: { ...light, ...declarations(block(kitCss, '.dark')) } };
 
 function resolve(name, scope, seen = new Set()) {
     if (seen.has(name)) throw new Error(`Circular color "${name}"`);

@@ -1,6 +1,6 @@
 # Theme
 
-The Flowbite color roles (light and dark) with this kit's contrast fixes, and the kit's on-fill roles, as two stylesheets for `assets/styles/app.css`.
+The Flowbite color roles (light and dark) with this kit's contrast fixes and its roles for text on a solid fill, as one stylesheet for `assets/styles/app.css`.
 
 ## Installation
 
@@ -8,12 +8,7 @@ The Flowbite color roles (light and dark) with this kit's contrast fixes, and th
 
 ## Usage
 
-The recipe copies two files:
-
-- `assets/styles/flowbite-xor.css`, Flowbite's theme with every color role checked for contrast. A role is a named color used through utilities such as `bg-brand`, `text-heading` or `border-default`. The file defines the roles (`@theme`), their dark values (`.dark`) and the `dark:` variant (`@custom-variant dark`), and gives Turbo Drive's progress bar the brand color.
-- `assets/styles/flowbite-xor-on-fill.css`, the kit's on-fill roles: the color of text on a solid fill (see *On-fill roles*).
-
-Import them after Tailwind and Flowbite's stylesheet in `assets/styles/app.css`, the on-fill roles right after the theme:
+The recipe copies `assets/styles/flowbite-xor.css`, Flowbite's theme with every color role checked for contrast. A role is a named color used through utilities such as `bg-brand`, `text-heading` or `border-default`. The file defines the roles (`@theme`), their dark values (`.dark`) and the `dark:` variant (`@custom-variant dark`), and gives Turbo Drive's progress bar the brand color. Import it after Tailwind and Flowbite's stylesheet in `assets/styles/app.css`:
 
 ```css
 @import "tailwindcss";
@@ -23,7 +18,6 @@ Import them after Tailwind and Flowbite's stylesheet in `assets/styles/app.css`,
 /* Webpack Encore: @import "flowbite/dist/flowbite.min.css"; */
 
 @import "./flowbite-xor.css";
-@import "./flowbite-xor-on-fill.css";
 
 /* The templates of your app (Tailwind scans the project root by default; list them if you build from elsewhere) */
 @source "../../templates";
@@ -38,11 +32,10 @@ Dark mode is class based: the `.dark` overrides and the `dark:` variant apply be
 Text on a solid fill, such as a brand button, an indicator, a calendar's selected day, the active pill tab, a tooltip
 or an avatar group's count, uses the `fg-on-*` role of that fill: `text-fg-on-brand` on `bg-brand`, and
 `fg-on-success`, `fg-on-danger`, `fg-on-warning` and `fg-on-dark` on theirs. The toggle's knob is `bg-knob`. Flowbite's
-theme has no such roles, so they live in `flowbite-xor-on-fill.css`, which keeps `flowbite-xor.css` as the kit ships
-it. Every one is white, in both themes.
+theme has no such roles: they are this kit's addition to `flowbite-xor.css`. Every one is white, in both themes.
 
-With a light brand color, white text on it is hard to read: in your copy of `flowbite-xor-on-fill.css` (the project
-owns it, like every file a recipe copies), set `--color-fg-on-brand` to a dark color, in `@theme` and in `.dark`:
+With a light brand color, white text on it is hard to read: in your copy of `flowbite-xor.css` (the project owns it,
+like every file a recipe copies), set `--color-fg-on-brand` to a dark color, in `@theme` and in `.dark`:
 
 ```css
 @theme {

@@ -71,7 +71,7 @@ while IFS= read -r path; do
         */tests/*) on demo ;;
 
         # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...).
-        # Contrast checks the theme's roles (theme/ holds the on-fill roles), what the markdown teaches and the palette
+        # Contrast checks the theme's roles, what the markdown teaches and the palette
         # colors of the recipes' templates (tools/docs-lint.mjs), the README tables and the controllers' rows
         *)
             on lint-kit php static-site fresh-install demo
