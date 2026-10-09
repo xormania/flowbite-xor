@@ -2,21 +2,193 @@ import type { Locator, Page } from '@playwright/test';
 import { expect, turboVisitDone } from './fixtures';
 
 /*
- * The Turbo transitions of the lab scaffold (`demo/templates/lab/`), each waiting until Turbo has rendered the page it
- * leads to: a visit, Back, Forward, a reload, and a step of a frame whose visits are promoted to history.
+ * The Turbo transitions of the lab scaffold (`demo/templates/lab/`), each waiting until Turbo has completed the
+ * operation it starts: a visit, Back, Forward, a reload, and a step of a frame whose visits are promoted to history.
  *
  * A lab page names itself in its `data-testid="page"` heading (`Page one`, `Page two`), links the next page with
  * `Go to page two`, and may hold the `history-steps` frame (`lab/_history_steps.html.twig`): its `Next step` link
  * advances the frame, adds `?step=<n>` to the URL and shows the step in `data-testid="history-step"`.
  *
- * Every step waits for what the page shows, then for the visit itself (`turboVisitDone`): on a page Turbo has cached,
- * the expected content shows first as a preview, while the request still runs.
+ * Every step arms a Turbo observer before acting (`observeTurbo`), waits for the completion that operation must newly
+ * produce, then for what the page shows and for no visit to be running (`turboVisitDone`).
  */
+
+/**
+ * What a Turbo operation must complete with, observed from Turbo's own events:
+ * - a Drive visit, Back or Forward (a restoration visit), a reload: a new `turbo:load` for `url`;
+ * - a frame visit promoted to history (`data-turbo-action="advance"`, `Turbo.visit(url, { frame, action })`): a new
+ *   `turbo:frame-load` of `frame`, then a new `turbo:load` for `url`, the page visit Turbo starts once the frame has
+ *   rendered. The URL changes before the frame renders, and `<html aria-busy>` is absent until that page visit
+ *   starts: neither tells the operation is over.
+ *
+ * `url` is a URL or a path, resolved against the page's URL when the observer is armed and compared without the
+ * fragment, its query parameters in any order; a RegExp tested against the full URL; or a predicate. Without it any
+ * URL matches.
+ */
+export type TurboCompletion = {
+    url?: string | RegExp | ((url: URL) => boolean);
+    frame?: string;
+    /** Milliseconds, 10 seconds by default. */
+    timeout?: number;
+};
+
+/** A Turbo event the observer recorded, numbered in the order the page dispatched them. */
+type TurboEvent = { seq: number; type: string; url: string; location: string; frame?: string; newDocument?: boolean };
+
+const DONE = 'completed';
+
+/*
+ * Records, in each document of the page, the Turbo events telling an operation's progress, numbered. Installed as an
+ * init script (a document loaded later records from its start) and in the current document; runs once per document.
+ * Its listeners come from Playwright's scripts, which trackGlobalListeners() leaves out.
+ */
+function installTurboRecorder() {
+    const w = window as any;
+    if (w.__turboEvents) {
+        return;
+    }
+    const recorder = (w.__turboEvents = { doc: `${Date.now()}-${Math.random()}`, seq: 0, events: [] as unknown[] });
+    const record = (type: string, url: string, frame?: string) => {
+        recorder.events.push({ seq: ++recorder.seq, type, url, location: location.href, frame });
+        if (recorder.events.length > 500) {
+            recorder.events.shift();
+        }
+    };
+    const types = ['turbo:visit', 'turbo:before-render', 'turbo:render', 'turbo:load', 'turbo:frame-render', 'turbo:frame-load', 'turbo:fetch-request-error', 'turbo:frame-missing'];
+    for (const type of types) {
+        document.addEventListener(
+            type,
+            (event: any) => {
+                const target = event.target as Element | null;
+                record(type, event.detail?.url ?? location.href, 'TURBO-FRAME' === target?.tagName ? target.id : undefined);
+            },
+            true,
+        );
+    }
+    window.addEventListener('popstate', () => record('popstate', location.href), true);
+}
+
+const recorded = new WeakSet<Page>();
+
+async function readTurboEvents(page: Page): Promise<{ doc: string; seq: number; events: TurboEvent[] } | null> {
+    try {
+        return await page.evaluate(() => {
+            const recorder = (window as any).__turboEvents;
+            return recorder ? { doc: recorder.doc, seq: recorder.seq, events: recorder.events } : null;
+        });
+    } catch {
+        return null; // the document is being replaced: read again
+    }
+}
+
+function urlMatcher(expected: TurboCompletion['url'], base: string): { test: (url: string) => boolean; describe: string } {
+    if (undefined === expected) {
+        return { test: () => true, describe: 'any URL' };
+    }
+    if (expected instanceof RegExp) {
+        return { test: (url) => expected.test(url), describe: String(expected) };
+    }
+    if ('function' === typeof expected) {
+        return { test: (url) => expected(new URL(url)), describe: `a URL for which ${expected.name || 'the predicate'} holds` };
+    }
+    const want = new URL(expected, base);
+    // the decoded pairs, compared as pairs: an encoded `&` or `=` inside a value is not a boundary
+    const params = (url: URL) => JSON.stringify([...url.searchParams].sort(([a, x], [b, y]) => (a === b ? (x < y ? -1 : x > y ? 1 : 0) : a < b ? -1 : 1)));
+    return {
+        test: (url) => {
+            const actual = new URL(url);
+            return actual.origin === want.origin && actual.pathname === want.pathname && params(actual) === params(want);
+        },
+        describe: want.href,
+    };
+}
+
+/**
+ * Arms an observer of the Turbo operation the next action starts; `done()` waits until that operation has newly
+ * completed as `completion` says. Arm it before the action: an event of an earlier operation, the old URL or a
+ * missing `aria-busy` cannot satisfy it, and an operation that completes before `done()` is called is not missed.
+ * On timeout it fails with what it expected and every Turbo event recorded since it was armed.
+ *
+ * ```ts
+ * const loaded = await observeTurbo(page, { frame: 'orders', url: '/lab/data-table-frame?page=2' });
+ * await page.getByRole('link', { name: 'Page 2' }).click();
+ * await loaded.done();
+ * ```
+ */
+export async function observeTurbo(page: Page, completion: TurboCompletion = {}): Promise<{ done: () => Promise<void> }> {
+    if (!recorded.has(page)) {
+        recorded.add(page);
+        await page.addInitScript(installTurboRecorder);
+    }
+    await page.evaluate(installTurboRecorder);
+    const armed = await readTurboEvents(page);
+    if (!armed) {
+        throw new Error('observeTurbo: no Turbo event recorder in the page');
+    }
+    const url = urlMatcher(completion.url, page.url());
+    const expected = completion.frame
+        ? `a new turbo:frame-load of #${completion.frame}, then a new turbo:load for ${url.describe}`
+        : `a new turbo:load for ${url.describe}`;
+
+    // the events after the armed one: all of a document loaded since
+    const since = (read: NonNullable<Awaited<ReturnType<typeof readTurboEvents>>>) =>
+        read.doc === armed.doc ? read.events.filter(({ seq }) => seq > armed.seq) : read.events.map((event) => ({ ...event, newDocument: true }));
+    const completed = (events: TurboEvent[]) => {
+        const frameLoad = completion.frame ? events.findIndex((event) => 'turbo:frame-load' === event.type && event.frame === completion.frame) : -1;
+        if (completion.frame && frameLoad < 0) {
+            return false;
+        }
+        return events.slice(frameLoad + 1).some((event) => 'turbo:load' === event.type && url.test(event.url));
+    };
+
+    return {
+        done: async () => {
+            let events: TurboEvent[] = [];
+            await expect
+                .poll(
+                    async () => {
+                        const read = await readTurboEvents(page);
+                        if (read) {
+                            events = since(read);
+                        }
+                        if (completed(events)) {
+                            return DONE;
+                        }
+                        const seen = events.map((event) => `${event.newDocument ? '(new document) ' : ''}${event.type} ${event.frame ? `#${event.frame} ` : ''}${event.url}`).join('\n  ') || '(none)';
+                        return `waiting for ${expected}\nat ${page.url()}, Turbo events since the observer was armed:\n  ${seen}`;
+                    },
+                    { message: `Turbo operation did not complete: expected ${expected}`, timeout: completion.timeout ?? 10_000, intervals: [25, 50, 100, 250] },
+                )
+                .toBe(DONE);
+        },
+    };
+}
+
+/** Starts an operation with `action` and waits until it has completed as `completion` says (`observeTurbo`). */
+export async function turboOperation(page: Page, completion: TurboCompletion, action: () => Promise<unknown>): Promise<void> {
+    const observer = await observeTurbo(page, completion);
+    await action();
+    await observer.done();
+}
 
 /** A page of the scaffold by its heading (`'Page two'`), or a step of its `history-steps` frame (`{ step: 1 }`). */
 export type Shown = string | { step: number };
 
-/** Waits until the page shows `shown` and Turbo's visit is over. */
+const stepIs = (step: number) => Object.defineProperty((url: URL) => Number(url.searchParams.get('step') ?? 0) === step, 'name', { value: `step=${step}` });
+
+/** The completion leading to `then`: a frame visit of `history-steps` promoted to history, or any page visit. */
+function completionOf(then: Shown, { frame }: { frame: boolean }): TurboCompletion {
+    if ('string' === typeof then) {
+        return {};
+    }
+    return frame ? { frame: 'history-steps', url: stepIs(then.step) } : { url: stepIs(then.step) };
+}
+
+/**
+ * Waits until the page shows `shown` and no Turbo visit is running. On its own it does not tell that the operation
+ * which led there is over (an earlier page, a URL changed before the frame rendered): the driver's steps observe the
+ * operation first; after any other action, use `turboOperation`.
+ */
 export async function shown(page: Page, shown: Shown): Promise<void> {
     if ('string' === typeof shown) {
         await expect(page.getByTestId('page')).toHaveText(shown);
@@ -27,28 +199,31 @@ export async function shown(page: Page, shown: Shown): Promise<void> {
     await turboVisitDone(page);
 }
 
-/** Clicks a link, by its exact accessible name, a pattern or a locator, and waits for `then`. */
+/**
+ * Clicks a link, by its exact accessible name, a pattern or a locator, and waits for `then`: a page visit, or for a
+ * step, the frame visit promoted to history.
+ */
 export async function visit(page: Page, link: string | RegExp | Locator, then: Shown): Promise<void> {
     const target = 'string' === typeof link || link instanceof RegExp ? page.getByRole('link', { name: link, exact: 'string' === typeof link }) : link;
-    await target.click();
+    await turboOperation(page, completionOf(then, { frame: true }), () => target.click());
     await shown(page, then);
 }
 
 /** Goes Back, a restoration visit from Turbo's cached copy, and waits for `then`. */
 export async function back(page: Page, then: Shown): Promise<void> {
-    await page.goBack();
+    await turboOperation(page, completionOf(then, { frame: false }), () => page.goBack());
     await shown(page, then);
 }
 
 /** Goes Forward and waits for `then`. */
 export async function forward(page: Page, then: Shown): Promise<void> {
-    await page.goForward();
+    await turboOperation(page, completionOf(then, { frame: false }), () => page.goForward());
     await shown(page, then);
 }
 
-/** Reloads the page, a full load Turbo is not part of, and waits for `then`. */
+/** Reloads the page, a full load Turbo is not part of, and waits for `then` (the new document's first `turbo:load`). */
 export async function reload(page: Page, then: Shown): Promise<void> {
-    await page.reload();
+    await turboOperation(page, completionOf(then, { frame: false }), () => page.reload());
     await shown(page, then);
 }
 
@@ -64,39 +239,89 @@ export async function visitAndBack(page: Page, { link = 'Go to page two', there 
  * history like the frame's own links.
  */
 export async function stepFromCode(page: Page, step: number): Promise<void> {
-    await page.evaluate((step) => {
-        const url = new URL(location.href);
-        url.searchParams.set('step', String(step));
-        (window as any).Turbo.visit(url.href, { frame: 'history-steps', action: 'advance' });
-    }, step);
+    await turboOperation(page, completionOf({ step }, { frame: true }), () =>
+        page.evaluate((step) => {
+            const url = new URL(location.href);
+            url.searchParams.set('step', String(step));
+            (window as any).Turbo.visit(url.href, { frame: 'history-steps', action: 'advance' });
+        }, step),
+    );
     await shown(page, { step });
 }
+
+/** What the first animation frame of one render showed: `visible` is null for a body replaced before any frame. */
+export type FirstFrame = { render: number; url: string; visible: Record<string, boolean> | null };
 
 /**
  * From now on, records for each page Turbo renders (a cached copy included) which of `selectors` match a visible
  * element at the first animation frame after the new body is in place: what the user first sees, once the page's
- * controllers have connected. Returns a function reading the records, one `{ [name]: visible }` per render.
+ * controllers have connected. That is the DOM at the first observed animation frame, not every frame the compositor
+ * presents.
+ *
+ * Returns a reader: `firstFrames(count)` waits until `count` renders have been observed, and returns each one's
+ * number (from 1, in render order), its URL (path and query) and `visible`, `{ [name]: visible }`. A render whose
+ * body was replaced before its first frame comes with `visible: null`; the page visit that follows a frame visit
+ * promoted to history renders no body and is not one. Fewer observations than `count` fail with every render recorded
+ * so far and how far it got.
  */
-export async function recordFirstFrames(page: Page, selectors: Record<string, string>): Promise<() => Promise<Record<string, boolean>[]>> {
+export async function recordFirstFrames(page: Page, selectors: Record<string, string>): Promise<(count: number) => Promise<FirstFrame[]>> {
     await page.evaluate((selectors) => {
-        const records: Record<string, boolean>[] = ((window as any).__firstFrames = []);
+        type Record = { render: number; url: string; state: 'waiting' | 'observed' | 'replaced' | 'not shown'; frames: number; visible: { [name: string]: boolean } | null };
+        const records: Record[] = ((window as any).__firstFrames = []);
+        (window as any).__firstFramesNoRender = 0;
         document.addEventListener('turbo:before-render', (event: any) => {
+            // the page visit of a frame visit promoted to history announces a render it does not do (Turbo 8)
+            if (false === (window as any).Turbo?.session?.navigator?.currentVisit?.willRender) {
+                (window as any).__firstFramesNoRender++;
+                return;
+            }
             const body = event.detail.newBody;
-            let frames = 0;
-            const record = () => {
-                // a frame visit promoted to history renders no body: give up after a second
+            const record: Record = { render: records.length + 1, url: '', state: 'waiting', frames: 0, visible: null };
+            records.push(record);
+            const observe = () => {
+                record.frames++;
                 if (document.body !== body) {
-                    return ++frames < 60 && requestAnimationFrame(record);
+                    // not in place yet (a paused render), or another render replaced it before any frame
+                    if (records[records.length - 1] !== record) {
+                        record.state = 'replaced';
+                    } else if (record.frames < 600) {
+                        requestAnimationFrame(observe);
+                    } else {
+                        record.state = 'not shown';
+                    }
+                    return;
                 }
-                records.push(
-                    Object.fromEntries(
-                        Object.entries(selectors).map(([name, selector]) => [name, [...document.querySelectorAll(selector)].some((element) => element.checkVisibility())]),
-                    ),
+                record.url = location.pathname + location.search;
+                record.visible = Object.fromEntries(
+                    Object.entries(selectors).map(([name, selector]) => [name, [...document.querySelectorAll(selector)].some((element) => element.checkVisibility())]),
                 );
+                record.state = 'observed';
             };
-            requestAnimationFrame(record);
+            requestAnimationFrame(observe);
         });
     }, selectors);
 
-    return () => page.evaluate(() => (window as any).__firstFrames as Record<string, boolean>[]);
+    return async (count) => {
+        type Read = { render: number; url: string; state: string; frames: number; visible: Record<string, boolean> | null };
+        let records: Read[] = [];
+        const settled = (record: Read) => 'observed' === record.state || 'replaced' === record.state;
+        await expect
+            .poll(
+                async () => {
+                    let noRender: number;
+                    [records, noRender] = await page.evaluate(() => [(window as any).__firstFrames, (window as any).__firstFramesNoRender]);
+                    if (records.length >= count && records.every(settled)) {
+                        return count;
+                    }
+                    const renders = records.length
+                        ? records.map((record) => `render ${record.render} ${record.url || '(no URL yet)'}: ${record.state} after ${record.frames} frame(s)`).join('; ')
+                        : 'no render since recording started';
+                    return `${renders} (and ${noRender} page visit(s) of a promoted frame visit, which render nothing)`;
+                },
+                { message: `first-frame observations of ${count} render(s)`, timeout: 10_000 },
+            )
+            .toBe(count);
+
+        return records.map(({ render, url, visible }) => ({ render, url, visible }));
+    };
 }

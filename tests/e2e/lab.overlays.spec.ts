@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, stimulusControllers, trackGlobalListeners, turboVisitDone } from './fixtures';
-import { back, forward, recordFirstFrames, shown, stepFromCode } from './transitions';
+import { back, forward, recordFirstFrames, stepFromCode, visit } from './transitions';
 
 /*
  * The dropdown, modal and drawer beyond Back and Live (lab.turbo-restore, lab.live-*): what Turbo Drive, Frames and
@@ -178,8 +178,7 @@ for (const overlay of overlays) {
 
                 // Turbo copies the page as the frame visit starts, then dispatches turbo:before-cache with the page still shown
                 if ('a link inside it' === from) {
-                    await overlay.stepLink(page).click();
-                    await shown(page, { step });
+                    await visit(page, overlay.stepLink(page), { step });
                 } else {
                     await stepFromCode(page, step);
                 }
@@ -192,7 +191,10 @@ for (const overlay of overlays) {
                 await expectClosed(page, overlay, overlay.main.name);
                 await forward(page, { step });
                 await expectClosed(page, overlay, overlay.main.name);
-                expect(await firstFrames()).toEqual([{ panel: false }, { panel: false }]);
+                expect(await firstFrames(2)).toEqual([
+                    { render: 1, url: turboPage('one'), visible: { panel: false } },
+                    { render: 2, url: `${turboPage('one')}?step=${step}`, visible: { panel: false } },
+                ]);
                 await expectWorks(page, overlay, overlay.main.name);
                 expect(await stimulusControllers(page, overlay.controller)).toEqual({ controllers: 3, elements: 3, distinctElements: 3 });
             });

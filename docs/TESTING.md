@@ -53,19 +53,67 @@ expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
 
 Here: [`tests/e2e/smoke.spec.ts`](../tests/e2e/smoke.spec.ts), [`lab.turbo-nav.spec.ts`](../tests/e2e/lab.turbo-nav.spec.ts).
 
-### Wait for the visit, not for content
+### Wait for the operation to complete, not for content
 
-**Catches:** a flaky test that sees a cached preview. On a visit to a cached page Turbo first shows the snapshot, so
-the expected content is on screen while the request still runs; going Back then cancels it.
+**Catches:** a flaky test that acts while Turbo is still working: it sees a cached preview, or a URL that changed
+before its frame rendered, and its next step (going Back, most often) cancels or overtakes the operation. A test that
+then asserts the state it expects fails one run in a few, on a state the user can reach only by clicking very fast.
+
+Content, the URL and `<html aria-busy>` do not say an operation is over. On a visit to a cached page Turbo first shows
+the snapshot, so the expected content is on screen while the request still runs. A frame visit promoted to history
+(`data-turbo-action="advance"`) changes the URL once the response has arrived, before the frame renders; then, once the
+frame has loaded, starts a page visit of its own, which marks `<html aria-busy>` only from that point: a check for its
+absence passes in between. A select or field the test changed itself shows the new value before any response.
+
+The completion contract, each a **new** event, observed by listeners armed before the action:
+
+| Operation | Completes with |
+|---|---|
+| Drive visit, Back or Forward (a restoration visit), reload | a new `turbo:load` for the expected URL |
+| Frame visit promoted to history (a link or form in an advancing frame, `Turbo.visit(url, { frame, action: 'advance' })`) | a new `turbo:frame-load` of that frame, then a new `turbo:load` for the expected URL |
+
+Then check the domain state: content, every control, focus. A frame visit that is not promoted, a Turbo Stream and a
+Live re-render dispatch no `turbo:load`: they need contracts of their own (`turbo:frame-load` of the frame, the
+streamed content, Live's own events). No event tells that the page visit has put its copy in the cache (Turbo 8
+starts that without awaiting it, deferred to the next task): the contract removes the known gap, between the URL change
+and the page visit, and repeated runs of the history walk going Back right away are the evidence for the rest.
+
+`observeTurbo` records Turbo's events in the page, numbered (an init script and the current document, so a full load
+records from its start), arms at the current number, and polls with `expect.poll` until the expected sequence appears
+after it. On timeout it fails with what it expected and every Turbo event since it was armed:
 
 ```ts
-export async function turboVisitDone(page: Page) {
-    await expect(page.locator('html')).not.toHaveAttribute('aria-busy');          // Turbo marks the whole visit
-    await expect(page.locator('html')).not.toHaveAttribute('data-turbo-preview'); // not a cached preview
-}
+await turboOperation(page, { frame: 'orders', url: '/lab/data-table-frame?sort=customer&dir=asc' }, () =>
+    page.getByRole('link', { name: 'Customer' }).click(),
+);
+await turboOperation(page, { url: '/lab/data-table-frame' }, () => page.goBack());
+// or arm, act, wait:
+const loaded = await observeTurbo(page, { url: /step=1/ });
+await page.goForward();
+await loaded.done();
 ```
 
-Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`turboVisitDone`).
+A wrong expectation (here `size=50`, the test chose 25) fails with the events that did happen:
+
+```text
+Turbo operation did not complete: expected a new turbo:frame-load of #orders, then a new turbo:load for …&size=50
+- completed
++ waiting for a new turbo:frame-load of #orders, then a new turbo:load for …&size=50
++ at …&size=25, Turbo events since the observer was armed:
++   turbo:frame-render #orders …&size=25
++   turbo:frame-load #orders …&size=25
++   turbo:visit …&size=25
++   turbo:before-render …&size=25
++   turbo:render …&size=25
++   turbo:load …&size=25
+```
+
+`url` is a URL or path (query parameters in any order), a RegExp or a predicate. `turboVisitDone` (no `aria-busy`, no
+`data-turbo-preview`) stays useful after the operation, as a check that nothing else started.
+
+Here: [`tests/e2e/transitions.ts`](../tests/e2e/transitions.ts) (`observeTurbo`, `turboOperation`),
+[`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`turboVisitDone`),
+[`lab.data-table-frame.spec.ts`](../tests/e2e/lab.data-table-frame.spec.ts) (the history walk).
 
 ### One driver for the transitions
 
@@ -74,7 +122,8 @@ or waits for the heading but not for the visit, passes on a cached preview and f
 
 Every lab page names itself in a `data-testid="page"` heading and links the next page with `Go to page two`; a
 `history-steps` frame (`demo/templates/lab/_history_steps.html.twig`) adds a history entry per step, as a data
-table's pages do. Each step of the driver waits for what the page shows, then for the visit (`turboVisitDone`):
+table's pages do. Each step of the driver arms the observer, acts, waits for the operation's completion (*Wait for the
+operation to complete*, above), then for what the page shows and `turboVisitDone`:
 
 ```ts
 import { back, forward, reload, shown, visit, visitAndBack } from './transitions';
@@ -84,7 +133,7 @@ await visit(page, 'Go to page one', 'Page one');   // a link by its exact name, 
 await forward(page, 'Page two');
 await visit(page, 'Next step', { step: 1 });       // a frame visit promoted to history: the step shown, ?step=1
 await back(page, { step: 0 });
-await page.keyboard.press('Enter');                 // any other way to start a visit, then:
+await turboOperation(page, {}, () => page.keyboard.press('Enter'));   // any other way to start a visit, then:
 await shown(page, 'Page two');
 ```
 
@@ -169,7 +218,7 @@ await visit(page, 'Go to step 5', { step: 5 });     // a link inside the popover
 await expect(dialog).toBeVisible();                  // still open, the focus still inside
 await back(page, { step: 0 });                       // the copy taken as the visit started: open
 await expect(dialog).toBeHidden();
-expect(await firstFrames()).toEqual([{ steps: false }]);
+expect(await firstFrames(1)).toEqual([{ render: 1, url: '/lab/popover-turbo', visible: { steps: false } }]);
 await stepFromCode(page, 1);                          // Turbo.visit(url, { frame: 'history-steps', action: 'advance' })
 ```
 
@@ -177,6 +226,14 @@ Here: [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts), [`lab.date-pick
 [`lab.turbo-restore.spec.ts`](../tests/e2e/lab.turbo-restore.spec.ts) (a dropdown, a toast),
 [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts) (dropdown, modal, drawer);
 [`transitions.ts`](../tests/e2e/transitions.ts) (`stepFromCode`, `recordFirstFrames`).
+
+`recordFirstFrames` observes each render at the first animation frame with its body in place, which can come after
+the test's next line: `firstFrames(count)` waits until `count` renders are observed and returns each one's number and
+URL, so a record cannot belong to another render unnoticed. A render whose body another replaced before any frame
+comes back with `visible: null`; fewer renders than `count` fail with each one recorded and how far it got. The page
+visit after a frame visit promoted to history dispatches `turbo:before-render` without rendering a body: it is not a
+render there. What it establishes is the DOM at the first observed animation frame, not every frame the compositor
+presented.
 
 A reset on `turbo:before-cache` tells the two apart with Turbo's current visit, which renders nothing for a frame
 visit promoted to history (Turbo 8):
