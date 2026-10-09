@@ -823,6 +823,32 @@ The script's exit status says what it found: 0 a report it read (whatever its te
 report, 4 tests not reached. Run it on a local report with `node tools/ci/playwright-summary.mjs` after
 `CI=1 npx playwright test` (CI writes the JSON report); its cases: `node --test tools/tests/*.test.mjs`.
 
+### Worker budget
+
+Each CI shard runs two Playwright workers: `--workers=2` in `ci.yml` (*Playwright* step). Before that was set, CI
+ran Playwright's default, half the machine's CPUs (`'50%'` of `os.cpus().length`, `@playwright/test` 1.58.2's
+`resolveWorkers`), which is 2 on GitHub's 4-vCPU `ubuntu-latest` runners and matches the two workers the sampled CI
+runs reported. Stating it keeps the budget from changing with the runner, and makes a change to it a reviewed one.
+
+The local study behind it (October 2026): shard 2/3 (392 smoke tests: the `lab.*` specs, CSP, theme, data table),
+`--retries=0`, runs interleaved (1, 2, 3, 2, 3, 1, ...), on a 4-CPU machine where the demo (PHP's built-in server
+with 4 workers, `PHP_CLI_SERVER_WORKERS=4`) and the browser also run:
+
+| Workers | Runs | Wall time, s (median, all runs) | Summed test time, s (median) | Mean per test, s | Failed |
+|---:|---:|---|---:|---:|---|
+| 1 | 4 | 765 (716, 753, 777, 778) | 753 | 1.92 | 0 in every run |
+| 2 | 3 | 509 (478, 509, 514) | 989 | 2.52 | 0 in every run |
+| 3 | 3 | 446 (440, 446, 454) | 1286 | 3.28 | 0 in every run |
+
+Two workers take a third off one worker's wall time; a third worker takes 12% more off, while each test runs 30%
+slower than with two, which leaves less margin to every timing-sensitive test, on a runner that also hosts the demo
+and the browser. No run failed, so the study shows no flake rate to tell them apart (with `--retries=0`, a flaky test
+fails its run). Two, the default CI already ran, is kept.
+
+These are local timings, not CI's: the demo runs in FrankenPHP there, the runner's CPUs differ, and the a11y (shard 1)
+and screenshot (shard 3) shards were not measured. Three workers in CI is untested; the shards' `durations.json`
+(*Reading CI results*) is where a later change would be measured, against the same run with two.
+
 ### Jev diagnosis (advisory)
 
 When a shard has a failed or flaky test, a later step,

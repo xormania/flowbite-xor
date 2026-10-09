@@ -415,11 +415,13 @@ jobs:
                   DEMO_URL: https://localhost
               run: node tools/prepare-tests.mjs
 
+            # Two workers per shard, stated rather than left to Playwright's default (half the runner's 4 vCPUs, also
+            # 2): the measured choice in docs/TESTING.md (*Worker budget*)
             - name: Playwright (smoke + every README example + upstream recipe specs)
               id: tests
               env:
                   DEMO_URL: https://localhost
-              run: npx playwright test --shard=${{ matrix.shard }}/3
+              run: npx playwright test --shard=${{ matrix.shard }}/3 --workers=2
 
             # What the shard's tests did, read from playwright-results/results.json (tools/ci/playwright-summary.mjs): the
             # counts, each failed and flaky (passed on retry) test with its error, the tested commit and versions, and
