@@ -302,10 +302,17 @@ jobs:
                   node-version: 22
                   cache: npm
 
+            # The summarizer that reads the results below, on its own fixtures (tools/tests/fixtures/playwright-results/)
+            - name: The results summarizer's own cases
+              id: summarizer-cases
+              if: matrix.shard == 1
+              run: node --test 'tools/tests/*.test.mjs'
+
             # The demo runs in Symfony Docker (demo/compose.yaml): FrankenPHP in worker mode, PHP 8.5
             - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
             - name: Build the demo image
+              id: image
               uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
               with:
                   source: ./demo                # bake's working directory: compose files and build context in demo/
@@ -320,10 +327,12 @@ jobs:
                       ${{ matrix.shard == 1 && format('*.cache-to=type=gha,scope=demo-{0},mode=max', github.ref) || '' }}
 
             - name: Start the demo (composer install on first start)
+              id: start
               working-directory: demo
               run: docker compose up --wait --no-build
 
             - name: Sync recipes into the demo
+              id: sync
               working-directory: demo
               run: docker compose exec -T php php ../tools/sync-demo
 
@@ -331,6 +340,7 @@ jobs:
             # checks that the sync and the demo's start left every tracked file alone. tools/tests/sync-demo.sh below
             # checks that the copies are what ux:install writes. Deterministic checks run on one shard only.
             - name: The sync leaves tracked files unchanged
+              id: tracked
               if: matrix.shard == 1
               run: |
                   if [ -n "$(git status --porcelain)" ]; then
@@ -341,11 +351,13 @@ jobs:
 
             # The CSS is built by playwright.config.ts, which records what it was built from: no build here
             - name: The demo's composer.json and composer.lock are valid
+              id: composer
               if: matrix.shard == 1
               working-directory: demo
               run: docker compose exec -T php composer validate --no-check-publish --strict   # also fails on a stale composer.lock
 
             - name: sync-demo copies what ux:install copies
+              id: sync-parity
               if: matrix.shard == 1
               working-directory: demo
               run: docker compose exec -T php bash ../tools/tests/sync-demo.sh
@@ -353,22 +365,49 @@ jobs:
             # The browser runs in upstream's Playwright image (see playwright.config.ts), so the
             # screenshots compare with the baselines copied from symfony/ux.
             - name: Install Playwright
+              id: install
               run: |
                   npm ci
                   docker pull "mcr.microsoft.com/playwright:v$(node -p "require('@playwright/test/package.json').version")-noble"
 
             - name: Playwright (smoke + every README example + upstream recipe specs)
+              id: tests
               env:
                   DEMO_URL: https://localhost
               run: npx playwright test --shard=${{ matrix.shard }}/3
 
-            # Every shard keeps its results (each test's attempts, durations and outcome: passed, failed, flaky), green
-            # or red, so a test that failed once and passed on its retry leaves a record
+            # What the shard's tests did, read from playwright-results/results.json (tools/ci/playwright-summary.mjs): the
+            # counts, each failed and flaky (passed on retry) test with its error, the tested commit and versions, on the
+            # job's summary page and as annotations at the failing lines. It never turns a red run green: Playwright's exit
+            # status is the verdict. It fails when there is no evidence to read: a step before the tests failed ("tests
+            # not reached: setup failed at <step>"), or the report is missing or invalid (never a pass with zero tests).
             - name: Read the results
               id: results
               if: ${{ !cancelled() }}
-              run: node -e "const {stats} = require('./playwright-results/results.json'); console.log(stats); require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'flaky=' + stats.flaky + '\n')"
+              env:
+                  SHARD: ${{ matrix.shard }}/3
+                  DEMO_STARTED: ${{ steps.start.outcome }}
+                  TESTS_OUTCOME: ${{ steps.tests.outcome }}
+                  SETUP_STEPS: |
+                      The results summarizer's own cases=${{ steps.summarizer-cases.outcome }}
+                      Build the demo image=${{ steps.image.outcome }}
+                      Start the demo=${{ steps.start.outcome }}
+                      Sync recipes into the demo=${{ steps.sync.outcome }}
+                      The sync leaves tracked files unchanged=${{ steps.tracked.outcome }}
+                      The demo's composer.json and composer.lock are valid=${{ steps.composer.outcome }}
+                      sync-demo copies what ux:install copies=${{ steps.sync-parity.outcome }}
+                      Install Playwright=${{ steps.install.outcome }}
+              run: |
+                  if [ "$DEMO_STARTED" = success ]; then
+                      RUNTIME=$(cd demo && timeout 60 docker compose exec -T php php -r 'require "vendor/autoload.php"; $m = require "importmap.php";
+                          echo "PHP=", PHP_VERSION, "\nSymfony=", Symfony\Component\HttpKernel\Kernel::VERSION, "\nTurbo=", $m["@hotwired/turbo"]["version"] ?? "", "\n";') || true
+                      export RUNTIME
+                  fi
+                  node tools/ci/playwright-summary.mjs playwright-results/results.json
 
+            # Every shard keeps its results, green or red: results.json (each test's attempts, durations and outcome:
+            # passed, failed, flaky), failed-attempts.json (every failed attempt, retry-recovered ones included) and
+            # summary.md, so a test that failed once and passed on its retry leaves a record
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               if: ${{ !cancelled() }}
               with:
@@ -391,6 +430,12 @@ jobs:
                       test-results/
                   retention-days: 7
 
+            # Last, so the end of the job log names what failed (after the demo's logs): the summary written above
+            - name: Playwright summary
+              if: ${{ !cancelled() }}
+              run: |
+                  cat playwright-results/summary.md 2>/dev/null || echo "No summary, the Read the results step did not run to the end"
+
     # One check for the branch rulesets to require. A skipped matrix job reports one check named after its unexpanded
     # matrix ("Demo + Playwright (${{ matrix.shard }}/3)"), never the per-shard names, so requiring those would leave a
     # pull request pending forever; this passes when every job passed or was skipped as unaffected.
@@ -401,13 +446,16 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
+            # success and skipped (a lane the change cannot affect) pass; failure and cancelled do not: a cancelled job
+            # checked nothing
             - env:
-                  RESULTS: ${{ join(needs.*.result, ' ') }}
+                  NEEDS: ${{ toJSON(needs) }}
               run: |
-                  echo "Jobs: $RESULTS"
-                  for result in $RESULTS; do
-                      case "$result" in
-                          success | skipped) ;;
-                          *) echo "::error::a job ended with '$result'"; exit 1 ;;
-                      esac
-                  done
+                  echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+                  failed=$(echo "$NEEDS" | jq -r 'to_entries[] | select(.value.result != "success" and .value.result != "skipped")
+                      | "\(.key) ended with \(.value.result)" + (if .value.result == "cancelled" then " (a cancelled job is not a pass)" else "" end)')
+                  if [ -n "$failed" ]; then
+                      while IFS= read -r line; do echo "::error::$line"; done <<< "$failed"
+                      exit 1
+                  fi
+                  echo "Every job passed or was skipped as unaffected by the change"
