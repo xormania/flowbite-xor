@@ -143,14 +143,14 @@ Here: [`tests/e2e/transitions.ts`](../tests/e2e/transitions.ts), used by the `la
 
 **Catches:** components that come back broken after Back: an open menu or dialog in the snapshot, an editor
 rebuilt over its own markup, a form field reset by a component library. The order of Turbo's snapshot and the
-controllers' `disconnect()` depends on timing; a delayed stylesheet on the next page forces the production order.
+controllers' `disconnect()` depends on timing; a stylesheet on the next page, held until Turbo has copied the page it
+leaves (`holdUntilCopied`, an event barrier rather than a delay), forces the production order on every run.
 
 ```ts
-await page.route('**/slow.css', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    await route.fallback();
-});
-// open the overlay, follow a link inside it to a page that links slow.css, go Back:
+const held = await holdUntilCopied(page, '**/lab/slow.css');
+// open the overlay, follow a link inside it to a page that links slow.css:
+expect(held()).toBe(1);   // the order was forced: no stylesheet request, no order
+// go Back:
 await expect(dialog).not.toHaveAttribute('open');
 ```
 
@@ -185,7 +185,7 @@ wait for a stylesheet (*Back after the cache snapshot*, above), or the controlle
 before Turbo copies the page, and the test passes without the `turbo:before-cache` reset:
 
 ```ts
-await page.route('**/lab/slow.css', async (route) => { await new Promise((r) => setTimeout(r, 500)); await route.fallback(); });
+const held = await holdUntilCopied(page, '**/lab/slow.css');
 await page.goto('/lab/nav-menu/two');
 // open the submenus, then:
 await page.evaluate(() => (window as any).Turbo.visit('/lab/nav-menu'));   // page one links slow.css

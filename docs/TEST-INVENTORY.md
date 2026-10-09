@@ -46,7 +46,7 @@ Dropzone opt-ins).
 ## The matrix: common transitions
 
 Columns are the plan's transitions. **Back** is a restoration visit from Turbo's cached copy; **Back, slow** is the
-same with page two's stylesheet delayed, so Turbo copies the page before the controllers disconnect (the order
+same with page two's stylesheet held until Turbo has copied the page, so the copy comes before the controllers disconnect (the order
 production gives; `lab.turbo-restore`); **N visits** is "repeated visits leave one instance", today shown by its
 effect (one change per pick, one toggle per click) and element counts, a Stimulus instance count from tier 2 on. A `·` means
 the transition cannot change the recipe's state, not that it is untested.
