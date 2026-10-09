@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
+import { visit, visitAndBack } from './transitions';
 
 // counts the click listeners added to the document minus those removed: an open popover adds one, a closed one none
 test.beforeEach(async ({ page }) => {
@@ -27,12 +28,7 @@ test('an open popover is closed after a Turbo visit and Back, and still works', 
     await expect(page.getByRole('dialog', { name: 'Details' })).toBeVisible();
     expect(await documentClicks(page)).toBe(baseline + 1);
 
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await visitAndBack(page);
 
     // the snapshot was taken closed
     await expect(page.getByRole('dialog', { name: 'Details' })).toBeHidden();
@@ -73,9 +69,7 @@ test('repeated Turbo visits leave one controller per popover and no document lis
 
 test('inside a data-turbo-permanent element, the popover keeps working across visits', async ({ page }) => {
     await page.goto('/lab/popover-turbo');
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     await page.getByRole('button', { name: 'Kept' }).click();
     await expect(page.getByRole('dialog', { name: 'Kept' })).toBeVisible();
     await page.keyboard.press('Escape');

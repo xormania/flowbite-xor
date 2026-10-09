@@ -1,4 +1,5 @@
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect } from './fixtures';
+import { visit } from './transitions';
 
 test('a toast pushed by a Turbo Stream appears, dismisses itself and leaves focus alone', async ({ page }) => {
     await page.goto('/lab/turbo-stream-toast');
@@ -66,9 +67,7 @@ test('a toast in the permanent region still dismisses itself after a Turbo visit
     const toast = region.locator('[data-controller="toast"]', { hasText: 'Notification 1 sent.' });
     await expect(toast).toBeVisible();
 
-    await page.getByRole('link', { name: 'Go to turbo-nav' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await visit(page, 'Go to turbo-nav', 'Page one');
     await expect(toast).toBeVisible();
     await expect(toast).toBeHidden({ timeout: 4000 });
 });

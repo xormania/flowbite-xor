@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect } from './fixtures';
+import { back, visit } from './transitions';
 
 /*
  * Dropzones under Turbo: a zone that Turbo shows again (Back, a Stream) works, with one controller, and shows what its
@@ -34,12 +35,6 @@ async function expectEmptySingle(page: Page, id: string) {
     expect(await fileCount(page.locator(`#${id}`))).toBe(0);
 }
 
-async function visit(page: Page, link: string | RegExp, heading: string) {
-    await page.getByRole('link', { name: link }).click();
-    await expect(page.getByTestId('page')).toHaveText(heading);
-    await turboVisitDone(page);
-}
-
 test('after a Turbo visit and Back, the zones are empty, have one controller each, and take a new pick', async ({ page }) => {
     await page.goto('/lab/dropzone-turbo');
     await page.locator('#photo').setInputFiles(png('tiny.png'));
@@ -48,9 +43,7 @@ test('after a Turbo visit and Back, the zones are empty, have one controller eac
     await expect(page.locator('.dropzone-preview-list-item')).toHaveCount(2);
 
     await visit(page, 'Go to page two', 'Page two');
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await back(page, 'Page one');
 
     await expectEmptySingle(page, 'photo');
     // Turbo's copy of the page may hold the files of an input (Chromium copies them): the list shows what it holds

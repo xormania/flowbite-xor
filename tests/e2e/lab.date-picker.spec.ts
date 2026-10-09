@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
+import { visit, visitAndBack } from './transitions';
 
 const day = (scope: Locator, date: string) => scope.locator(`[data-slot="calendar-day"][data-day="${date}"] button`);
 const pick = async (page: Page, label: string, date: string) => {
@@ -27,12 +28,7 @@ test('a pick is submitted by the form; the day buttons never submit it', async (
 test('a Turbo visit and Back show the picked date in the field, the calendar and the hidden input, closed', async ({ page }) => {
     await page.goto('/lab/date-picker-turbo');
     await pick(page, 'Due date', '2026-03-12');
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await visitAndBack(page);
 
     await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 12, 2026');
     await expect(page.locator('input[name="due"]')).toHaveValue('2026-03-12');
@@ -58,8 +54,7 @@ test('repeated Turbo visits leave one controller per picker and one change per p
 
 test('inside a data-turbo-permanent element and a Turbo Frame reloaded three times, the pickers work', async ({ page }) => {
     await page.goto('/lab/date-picker-turbo');
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     await pick(page, 'Kept date', '2026-03-05');
     await expect(page.getByLabel('Kept date', { exact: true })).toHaveValue('Mar 5, 2026');
 

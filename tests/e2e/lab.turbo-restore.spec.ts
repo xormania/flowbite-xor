@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect } from './fixtures';
+import { back, visit, visitAndBack } from './transitions';
 
 /*
  * Overlays left open when a link inside them visits another page, and a tooltip shown on such a link: Back shows them
@@ -85,12 +86,8 @@ for (const slow of [false, true]) {
             await overlay.open(page);
             await overlay.expectOpen(page);
 
-            await overlay.link(page).click();
-            await expect(page.getByTestId('page')).toHaveText('Page two');
-            await turboVisitDone(page);
-            await page.goBack();
-            await expect(page.getByTestId('page')).toHaveText('Page one');
-            await turboVisitDone(page);
+            await visit(page, overlay.link(page), 'Page two');
+            await back(page, 'Page one');
 
             await overlay.expectClosed(page);
             await overlay.open(page);
@@ -103,12 +100,7 @@ for (const slow of [false, true]) {
 test('a toast outside the permanent region is not shown again on Back', async ({ page }) => {
     await page.goto('/lab/turbo-restore');
     await expect(page.getByTestId('page-toast')).toHaveText('Saved on page one.');
-    await page.getByRole('link', { name: 'Go to page two', exact: true }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await visitAndBack(page);
     await expect(page.getByTestId('page-toast')).toHaveCount(0);
 
     // a full load renders the page's toast again
@@ -123,13 +115,9 @@ test('a toast moved into the permanent region stays across visits', async ({ pag
     await expect(toast).toHaveAttribute('data-turbo-temporary', '');
     await toast.evaluate((element) => document.getElementById('toasts')!.append(element));
     await expect(toast).not.toHaveAttribute('data-turbo-temporary');
-    await page.getByRole('link', { name: 'Go to page two', exact: true }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     await expect(toast).toHaveText('Saved on page one.');
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await back(page, 'Page one');
     await expect(toast).toHaveCount(1);
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
 });

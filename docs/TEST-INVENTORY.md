@@ -347,7 +347,7 @@ where the guarantee stays.
 
 | Helper | Where | Owner |
 |---|---|---|
-| Visit page two and Back, waiting on `turboVisitDone`; local `visit()` | inline in about 12 specs; `visit()` in lab.dropzone, lab.side-nav | `tests/e2e/transitions.ts`, one driver for the lab scaffold below |
+| ~~Visit page two and Back, waiting on `turboVisitDone`; local `visit()`~~ **Done:** `tests/e2e/transitions.ts` (`visit`, `back`, `forward`, `reload`, `shown`, `visitAndBack`; a page by its heading or a `history-steps` frame step) | 17 specs moved onto it (the `lab.*` specs with visits, and avatar); `visit()` of lab.dropzone and lab.side-nav and `visitDone()` of lab.mobile-nav and lab.nav-menu removed. Left inline: the N-visit loops following `/Go to page/` without a heading, lab.data-table-live's visits to turbo-nav, lab.side-nav's Settings pages, lab.data-table-frame's Back steps (their own state checks) | `tests/e2e/transitions.ts` ([`TESTING.md`](TESTING.md), *One driver for the transitions*) |
 | "Reload the frame" three times; Stream replace and update | 9 lab specs each | the same driver |
 | The lab scaffold itself: `<recipe>-turbo` (page one and two, a Kept permanent copy, a Framed copy), `<recipe>-stream` with `_<recipe>_streamed`, `live-<recipe>` | `demo/templates/lab/` | reused as is by each step 6 group (dropdown, modal, drawer, tooltip, tabs) |
 | Axe filtered to serious and critical | a11y, dropzone (`expectNoSeriousA11yIssue`), editor, markdown-editor, forms, lab.side-nav, demo-app ×2 | `fixtures.ts` |

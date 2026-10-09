@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
+import { back, forward, shown, visit } from './transitions';
 
 /*
  * The SideNav tree on /lab/side-nav/<page> (rendered by every page) and in the demo's data-turbo-permanent Sidebar.
@@ -34,12 +35,6 @@ async function expectTree(page: Page, expected: { open: string[]; current: strin
             await expect(item).toHaveAttribute('aria-expanded', String(expected.open.includes(branch)));
         }
     }
-}
-
-async function visit(page: Page, link: string, heading: string) {
-    await page.getByRole('link', { name: link, exact: true }).click();
-    await expect(page.getByTestId('page')).toHaveText(heading);
-    await turboVisitDone(page);
 }
 
 test('the tree has the ARIA tree structure, and the branch of the current page renders open', async ({ page }) => {
@@ -115,8 +110,7 @@ test('the keyboard moves through the shown treeitems, opens and closes branches 
     await press('ArrowRight', 'Guides');
     await press('ArrowRight', 'Getting started');
     await page.keyboard.press('Enter');
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await shown(page, 'Page two');
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
     await expectTree(page, { open: ['Guides'], current: ['Getting started'], tabStop: 'Getting started' });
 });
@@ -134,14 +128,10 @@ test('the open branches hold across Turbo visits, Back, Forward and a reload, ov
     // closed after Turbo cached page one open: Back shows the saved state, not the copy's
     await treeitem(page, 'Reference').locator(':scope > [data-side-nav-toggle]').click();
     await expectTree(page, { open: ['Guides'], current: ['Getting started'], tabStop: 'Reference' });
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await back(page, 'Page one');
     await expectTree(page, { open: ['Guides'], current: ['Overview'], tabStop: 'Overview' });
 
-    await page.goForward();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await forward(page, 'Page two');
     await expectTree(page, { open: ['Guides'], current: ['Getting started'], tabStop: 'Getting started' });
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
 
