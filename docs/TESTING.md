@@ -737,9 +737,13 @@ and lab.nav-menu.
 `src/` that does not boot.
 
 A script creates a new Symfony app, installs the kit as users do, and fetches its pages and a Live action with
-`curl`, without a browser.
+`curl`, without a browser. Two scripts do it: on a Symfony skeleton with the kit from the last commit, and in a Symfony
+Docker project with the kit from GitHub. They share the steps a user takes (the packages, the recipes in order, the app
+they write); each keeps where the app runs, where the kit comes from and how the app is served.
 
-Here: [`fresh-install.sh`](../tools/tests/fresh-install.sh), [`check-fresh-app.sh`](../tools/tests/check-fresh-app.sh).
+Here: [`fresh-install.sh`](../tools/tests/fresh-install.sh), [`docker-install.sh`](../tools/tests/docker-install.sh),
+their shared steps [`install-scenario.sh`](../tools/tests/install-scenario.sh),
+[`check-fresh-app.sh`](../tools/tests/check-fresh-app.sh).
 
 ### Locked and moving lanes
 
@@ -773,13 +777,13 @@ each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summa
   container). The same text is the last step of the job log (*Playwright summary*), after the demo's logs.
 - **Annotations:** an error at the line that failed for each failed test, a warning for each flaky one. They show on
   the run's page and on the commit; GitHub shows at most 10 of each kind per step, so the summary is the full list. A
-  recipe's own spec runs as a generated copy in `tests/e2e/examples/recipes/`: its annotation points at the committed
+  recipe's own spec runs as a copy `tools/prepare-tests.mjs` generates in `tests/e2e/examples/recipes/`: its annotation points at the committed
   `<recipe>/tests/*.spec.ts` instead.
 - **Flaky** means failed, then passed on its retry. The run stays green, but the summary says *flaky (passed on retry)*
   instead of *all N passed*, and the shard keeps the traces (`playwright-report-<shard>`, 7 days). A flaky test is a
   test to fix or a bug to find (see *Wait for the operation to complete*), not noise.
 - **No evidence** is said as such, and fails the step: *tests not reached: setup failed at &lt;step&gt;* (the image,
-  the demo's start, a check on shard 1 or the Playwright install failed, so no test ran), *no test evidence: tests not
+  the demo's start, a check on shard 1, the Playwright install or the tests' preparation failed, so no test ran), *no test evidence: tests not
   reached or report not written* (Playwright ran but left no report), *report invalid* (it does not parse).
 - **Kept 30 days** in `playwright-results-<shard>`: `results.json` (every test's attempts), `summary.md`, and
   `failed-attempts.json`, one entry per failed attempt, retry-recovered ones included (test id, file, line, title,

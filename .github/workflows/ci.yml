@@ -229,9 +229,8 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 15
         # The GitHub Pages copy (pages.yml) is built only on release: this builds it on every push, so a page that does
-        # not render fails here instead of after the tag. Same steps as pages.yml, without the upload.
-        env:
-            APP_DEBUG: '0'
+        # not render fails here instead of after the tag. The same build as pages.yml (tools/build-static.sh, with its
+        # checks), without release metadata or the upload.
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -242,38 +241,8 @@ jobs:
                   tools: composer
                   coverage: none
 
-            - name: Copy the recipes into the demo
-              run: php tools/sync-demo
-
-            - name: Install the demo
-              working-directory: demo
-              run: composer install --no-interaction --no-progress
-
-            - name: Build the CSS and compile the assets
-              working-directory: demo
-              run: |
-                  bin/console tailwind:build --minify
-                  bin/console asset-map:compile
-
-            # app:export-static fails on any page that does not answer 200
-            - name: Save the pages
-              working-directory: demo
-              run: bin/console app:export-static ../_site --base-path=/flowbite-xor --commit="$(git rev-parse --short HEAD)"
-
-            - name: The previews' own links and forms reach saved pages
-              run: |
-                  if grep -rlE '/preview/[a-z0-9-]+/[a-z0-9-]+/(light|dark)/&' _site; then
-                      echo "::error::a preview link lost its '?' when the export moved the theme into the path"
-                      exit 1
-                  fi
-                  if grep -rlE 'action="[^"]*/preview/[a-z0-9-]+/[a-z0-9-]+"' _site; then
-                      echo "::error::a preview form submits to a path without the theme: no file answers it"
-                      exit 1
-                  fi
-
-            # the sources against the saved pages: a recipe or a README example without its page fails
-            - name: Every recipe and README example has its saved pages
-              run: node tools/fence-coverage.mjs --site _site
+            - name: Build and check the static site
+              run: tools/build-static.sh _site --base-path=/flowbite-xor
 
     fresh-install:
         name: Fresh install
@@ -418,7 +387,6 @@ jobs:
                       exit 1
                   fi
 
-            # The CSS is built by playwright.config.ts, which records what it was built from: no build here
             - name: The demo's composer.json and composer.lock are valid
               id: composer
               if: matrix.shard == 1
@@ -438,6 +406,14 @@ jobs:
               run: |
                   npm ci
                   docker pull "mcr.microsoft.com/playwright:v$(node -p "require('@playwright/test/package.json').version")-noble"
+
+            # The recipe specs' runnable copies and the demo's CSS, recorded with what it was built from
+            # (tools/prepare-tests.mjs): Playwright finds both up to date, and a failed build reads as a setup failure
+            - name: Prepare the tests
+              id: prepare
+              env:
+                  DEMO_URL: https://localhost
+              run: node tools/prepare-tests.mjs
 
             - name: Playwright (smoke + every README example + upstream recipe specs)
               id: tests
@@ -466,6 +442,7 @@ jobs:
                       The demo's composer.json and composer.lock are valid=${{ steps.composer.outcome }}
                       sync-demo copies what ux:install copies=${{ steps.sync-parity.outcome }}
                       Install Playwright=${{ steps.install.outcome }}
+                      Prepare the tests=${{ steps.prepare.outcome }}
               run: |
                   if [ "$DEMO_STARTED" = success ]; then
                       # the PHP snippet is single-quoted on purpose: its $m is PHP's, not the shell's
