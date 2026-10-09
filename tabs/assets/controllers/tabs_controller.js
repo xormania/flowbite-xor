@@ -27,6 +27,11 @@ export default class extends Controller {
         this.updateTabStop();
     }
 
+    // The selected tab removed (a Stream, a Live re-render) leaves the list without a Tab stop: pick one again.
+    triggerTargetDisconnected() {
+        this.updateTabStop();
+    }
+
     open(e) {
         this.activeTabValue = e.currentTarget.dataset.tabId;
     }

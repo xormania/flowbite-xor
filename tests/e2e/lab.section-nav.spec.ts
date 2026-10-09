@@ -195,6 +195,11 @@ test('horizontal tabs take Left and Right instead, and a list without a selected
     await page.locator('[data-controller="tabs"]').evaluate((element) => element.setAttribute('data-tabs-active-tab-value', 'none'));
     await expect(page.locator('[role="tab"][tabindex="0"]')).toHaveText(['Profile']);
     await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveCount(0);
+
+    // the selected tab removed (a Stream or a Live re-render) while the list stays: the first enabled tab is the Tab stop
+    await page.goto('/preview/tabs/default?theme=light');
+    await page.getByRole('tab', { name: 'Profile', exact: true }).evaluate((trigger) => trigger.remove());
+    await expect(page.locator('[role="tab"][tabindex="0"]')).toHaveText(['Dashboard']);
 });
 
 test('the section nav is plain links in the Tab order, and Enter follows one as a Turbo visit', async ({ page }) => {
