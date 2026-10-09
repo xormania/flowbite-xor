@@ -14,7 +14,8 @@ import { Controller } from '@hotwired/stimulus';
 export default class extends Controller {
     connect() {
         if (!this.element.contains(document.activeElement)) {
-            this.element.reset();
+            // through the prototype: a field named `reset` (a kept URL parameter) shadows the form's method
+            HTMLFormElement.prototype.reset.call(this.element);
         }
     }
 }

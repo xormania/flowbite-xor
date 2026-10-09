@@ -185,6 +185,24 @@ test('edits left unapplied are not shown when Back returns to the table', async 
     await expectState(page, DEFAULTS, 'Showing 1–10 of 57', 10);
 });
 
+test('a URL parameter named reset, kept as a hidden field, does not stop the form showing the URL\'s state on Back', async ({ page }) => {
+    // the kept field shadows the form's reset() method as a named property
+    await page.goto(`${TABLE}?reset=1`);
+    await expect(page.locator('#orders form input[type=hidden][name=reset]')).toHaveCount(1);
+    await recordTurboEvents(page);
+    await search(page).fill('bonnie');
+    await size(page).selectOption('50');
+
+    await page.getByRole('link', { name: 'Leave the table' }).click();
+    await expect(page).toHaveURL(/\/lab\/turbo-nav\/two$/);
+    await turboVisitDone(page);
+
+    const since = await mark(page);
+    await page.goBack();
+    await pageVisitDone(page, since, { reset: '1' });
+    await expectState(page, DEFAULTS, 'Showing 1–10 of 57', 10);
+});
+
 /** The live table's controls against its URL, which holds only the values that differ from the defaults. */
 async function expectControlsMatchUrl(page: Page): Promise<void> {
     const url = params(page);
