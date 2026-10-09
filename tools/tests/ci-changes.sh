@@ -67,6 +67,8 @@ check "$kit"                      new-recipe/manifest.json
 check "$kit"                      some-new-file.txt
 
 check "$all"                      tools/ci-changes.sh
+check 'workflows'                 tools/release-plan.sh
+check 'workflows'                 tools/tests/release-plan.sh
 check 'demo'                      tests/e2e/lab.side-nav.spec.ts
 check 'demo'                      alert/tests/screenshots/default-light.png
 check 'contrast demo'             package-lock.json

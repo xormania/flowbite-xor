@@ -46,6 +46,8 @@ while IFS= read -r path; do
         tools/tests/live-action.php | tools/tests/fixtures/fresh-app/*) on fresh-install ;;
         tools/tests/sync-demo.sh | tools/tests/fixtures/sync-kit/*) on demo ;;
         tools/phpstan.neon) on php ;;
+        # release.yml's plan: Workflows runs its cases and its dry run
+        tools/release-plan.sh | tools/tests/release-plan.sh) on workflows ;;
         tools/*) on php static-site demo ;;
 
         # The demo app: its PHP tests, its static export and the browser tests run against it. docker-install.sh copies
