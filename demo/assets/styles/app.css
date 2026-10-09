@@ -1,11 +1,13 @@
 /*
  * Same stylesheet as the UX Toolkit generates for the previews of the flowbite-4 kit
  * (symfony/ux src/Toolkit/src/Preview/PreviewAssetsGenerator.php), pointed at this repository:
- * Tailwind, the kit's importmap stylesheets, the kit's kit.css, and the kit's sources.
+ * Tailwind, the kit's importmap stylesheets, the kit's kit.css, and the kit's sources. The demo adds what a project
+ * imports after the theme: the theme recipe's on-fill roles and the recipes' own stylesheets.
  */
 @import "tailwindcss";
 @import "../vendor/flowbite/dist/flowbite.min.css";
 @import "../../../kit.css";
+@import "../../../theme/assets/styles/flowbite-xor-on-fill.css";
 @import "../../../autocomplete/assets/styles/flowbite-xor-autocomplete.css";
 @import "../../../dropzone/assets/styles/flowbite-xor-dropzone.css";
 @import "../../../editor/assets/styles/flowbite-xor-editor.css";

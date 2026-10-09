@@ -93,6 +93,13 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `theme`: on-fill roles, the color of text on a solid fill (`fg-on-brand`, `fg-on-success`, `fg-on-danger`,
+  `fg-on-warning`, `fg-on-dark`) and of the toggle's knob (`knob`), in a second file,
+  `assets/styles/flowbite-xor-on-fill.css`; `flowbite-xor.css` is unchanged. All are white, so nothing looks different,
+  and a project with a light brand color can set `fg-on-brand` to a dark one. `button`, `indicator`, `calendar`, `tabs`
+  (pill), `tooltip`, `avatar` (group count) and `toggle` use them instead of `text-white` and `bg-white`. **Upgrading:**
+  reinstall `theme` and add `@import './flowbite-xor-on-fill.css';` after `@import './flowbite-xor.css';` in
+  `assets/styles/app.css`, or those components lose their white text.
 - `llms.txt` links the files of the release it was written for (or `dev` before a release), not `main`, and
   `FOR-AGENTS.md` lists every recipe, written from `README.md`'s tables like `llms.txt`.
 - `dropdown`, `modal`, `drawer`: the README examples size their wrapper with `min-h-*` classes instead of a `style`

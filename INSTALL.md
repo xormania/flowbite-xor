@@ -32,7 +32,7 @@ npm install "flowbite@^4.0.2"
 
 The kit is tested with Flowbite 4. `importmap:update` ignores the version constraint and would install Flowbite's latest version, even a new major: to update the stylesheet, run the `importmap:require` command above again.
 
-2. Install the `theme` recipe. It copies `assets/styles/flowbite-xor.css`: Flowbite's color roles (named colors with a light and a dark value, used as `bg-brand`, `text-heading`, `border-default`…), with this kit's contrast fixes. Then make `assets/styles/app.css` start with these imports, in this order (Flowbite's stylesheet after Tailwind, the theme last):
+2. Install the `theme` recipe. It copies `assets/styles/flowbite-xor.css`: Flowbite's color roles (named colors with a light and a dark value, used as `bg-brand`, `text-heading`, `border-default`…), with this kit's contrast fixes, and `assets/styles/flowbite-xor-on-fill.css`: the kit's roles for text on a solid fill (`text-fg-on-brand`…, see the [theme's README](theme/README.md)). Then make `assets/styles/app.css` start with these imports, in this order (Flowbite's stylesheet after Tailwind, the theme last):
 
 ```
 php bin/console ux:install theme --kit=https://github.com/xormania/flowbite-xor
@@ -46,8 +46,9 @@ php bin/console ux:install theme --kit=https://github.com/xormania/flowbite-xor
 /* ... or with Webpack Encore */
 /* @import 'flowbite/dist/flowbite.min.css'; */
 
-/* Flowbite's color roles, light and dark, from the `theme` recipe */
+/* Flowbite's color roles, light and dark, and the kit's on-fill roles, from the `theme` recipe */
 @import './flowbite-xor.css';
+@import './flowbite-xor-on-fill.css';
 ```
 
 3. Install the recipes you need; the kit's [README](README.md) lists them. Each `ux:install` prints a `composer require` command for the packages the recipe needs: run it.

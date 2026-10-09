@@ -1,0 +1,25 @@
+/*
+ * The kit's on-fill roles: the color of text (and of the toggle's knob) on a solid fill, such as a brand button, the
+ * selected day of a calendar or a tooltip. flowbite-xor.css is Flowbite's theme and has no role for it. Import this
+ * file right after flowbite-xor.css in assets/styles/app.css.
+ *
+ * Every role is white in both themes, the color the fills of flowbite-xor.css are checked against. With a light brand
+ * color, set `--color-fg-on-brand` (and its `.dark` copy) to a dark color, such as var(--color-gray-900).
+ */
+@theme {
+    --color-fg-on-brand: var(--color-white);
+    --color-fg-on-success: var(--color-white);
+    --color-fg-on-danger: var(--color-white);
+    --color-fg-on-warning: var(--color-white);
+    --color-fg-on-dark: var(--color-white);
+    --color-knob: var(--color-white);
+}
+
+.dark {
+    --color-fg-on-brand: var(--color-white);
+    --color-fg-on-success: var(--color-white);
+    --color-fg-on-danger: var(--color-white);
+    --color-fg-on-warning: var(--color-white);
+    --color-fg-on-dark: var(--color-white);
+    --color-knob: var(--color-white);
+}
