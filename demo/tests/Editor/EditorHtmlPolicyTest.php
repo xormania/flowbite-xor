@@ -24,6 +24,8 @@ final class EditorHtmlPolicyTest extends TestCase
     private const FOREIGN = '<h1>H1</h1><div><span style="font-weight:bold">span</span> <b>b</b> <i>i</i></div><table><tr><td>cell</td></tr></table><p></p>';
     private const TRICKS = '<p><!-- comment --><scr<script>ipt>x()</script></p><p>&lt;script&gt;text&lt;/script&gt;</p>';
     private const EMPTY = '<p></p><p>   </p>';
+    /** HTML written by hand or by another tool: lines and indentation between blocks, as the editor writes none. */
+    private const INDENTED = "<h2>Title</h2>\r\n<p>one</p>\n\n<ul>\n  <li>\n    <p>item</p>\n  </li>\n  <li><p>two</p> </li>\n</ul>\n<blockquote>\n\t<p>quote</p>\n</blockquote>\n<hr>\n<ol start=\"2\">\n  <li><p>three</p></li>\n</ol>\n<p> <strong>a</strong> <em>b</em> </p>";
 
     /**
      * @return iterable<string, array{string}>
@@ -38,6 +40,7 @@ final class EditorHtmlPolicyTest extends TestCase
         yield 'foreign formatting' => [self::FOREIGN];
         yield 'tricks' => [self::TRICKS];
         yield 'empty' => [self::EMPTY];
+        yield 'white space between blocks' => [self::INDENTED];
     }
 
     #[DataProvider('inputs')]
@@ -93,5 +96,42 @@ final class EditorHtmlPolicyTest extends TestCase
     public function testHtmlWithoutTextIsEmpty(): void
     {
         self::assertSame('', (new EditorHtmlPolicy())->sanitize(self::EMPTY));
+    }
+
+    public function testWhiteSpaceNextToABlocksTagIsRemoved(): void
+    {
+        self::assertSame(
+            '<h2>Title</h2><p>one</p><ul><li><p>item</p></li><li><p>two</p></li></ul><blockquote><p>quote</p></blockquote><hr /><ol start="2"><li><p>three</p></li></ol><p><strong>a</strong> <em>b</em></p>',
+            (new EditorHtmlPolicy())->sanitize(self::INDENTED),
+        );
+    }
+
+    public function testSpaceBetweenInlineElementsStays(): void
+    {
+        $html = '<p><strong>a</strong> <em>b</em> <a href="/x" rel="noopener noreferrer nofollow">c</a><br /> <code>d</code></p>';
+
+        self::assertSame($html, (new EditorHtmlPolicy())->sanitize($html));
+    }
+
+    public function testTextBetweenBlocksStays(): void
+    {
+        // a no-break space is text, as in the editor
+        self::assertSame("<p>a</p> x <p>b</p>\u{A0}<p>c</p>", (new EditorHtmlPolicy())->sanitize("<p>a</p> x <p>b</p>\u{A0}<p>c</p>"));
+    }
+
+    public function testTheTextOfIndentedBlocksCountsAsInTheEditorsCounter(): void
+    {
+        // the editor's counter (getText with no block separator) shows 8 characters
+        $clean = (new EditorHtmlPolicy())->sanitize("<p>ab</p>\r\n<ul>\n  <li><p>cd</p></li>\n</ul>\n<h2>ef</h2>\n<hr>\n<p>gh</p>");
+
+        self::assertSame(8, EditorHtmlPolicy::textLength($clean));
+    }
+
+    public function testALineBreakIsOneCharacterAsInTheEditorsCounter(): void
+    {
+        // Tiptap's hard break is a line break in getText(): the counter shows 3 for a<br>b
+        self::assertSame(3, EditorHtmlPolicy::textLength((new EditorHtmlPolicy())->sanitize('<p>a<br>b</p>')));
+        self::assertSame(3, EditorHtmlPolicy::textLength('<p>a<br/>b</p>'));
+        self::assertSame(5, EditorHtmlPolicy::textLength('<p>a<BR>b<br>c</p>'));
     }
 }

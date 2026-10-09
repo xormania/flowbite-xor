@@ -47,9 +47,12 @@ $builder->add('body', EditorType::class, [
 
 - `getData()` gives sanitized HTML, or `null` when the text is empty (`<p></p>` counts as empty), so `NotBlank` works.
 - `max_bytes` (default 100000, at most 1000000) limits the HTML, `max_chars` (default 20000) the text: longer input
-  is a field error, and the content stays as typed.
+  is a field error, and the content stays as typed. More than 1000000 bytes is too long to sanitize and show again:
+  the editor shows empty, with the error.
+- `max_chars` counts the characters the editor's counter shows: the text without markup, an entity as one character,
+  a line break (`<br>`) as one, and white space between blocks as none.
 - Print stored content with the `flowbite_editor_html` filter, which sanitizes it again (content saved by another
-  path is safe too). Never with `|raw`:
+  path is safe too), and throws a `LengthException` for more than 1000000 bytes. Never with `|raw`:
 
   ```twig
   <div class="space-y-2">{{ post.body|flowbite_editor_html }}</div>
@@ -57,11 +60,12 @@ $builder->add('body', EditorType::class, [
 
 Outside a form, `<twig:Editor id="…" name="…" />` submits its HTML under `name` (a hidden textarea): sanitize it on
 the server with `EditorHtmlPolicy::sanitize()` before you store it. It throws a `LengthException` for more than
-1000000 bytes rather than keep part of the HTML: check the length first.
+1000000 bytes rather than keep part of the HTML: check the length first (`EditorHtmlPolicy::isReadable()`, in Twig
+`value is flowbite_editor_readable`).
 
 - `label` names the editor when no label points at it; with a `FormField`, give the label an id
   (`labelAttr: {id: '<id>_label'}`) and pass it as `labelledBy`. A click on the label focuses the editor.
-- `value` is the initial HTML, sanitized before it is shown.
+- `value` is the initial HTML, sanitized before it is shown; more than 1000000 bytes shows empty, never cut.
 - `placeholder`, `maxChars` (the counter), `counterText` (`%count%`, `%max%`), `toolbarLabel`, `readonly`, `disabled`.
 - `aria-describedby`, `aria-invalid` and `aria-required` go to the editable area, as on a form control.
 
@@ -86,8 +90,10 @@ The Link button opens a small dialog: type an address and press Enter or Apply; 
 | Quotes, horizontal lines | `blockquote`, `hr` |
 | Links | `a href`, with `rel="noopener noreferrer nofollow"` |
 
-Pasted content keeps only these: styles, classes, images, tables, colors and fonts are dropped. To change the set,
-change the controller's extensions and `EditorHtmlPolicy` together.
+Pasted content keeps only these: styles, classes, images, tables, colors and fonts are dropped. White space alone
+next to a block's tag (lines between paragraphs, a list's indentation) is dropped too, by the editor and by
+`EditorHtmlPolicy`; space between words and inline formatting stays. To change the set, change the controller's
+extensions and `EditorHtmlPolicy` together.
 
 ## Turbo and Live Components
 

@@ -51,6 +51,10 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `editor`: a submit of more than `EditorHtmlPolicy::MAX_INPUT_BYTES` (1000000 bytes) was a 500: the form showing its
+  error printed the refused value through `flowbite_editor_html`, which refuses it. It is now a 422 with the field's
+  error, the editor and its textarea empty (the value is never cut); the same in a Live Component.
+- `editor`: a line break (`<br>`) counts as one character on the server, as in the editor's counter (it counted none).
 - `data-table`: `Filter::choice()` documents its choices as `array<int|string, string>`: PHP keys numeric values
   (`'2024'`) as integers, which PHPStan refused against the former `array<string, string>`. The query and the select
   already handled them.
@@ -93,6 +97,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `editor`: `EditorHtmlPolicy::sanitize()` removes white space alone next to a block's tag (between paragraphs,
+  headings, lists, list items, quotes and lines, or a list's indentation), which the editor drops too: the server
+  counts the characters the editor's counter shows. Space between inline tags and other text between blocks stay.
 - `llms.txt` links the files of the release it was written for (or `dev` before a release), not `main`, and
   `FOR-AGENTS.md` lists every recipe, written from `README.md`'s tables like `llms.txt`.
 - `dropdown`, `modal`, `drawer`: the README examples size their wrapper with `min-h-*` classes instead of a `style`
