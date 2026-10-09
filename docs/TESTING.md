@@ -376,7 +376,8 @@ expect(counts.controllers).toBe(counts.elements);
 ```
 
 Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`stimulusControllers`),
-[`lab.section-nav.spec.ts`](../tests/e2e/lab.section-nav.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts).
+[`lab.section-nav.spec.ts`](../tests/e2e/lab.section-nav.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts),
+[`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts).
 
 ## State × transition
 
@@ -459,9 +460,22 @@ await page.goto('/lab/tooltip-turbo');
 expect(await listeners()).toEqual(baseline);         // { 'document click': 1, 'window popstate': 1, … }
 ```
 
-Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`trackGlobalListeners`),
-[`lab.tooltip.spec.ts`](../tests/e2e/lab.tooltip.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts); [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts)
-counts the document's click listeners the same way, inline.
+For one component, declare its listeners and compare what changed: the keys carry the target, type and capture, so a
+listener removed without its `capture` flag (still registered) shows, and so does one on `window`.
+
+```ts
+const OPEN = { 'document click capture': 1, 'window scroll capture': 1, 'window resize': 1 }; // what an open popover adds
+const listeners = await trackGlobalListeners(page, Object.keys(OPEN));
+// open it: expect(listenerChanges(baseline, await listeners())).toEqual(OPEN); close it, or after visits: toEqual({})
+```
+
+It counts explicit `addEventListener`/`removeEventListener` calls on `document` and `window` only, not listeners
+removed by `{ once: true }` or an `AbortSignal`, on elements or media queries, nor observers or timers. Keep the
+behavior check beside it (one toggle per click), and the instance count (*One controller per element, counted*).
+
+Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`trackGlobalListeners`, `listenerChanges`),
+[`lab.tooltip.spec.ts`](../tests/e2e/lab.tooltip.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts),
+[`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts).
 
 ### One controller per element: count what it does
 

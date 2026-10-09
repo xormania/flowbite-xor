@@ -244,10 +244,10 @@ States: closed or open (`open` value, an attribute Live keeps), focus inside, gr
 | Toggle, focus first field, Escape, click outside, group, flip, form, hidden controls, canceled `popover:focus` | E2E demo | popover (6 tests) |
 | Focus leaving closes | E2E lab | lab.popover "the focus leaving the popover closes it" |
 | Open, visit, Back | E2E lab | lab.popover "an open popover is closed after a Turbo visit and Back, and still works" |
-| N visits, no document listener left | E2E lab | lab.popover "repeated Turbo visits leave one controller per popover and no document listener behind" |
+| N visits, one Stimulus controller per element, no document or window listener left | E2E lab | lab.popover "repeated Turbo visits leave one controller per popover and no document or window listener behind" |
 | Permanent, frame ×3, Stream replace and update, Live re-render | E2E lab | lab.popover (4 tests) |
 | Open beside a frame visit promoted to history, started from a link inside it or from the page's code: stays open with the focus; Back and Forward show it closed from the first frame, no listener left (failed before the fix: it closed, the focus fell to `<body>`, Back showed it open) | E2E lab | lab.popover "a popover whose link steps a frame promoted to history…", "a popover open while the page code steps…", "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…", "a popover rendered open beside a frame visit promoted to history…" |
-| Opened, then moved in the DOM (the same controller reconnects): stays open, one listener | E2E lab | lab.popover "a popover opened by the user and moved in the DOM stays open…" |
+| Opened, then moved in the DOM (the same controller reconnects): stays open, one Stimulus controller per element, one set of listeners | E2E lab | lab.popover "a popover opened by the user and moved in the DOM stays open…" |
 
 The editor's link dialog is a Popover: its cells are the popover's.
 
@@ -392,7 +392,7 @@ where the guarantee stays.
 | `__sameDocument` marker | 13 times in 9 specs | `fixtures.ts` (mark, then expect) |
 | `__darkAtFirstBody` init script | csp, theme-toggle (smoke's copy left with its theme tests) | `fixtures.ts` |
 | Event counters (`countChanges`/`changes`, `countEvents`, `__events`) | lab.calendar, lab.date-picker, dropzone, calendar, lab.dropzone | `fixtures.ts`; the Stimulus instance count is there (`stimulusControllers`, used by lab.overlays) |
-| Document listener counter | lab.popover (inline) | `fixtures.ts` `trackGlobalListeners` (added with G1, used by lab.tooltip and lab.overlays); lab.popover to move onto it |
+| ~~Document listener counter, lab.popover inline~~ **Done:** lab.popover uses `trackGlobalListeners` scoped to the popover's three listeners (`only`) and `listenerChanges`; the inline counter missed `window` listeners and a removal without `capture` | lab.popover, lab.tooltip, lab.overlays | `fixtures.ts` `trackGlobalListeners` |
 | `day(scope, date)` | calendar, date-picker, lab.calendar, lab.date-picker | a calendar helper module |
 | `PNG`, `png()`, `text()` | dropzone, forms, lab.dropzone | `tests/e2e/files.ts` |
 | `/preview/<recipe>/<id>?theme=light` builders | dropzone, editor, popover, markdown-editor; `gotoExample` | `inventory.ts` |

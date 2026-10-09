@@ -185,8 +185,11 @@ export async function stimulusControllers(page: Page, identifier: string): Promi
  * (added by scripts without a URL) are left out. Call it before the first `goto`, take a baseline once the page has
  * done each kind of step once (Turbo adds some of its listeners on the first click or submit), and compare after more
  * Turbo visits, Streams or re-renders: a controller that leaves a listener behind shows as a count above the baseline.
+ * `only` declares the scope: the keys the reader returns, those of the component under test (lab.popover), so the
+ * comparison holds no other script's listeners and needs no warm-up step for them. It counts explicit adds and removes
+ * only: not `{ once: true }` or `AbortSignal` removals, element or media-query listeners, observers or timers.
  */
-export async function trackGlobalListeners(page: Page): Promise<() => Promise<Record<string, number>>> {
+export async function trackGlobalListeners(page: Page, only?: readonly string[]): Promise<() => Promise<Record<string, number>>> {
     await page.addInitScript(() => {
         const add = EventTarget.prototype.addEventListener;
         const remove = EventTarget.prototype.removeEventListener;
@@ -217,6 +220,21 @@ export async function trackGlobalListeners(page: Page): Promise<() => Promise<Re
         };
     });
 
-    return () => page.evaluate(() => (window as any).__globalListeners() as Record<string, number>);
+    return async () => {
+        const counts = await page.evaluate(() => (window as any).__globalListeners() as Record<string, number>);
+
+        return only ? Object.fromEntries(Object.entries(counts).filter(([name]) => only.includes(name))) : counts;
+    };
 }
 
+/**
+ * What changed between two readings of trackGlobalListeners(): each `<target> <type>` whose count differs, with the
+ * difference (`{ 'document click capture': 1 }`: one more). `{}` when nothing changed.
+ */
+export function listenerChanges(before: Record<string, number>, after: Record<string, number>): Record<string, number> {
+    return Object.fromEntries(
+        [...new Set([...Object.keys(before), ...Object.keys(after)])]
+            .map((name) => [name, (after[name] ?? 0) - (before[name] ?? 0)] as const)
+            .filter(([, change]) => 0 !== change),
+    );
+}
