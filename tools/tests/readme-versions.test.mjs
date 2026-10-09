@@ -42,6 +42,11 @@ test('::: installation alone matches: the toolkit renders the manifest', () => {
     assert.deepEqual(checkReadme('chart', '# Chart\n\n## Installation\n\n::: installation\n', manifest), []);
 });
 
+test('a ::: installation line inside a fenced example is an example, not the directive', () => {
+    const [problem] = checkReadme('chart', '# Chart\n\n```markdown\n::: installation\n```\n', manifest);
+    assert.match(problem, /^chart\/README\.md: no version table and no "::: installation" line/);
+});
+
 test('a README with neither a table nor ::: installation fails', () => {
     const [problem] = checkReadme('chart', '# Chart\n\n## Installation\n\nRun composer require.\n', manifest);
     assert.match(problem, /^chart\/README\.md: no version table and no "::: installation" line/);

@@ -114,7 +114,6 @@ check "$kit_contrast"             data-table/src/Table/DataTable.php
 check "$kit_contrast"             alert/README.md
 check "$kit_contrast"             alert/manifest.json
 check_git "$kit_contrast"         'mkdir -p alert/templates && echo a > alert/templates/x.html.twig && git add alert'
-check "$all"                      tools/ci-base.sh
 check 'contrast demo'             tools/readme-pairing.mjs tools/readme-versions.mjs
 check 'contrast demo'             tools/tests/readme-pairing.test.mjs
 check 'demo'                      tools/tests/jev-diagnosis.test.mjs

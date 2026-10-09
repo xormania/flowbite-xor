@@ -22,7 +22,7 @@ while IFS= read -r path; do
     [ -n "$path" ] || continue
     case "$path" in
         # The workflow and this script decide what runs: a change to either runs everything
-        .github/workflows/ci.yml | tools/ci-changes.sh | tools/tests/ci-changes.sh | tools/ci-base.sh) all ;;
+        .github/workflows/ci.yml | tools/ci-changes.sh | tools/tests/ci-changes.sh) all ;;
 
         # Read by people and agents: Contrast checks the generated lists, the plans' status (tools/llms-txt.mjs
         # reads CHANGELOG.md for the links' ref) and what the markdown teaches (tools/docs-lint.mjs)

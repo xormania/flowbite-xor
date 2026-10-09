@@ -1,5 +1,5 @@
 // The cases of tools/readme-pairing.mjs: the waiver trailers and the pairing as pure logic, then the script itself in
-// scratch repositories with a dev branch and its origin/dev, so the range is the one tools/ci-base.sh gives CI.
+// scratch repositories with a dev branch and its origin/dev, so the range is the one CI's Changes job computes.
 // Run: node --test tools/tests/*.test.mjs
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -107,7 +107,7 @@ function run(dir, args = [], env = {}) {
     const result = spawnSync(process.execPath, [script, ...args], {
         cwd: dir,
         encoding: 'utf8',
-        // tools/ci-base.sh reads EVENT and REF: left out, it reads the checked-out branch
+        // the base comes from the checked-out branch, as CI's rule: EVENT and REF are left out
         env: { ...Object.fromEntries(Object.entries(process.env).filter(([name]) => name !== 'EVENT' && name !== 'REF')), GITHUB_STEP_SUMMARY: summary, ...env },
     });
     let markdown = '';

@@ -53,8 +53,14 @@ jobs:
                   EVENT: ${{ github.event_name }}
                   REF: ${{ github.ref }}
               run: |
-                  # where the branch left dev; none for main, dev or a run by hand (Contrast reads the same range)
-                  base=$(tools/ci-base.sh)
+                  # Where the branch left dev; none for main, dev or a run by hand. Computed here, in the workflow, not by a
+                  # script in the tree: a branch cannot choose the range it is checked against. Contrast reads the same
+                  # range (tools/readme-pairing.mjs --base).
+                  if [ "$EVENT" = push ] && [ "$REF" != refs/heads/main ] && [ "$REF" != refs/heads/dev ]; then
+                      base=$(git merge-base HEAD origin/dev 2>/dev/null || true)
+                  else
+                      base=
+                  fi
                   echo "base=$base" >> "$GITHUB_OUTPUT"
                   # The classifier runs as it is at the base, which the change cannot edit: a branch that changes
                   # tools/ci-changes.sh is classified by the base's copy (which runs everything for that path), and a base
@@ -322,7 +328,7 @@ jobs:
             - name: Each recipe README states its manifest's dependency versions
               run: node tools/readme-versions.mjs
 
-            # The Changes job's base (tools/ci-base.sh): none for main, dev or a run by hand, which compares nothing
+            # The Changes job's base: none for main, dev or a run by hand, which compares nothing
             - name: A recipe whose code changed has its README changed, or a Docs-waiver trailer
               env:
                   BASE: ${{ needs.changes.outputs.base }}

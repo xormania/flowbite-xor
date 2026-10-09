@@ -16,7 +16,6 @@ and pull request standard.
 | `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
 | `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
 | `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` | no | each recipe README states its manifest's dependency versions, and changes with the recipe's code unless a commit waives it (*Docs*) |
-| `tools/ci-base.sh` | no | the commit a branch's changes are counted from (where it left `dev`), for CI's routing and the README pairing (*Checks*) |
 | `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations, `failed-attempts.json` and `durations.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
 | `tools/ci/jev-diagnosis.mjs`, `tools/ci/jev-ci.json` | no | the advisory Jev diagnosis of each failed attempt in `failed-attempts.json`, and its policy ([`docs/TESTING.md`](docs/TESTING.md), *Jev diagnosis*) |
 | `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
@@ -74,7 +73,7 @@ controllers. Previewing untrusted code would need a separate origin and containe
 
 CI runs them on every push, each job only when the change could affect what it checks
 ([`tools/ci-changes.sh`](tools/ci-changes.sh)); pushes to `main` and `dev`, and a run by hand, run everything. A
-branch is compared with where it left `dev` ([`tools/ci-base.sh`](tools/ci-base.sh)), so each push checks the whole pull request. The rulesets require the one
+branch is compared with where it left `dev`, so each push checks the whole pull request. The rulesets require the one
 *CI result* check, which passes when every job passed or was skipped, and require a branch to be up to date with its
 base before it merges: merge the base in and push, so that CI has run on the code that lands (there is no merge
 queue). CI runs the script as the base branch has it, so a branch cannot change its own checks; a job the base's
@@ -106,7 +105,7 @@ change to both paths.
 | `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, `tools/build-static.sh`, without the upload) |
 | `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, *Workflows* runs its plan as a dry run |
 | `.github/workflows/audit.yml`, `.github/workflows/codeql.yml` | *Workflows*; each also runs itself on the pull request that changes it |
-| `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, `tools/ci-base.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
+| `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
 
 *Workflows* runs [actionlint](https://github.com/rhysd/actionlint) with ShellCheck on every workflow: YAML, expressions,
 job graph, action and reusable workflow inputs, and the shell of each `run` step. Then it runs
@@ -351,7 +350,7 @@ packages with the manifest's constraints (`any` for none; recipe dependencies ar
 A missing package, an extra one or another constraint fails, and there is no waiver: fix the README.
 
 **A recipe change comes with its README.** `node tools/readme-pairing.mjs` (in *Contrast*) reads the branch's changes
-since where it left `dev`, as the *Changes* job does (`tools/ci-base.sh`; a merge that brings `dev` in adds
+since where it left `dev`, the base the *Changes* job computes in the workflow (a merge that brings `dev` in adds
 nothing). A recipe whose code changed (any file under it but `README.md` and `tests/`, its `manifest.json`
 included) fails unless its `README.md` changed too, or a commit of the branch waives it with a trailer, in the last
 paragraph of its message:

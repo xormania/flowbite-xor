@@ -57,6 +57,27 @@ const isHeader = (line) => {
  * The README's version tables, outside code blocks: [{ line, rows: [{ line, name, constraint, via }] }]. `any`
  * (or an empty cell) is no constraint.
  */
+/** The README's lines outside fenced code blocks (``` or ~~~): what renders as the README, not as an example of one */
+export function unfenced(readme) {
+    const kept = [];
+    let fence = null;
+    for (const line of readme.split('\n')) {
+        const marker = line.match(/^\s*(`{3,}|~{3,})/);
+        if (marker) {
+            if (fence === null) {
+                fence = marker[1];
+            } else if (line.trim().startsWith(fence)) {
+                fence = null;
+            }
+            continue;
+        }
+        if (fence === null) {
+            kept.push(line);
+        }
+    }
+    return kept;
+}
+
 export function versionTables(readme) {
     const lines = readme.split('\n');
     const tables = [];
@@ -90,7 +111,7 @@ const shown = (constraint) => (constraint === null ? 'any' : `\`${constraint}\``
 /** What is wrong with a recipe's README against its manifest: a list of messages, empty when they match. */
 export function checkReadme(recipe, readme, manifest) {
     const tables = versionTables(readme);
-    const installation = /^::: installation[ \t]*$/m.test(readme);
+    const installation = unfenced(readme).some((line) => /^::: installation[ \t]*$/.test(line));
     const where = `${recipe}/README.md`;
     if (tables.length === 0) {
         return installation

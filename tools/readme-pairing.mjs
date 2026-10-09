@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // A change to a recipe's code changes its README too. A recipe is a top-level directory holding a manifest.json; its
 // code is every file under it except README.md and tests/. Over the branch's changes since its base (the commit CI's
-// Changes job compares with, from tools/ci-base.sh: where the branch left dev), each recipe whose code changed must
+// Changes job compares with: where the branch left dev), each recipe whose code changed must
 // have its README.md changed, or be waived by a trailer in the last paragraph of a commit message in the range:
 //
 //   Docs-waiver: <recipe> <reason>
@@ -11,11 +11,11 @@
 // merge that only brings the base in adds nothing; the waivers are read from `git log <base>..HEAD`. With no base
 // (a push to main or dev, a run by hand, or --base ''), nothing is compared.
 //
-//   node tools/readme-pairing.mjs                # since tools/ci-base.sh's base: where HEAD left origin/dev
+//   node tools/readme-pairing.mjs                # since where HEAD left origin/dev (none on main or dev), as CI computes it
 //   node tools/readme-pairing.mjs --base <ref>   # since <ref>
 import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 const KEY = /^docs-waiver[ \t]*:(.*)$/i;
 const HOW = 'Update the README, or add "Docs-waiver: <recipe> <reason>" to the last paragraph of a commit message in the range.';
@@ -113,7 +113,17 @@ function main() {
     if (index !== -1) {
         base = process.argv[index + 1] ?? '';
     } else {
-        base = execFileSync('bash', [fileURLToPath(new URL('ci-base.sh', import.meta.url))], { encoding: 'utf8' }).trim();
+        // the rule CI's Changes job applies, which computes the base in the workflow itself, out of the branch's reach
+        let branch = '';
+        try {
+            branch = git('symbolic-ref', '-q', 'HEAD').trim();
+        } catch {}
+        base = '';
+        if (branch !== 'refs/heads/main' && branch !== 'refs/heads/dev') {
+            try {
+                base = git('merge-base', 'HEAD', 'origin/dev').trim();
+            } catch {}
+        }
     }
     if (base === '') {
         console.log('README pairing: no base (a push to main or dev, a run by hand, or no history shared with origin/dev): nothing to compare.');
