@@ -12,10 +12,9 @@ function isPromotedFrameCache() {
  * Keeps a `DataTable`'s Turbo Frame and the URL on screen in agreement after Back and Forward, even when they are
  * pressed while a change of the table is still loading: the change is then dropped, never shown at the wrong URL.
  *
- * - When the search form connects, it resets its fields to the values the server rendered (`form.reset()` restores
- *   each field's `value` and `selected` attributes). A copy Turbo restores keeps the fields as the user left them, and
- *   a frame visit promoted to history takes its copy once the form is submitted, edits made. The form is left alone
- *   while the focus is inside it, so text typed before the page's scripts ran is kept.
+ * - The search form is a GET form: after Back and Forward, the `form-reset` controller on `<body>` (the `layouts`
+ *   recipe) resets its fields to the values the server rendered. A copy Turbo restores keeps the fields as the user
+ *   left them, and a frame visit promoted to history takes its copy once the form is submitted, edits made.
  * - Before Turbo caches the page it leaves, a change still loading is cancelled: the form's submission (Turbo 8 lets
  *   its response push its URL over the page Back restored) and a frame load started by a link (Turbo 8 caches the
  *   frame with its pending `src`, which Forward then loads at the wrong URL). A frame visit promoted to history
@@ -28,15 +27,12 @@ function isPromotedFrameCache() {
  *
  * The submission is tracked from `turbo:submit-start` until its response arrives or it ends.
  *
- * @target form             The search form.
  * @action cancelLoading    On `turbo:before-cache`: cancels the change still loading, unless the page stays on screen.
  * @action submitStarted    On `turbo:submit-start`: tracks the form's submission.
  * @action responseReceived On `turbo:before-fetch-response`: stops tracking the submission once its response is in.
  * @action submitEnded      On `turbo:submit-end`: stops tracking the submission.
  */
 export default class extends Controller {
-    static targets = ['form'];
-
     #submission = null;
 
     connect() {
@@ -50,13 +46,6 @@ export default class extends Controller {
         this.#stopSubmission();
         if (!this.element.isConnected) {
             this.element.removeAttribute('src');
-        }
-    }
-
-    formTargetConnected(form) {
-        // through the prototypes: a field named `reset` or `contains` (a kept URL parameter) shadows the form's method
-        if (!Node.prototype.contains.call(form, document.activeElement)) {
-            HTMLFormElement.prototype.reset.call(form);
         }
     }
 

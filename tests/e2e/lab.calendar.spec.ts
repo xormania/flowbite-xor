@@ -11,7 +11,8 @@ const countChanges = (page: Page) =>
         document.addEventListener('change', (event) => (event.target as HTMLElement).matches('[data-calendar-target="input"]') && (window as any).__changes++);
     });
 
-test('a Turbo visit and Back show the same month and selection, and the calendar still works', async ({ page }) => {
+// its form is a GET form: Back shows the month and selection of the URL, not the pick made before leaving
+test('a Turbo visit and Back show the month and selection of the URL, and the calendar still works', async ({ page }) => {
     await page.goto('/lab/calendar-turbo');
     const calendar = () => page.getByRole('group', { name: 'Day' });
     await calendar().getByRole('button', { name: 'Next month' }).click();
@@ -20,9 +21,10 @@ test('a Turbo visit and Back show the same month and selection, and the calendar
 
     await visitAndBack(page);
 
-    await expect(grid(calendar())).toHaveAccessibleName('April 2026');
-    await expect(day(calendar(), '2026-04-08')).toHaveAttribute('data-selected-single', 'true');
-    await expect(calendar().locator('input[name="day"]')).toHaveValue('2026-04-08');
+    await expect(grid(calendar())).toHaveAccessibleName('March 2026');
+    await expect(calendar().locator('input[name="day"]')).toHaveValue('');
+    await calendar().getByRole('button', { name: 'Next month' }).click();
+    await expect(day(calendar(), '2026-04-08')).toHaveAttribute('data-selected-single', 'false');
     await countChanges(page);
     await day(calendar(), '2026-04-09').click();
     await expect(calendar().locator('input[name="day"]')).toHaveValue('2026-04-09');

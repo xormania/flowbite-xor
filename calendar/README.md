@@ -39,7 +39,9 @@ With `name`, the calendar renders hidden inputs that the form submits:
 
 `inputAttr` adds attributes to them, e.g. `:inputAttr="{form: 'booking'}"` for a form elsewhere on the page (inline event handlers, `on…`, are left out: behavior belongs in a Stimulus controller). Each pick
 dispatches `input` and `change` on the inputs, as a typed field would. The day and navigation buttons are
-`type="button"`: they never submit the form.
+`type="button"`: they never submit the form. A reset of the form (a reset button, or Back to a GET form through
+the layouts' [`form-reset`](../layouts/README.md#back-and-forms)) brings back the month and dates the server rendered,
+with no `input` or `change`.
 
 `minDate`, `maxDate` and `disabled` only guide the user: check the submitted dates on the server (Symfony's `Range`,
 `GreaterThan` constraints).

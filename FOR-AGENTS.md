@@ -190,6 +190,8 @@ Where two recipes are close:
   `DatePicker` and `Chart` an explicit `id`.
 - **Toasts go through Turbo Streams**: render `<twig:Toast:Stream>` in the page or in a Stream response, never
   inside the permanent toast region.
+- **Back shows a GET form as the URL says, a POST form as the user left it**: the layouts' `<body>` carries
+  `data-controller="form-reset"`; keep it in a layout of your own. Use GET for filters and searches, POST for edits.
 - **One owner per region**: a Live Component or a Turbo Frame or Stream, not both.
 - **Props and attributes are trusted input**: give `as`, attribute names and URLs values the code chose, never
   request or user data unchecked. Validate dates and bounds on the server: the calendar's only guide the user.

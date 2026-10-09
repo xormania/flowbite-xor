@@ -219,6 +219,10 @@ How the recipes behave with Turbo and Live Components, and what your own pages a
 - **Navbar menus close before Turbo caches the page.** A `nav-menu` closes its submenus when a link inside is
   followed and before every snapshot, and marks the current page after every visit, in a `data-turbo-permanent`
   navbar too.
+- **Back shows a GET form as the URL says, a POST form as the user left it.** A GET form reflects the URL, so after
+  Back and Forward it shows the values the server rendered; a POST form keeps what was typed and picked. Autocomplete
+  and date picker fields follow their form. The `form-reset` controller on the layouts' `<body>` does it: with a layout
+  of your own, add `data-controller="form-reset"` to its `<body>` ([`layouts`](layouts/README.md#back-and-forms)).
 - **Overlays come back closed.** A dropdown, modal or drawer left open by a link inside it shows closed after Back,
   and opens again as before (a dialog as a modal).
 - **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a
