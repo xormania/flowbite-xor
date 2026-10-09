@@ -60,9 +60,9 @@ the transition cannot change the recipe's state, not that it is untested.
 | alert | G10 | · | · | · | · | · | · | G10 | G10 | css | · |
 | avatar | avatar | · | · | · | · | · | · | · | · | · | · |
 | tabs | G5 | · | · | G5 | · | G5 | · | G5 | G5 | css | · |
-| dropdown | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | lab.turbo-frame-detail | G2 | G3 | lab.live-dropdown, lab.live-table | T3 | · |
-| modal | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | G3 | · | G3 | lab.live-modal | T3 | · |
-| drawer | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | G3 | · | G3 | lab.live-drawer | T3 | · |
+| dropdown | lab.turbo-restore, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.turbo-frame-detail, lab.overlays | G2 | lab.overlays | lab.live-dropdown, lab.live-table | T3 | · |
+| modal | lab.turbo-restore, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | · | lab.overlays | lab.live-modal | T3 | · |
+| drawer | lab.turbo-restore, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | · | lab.overlays | lab.live-drawer | T3 | · |
 | popover | lab.popover | · | G10 | lab.popover | lab.popover | lab.popover | G2 | lab.popover | lab.popover | T3 | · |
 | tooltip | lab.turbo-restore, lab.tooltip | lab.turbo-restore | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.live-table | T3 | lab.tooltip |
 | calendar | lab.calendar | · | G10 | lab.calendar | lab.calendar | lab.calendar | G4 | lab.calendar | lab.calendar | css | · |
@@ -204,8 +204,12 @@ drawer closed, open as a modal, open on load, static backdrop, drawer non-modal;
 | modal | Moved in the DOM, open and closed | screenshot | shot:modal "stays modal after being moved in the DOM", "stays closed after being moved in the DOM once closed" |
 | modal | Live re-render, open and closed | E2E lab | lab.live-modal "an open modal stays modal across a Live re-render, a closed one stays closed" |
 | drawer | Modal: trap, Live re-render, Escape; non-modal | E2E lab | lab.live-drawer (2 tests) |
-| drawer | Backdrop click, open on load, moved in the DOM | | G8 (modal has them) |
-| all three | Stream replace or update while open, N visits (no document listener left), permanent, frame reload (modal, drawer) | | G3 |
+| drawer | Backdrop click, open on load, moved in the DOM | | G8 (modal has them; an open drawer moved by Turbo in a `data-turbo-permanent` element: lab.overlays) |
+| all three | The copy Turbo renders on Back and Forward, and on Back after a visit started by the page with the next page waiting for a stylesheet: closed, trigger not `aria-expanded="true"` (recorded from `turbo:before-render`); closed and working once connected | E2E lab | lab.overlays "left open by Back, Forward or a visit from the page, every copy Turbo renders shows it closed" (3) |
+| all three | N visits from a link inside the open overlay: one Stimulus controller per element, no `document` or `window` listener left, one toggle per click | E2E lab | lab.overlays "repeated Turbo visits from inside the open overlay leave one controller per element…" (3) |
+| all three | Inside a `data-turbo-permanent` element, open during a visit: a dialog comes back open and modal, its trigger expanded; a menu comes back closed; both work on both pages | E2E lab | lab.overlays "inside a data-turbo-permanent element, it keeps working across visits" (3) |
+| all three | Frame reloaded three times from a link inside the open overlay: the new one closed, nothing left modal, one controller per element, no listener left | E2E lab | lab.overlays "inside a Turbo Frame reloaded three times…" (3) |
+| all three | Stream replace and update, twice each, while open: the new one closed and working, nothing left modal, one controller, no listener left | E2E lab | lab.overlays "replaced or updated by a Turbo Stream while open…" (3) |
 | all three | Open while the theme switches | | T3 (wide matrices) |
 
 ### popover
@@ -349,12 +353,12 @@ where the guarantee stays.
 |---|---|---|
 | Visit page two and Back, waiting on `turboVisitDone`; local `visit()` | inline in about 12 specs; `visit()` in lab.dropzone, lab.side-nav | `tests/e2e/transitions.ts`, one driver for the lab scaffold below |
 | "Reload the frame" three times; Stream replace and update | 9 lab specs each | the same driver |
-| The lab scaffold itself: `<recipe>-turbo` (page one and two, a Kept permanent copy, a Framed copy), `<recipe>-stream` with `_<recipe>_streamed`, `live-<recipe>` | `demo/templates/lab/` | reused as is by each step 6 group (dropdown, modal, drawer, tooltip, tabs) |
+| The lab scaffold itself: `<recipe>-turbo` (page one and two, a Kept permanent copy, a Framed copy), `<recipe>-stream` with `_<recipe>_streamed`, `live-<recipe>` | `demo/templates/lab/` | reused as is by each step 6 group (dropdown, modal, drawer, tooltip, tabs); the overlays' pages share `LabController::overlayTurbo()` and `overlayStream()` |
 | Axe filtered to serious and critical | a11y, dropzone (`expectNoSeriousA11yIssue`), editor, markdown-editor, forms, lab.side-nav, demo-app ×2 | `fixtures.ts` |
 | `__sameDocument` marker | 13 times in 9 specs | `fixtures.ts` (mark, then expect) |
 | `__darkAtFirstBody` init script | smoke, csp, theme-toggle | `fixtures.ts` |
-| Event counters (`countChanges`/`changes`, `countEvents`, `__events`) | lab.calendar, lab.date-picker, dropzone, calendar, lab.dropzone | `fixtures.ts`; tier 2 adds the Stimulus instance count next to it |
-| Document listener counter | lab.popover (inline) | `fixtures.ts` `trackGlobalListeners` (added with G1); lab.popover and G3 to move onto it |
+| Event counters (`countChanges`/`changes`, `countEvents`, `__events`) | lab.calendar, lab.date-picker, dropzone, calendar, lab.dropzone | `fixtures.ts`; the Stimulus instance count is there (`stimulusControllers`, used by lab.overlays) |
+| Document listener counter | lab.popover (inline) | `fixtures.ts` `trackGlobalListeners` (added with G1, used by lab.tooltip and lab.overlays); lab.popover to move onto it |
 | `day(scope, date)` | calendar, date-picker, lab.calendar, lab.date-picker | a calendar helper module |
 | `PNG`, `png()`, `text()` | dropzone, forms, lab.dropzone | `tests/e2e/files.ts` |
 | `/preview/<recipe>/<id>?theme=light` builders | dropzone, editor, popover, markdown-editor; `gotoExample` | `inventory.ts` |
@@ -371,7 +375,7 @@ a browser, so E2E lab, on the existing scaffold.
 |---|---|---|---|---|
 | G1 | ~~**tooltip** has no Turbo coverage~~ **Closed:** `connect()` now hides the tooltip unless the focus is inside it; lab.tooltip and lab.turbo-restore cover it | Both snapshot orders failed, not only the slow one | — | Overlays |
 | G2 | **Frame visit promoted to history** beside popover, dropdown, date-picker and a temporary toast | Covered only for editor, markdown-editor and the data table. Their cache safety is `turbo:before-cache`, which a promoted frame visit dispatches with the page still on screen (the editor spec): an open popover beside a data table closes on each page change, or is copied open (`open` is an attribute, reconnected open); Turbo removes `data-turbo-temporary` toasts on the same event. Data tables are the common source of promoted frame visits | A `data-turbo-action="advance"` frame on the popover, date-picker and turbo-restore labs (the turbo-restore lab holds the dropdown and the toast) (the editor lab's `history-steps` pattern) | Overlays |
-| G3 | **dropdown, modal, drawer** beyond Back and Live: Stream replace and update while open, N visits, permanent, frame reload (modal, drawer) | An open dropdown holds document and window listeners; popover has these exact tests (listener counter) and dropdown, the most used overlay, has none | lab.popover's tests, applied to each, with the shared listener counter | Overlays |
+| G3 | ~~**dropdown, modal, drawer** beyond Back and Live~~ **Closed:** lab.overlays runs lab.popover's tests on each (Stream replace and update while open, N visits, permanent, frame reload) with `trackGlobalListeners` and `stimulusControllers`, plus the cached copies on Back and Forward. They found the modal and drawer leaving their trigger `aria-expanded="true"` on a closed dialog after Forward (Turbo copied the page after the dialog disconnected) and in the copy shown on Back, the dropdown's copy shown open, and a drawer reopened after a permanent move showing its trigger collapsed (its late `close` event); each now closes on `turbo:before-cache` (a dialog in a `data-turbo-permanent` element excepted: Turbo moves the live one into the restored page), and the drawer collapses its triggers on its `close` event only when the dialog is still closed | — | Overlays |
 | G4 | **Form widgets' values** across transitions: autocomplete values after Back, permanent and frame advance; data-table-live selection after a visit and Back; calendar, chart and dropzone beside a promoted frame visit; date-picker re-rendered by Live while open | Values are what the user typed or chose; the Back tests check only instance counts (autocomplete) or URL state (data-table-live) | Extend the existing lab specs | Form widgets |
 | G5 | **tabs**: Back, Live re-render, frame, Stream, N visits | The selection is a value attribute the controller writes: the cached copy keeps it, a Live re-render may keep or reset it, nothing says which is wanted. Decide the expected state first | A `tabs-turbo` lab page; arrow keys with the vertical tabs branch | Tabs (after `claude/vtabs`) |
 | G6 | **sidebar**: current item after Back and Forward, storage blocked, open over the page then Back or a resize | A permanent element on a restoration visit, and `localStorage` failing, are untested paths | Extend lab.turbo-nav | Navigation (after `claude/mobile-nav`) |

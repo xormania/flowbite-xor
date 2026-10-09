@@ -119,7 +119,12 @@ await page.evaluate(() => (window as any).Turbo.visit('/lab/nav-menu'));   // pa
 await page.goBack();                                                        // renders the copy of page two
 ```
 
-Here: [`lab.mobile-nav.spec.ts`](../tests/e2e/lab.mobile-nav.spec.ts), [`lab.nav-menu.spec.ts`](../tests/e2e/lab.nav-menu.spec.ts).
+Leave it from Back or Forward too, without a stylesheet to wait for: Turbo then copies the page after the controllers
+disconnected, and whatever `disconnect()` leaves (a dialog closed there, its button still expanded) is what the copy
+holds, and what the new controller starts from.
+
+Here: [`lab.mobile-nav.spec.ts`](../tests/e2e/lab.mobile-nav.spec.ts), [`lab.nav-menu.spec.ts`](../tests/e2e/lab.nav-menu.spec.ts),
+[`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts) (dropdown, modal, drawer).
 
 ### State saved after the snapshot
 
@@ -140,6 +145,26 @@ await expect(treeitem(page, 'Reference')).toHaveAttribute('aria-expanded', 'fals
 ```
 
 Here: [`lab.side-nav.spec.ts`](../tests/e2e/lab.side-nav.spec.ts).
+
+### One controller per element, counted
+
+**Catches:** a controller connected twice to the same element after Turbo visits, Back and the cached copy (a
+listener added to `document`, a second instance from a restored snapshot). Its behavior often hides it: two
+instances setting the same state look like one.
+
+Expose the Stimulus application in the app's own bootstrap (`window.Stimulus = app`, never in a recipe), then
+compare its connected controllers with the elements carrying the identifier:
+
+```ts
+const counts = await page.evaluate((id) => {
+    const controllers = (window as any).Stimulus.controllers.filter((controller: any) => controller.identifier === id);
+    return { controllers: controllers.length, elements: document.querySelectorAll(`[data-controller~="${id}"]`).length };
+}, 'drawer');
+expect(counts.controllers).toBe(counts.elements);
+```
+
+Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`stimulusControllers`),
+[`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts).
 
 ## State × transition
 
@@ -220,7 +245,7 @@ expect(await listeners()).toEqual(baseline);         // { 'document click': 1, '
 ```
 
 Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`trackGlobalListeners`),
-[`lab.tooltip.spec.ts`](../tests/e2e/lab.tooltip.spec.ts); [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts)
+[`lab.tooltip.spec.ts`](../tests/e2e/lab.tooltip.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts); [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts)
 counts the document's click listeners the same way, inline.
 
 ### One controller per element: count what it does
