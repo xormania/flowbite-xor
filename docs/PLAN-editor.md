@@ -1,3 +1,8 @@
+---
+status: shipped
+recipes: editor, markdown-editor
+---
+
 # Plan: F. Rich editor
 
 _2026-10-08. This plan implements F in [`ROADMAP.md`](ROADMAP.md) from the research report the user commissioned

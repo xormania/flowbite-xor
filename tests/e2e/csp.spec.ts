@@ -53,13 +53,8 @@ for (const path of pages) {
     test(`${path} answers with the hardening headers and a nonce-based policy its scripts carry`, async ({ page }) => {
         const { script, style, policy } = await gotoAndCheckPolicy(page, path);
         expect(script).not.toEqual(style);
-        // style attributes: none at all, except the README examples' few, by hash, on their previews
-        if (path.startsWith('/preview/')) {
-            expect(policy.get('style-src-attr')?.[0]).toBe("'unsafe-hashes'");
-            expect(policy.get('style-src-attr')?.slice(1).every((source) => /^'sha256-[\w+/]+=*'$/.test(source))).toBe(true);
-        } else {
-            expect(policy.has('style-src-attr')).toBe(false);
-        }
+        // style attributes: none at all, README previews included (tools/docs-lint.mjs keeps them out of the examples)
+        expect(policy.has('style-src-attr')).toBe(false);
 
         const inPage = await page.evaluate(() => ({
             scripts: [...document.scripts].map((element) => element.nonce),

@@ -90,6 +90,10 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `llms.txt` links the files of the release it was written for (or `dev` before a release), not `main`, and
+  `FOR-AGENTS.md` lists every recipe, written from `README.md`'s tables like `llms.txt`.
+- `dropdown`, `modal`, `drawer`: the README examples size their wrapper with `min-h-*` classes instead of a `style`
+  attribute, which a Content Security Policy blocks.
 - `navbar`: a `nav` block after the brand, for a `NavMenu`, in a `<nav>` named by `navLabel` and shown from `md` up.
 - `layouts`: a `navbar_nav` block, the navbar's menu (`NavMenu:Link`s and `NavMenu:Submenu`s), shown in the navbar
   from `md` and in the mobile nav's drawer below; the recipe now depends on `nav-menu`.

@@ -3,7 +3,7 @@
 The dropdown component can be used to show a list of menu items when clicking on an element such as a button and hiding it when focusing outside of the triggering element.
 
 ```twig {"preview":true}
-<div style="min-height: 304px">
+<div class="min-h-76">
     <twig:Dropdown id="demo" open>
         <twig:Dropdown:Trigger>
             <twig:Button {{ ...dropdown_trigger_attrs }}>
@@ -86,7 +86,7 @@ Use the `̀triggerType="{hover|click}"` prop options to set whether the dropdown
 There’s a 300ms default delay when showing or hiding the dropdown due to UI/UX reasons and how it may affect the interaction with other components on the page. Generally, we recommend using the `click` method.
 
 ```twig {"preview":true}
-<div style="min-height: 304px">
+<div class="min-h-76">
     <twig:Dropdown id="hover" triggerType="hover">
         <twig:Dropdown:Trigger>
             <twig:Button {{ ...dropdown_trigger_attrs }}>
@@ -113,7 +113,7 @@ You can use the `delay={milliseconds}` prop options to set the delay on when to 
 In this example we add 500 milliseconds instead of the default 300.
 
 ```twig {"preview":true}
-<div style="min-height: 304px">
+<div class="min-h-76">
     <twig:Dropdown id="delay" triggerType="hover" delay="500">
         <twig:Dropdown:Trigger>
             <twig:Button {{ ...dropdown_trigger_attrs }}>
@@ -139,7 +139,7 @@ In this example we add 500 milliseconds instead of the default 300.
 You can use multiple `Dropdown:Group`, the `Dropdown:Content` add a divider between the groups.
 
 ```twig {"preview":true}
-<div style="min-height: 504px">
+<div class="min-h-126">
     <twig:Dropdown id="divider">
         <twig:Dropdown:Trigger>
             <twig:Button {{ ...dropdown_trigger_attrs }}>
@@ -168,7 +168,7 @@ You can use multiple `Dropdown:Group`, the `Dropdown:Content` add a divider betw
 Use this example to show extra information outside of the list of menu items inside the dropdown.
 
 ```twig {"preview":true}
-<div style="min-height: 504px">
+<div class="min-h-126">
     <twig:Dropdown id="header">
         <twig:Dropdown:Trigger>
             <twig:Button {{ ...dropdown_trigger_attrs }}>
@@ -219,7 +219,7 @@ Use this example to show extra information outside of the list of menu items ins
 Use this example to enable multi-level dropdown menus by adding stacked elements inside of each other.
 
 ```twig {"preview":true}
-<div style="min-height: 504px">
+<div class="min-h-126">
     <twig:Dropdown id="demo" open>
         <twig:Dropdown:Trigger>
             <twig:Button {{ ...dropdown_trigger_attrs }}>
@@ -256,7 +256,7 @@ Use this example to enable multi-level dropdown menus by adding stacked elements
 Use the menu icon trigger element on components such as cards as an alternative element to the button.
 
 ```twig {"preview":true}
-<div style="min-height: 304px">
+<div class="min-h-76">
     <div class="flex justify-center space-x-4 rtl:space-x-reverse">
         <twig:Dropdown id="icon-vt">
             <twig:Dropdown:Trigger>
@@ -317,7 +317,7 @@ You can also use the `placement={top|right|bottom|left}` prop options to choose 
 By default the positioning is set to the bottom side of the button.
 
 ```twig {"preview":true}
-<div class="flex flex-wrap items-center gap-4" style="min-height: 304px">
+<div class="flex min-h-76 flex-wrap items-center gap-4">
     <twig:Dropdown id="placement-top" placement="top">
         <twig:Dropdown:Trigger>
             <twig:Button {{ ...dropdown_trigger_attrs }}>

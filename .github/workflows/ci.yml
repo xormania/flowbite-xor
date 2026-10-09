@@ -269,6 +269,10 @@ jobs:
                       exit 1
                   fi
 
+            # the sources against the saved pages: a recipe or a README example without its page fails
+            - name: Every recipe and README example has its saved pages
+              run: node tools/fence-coverage.mjs --site _site
+
     fresh-install:
         name: Fresh install
         needs: changes
@@ -330,6 +334,12 @@ jobs:
 
             - name: llms.txt matches README.md's recipe tables
               run: node tools/llms-txt.mjs --check
+
+            - name: The markdown teaches no Flowbite JS, palette color, inline handler or style
+              run: node tools/docs-lint.mjs
+
+            - name: Every README example is one the demo reads
+              run: node tools/fence-coverage.mjs
 
     demo:
         name: Demo + Playwright (${{ matrix.shard }}/3)

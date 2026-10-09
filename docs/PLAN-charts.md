@@ -1,3 +1,8 @@
+---
+status: shipped
+recipes: chart
+---
+
 # Plan: E1. Charts
 
 _2026-10-08. This plan implements the E1 decision in [`ROADMAP.md`](ROADMAP.md): UX Chart.js, a theme bridge that reads the theme's CSS variables into the chart options and redraws on light/dark, an accessible data table with every chart, and the CSP, Turbo, Live and teardown gates. It adds one recipe, `chart`, plus six chart color roles in the theme. Decided with the user on 2026-10-08: every recommended answer to the open questions at the end._

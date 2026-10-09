@@ -13,7 +13,8 @@ and pull request standard.
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
 | `tools/demo-php` | no | runs PHP in the demo's container, for the Playwright specs (`DEMO_URL`) |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
-| `tools/llms-txt.mjs` | no | writes `llms.txt` from `README.md`'s recipe tables |
+| `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
+| `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
 | `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations and `failed-attempts.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
 | `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
@@ -78,12 +79,14 @@ change to both paths.
 
 | A change to | runs |
 |---|---|
-| `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md`, `FOR-AGENTS.md`, `SECURITY.md`, `LICENSE`, `NOTICE`, `.github/pull_request_template.md`, `.github/dependabot.yml` | nothing |
+| `LICENSE`, `NOTICE`, `.github/dependabot.yml` | nothing |
+| `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md`, `FOR-AGENTS.md`, `SECURITY.md`, `.github/pull_request_template.md` | *Contrast*, which checks the docs (*Docs*) |
 | a recipe, `kit.js`, `manifest.json`, `.gitattributes`, any path no other row names | *Lint kit*, *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
-| `kit.css`, `theme/`, `README.md`, a recipe's `README.md` | the same and *Contrast* |
+| `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md` | the same and *Contrast* |
 | `tests/`, `playwright.config.ts`, a recipe's `tests/`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
 | `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
-| `tools/contrast/`, `tools/llms-txt.mjs`, `llms.txt` | *Contrast* |
+| `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `llms.txt` | *Contrast* |
+| `tools/fence-coverage.mjs` | *Contrast*, *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
 | `tools/release-plan.sh`, `tools/tests/release-plan.sh` | *Workflows* |
 | `tools/tests/fresh-install.sh`, `check-fresh-app.sh`, `docker-install.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
@@ -111,7 +114,9 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
-node tools/llms-txt.mjs --check                     # llms.txt matches README.md's recipe tables (without --check: rewrites it)
+node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
+node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles (see Docs)
+node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
 node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer (tools/ci/playwright-summary.mjs)
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
@@ -152,7 +157,7 @@ Every test of both projects blocks requests leaving the demo, and fails on a con
 request that fails or answers >= 400, or a Content Security Policy violation (`tests/e2e/fixtures.ts`).
 The demo enforces a strict policy (`demo/src/EventListener/SecurityHeadersListener.php`): scripts and styles run
 only with the request's nonces, which the layouts print (`layouts/README.md`), and no inline event handler or style
-attribute runs, except the few style attributes of README examples it lists.
+attribute runs, README previews included.
 
 Against the Docker demo, run `DEMO_URL=https://localhost npx playwright test`: the specs then run PHP in the
 container (`tools/demo-php`). Without `DEMO_URL`, Playwright serves the demo itself with `php -S 127.0.0.1:8000`.
@@ -259,10 +264,66 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
    If the recipe puts a text, icon or bar color on a background that `tools/contrast/pairs.json` does not cover yet,
    add a row there: `fg`, `bg`, `min` (4.5 for text, 3 for icons, bars and focus rings) and `usage`.
 7. Add a row for the recipe to the matching table under *Recipes* in `README.md` (mark it ✦ if it ships a Stimulus
-   controller), run `node tools/llms-txt.mjs` to add it to `llms.txt`, and add an entry to `CHANGELOG.md` (see
-   *Changelog*). If agents need it for a common task, add it to *Which recipe* in `FOR-AGENTS.md`. Commit, then run
+   controller), run `node tools/llms-txt.mjs` to add it to `llms.txt` and to `FOR-AGENTS.md`'s table, and add an
+   entry to `CHANGELOG.md` (see *Changelog*). If it is close to another recipe, say which to pick in the list under
+   that table (*Which recipe*). Commit, then run
    the checks that cover a new recipe: the kit lint, `ux-toolkit-kit-debug`, `node tools/contrast/check.mjs` if you added pairs, and
    `npx playwright test`. CI runs all of them.
+
+## Docs
+
+The lists of recipes that agents read are written from `README.md`'s recipe tables by `tools/llms-txt.mjs`: edit a
+row there, never the copies, then run `node tools/llms-txt.mjs` and commit what it writes. CI's *Contrast* job runs
+it with `--check`, which fails when:
+
+- a directory with a `manifest.json` is missing from the tables, listed twice, or a row names no recipe;
+- a plan's status does not match the recipes that ship (*Plans* below);
+- `llms.txt`, or the table between `<!-- recipes:start` and `<!-- recipes:end -->` in `FOR-AGENTS.md`, is not what
+  the script writes;
+- `FOR-AGENTS.md` or `docs/PROJECT-AGENTS-SNIPPET.md` names a recipe that does not exist (`ux:install <name>`, a
+  `<name>/README.md` link).
+
+`llms.txt` links the raw files of the tree it describes, never `main`: the version of the newest `## [X.Y.Z]`
+heading in `CHANGELOG.md` (the tag `release.yml` puts on the commit that adds it), or `dev` while
+`## [Unreleased]` has entries. A release pull request therefore rewrites it to the new tag, and the first pull
+request that adds an unreleased entry after a release rewrites it back to `dev`: `--check` says when.
+
+**What the docs teach.** Agents copy examples from the markdown, so `node tools/docs-lint.mjs` (also in *Contrast*)
+fails a code block, in any markdown file outside `demo/`, that shows `initFlowbite`, `import 'flowbite'` or a
+`flowbite.js` file; a palette color (a color utility naming a Tailwind palette color that is not a theme role, from
+`tailwindcss/theme.css` and `kit.css` as the contrast check reads them: `bg-blue-700`, `text-white`); a `dark:` color
+override; an inline `on…=` handler; or a `style=` attribute. Raw HTML in prose counts too. Inline code does not: the
+rules quote what they forbid there. A block that shows what not to do says so after its language:
+
+````markdown
+```twig do-not
+<button onclick="openMenu()">Menu</button>
+```
+````
+
+A `markdown` block is read as a document: its code blocks are checked, its prose is not.
+
+**Every example has its page.** `node tools/fence-coverage.mjs` (in *Contrast*) reads each recipe's README as the
+demo does (`demo/src/Kit/KitReader.php`): a block opening at the start of a line with
+```` ```<language> {"preview":true} ```` is an example, named after the heading above it. A block that looks like
+one but that the demo skips (indented in a list, JSON that does not parse, `"preview"` not `true`) fails, and so does
+a recipe without a README. *Static site* runs it again with `--site _site` after `app:export-static`: every recipe
+needs its `r/<recipe>/` page and a link from the index, every example its light and dark preview pages, and a saved
+page that no source names fails too.
+
+**Plans.** `docs/PLAN-*.md` and `docs/ROADMAP.md` record decisions; they are not instructions. Each plan opens
+with front matter naming its status and the recipes it adds:
+
+```yaml
+---
+status: open        # open, shipped or abandoned
+recipes: chart      # comma-separated, or none for a plan that adds no recipe
+---
+```
+
+The roadmap's *Sequence* table has the same two columns per package. `--check` fails an `open` plan or roadmap row
+whose recipes are all in `README.md`'s tables, and a `shipped` one naming a recipe that is not: the pull request
+that adds a plan's last recipe marks the plan `shipped`. `llms.txt` never links a plan that is not `open`.
 
 ## Screenshots
 
@@ -312,7 +373,7 @@ install a `v` tag (see [`docs/NOTES.md`](docs/NOTES.md)). The version is declare
 
 A release is a pull request from `dev` to `main`, opened as a draft when the maintainer decides to release. Its own
 commit moves the entries under `## [Unreleased]` to the new `## [X.Y.Z] - YYYY-MM-DD` section and updates the compare
-links at the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor
+links at the bottom. It also runs `node tools/llms-txt.mjs`, which points `llms.txt`'s links at the new tag (*Docs*). Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor
 version, *Removed* or anything that breaks an installed recipe a major version (a minor one while the version is
 `0.x`). CI runs on this pull request like on any other. The release checks (`docs/PLAN-test-tiers.md`: timings,
 harsh conditions, long sessions, fuzzing) will run on it too, and `main`'s ruleset will require them, once their

@@ -24,9 +24,11 @@ while IFS= read -r path; do
         # The workflow and this script decide what runs: a change to either runs everything
         .github/workflows/ci.yml | tools/ci-changes.sh | tools/tests/ci-changes.sh) all ;;
 
-        # Read by people only: no job checks them
-        docs/* | CHANGELOG.md | CONTRIBUTING.md | FOR-AGENTS.md | AGENTS.md | SECURITY.md | LICENSE | NOTICE) ;;
-        .github/pull_request_template.md | .github/dependabot.yml) ;;
+        # Read by people and agents: Contrast checks the generated lists, the plans' status (tools/llms-txt.mjs
+        # reads CHANGELOG.md for the links' ref) and what the markdown teaches (tools/docs-lint.mjs)
+        docs/* | CHANGELOG.md | CONTRIBUTING.md | FOR-AGENTS.md | AGENTS.md | SECURITY.md) on contrast ;;
+        .github/pull_request_template.md) on contrast ;;
+        LICENSE | NOTICE | .github/dependabot.yml) ;;
 
         # The other workflows. CI cannot run them (they deploy, tag or upload), so it runs the jobs that run what they
         # run: pages.yml builds the static site, release.yml checks the install from GitHub (docker-install.sh) and
@@ -41,7 +43,8 @@ while IFS= read -r path; do
         package.json | package-lock.json) on contrast demo ;;
 
         # Repository tools, each with the jobs that run it
-        tools/contrast/* | tools/llms-txt.mjs | llms.txt) on contrast ;;
+        tools/contrast/* | tools/llms-txt.mjs | tools/docs-lint.mjs | llms.txt) on contrast ;;
+        tools/fence-coverage.mjs) on contrast static-site ;;
         tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh) on fresh-install ;;
         tools/tests/live-action.php | tools/tests/fixtures/fresh-app/*) on fresh-install ;;
         tools/tests/sync-demo.sh | tools/tests/fixtures/sync-kit/*) on demo ;;
@@ -62,7 +65,7 @@ while IFS= read -r path; do
         *)
             on lint-kit php static-site fresh-install demo
             case "$path" in
-                kit.css | theme/* | README.md | */README.md) on contrast ;;
+                kit.css | theme/* | README.md | */README.md | INSTALL.md) on contrast ;;
             esac
             ;;
     esac

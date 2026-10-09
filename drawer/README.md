@@ -3,7 +3,7 @@
 A panel sliding over one side of the page, for navigation, filters or details, as a native `<dialog>`.
 
 ```twig {"preview":true}
-<div style="min-height: 360px">
+<div class="min-h-90">
     <twig:Drawer id="filters" open>
         <twig:Drawer:Trigger>
             <twig:Button variant="outline" {{ ...drawer_trigger_attrs }}>Filters</twig:Button>
