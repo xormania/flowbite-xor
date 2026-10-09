@@ -93,7 +93,7 @@ change to both paths.
 | `tools/build-static.sh` | *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
 | `tools/release-plan.sh`, `tools/tests/release-plan.sh` | *Workflows* |
-| `tools/tests/fresh-install.sh`, `check-fresh-app.sh`, `docker-install.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
+| `tools/tests/fresh-install.sh`, `docker-install.sh`, their shared steps `install-scenario.sh`, `check-fresh-app.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
 | any other file in `tools/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
 | `demo/compose.yaml`, `demo/frankenphp/Caddyfile` | *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
 | any other file in `demo/` | *Kit PHP*, *Static site*, *Demo + Playwright* |

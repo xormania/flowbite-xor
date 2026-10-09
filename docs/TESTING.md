@@ -723,9 +723,13 @@ and lab.nav-menu.
 `src/` that does not boot.
 
 A script creates a new Symfony app, installs the kit as users do, and fetches its pages and a Live action with
-`curl`, without a browser.
+`curl`, without a browser. Two scripts do it: on a Symfony skeleton with the kit from the last commit, and in a Symfony
+Docker project with the kit from GitHub. They share the steps a user takes (the packages, the recipes in order, the app
+they write); each keeps where the app runs, where the kit comes from and how the app is served.
 
-Here: [`fresh-install.sh`](../tools/tests/fresh-install.sh), [`check-fresh-app.sh`](../tools/tests/check-fresh-app.sh).
+Here: [`fresh-install.sh`](../tools/tests/fresh-install.sh), [`docker-install.sh`](../tools/tests/docker-install.sh),
+their shared steps [`install-scenario.sh`](../tools/tests/install-scenario.sh),
+[`check-fresh-app.sh`](../tools/tests/check-fresh-app.sh).
 
 ### Locked and moving lanes
 

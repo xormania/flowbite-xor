@@ -84,6 +84,7 @@ check 'contrast'                  tools/contrast/pairs.json
 check 'php static-site demo'      demo/src/Demo/DataTableCollector.php
 check 'php'                       tools/phpstan.neon
 check 'fresh-install'             tools/tests/fresh-install.sh
+check 'fresh-install'             tools/tests/install-scenario.sh
 check 'fresh-install'             tools/tests/live-action.php
 check 'fresh-install'             tools/tests/fixtures/fresh-app/templates/home.html.twig
 check 'demo'                      tools/tests/fixtures/sync-kit/manifest.json

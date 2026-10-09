@@ -47,6 +47,7 @@ while IFS= read -r path; do
         tools/fence-coverage.mjs) on contrast static-site ;;
         tools/build-static.sh) on static-site ;;
         tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh) on fresh-install ;;
+        tools/tests/install-scenario.sh) on fresh-install ;;
         tools/tests/live-action.php | tools/tests/fixtures/fresh-app/*) on fresh-install ;;
         tools/tests/sync-demo.sh | tools/tests/fixtures/sync-kit/*) on demo ;;
         tools/phpstan.neon) on php ;;
