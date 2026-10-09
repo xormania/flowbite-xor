@@ -220,12 +220,12 @@ compare its connected controllers with the elements carrying the identifier:
 const counts = await page.evaluate((id) => {
     const controllers = (window as any).Stimulus.controllers.filter((controller: any) => controller.identifier === id);
     return { controllers: controllers.length, elements: document.querySelectorAll(`[data-controller~="${id}"]`).length };
-}, 'drawer');
+}, 'section-nav');
 expect(counts.controllers).toBe(counts.elements);
 ```
 
 Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`stimulusControllers`),
-[`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts).
+[`lab.section-nav.spec.ts`](../tests/e2e/lab.section-nav.spec.ts), [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts).
 
 ## State × transition
 

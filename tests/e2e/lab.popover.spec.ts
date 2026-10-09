@@ -213,3 +213,41 @@ test('turbo:before-cache closes an open popover before a Turbo visit copies the 
     // the last body rendered is the copy of step 1, taken after turbo:before-cache: closed before any controller connects
     expect((await page.evaluate(() => (window as any).__copies as string[])).at(-1)).toBe('false');
 });
+
+test('a popover opened by the user and moved in the DOM stays open, with one controller and its listener', async ({ page }) => {
+    await page.goto('/lab/popover-turbo');
+    const baseline = await documentClicks(page);
+    const trigger = page.getByRole('button', { name: 'Details' });
+    const dialog = page.getByRole('dialog', { name: 'Details' });
+    await trigger.click();
+    await expect(dialog).toBeVisible();
+
+    // detached and inserted again, as a DOM move or a morph does: the same controller reconnects
+    await trigger.evaluate((element) => {
+        const popover = element.closest('[data-controller~="popover"]')!;
+        popover.parentElement!.append(popover);
+    });
+    await expect(dialog).toBeVisible();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(await documentClicks(page)).toBe(baseline + 1);
+    await trigger.click();
+    await expect(dialog).toBeHidden();
+    expect(await documentClicks(page)).toBe(baseline);
+});
+
+test('a popover rendered open beside a frame visit promoted to history stays open; Back shows it closed', async ({ page }) => {
+    await page.goto('/lab/popover-turbo?open=1');
+    const trigger = page.getByRole('button', { name: 'Steps' });
+    const dialog = page.getByRole('dialog', { name: 'Steps' });
+    await expect(dialog).toBeVisible();
+
+    await stepFromCode(page, 1);
+    await expect(dialog).toBeVisible();
+
+    // the copy was taken open as the frame visit started: Back shows it closed, as after any Turbo cache
+    await back(page, { step: 0 });
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await trigger.click();
+    await expect(dialog).toBeVisible();
+});

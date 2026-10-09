@@ -59,7 +59,8 @@ the transition cannot change the recipe's state, not that it is untested.
 | toast | lab.turbo-restore, demo-app | · | G10 | · | lab.turbo-stream-toast, lab.turbo-restore | · | lab.turbo-restore | lab.turbo-stream-toast, lab.turbo-nav | · | css | · |
 | alert | G10 | · | · | · | · | · | · | G10 | G10 | css | · |
 | avatar | avatar | · | · | · | · | · | · | · | · | · | · |
-| tabs | G5 | · | · | G5 | · | G5 | · | G5 | G5 | css | · |
+| tabs | lab.section-nav | · | lab.section-nav | lab.section-nav | · | G5 | · | G5 (removing the selected tab: lab.section-nav) | G5 | css | · |
+| section-nav | lab.section-nav | · | lab.section-nav | lab.section-nav | lab.section-nav | · | · | · | · | css | · |
 | dropdown | lab.turbo-restore, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.turbo-frame-detail, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.live-dropdown, lab.live-table | T3 | · |
 | modal | lab.turbo-restore, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.live-modal | T3 | · |
 | drawer | lab.turbo-restore, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.live-drawer | T3 | · |
@@ -182,10 +183,29 @@ States: the selected tab and its panel (`data-tabs-active-tab-value`), a disable
 |---|---|---|
 | Default tab on load; click; Enter and Space; disabled out of reach; list without panels | E2E demo | recipe:tabs (5 tests) |
 | Click, horizontal, pills, vertical | screenshot | shot:tabs (3 × 2 themes) |
-| Arrow keys (WAI-ARIA tabs) | | pending (vertical tabs branch) |
-| Selected tab after Back (the value attribute is in the cached copy: decide whether that is wanted) | | G5 |
+| Arrow keys of the list's orientation, Home, End, roving Tab stop, disabled skipped, `aria-orientation` | E2E lab, preview | lab.section-nav "the vertical tabs follow the keyboard of the tabs pattern…", "horizontal tabs take Left and Right instead…" |
+| Selected tab after Back (kept: the value attribute is in the cached copy), default after a visit or reload | E2E lab | lab.section-nav "Turbo visits, Back, Forward and a reload show the section and the tab of the page shown" |
+| N visits: one controller per tab list | E2E lab | lab.section-nav "repeated Turbo visits leave one controller per navigation and tab list" |
+| The selected tab removed: another tab is the Tab stop; the controller disconnected: the rendered tabindex is back | E2E preview | lab.section-nav "horizontal tabs take Left and Right instead…" |
+| Tab moves on to the panel (a Tab stop), plain-text panels included; the selected tab disabled in place hands the selection and the Tab stop on | E2E lab, preview | lab.section-nav "the vertical tabs follow the keyboard…", "a panel with no focusable content is a Tab stop after its tab" |
 | Live re-render with a tab selected by the browser | | G5 |
-| Frame reload, Stream replace, N visits | | G5 |
+| Frame reload, Stream replace | | G5 |
+
+### section-nav
+
+States: the current section (`aria-current="page"`, from the server or the URL), the strip's scroll on small screens.
+
+| Transition | Scope | Covered by |
+|---|---|---|
+| A landmark of links, the current one marked, no tab roles, in each viewport | E2E lab | lab.section-nav "the section nav is a landmark of links…" (2) |
+| Visit, Back over the cached copy, Forward, reload; in a permanent element, marked from the URL | E2E lab | lab.section-nav "Turbo visits, Back, Forward and a reload…" (2) |
+| A fragment link never current | E2E lab | lab.section-nav "a link to a fragment of the page is never the current section" (2) |
+| N visits | E2E lab | lab.section-nav "repeated Turbo visits leave one controller per navigation and tab list" (2) |
+| Disconnected: the rendered current state is back | E2E lab | lab.section-nav "a controller disconnected from a navigation that stays…" |
+| Plain links in the Tab order, Enter visits | E2E lab | lab.section-nav "the section nav is plain links in the Tab order…" |
+| A strip that scrolls to the current section on phones, a column on desktops | E2E lab | lab.section-nav (2) |
+| The demo's settings pages | E2E demo | lab.section-nav "the demo's settings pages mark their section on the server and visit each other" |
+| axe, both themes × systems × viewports | E2E lab | lab.section-nav (8) |
 
 ### dropdown, modal, drawer (overlays)
 
@@ -226,7 +246,8 @@ States: closed or open (`open` value, an attribute Live keeps), focus inside, gr
 | Open, visit, Back | E2E lab | lab.popover "an open popover is closed after a Turbo visit and Back, and still works" |
 | N visits, no document listener left | E2E lab | lab.popover "repeated Turbo visits leave one controller per popover and no document listener behind" |
 | Permanent, frame ×3, Stream replace and update, Live re-render | E2E lab | lab.popover (4 tests) |
-| Open beside a frame visit promoted to history, started from a link inside it or from the page's code: stays open with the focus; Back and Forward show it closed from the first frame, no listener left (failed before the fix: it closed, the focus fell to `<body>`, Back showed it open) | E2E lab | lab.popover "a popover whose link steps a frame promoted to history…", "a popover open while the page code steps…", "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…" |
+| Open beside a frame visit promoted to history, started from a link inside it or from the page's code: stays open with the focus; Back and Forward show it closed from the first frame, no listener left (failed before the fix: it closed, the focus fell to `<body>`, Back showed it open) | E2E lab | lab.popover "a popover whose link steps a frame promoted to history…", "a popover open while the page code steps…", "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…", "a popover rendered open beside a frame visit promoted to history…" |
+| Opened, then moved in the DOM (the same controller reconnects): stays open, one listener | E2E lab | lab.popover "a popover opened by the user and moved in the DOM stays open…" |
 
 The editor's link dialog is a Popover: its cells are the popover's.
 
@@ -333,7 +354,7 @@ Rows to fill by the pull request that lands each branch, in its coverage map. Th
 |---|---|---|
 | `claude/mobile-nav` (the app's navigation in a drawer on small screens) | sidebar, navbar, drawer, layouts | sidebar's mobile rows, drawer, G6 |
 | navbar dropdown submenus | navbar, dropdown | dropdown's submenu states and keys (G7) |
-| `claude/vtabs` (vertical tabs) | tabs | tabs' orientation and arrow keys, G5 |
+| `claude/vtabs` (vertical tabs, section-nav) | tabs, layouts | tabs' keyboard, Back and N visits covered; G5 narrowed to Live, frame reload and Stream |
 
 ## Redundancy
 
@@ -381,7 +402,7 @@ a browser, so E2E lab, on the existing scaffold.
 | G2 | ~~**Frame visit promoted to history** beside popover, dropdown, date-picker and a temporary toast~~ **Closed:** popover and date-picker skip their `turbo:before-cache` close for a promoted frame visit (`isPromotedFrameCache()`) and close a copy the browser opened as it connects; toast is no longer `data-turbo-temporary` and leaves a copy as it connects; lab.popover, lab.date-picker, lab.turbo-restore cover it (`history-steps` frame on the three labs). Was: | Covered only for editor, markdown-editor and the data table. Their cache safety is `turbo:before-cache`, which a promoted frame visit dispatches with the page still on screen (the editor spec): an open popover beside a data table closes on each page change, or is copied open (`open` is an attribute, reconnected open); Turbo removes `data-turbo-temporary` toasts on the same event. Data tables are the common source of promoted frame visits | A `data-turbo-action="advance"` frame on the popover, date-picker and turbo-restore labs (the turbo-restore lab holds the dropdown and the toast) (the editor lab's `history-steps` pattern) | Overlays |
 | G3 | ~~**dropdown, modal, drawer** beyond Back and Live~~ **Closed:** lab.overlays runs lab.popover's tests on each (Stream replace and update while open, N visits, permanent, frame reload) with `trackGlobalListeners` and `stimulusControllers`, plus the cached copies on Back and Forward. They found the modal and drawer leaving their trigger `aria-expanded="true"` on a closed dialog after Forward (Turbo copied the page after the dialog disconnected) and in the copy shown on Back, the dropdown's copy shown open, and a drawer reopened after a permanent move showing its trigger collapsed (its late `close` event); each now closes on `turbo:before-cache` (a dialog in a `data-turbo-permanent` element excepted: Turbo moves the live one into the restored page; a frame visit promoted to history excepted too, `isPromotedFrameCache()`, its copy closed as it connects), and the drawer collapses its triggers on its `close` event only when the dialog is still closed | — | Overlays |
 | G4 | **Form widgets' values** across transitions: autocomplete values after Back, permanent and frame advance; data-table-live selection after a visit and Back; calendar, chart and dropzone beside a promoted frame visit; date-picker re-rendered by Live while open | Values are what the user typed or chose; the Back tests check only instance counts (autocomplete) or URL state (data-table-live) | Extend the existing lab specs | Form widgets |
-| G5 | **tabs**: Back, Live re-render, frame, Stream, N visits | The selection is a value attribute the controller writes: the cached copy keeps it, a Live re-render may keep or reset it, nothing says which is wanted. Decide the expected state first | A `tabs-turbo` lab page; arrow keys with the vertical tabs branch | Tabs (after `claude/vtabs`) |
+| G5 | **tabs**: Live re-render, frame reload, Stream replace (Back, N visits and the keyboard are covered by lab.section-nav: Back keeps the selected tab) | A Live re-render may keep or reset the value attribute the controller writes; nothing says which is wanted yet. Decide the expected state first | A `tabs-turbo` lab page with a Framed copy, a Stream and a Live component | Tabs |
 | G6 | **sidebar**: current item after Back and Forward, storage blocked, open over the page then Back or a resize | A permanent element on a restoration visit, and `localStorage` failing, are untested paths | Extend lab.turbo-nav | Navigation (after `claude/mobile-nav`) |
 | G7 | **dropdown keys and placement**: Home, End, Tab, submenus, flip and shift | The submenu code exists and is unexercised; placement is shared with popover, whose flip test is the model | E2E demo on the dropdown previews | Overlays, or the navbar submenus branch |
 | G8 | **drawer** own interactions: backdrop click, open on load, moved in the DOM | Modal has them in its recipe spec; the drawer copies its logic without the tests | A drawer recipe spec mirroring modal's | Overlays |

@@ -11,6 +11,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   depth; opening one closes the others, Escape closes the innermost and focuses its button, a click outside, the
   focus leaving and Turbo caching the page close them all; the current page and its submenus are marked, a submenu
   near the edge opens towards the other side, and the same menu opens in place in a `MobileNav`.
+- `section-nav`: vertical tabs that navigate between the pages of one area (settings): links with
+  `aria-current="page"` marked by the server or from the URL, a column on large screens and a strip that scrolls
+  sideways, with the current section in view, on small ones.
 - `mobile-nav`: the app's navigation on small screens, in a modal `Drawer` opened by a menu button in the `Navbar`
   (`menu` block); the focus goes to the current page, and the drawer closes on a link, Escape, the backdrop, before
   Turbo caches the page and when the screen grows to the sidebar's width.
@@ -50,8 +53,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 - `popover`, `date-picker`: beside a frame whose visits are promoted to history (a data table's pages), an open popover
   or picker no longer closes and drops the focus when the frame changes, and Back no longer shows it open: on
-  `turbo:before-cache`, `closeSilently` now skips a frame visit promoted to history, and a copy of the page holding a
-  popover the browser opened connects closed.
+  `turbo:before-cache`, `closeSilently` now skips a frame visit promoted to history, and a popover open in a copy of
+  the page (rendered open or opened since) connects closed, while one moved in the DOM stays open.
 - `toast`: a toast outside the region stays on screen while such a frame changes, and Back no longer shows it again; it
   is no longer marked `data-turbo-temporary`.
 - `tooltip`: a tooltip shown when its link visited another page (or when a frame visit was promoted to history) came
@@ -85,6 +88,12 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 - `navbar`: a `nav` block after the brand, for a `NavMenu`, in a `<nav>` named by `navLabel` and shown from `md` up.
 - `layouts`: a `navbar_nav` block, the navbar's menu (`NavMenu:Link`s and `NavMenu:Submenu`s), shown in the navbar
   from `md` and in the mobile nav's drawer below; the recipe now depends on `nav-menu`.
+- `tabs`: the keyboard of the WAI-ARIA tabs pattern: the selected tab is the list's one Tab stop, the arrow keys of
+  the list's orientation (Up and Down in a vertical list, which now has `aria-orientation`) select the previous and
+  next tab, Home and End the first and last, skipping disabled tabs; an `idPrefix` prop keeps two `Tabs` of a page
+  from sharing ids.
+- `layouts`: the `settings` layout renders its navigation with `section-nav`; fill `settings_nav` with
+  `SectionNav:Item`s (plain `<li><a>` items still render, without the controller's marking).
 - `layouts`: on small screens, the app layout's menu button opens the `sidebar` block's navigation in a `MobileNav`
   (a modal drawer) instead of the `Sidebar` over the page; the recipe now depends on `mobile-nav`.
 - `navbar`: a `menu` block, at the start of the bar, for a `MobileNav`.

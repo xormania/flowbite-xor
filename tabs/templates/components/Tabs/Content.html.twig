@@ -3,7 +3,7 @@
     value
 -%}
 
-{%- set _tab_id = 'tab-' ~ value -%}
+{%- set _tab_id = (idPrefix ?? 'tab') ~ '-' ~ value -%}
 {%- set _tab_content_id = _tab_id ~ '-description' -%}
 {%- set open = defaultValue is same as(value) -%}
 <div
@@ -14,6 +14,7 @@
     aria-labelledby="{{ _tab_id }}"
     data-state="{{ open ? 'active' : 'inactive' }}"
     {{ attributes.defaults({
+        tabindex: '0',
         class: 'data-[state=inactive]:hidden'|tailwind_classes,
     }) }}
 >

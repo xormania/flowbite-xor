@@ -125,6 +125,22 @@ export async function turboVisitDone(page: Page): Promise<void> {
 }
 
 /**
+ * The connected Stimulus controllers of `identifier`, and the elements carrying it: after repeated Turbo visits, each
+ * element must have exactly one. Reads the demo's application (`window.Stimulus`, set in
+ * demo/assets/stimulus_bootstrap.js).
+ */
+export async function stimulusControllers(page: Page, identifier: string): Promise<{ controllers: number; elements: number; distinctElements: number }> {
+    return page.evaluate((id) => {
+        const controllers = ((window as any).Stimulus.controllers as { identifier: string; element: Element }[]).filter((controller) => controller.identifier === id);
+        return {
+            controllers: controllers.length,
+            elements: document.querySelectorAll(`[data-controller~="${id}"]`).length,
+            distinctElements: new Set(controllers.map((controller) => controller.element)).size,
+        };
+    }, identifier);
+}
+
+/**
  * Counts the listeners the page's scripts put on `document` and `window`, by `<target> <type>` (`document click`,
  * `window resize capture`): those added minus those removed, from the start of each page. Playwright's own listeners
  * (added by scripts without a URL) are left out. Call it before the first `goto`, take a baseline once the page has

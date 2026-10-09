@@ -19,8 +19,9 @@ function isPromotedFrameCache() {
  * re-renders. Before Turbo caches the page, an open popover closes, so Back never restores it open. A
  * frame visit promoted to history (`data-turbo-action="advance"`, a data table's pages) dispatches
  * `turbo:before-cache` too, but keeps the page on screen and caches a copy taken when it started: the
- * popover then stays open, with the focus, and the copy is closed as it connects (while the browser has
- * it open, the element carries `data-popover-opened`).
+ * popover then stays open, with the focus, and the copy is closed as it connects (while it is open on
+ * screen, rendered open or opened since, the element carries `data-popover-opened`; a new controller on
+ * an element carrying it is a copy, while the same controller reconnecting after a DOM move stays open).
  * The document listeners exist only while it is open, and are removed when it closes or disconnects.
  * Before moving the focus, it dispatches a cancelable `popover:focus` on its element (detail: `content`):
  * cancel it to place the focus yourself; the popover stays open.
@@ -49,15 +50,17 @@ export default class extends Controller {
     };
 
     #connected = false;
+    #connectedBefore = false;
     #listening = false;
 
     connect() {
         this.#connected = true;
-        // opened by the browser before this connect: a cached copy of the page (or the element moved), shown closed
-        if (this.element.hasAttribute('data-popover-opened')) {
-            this.element.removeAttribute('data-popover-opened');
+        // open in this browser before, but not by this controller: a copy of the page Turbo cached, shown closed. A
+        // reconnect of the same element (moved in the DOM, a morph) keeps its controller, and stays open
+        if (!this.#connectedBefore && this.element.hasAttribute('data-popover-opened')) {
             this.openValue = false;
         }
+        this.#connectedBefore = true;
         this.#render();
     }
 
@@ -75,7 +78,6 @@ export default class extends Controller {
         if (!open || undefined === previous) {
             return;
         }
-        this.element.setAttribute('data-popover-opened', '');
         if (this.nameValue) {
             window.dispatchEvent(new CustomEvent('popover:open', { detail: { name: this.nameValue, source: this.element } }));
         }
@@ -149,11 +151,12 @@ export default class extends Controller {
         const content = this.contentTarget;
         content.dataset.state = state;
         content.hidden = !open;
+        // open on screen, whether rendered open or opened since: a copy of the page taken now connects closed
+        this.element.toggleAttribute('data-popover-opened', open);
         if (open) {
             this.#listen();
             this.position();
         } else {
-            this.element.removeAttribute('data-popover-opened');
             this.#unlisten();
         }
     }
