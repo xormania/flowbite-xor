@@ -227,6 +227,39 @@ export async function reload(page: Page, then: Shown): Promise<void> {
     await shown(page, then);
 }
 
+/**
+ * Holds each request of the page for `url`, a stylesheet the next page links and the page it leaves lacks, until Turbo
+ * has copied the page it leaves into its cache: the order a slow stylesheet gives in production, on every run. Turbo
+ * dispatches `turbo:before-cache`, copies the page on the next task, and renders the new page once its new stylesheets
+ * have loaded; held, the stylesheet keeps the page it leaves on screen, its controllers connected, until the copy is
+ * taken. A request of a document Turbo has not copied (its own load, a reload) goes on at once. Returns how many
+ * requests went on only once Turbo had copied the page: 0 means the order was not forced.
+ */
+export async function holdUntilCopied(page: Page, url: string): Promise<() => number> {
+    await page.addInitScript(() => {
+        const copies = ((window as any).__turboCopies = { started: 0, done: 0 });
+        document.addEventListener('turbo:before-cache', () => {
+            copies.started++;
+            // Turbo copies the page in a task it queues once this listener has returned: done two tasks from here
+            setTimeout(() => setTimeout(() => copies.done++));
+        });
+    });
+    let held = 0;
+    await page.route(url, async (route) => {
+        // during a document's load there is nothing to evaluate in yet, and no copy to wait for
+        const copying = await page.evaluate(() => (window as any).__turboCopies?.started > 0).catch(() => false);
+        if (copying) {
+            await page.waitForFunction(() => {
+                const copies = (window as any).__turboCopies;
+                return copies.done === copies.started;
+            });
+            held++;
+        }
+        await route.fallback();
+    });
+    return () => held;
+}
+
 /** Visits page two from page one with `Go to page two`, then goes Back: the scaffold's most common round trip. */
 export async function visitAndBack(page: Page, { link = 'Go to page two', there = 'Page two', here = 'Page one' } = {}): Promise<void> {
     await visit(page, link, there);

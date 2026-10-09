@@ -143,14 +143,14 @@ Here: [`tests/e2e/transitions.ts`](../tests/e2e/transitions.ts), used by the `la
 
 **Catches:** components that come back broken after Back: an open menu or dialog in the snapshot, an editor
 rebuilt over its own markup, a form field reset by a component library. The order of Turbo's snapshot and the
-controllers' `disconnect()` depends on timing; a delayed stylesheet on the next page forces the production order.
+controllers' `disconnect()` depends on timing; a stylesheet on the next page, held until Turbo has copied the page it
+leaves (`holdUntilCopied`, an event barrier rather than a delay), forces the production order on every run.
 
 ```ts
-await page.route('**/slow.css', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    await route.fallback();
-});
-// open the overlay, follow a link inside it to a page that links slow.css, go Back:
+const held = await holdUntilCopied(page, '**/lab/slow.css');
+// open the overlay, follow a link inside it to a page that links slow.css:
+expect(held()).toBe(1);   // the order was forced: no stylesheet request, no order
+// go Back:
 await expect(dialog).not.toHaveAttribute('open');
 ```
 
@@ -185,7 +185,7 @@ wait for a stylesheet (*Back after the cache snapshot*, above), or the controlle
 before Turbo copies the page, and the test passes without the `turbo:before-cache` reset:
 
 ```ts
-await page.route('**/lab/slow.css', async (route) => { await new Promise((r) => setTimeout(r, 500)); await route.fallback(); });
+const held = await holdUntilCopied(page, '**/lab/slow.css');
 await page.goto('/lab/nav-menu/two');
 // open the submenus, then:
 await page.evaluate(() => (window as any).Turbo.visit('/lab/nav-menu'));   // page one links slow.css
@@ -415,6 +415,30 @@ The same spec blocks `localStorage` (a getter that throws, as blocked site data 
 holds across a Turbo visit: the controller keeps it on `<html data-theme-choice>`.
 
 Here: [`tests/e2e/theme-toggle.spec.ts`](../tests/e2e/theme-toggle.spec.ts).
+
+## Timers on Playwright's clock
+
+**Catches:** a timer contract (a toast's countdown and its pause, a type-ahead that forgets what was typed) checked by
+waiting real time: seconds on every run, and a wait that means something else on a slower machine.
+
+Install Playwright's clock before the page loads. Time still passes as it does; `runFor(ms)` moves it on at once,
+firing every timer due on the way:
+
+```ts
+await page.clock.install();
+await page.goto('/lab/turbo-stream-toast');
+// show a toast (1500 ms), then:
+await toast.hover();
+await page.clock.runFor(2000);   // past its timeout: paused, so still shown
+await expect(toast).toBeVisible();
+```
+
+The clock also fakes `requestAnimationFrame` and `performance.now()`: keep the real clock where a test observes frames
+or paint (`recordFirstFrames`, the data table's frame recorders), waits for a scroll to settle, or measures time. An
+upstream recipe spec stays as upstream wrote it.
+
+Here: [`lab.turbo-stream-toast.spec.ts`](../tests/e2e/lab.turbo-stream-toast.spec.ts) (the pause tests),
+[`lab.side-nav.spec.ts`](../tests/e2e/lab.side-nav.spec.ts) (type-ahead).
 
 ## Basic performance: counts, not timings
 
@@ -787,11 +811,44 @@ each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summa
   reached or report not written* (Playwright ran but left no report), *report invalid* (it does not parse).
 - **Kept 30 days** in `playwright-results-<shard>`: `results.json` (every test's attempts), `summary.md`, and
   `failed-attempts.json`, one entry per failed attempt, retry-recovered ones included (test id, file, line, title,
-  project, shard, retry, status, error, duration, error location), for tools that read them one by one.
+  project, shard, retry, status, error, duration, error location), for tools that read them one by one, and
+  `durations.json` (below).
+- **Durations, report-only:** the summary ends with the shard's wall time (Playwright's, start to end) and workers,
+  the summed time of every attempt (retries included; workers overlap, so it is larger than the wall time and the two
+  are not compared), the 10 slowest tests (a test's time is the sum of its attempts) and each file's total.
+  `durations.json` holds the same numbers and every test's attempt times, with the commit, shard and versions, to
+  compare runs. No threshold: it never fails a step. An attempt with no recorded time counts as unknown, not 0, and
+  a test or file holding one shows its time as a lower bound (≥).
 
 The script's exit status says what it found: 0 a report it read (whatever its tests did), 2 no report, 3 an invalid
 report, 4 tests not reached. Run it on a local report with `node tools/ci/playwright-summary.mjs` after
 `CI=1 npx playwright test` (CI writes the JSON report); its cases: `node --test tools/tests/*.test.mjs`.
+
+### Worker budget
+
+Each CI shard runs two Playwright workers: `--workers=2` in `ci.yml` (*Playwright* step). Before that was set, CI
+ran Playwright's default, half the machine's CPUs (`'50%'` of `os.cpus().length`, `@playwright/test` 1.58.2's
+`resolveWorkers`), which is 2 on GitHub's 4-vCPU `ubuntu-latest` runners and matches the two workers the sampled CI
+runs reported. Stating it keeps the budget from changing with the runner, and makes a change to it a reviewed one.
+
+The local study behind it (October 2026): shard 2/3 (392 smoke tests: the `lab.*` specs, CSP, theme, data table),
+`--retries=0`, runs interleaved (1, 2, 3, 2, 3, 1, ...), on a 4-CPU machine where the demo (PHP's built-in server
+with 4 workers, `PHP_CLI_SERVER_WORKERS=4`) and the browser also run:
+
+| Workers | Runs | Wall time, s (median, all runs) | Summed test time, s (median) | Mean per test, s | Failed |
+|---:|---:|---|---:|---:|---|
+| 1 | 4 | 765 (716, 753, 777, 778) | 753 | 1.92 | 0 in every run |
+| 2 | 3 | 509 (478, 509, 514) | 989 | 2.52 | 0 in every run |
+| 3 | 3 | 446 (440, 446, 454) | 1286 | 3.28 | 0 in every run |
+
+Two workers take a third off one worker's wall time; a third worker takes 12% more off, while each test runs 30%
+slower than with two, which leaves less margin to every timing-sensitive test, on a runner that also hosts the demo
+and the browser. No run failed, so the study shows no flake rate to tell them apart (with `--retries=0`, a flaky test
+fails its run). Two, the default CI already ran, is kept.
+
+These are local timings, not CI's: the demo runs in FrankenPHP there, the runner's CPUs differ, and the a11y (shard 1)
+and screenshot (shard 3) shards were not measured. Three workers in CI is untested; the shards' `durations.json`
+(*Reading CI results*) is where a later change would be measured, against the same run with two.
 
 ### Jev diagnosis (advisory)
 

@@ -53,6 +53,8 @@ while IFS= read -r path; do
         tools/tests/live-action.php | tools/tests/fixtures/fresh-app/*) on fresh-install ;;
         tools/tests/sync-demo.sh | tools/tests/fixtures/sync-kit/*) on demo ;;
         tools/phpstan.neon) on php ;;
+        # The browser job's own tools (its results summary, the Jev diagnosis) and their cases: only that job runs them
+        tools/ci/* | tools/tests/*.test.mjs | tools/tests/fixtures/playwright-results/*) on demo ;;
         # release.yml's plan: Workflows runs its cases and its dry run
         tools/release-plan.sh | tools/tests/release-plan.sh) on workflows ;;
         tools/*) on php static-site demo ;;

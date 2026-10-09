@@ -1,13 +1,14 @@
 import type { Page } from '@playwright/test';
 import { test, expect, stimulusControllers, trackGlobalListeners, turboVisitDone } from './fixtures';
-import { back, forward, recordFirstFrames, stepFromCode, visit } from './transitions';
+import { back, forward, holdUntilCopied, recordFirstFrames, stepFromCode, visit } from './transitions';
 
 /*
  * The dropdown, modal and drawer beyond Back and Live (lab.turbo-restore, lab.live-*): what Turbo Drive, Frames and
  * Streams do to them while they are open. Each runs the same steps on its own lab pages, `/lab/<recipe>-turbo` (pages
  * one and two, a Kept copy inside a data-turbo-permanent element, a Framed copy inside a Turbo Frame) and
- * `/lab/<recipe>-stream`. Page two links a stylesheet page one lacks: delayed, it makes Turbo copy page one before its
- * controllers disconnect, the order a slow stylesheet gives in production. Page one also holds the `history-steps`
+ * `/lab/<recipe>-stream`. Page two links a stylesheet page one lacks: held until Turbo has copied page one
+ * (`holdUntilCopied`), it makes Turbo copy page one before its controllers disconnect, the order a slow stylesheet
+ * gives in production. Page one also holds the `history-steps`
  * frame, whose visits are promoted to history: Turbo copies the page as such a visit starts, then dispatches
  * `turbo:before-cache` with the page still on screen.
  */
@@ -125,10 +126,7 @@ for (const overlay of overlays) {
                 // the main overlay's trigger is the first of the page
                 { selector: `#${overlay.prefix}-${overlay.main.id}`, triggerSelector: `[data-${overlay.controller}-target="trigger"]` },
             );
-            await page.route('**/lab/slow.css', async (route) => {
-                await new Promise((resolve) => setTimeout(resolve, 500));
-                await route.fallback();
-            });
+            const held = await holdUntilCopied(page, '**/lab/slow.css');
             await page.goto(turboPage('one'));
             await page.evaluate(() => ((window as any).__sameDocument = true));
 
@@ -138,6 +136,7 @@ for (const overlay of overlays) {
             await page.evaluate((url) => (window as any).Turbo.visit(url), turboPage('two'));
             await expect(page.getByTestId('page')).toHaveText('Page two');
             await turboVisitDone(page);
+            expect(held(), 'page two waited for its stylesheet until Turbo had copied page one').toBe(1);
 
             // left open by Back: renders the copy of page one
             await trigger(page, overlay.main.name).click();

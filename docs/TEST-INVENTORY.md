@@ -46,7 +46,7 @@ Dropzone opt-ins).
 ## The matrix: common transitions
 
 Columns are the plan's transitions. **Back** is a restoration visit from Turbo's cached copy; **Back, slow** is the
-same with page two's stylesheet delayed, so Turbo copies the page before the controllers disconnect (the order
+same with page two's stylesheet held until Turbo has copied the page, so the copy comes before the controllers disconnect (the order
 production gives; `lab.turbo-restore`); **N visits** is "repeated visits leave one instance", today shown by its
 effect (one change per pick, one toggle per click) and element counts, a Stimulus instance count from tier 2 on. A `·` means
 the transition cannot change the recipe's state, not that it is untested.
@@ -447,7 +447,7 @@ where the guarantee stays.
 | `/preview/<recipe>/<id>?theme=light` builders | dropzone, editor, popover, markdown-editor; `gotoExample` | `inventory.ts` |
 | `dialogState` / `:modal` checks | lab.turbo-restore, lab.live-modal, lab.live-drawer | `fixtures.ts` |
 | `status`, `params` | lab.data-table-frame, lab.data-table-live | a data table helper module |
-| ~~Reading a shard's results with an inline `node -e` (stats only; a JSON error when setup had failed)~~ **Done:** `tools/ci/playwright-summary.mjs`: counts, failed and flaky tests with their errors, annotations, the tested commit and versions, `failed-attempts.json`; tells setup failure, missing and invalid reports apart | `.github/workflows/ci.yml` (*Demo + Playwright*, *Read the results*) | `tools/ci/playwright-summary.mjs`, its cases in `tools/tests/playwright-summary.test.mjs` ([`TESTING.md`](TESTING.md), *Reading CI results*) |
+| ~~Reading a shard's results with an inline `node -e` (stats only; a JSON error when setup had failed)~~ **Done:** `tools/ci/playwright-summary.mjs`: counts, failed and flaky tests with their errors, annotations, the tested commit and versions, `failed-attempts.json`, report-only durations (`durations.json`); tells setup failure, missing and invalid reports apart | `.github/workflows/ci.yml` (*Demo + Playwright*, *Read the results*) | `tools/ci/playwright-summary.mjs`, its cases in `tools/tests/playwright-summary.test.mjs` ([`TESTING.md`](TESTING.md), *Reading CI results*) |
 | ~~Release tags accepted after an install check whatever commit they point at; notes from the checked-out `CHANGELOG.md`~~ **Done:** `tools/release-plan.sh`: each version's expected commit (the first one of main's first-parent history adding its heading), the tag's state (lightweight or annotated, peeled), the notes at that commit; refuses a tag on another commit | `.github/workflows/release.yml` (*Plan the tags and notes*), `ci.yml` (*Workflows*: its cases and a dry run on main) | `tools/release-plan.sh`, its cases in `tools/tests/release-plan.sh` (scratch repositories) ([`CONTRIBUTING.md`](../CONTRIBUTING.md), *Releases*) |
 
 ## Gaps, ranked by risk

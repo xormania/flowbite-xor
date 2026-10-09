@@ -15,7 +15,7 @@ and pull request standard.
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
 | `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
 | `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
-| `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations and `failed-attempts.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
+| `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations, `failed-attempts.json` and `durations.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
 | `tools/ci/jev-diagnosis.mjs`, `tools/ci/jev-ci.json` | no | the advisory Jev diagnosis of each failed attempt in `failed-attempts.json`, and its policy ([`docs/TESTING.md`](docs/TESTING.md), *Jev diagnosis*) |
 | `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
@@ -88,6 +88,7 @@ change to both paths.
 | `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md`, controller (`assets/controllers/`) or `manifest.json` | the same and *Contrast* |
 | a spec: `tests/e2e/*.spec.ts`, a recipe's `tests/*.spec.ts` | *Contrast* (`tools/test-inventory.mjs`), *Demo + Playwright* |
 | any other file in `tests/` or a recipe's `tests/`, `playwright.config.ts`, `tools/prepare-tests.mjs`, `tools/tests/prepare-tests.test.mjs`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
+| `tools/ci/`, the other `tools/tests/*.test.mjs`, `tools/tests/fixtures/playwright-results/` (the browser job's own tools and their cases) | *Demo + Playwright* |
 | `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
 | `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `tools/test-inventory.mjs`, `llms.txt` | *Contrast* |
 | `tools/fence-coverage.mjs` | *Contrast*, *Static site* |

@@ -43,6 +43,7 @@ function summarize(fixture, env = {}) {
     });
     const read = (file) => (existsSync(file) ? readFileSync(file, 'utf8') : null);
     const attemptsFile = join(results, 'failed-attempts.json');
+    const durationsFile = join(results, 'durations.json');
     return {
         code: run.status,
         stdout: run.stdout,
@@ -51,6 +52,7 @@ function summarize(fixture, env = {}) {
         localSummary: read(join(results, 'summary.md')),
         outputs: Object.fromEntries((read(outputFile) ?? '').trim().split('\n').filter(Boolean).map((line) => line.split('='))),
         attempts: existsSync(attemptsFile) ? JSON.parse(read(attemptsFile)) : null,
+        durations: existsSync(durationsFile) ? JSON.parse(read(durationsFile)) : null,
     };
 }
 
@@ -208,4 +210,74 @@ test('setup that passed leaves the report to decide', () => {
     const run = summarize('clean.json', { SETUP_STEPS: 'Build the demo image=success\nStart the demo=success', TESTS_OUTCOME: 'success' });
     assert.equal(run.code, EXIT.valid, run.stderr);
     assert.equal(run.outputs.status, 'valid');
+});
+
+test('durations, report-only: wall time, summed test time, the 10 slowest tests and each file, in the summary and durations.json', () => {
+    const run = summarize('timed.json');
+    assert.equal(run.code, EXIT.valid, run.stderr);
+    assert.match(run.summary, /## Durations \(report only\)/);
+    assert.match(run.summary, /- Wall time: 40\.3 s, 2 workers/);
+    // every attempt, the retried one included; the attempt Playwright did not time is counted apart, not as 0 s
+    assert.match(run.summary, /- Summed test time: 67\.5 s over 14 attempts \(1 without a time\)/);
+    assert.match(run.summary, /### Slowest 10 tests/);
+    const slowest = run.summary.split('### Slowest 10 tests')[1].split('### Per file')[0];
+    assert.equal(slowest.split('\n').filter((line) => /^\| \d/.test(line)).length, 10);
+    // a test's time is the sum of its attempts; a recipe spec is named by its committed file; a | does not break the
+    // table, not even after a backslash of the title's own
+    assert.ok(slowest.includes('| 12.5 s | 1 | [examples] alert/tests/alert.spec.ts:8 › dismisses \\\\\\| each alert |'));
+    assert.ok(slowest.includes('| 10.0 s | 2 | [smoke] tests/e2e/lab.turbo-stream-toast.spec.ts:19 › pauses while hovered |'));
+    assert.doesNotMatch(slowest, /page 1 passes axe/, 'the 11th slowest is left out');
+    assert.match(run.summary, /\| 45\.0 s \| 9 \| tests\/e2e\/a11y\.spec\.ts \|\n\| 12\.5 s \| 1 \| alert\/tests\/alert\.spec\.ts \|\n\| ≥ 10\.0 s \| 3 \| tests\/e2e\/lab\.turbo-stream-toast\.spec\.ts \|/);
+    // report-only: no annotation beyond the flaky test's, the outputs unchanged
+    assert.deepEqual(annotations(run.stdout, 'error'), []);
+    assert.equal(annotations(run.stdout, 'warning').length, 1);
+    assert.deepEqual(run.outputs, { status: 'valid', passed: '11', failed: '0', flaky: '1', skipped: '1' });
+
+    const d = run.durations;
+    assert.equal(d.schema, 1);
+    assert.equal(d.status, 'valid');
+    assert.equal(d.sha, '0123456789abcdef0123456789abcdef01234567');
+    assert.equal(d.shard, '1/3');
+    assert.equal(d.wallMs, 40251);
+    assert.equal(d.summedTestMs, 67500);
+    assert.equal(d.attempts, 14);
+    assert.equal(d.untimedAttempts, 1);
+    assert.deepEqual(d.workers, { configured: 2, actual: 2 });
+    assert.equal(d.slowest.length, 10);
+    assert.deepEqual(d.slowest[1], {
+        project: 'smoke', file: 'tests/e2e/lab.turbo-stream-toast.spec.ts', line: 19, title: 'pauses while hovered', outcome: 'flaky', durationMs: 10000, untimedAttempts: 0, attemptMs: [4000, 6000],
+    });
+    // a file holding an attempt without a time has a lower bound, never a total that counts it as 0
+    assert.deepEqual(d.files.map(({ file, tests, durationMs, untimedAttempts }) => [file, tests, durationMs, untimedAttempts]), [
+        ['tests/e2e/a11y.spec.ts', 9, 45000, 0],
+        ['alert/tests/alert.spec.ts', 1, 12500, 0],
+        ['tests/e2e/lab.turbo-stream-toast.spec.ts', 3, 10000, 1],
+    ]);
+    assert.equal(d.tests.length, 13);
+    assert.equal(d.tests.find((test) => test.title === 'closes from its button').durationMs, null);
+    assert.equal(d.tests.find((test) => test.title === 'closes from its button').untimedAttempts, 1);
+});
+
+test('durations of a clean run are written too, and a run with no report has none, with the reason', () => {
+    const clean = summarize('clean.json');
+    assert.equal(clean.durations.wallMs, 20741);
+    assert.equal(clean.durations.summedTestMs, 2612);
+    assert.equal(clean.durations.workers.configured, null, 'a report that does not say how many workers');
+    assert.match(clean.summary, /- Wall time: 20\.7 s\n/);
+
+    const missing = summarize(null);
+    assert.equal(missing.code, EXIT.missing);
+    assert.equal(missing.durations.status, 'missing');
+    assert.equal(missing.durations.wallMs, null);
+    assert.equal(missing.durations.unavailable, 'no report');
+    assert.doesNotMatch(missing.summary, /Durations/);
+});
+
+test('a report whose times cannot be read is still read: the durations say so, the verdict is the report\'s', () => {
+    const run = summarize('untimed.json');
+    assert.equal(run.code, EXIT.valid, run.stderr);
+    assert.deepEqual(run.outputs, { status: 'valid', passed: '1', failed: '0', flaky: '0', skipped: '0' });
+    assert.match(run.summary, /## Durations \(report only\)\n\n- Wall time: unknown time/);
+    assert.match(run.summary, /- Summed test time: 0\.0 s over 1 attempt \(1 without a time\)/);
+    assert.equal(run.durations.wallMs, null);
 });

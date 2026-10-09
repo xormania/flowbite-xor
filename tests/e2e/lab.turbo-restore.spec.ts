@@ -1,11 +1,12 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
-import { back, forward, recordFirstFrames, visit, visitAndBack } from './transitions';
+import { back, forward, holdUntilCopied, recordFirstFrames, visit, visitAndBack } from './transitions';
 
 /*
  * Overlays left open when a link inside them visits another page, and a tooltip shown on such a link: Back shows them
- * closed, and they open again as they should (a menu's markup and state agree, a dialog is modal). Page two links a stylesheet page one lacks; delayed, it
- * makes Turbo copy page one before its controllers disconnect, the order a slow stylesheet gives in production.
+ * closed, and they open again as they should (a menu's markup and state agree, a dialog is modal). Page two links a stylesheet page one lacks; held
+ * until Turbo has copied page one (`holdUntilCopied`), it makes Turbo copy page one before its controllers disconnect, the order a slow stylesheet
+ * gives in production.
  */
 
 type Overlay = {
@@ -75,18 +76,16 @@ const overlays: Overlay[] = [
 for (const slow of [false, true]) {
     for (const overlay of overlays) {
         test(`${overlay.name} left open by a visit is closed after Back, and opens again${slow ? ', the next page waiting for a stylesheet' : ''}`, async ({ page }) => {
-            if (slow) {
-                await page.route('**/lab/slow.css', async (route) => {
-                    await new Promise((resolve) => setTimeout(resolve, 500));
-                    await route.fallback();
-                });
-            }
+            const held = slow ? await holdUntilCopied(page, '**/lab/slow.css') : null;
             await page.goto('/lab/turbo-restore');
             await page.evaluate(() => ((window as any).__sameDocument = true));
             await overlay.open(page);
             await overlay.expectOpen(page);
 
             await visit(page, overlay.link(page), 'Page two');
+            if (held) {
+                expect(held(), 'page two waited for its stylesheet until Turbo had copied page one').toBe(1);
+            }
             await back(page, 'Page one');
 
             await overlay.expectClosed(page);

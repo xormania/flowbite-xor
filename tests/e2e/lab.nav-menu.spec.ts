@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { test, expect, expectA11y } from './fixtures';
-import { shown } from './transitions';
+import { holdUntilCopied, shown } from './transitions';
 
 /*
  * The NavMenu on /lab/nav-menu/<page>: a disclosure navigation in a sticky Navbar, submenus nested two levels deep,
@@ -276,10 +276,7 @@ test.describe('on a desktop', () => {
             });
         });
         // page one waits for this stylesheet: Turbo copies page two before its controllers disconnect, as in production
-        await page.route('**/lab/slow.css', async (route) => {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            await route.fallback();
-        });
+        const held = await holdUntilCopied(page, '**/lab/slow.css');
         await page.goto('/lab/nav-menu/two');
         const menu = barMenu(page);
         await button(menu, 'Guides').click();
@@ -287,6 +284,7 @@ test.describe('on a desktop', () => {
         // a visit that leaves them open (a link closes them): one the page's own code starts
         await page.evaluate(() => (window as any).Turbo.visit('/lab/nav-menu'));
         await shown(page, 'Page one');
+        expect(held(), 'page one waited for its stylesheet until Turbo had copied page two').toBe(1);
         await page.goBack();
         await shown(page, 'Page two');
         await expectMenu(menu, { expanded: [], shown: [], current: ['Getting started'], highlighted: ['Guides'] });
