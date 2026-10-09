@@ -17,8 +17,14 @@ export default class extends Controller {
     static targets = ['list', 'item'];
 
     connect() {
+        // the items' current state as rendered, given back on disconnect
+        this.renderedCurrent = new Map(this.itemTargets.map((item) => [item, item.getAttribute('aria-current')]));
         this.markCurrentItem();
         this.revealCurrentItem();
+    }
+
+    disconnect() {
+        this.renderedCurrent.forEach((value, item) => (null === value ? item.removeAttribute('aria-current') : item.setAttribute('aria-current', value)));
     }
 
     markCurrentItem() {

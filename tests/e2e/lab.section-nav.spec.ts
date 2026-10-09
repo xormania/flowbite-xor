@@ -202,6 +202,16 @@ test('horizontal tabs take Left and Right instead, and a list without a selected
     await expect(page.locator('[role="tab"][tabindex="0"]')).toHaveText(['Dashboard']);
 });
 
+test('a controller disconnected from a navigation that stays gives the links back their rendered current state', async ({ page }) => {
+    await page.goto('/lab/section-nav/billing');
+    const nav = permanent(page); // the <nav> carries the controller
+    await expect(nav.locator('a[aria-current="page"]')).toHaveText(['Billing']); // marked from the URL, not rendered
+    await nav.evaluate((element) => element.removeAttribute('data-controller'));
+    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(0);
+    await nav.evaluate((element) => element.setAttribute('data-controller', 'section-nav'));
+    await expect(nav.locator('a[aria-current="page"]')).toHaveText(['Billing']);
+});
+
 test('the section nav is plain links in the Tab order, and Enter follows one as a Turbo visit', async ({ page }) => {
     await page.goto('/lab/section-nav');
     await page.evaluate(() => ((window as any).__sameDocument = true));
