@@ -39,6 +39,7 @@ jobs:
             contrast: ${{ steps.jobs.outputs.contrast }}
             demo: ${{ steps.jobs.outputs.demo }}
             workflows: ${{ steps.jobs.outputs.workflows }}
+            base: ${{ steps.jobs.outputs.base }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -52,11 +53,9 @@ jobs:
                   EVENT: ${{ github.event_name }}
                   REF: ${{ github.ref }}
               run: |
-                  if [ "$EVENT" = push ] && [ "$REF" != refs/heads/main ] && [ "$REF" != refs/heads/dev ]; then
-                      base=$(git merge-base HEAD origin/dev 2>/dev/null || true)
-                  else
-                      base=
-                  fi
+                  # where the branch left dev; none for main, dev or a run by hand (Contrast reads the same range)
+                  base=$(tools/ci-base.sh)
+                  echo "base=$base" >> "$GITHUB_OUTPUT"
                   # The classifier runs as it is at the base, which the change cannot edit: a branch that changes
                   # tools/ci-changes.sh is classified by the base's copy (which runs everything for that path), and a base
                   # without the script runs everything.
@@ -289,6 +288,8 @@ jobs:
         timeout-minutes: 10
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0 # the README pairing reads the branch's commits since its base
 
             - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
@@ -314,6 +315,18 @@ jobs:
 
             - name: The test inventory has a row per recipe with a controller and names existing tests; a11y scans every lab page
               run: node tools/test-inventory.mjs
+
+            - name: The README checks' own cases
+              run: node --test tools/tests/readme-versions.test.mjs tools/tests/readme-pairing.test.mjs
+
+            - name: Each recipe README states its manifest's dependency versions
+              run: node tools/readme-versions.mjs
+
+            # The Changes job's base (tools/ci-base.sh): none for main, dev or a run by hand, which compares nothing
+            - name: A recipe whose code changed has its README changed, or a Docs-waiver trailer
+              env:
+                  BASE: ${{ needs.changes.outputs.base }}
+              run: node tools/readme-pairing.mjs --base "$BASE"
 
     demo:
         name: Demo + Playwright (${{ matrix.shard }}/3)

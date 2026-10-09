@@ -15,11 +15,13 @@ and pull request standard.
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
 | `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
 | `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
+| `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` | no | each recipe README states its manifest's dependency versions, and changes with the recipe's code unless a commit waives it (*Docs*) |
+| `tools/ci-base.sh` | no | the commit a branch's changes are counted from (where it left `dev`), for CI's routing and the README pairing (*Checks*) |
 | `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations, `failed-attempts.json` and `durations.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
 | `tools/ci/jev-diagnosis.mjs`, `tools/ci/jev-ci.json` | no | the advisory Jev diagnosis of each failed attempt in `failed-attempts.json`, and its policy ([`docs/TESTING.md`](docs/TESTING.md), *Jev diagnosis*) |
 | `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
-| `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs`, `tools/ci/jev-diagnosis.mjs`, `tools/prepare-tests.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
+| `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs`, `tools/ci/jev-diagnosis.mjs`, `tools/prepare-tests.mjs`, `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `tools/build-static.sh` | no | builds and checks the gallery as a static site, for CI's *Static site* job and `pages.yml` (*Releases*) |
 | `tools/prepare-tests.mjs` | no | what the browser tests need, safe with several Playwright processes in one checkout: the recipe specs' runnable copies and the demo's CSS (*Checks*) |
@@ -72,7 +74,7 @@ controllers. Previewing untrusted code would need a separate origin and containe
 
 CI runs them on every push, each job only when the change could affect what it checks
 ([`tools/ci-changes.sh`](tools/ci-changes.sh)); pushes to `main` and `dev`, and a run by hand, run everything. A
-branch is compared with where it left `dev`, so each push checks the whole pull request. The rulesets require the one
+branch is compared with where it left `dev` ([`tools/ci-base.sh`](tools/ci-base.sh)), so each push checks the whole pull request. The rulesets require the one
 *CI result* check, which passes when every job passed or was skipped, and require a branch to be up to date with its
 base before it merges: merge the base in and push, so that CI has run on the code that lands (there is no merge
 queue). CI runs the script as the base branch has it, so a branch cannot change its own checks; a job the base's
@@ -84,13 +86,14 @@ change to both paths.
 |---|---|
 | `LICENSE`, `NOTICE`, `.github/dependabot.yml` | nothing |
 | `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md`, `FOR-AGENTS.md`, `SECURITY.md`, `.github/pull_request_template.md` | *Contrast*, which checks the docs (*Docs*) |
-| a recipe, `kit.js`, `manifest.json`, `.gitattributes`, any path no other row names | *Lint kit*, *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
-| `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md`, controller (`assets/controllers/`) or `manifest.json` | the same and *Contrast* |
+| `kit.js`, `manifest.json`, `.gitattributes`, any other root file no row names | *Lint kit*, *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
+| a recipe (any of its files but `tests/`: Contrast pairs its code with its `README.md`, and its `README.md` with its `manifest.json`), `kit.css`, `README.md`, `INSTALL.md`, any file in a directory no other row names | the same and *Contrast* |
 | a spec: `tests/e2e/*.spec.ts`, a recipe's `tests/*.spec.ts` | *Contrast* (`tools/test-inventory.mjs`), *Demo + Playwright* |
 | any other file in `tests/` or a recipe's `tests/`, `playwright.config.ts`, `tools/prepare-tests.mjs`, `tools/tests/prepare-tests.test.mjs`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
 | `tools/ci/`, the other `tools/tests/*.test.mjs`, `tools/tests/fixtures/playwright-results/` (the browser job's own tools and their cases) | *Demo + Playwright* |
 | `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
 | `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `tools/test-inventory.mjs`, `llms.txt` | *Contrast* |
+| `tools/readme-versions.mjs`, `tools/readme-pairing.mjs`, `tools/tests/readme-*.test.mjs` | *Contrast*, *Demo + Playwright* (its `node --test` runs every `*.test.mjs`) |
 | `tools/fence-coverage.mjs` | *Contrast*, *Static site* |
 | `tools/build-static.sh` | *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
@@ -103,7 +106,7 @@ change to both paths.
 | `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, `tools/build-static.sh`, without the upload) |
 | `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, *Workflows* runs its plan as a dry run |
 | `.github/workflows/audit.yml`, `.github/workflows/codeql.yml` | *Workflows*; each also runs itself on the pull request that changes it |
-| `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
+| `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, `tools/ci-base.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
 
 *Workflows* runs [actionlint](https://github.com/rhysd/actionlint) with ShellCheck on every workflow: YAML, expressions,
 job graph, action and reusable workflow inputs, and the shell of each `run` step. Then it runs
@@ -125,7 +128,9 @@ node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md
 node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles (see Docs)
 node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
 node tools/test-inventory.mjs                       # docs/TEST-INVENTORY.md has a matrix row per recipe with a controller, a row per rule of FOR-AGENTS.md's Working well, and names existing tests; a11y.spec.ts scans every lab page
-node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer and of the Jev diagnosis (tools/ci/), and of tools/prepare-tests.mjs
+node tools/readme-versions.mjs                      # each recipe README's version table matches its manifest.json, or it renders ::: installation (see Docs)
+node tools/readme-pairing.mjs [--base <ref>]        # each recipe whose code your commits change has its README changed, or a Docs-waiver trailer; base: where HEAD left origin/dev (see Docs)
+node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer and of the Jev diagnosis (tools/ci/), of tools/prepare-tests.mjs and of the README checks
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 (cd demo && bin/phpunit)                            # the PHP tests (demo/tests/): the data tables' limits, Live and Twig components, snapshots, profiler counts
@@ -330,6 +335,37 @@ one but that the demo skips (indented in a list, JSON that does not parse, `"pre
 a recipe without a README. `tools/build-static.sh` (*Static site*, `pages.yml`) runs it again with `--site` after
 `app:export-static`: every recipe needs its `r/<recipe>/` page and a link from the index, every example its light and
 dark preview pages, and a saved page that no source names fails too.
+
+**READMEs state the manifest.** `node tools/readme-versions.mjs` (in *Contrast*) reads each recipe's `README.md`
+against its `manifest.json`, which is what `ux:install` reads. A README either has the `::: installation` line, which
+the toolkit renders from the manifest, or a version table listing exactly the manifest's Composer, npm and importmap
+packages with the manifest's constraints (`any` for none; recipe dependencies are not listed):
+
+```markdown
+| Package | Version | Via |
+|---|---|---|
+| `twig/html-extra` | `^3.24.0` | composer |
+| `chart.js` | any | importmap |
+```
+
+A missing package, an extra one or another constraint fails, and there is no waiver: fix the README.
+
+**A recipe change comes with its README.** `node tools/readme-pairing.mjs` (in *Contrast*) reads the branch's changes
+since where it left `dev`, as the *Changes* job does (`tools/ci-base.sh`; a merge that brings `dev` in adds
+nothing). A recipe whose code changed (any file under it but `README.md` and `tests/`, its `manifest.json`
+included) fails unless its `README.md` changed too, or a commit of the branch waives it with a trailer, in the last
+paragraph of its message:
+
+```text
+fix(alert): order the variant classes as Flowbite does
+
+Docs-waiver: alert class order only, nothing the README shows changes
+```
+
+`Docs-waiver: <recipe> <reason>`, one line per recipe: the recipe must exist and the reason must say why the README
+still holds. A waiver for another recipe, or without a reason, fails. Each accepted waiver is printed and listed in
+the job summary, so reviewers see them; prefer updating the README. Run it before pushing:
+`node tools/readme-pairing.mjs`, or `--base <ref>` for another base.
 
 **Plans.** `docs/PLAN-*.md` and `docs/ROADMAP.md` record decisions; they are not instructions. Each plan opens
 with front matter naming its status and the recipes it adds:

@@ -22,7 +22,7 @@ while IFS= read -r path; do
     [ -n "$path" ] || continue
     case "$path" in
         # The workflow and this script decide what runs: a change to either runs everything
-        .github/workflows/ci.yml | tools/ci-changes.sh | tools/tests/ci-changes.sh) all ;;
+        .github/workflows/ci.yml | tools/ci-changes.sh | tools/tests/ci-changes.sh | tools/ci-base.sh) all ;;
 
         # Read by people and agents: Contrast checks the generated lists, the plans' status (tools/llms-txt.mjs
         # reads CHANGELOG.md for the links' ref) and what the markdown teaches (tools/docs-lint.mjs)
@@ -47,6 +47,8 @@ while IFS= read -r path; do
         # Repository tools, each with the jobs that run it
         tools/contrast/* | tools/llms-txt.mjs | tools/docs-lint.mjs | tools/test-inventory.mjs | llms.txt) on contrast ;;
         tools/fence-coverage.mjs) on contrast static-site ;;
+        # The README checks: Contrast runs them and their cases, the browser job's node --test runs the cases too
+        tools/readme-versions.mjs | tools/readme-pairing.mjs | tools/tests/readme-*.test.mjs) on contrast demo ;;
         tools/build-static.sh) on static-site ;;
         tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh) on fresh-install ;;
         tools/tests/install-scenario.sh) on fresh-install ;;
@@ -70,11 +72,13 @@ while IFS= read -r path; do
         */tests/*.spec.ts) on contrast demo ;;
         */tests/*) on demo ;;
 
-        # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...)
+        # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...).
+        # Contrast reads every file in a directory (a recipe: tools/readme-pairing.mjs pairs its code with its README,
+        # tools/readme-versions.mjs its README with its manifest) and the root files below
         *)
             on lint-kit php static-site fresh-install demo
             case "$path" in
-                kit.css | theme/* | README.md | */README.md | INSTALL.md | */assets/controllers/* | */manifest.json) on contrast ;;
+                */* | kit.css | README.md | INSTALL.md) on contrast ;;
             esac
             ;;
     esac
