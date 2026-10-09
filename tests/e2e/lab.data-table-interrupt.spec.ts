@@ -147,7 +147,11 @@ async function quiet(page: Page, { busy = false, except }: { busy?: boolean; exc
     const deadline = Date.now() + 10_000;
     for (;;) {
         const requests = [...inFlight.get(page)!].filter((request) => request !== except);
-        await Promise.all(requests.map((request) => request.response().then((response) => response?.finished()).catch(() => null)));
+        // a request pending for good must not outlast the deadline: the check below reports it
+        await Promise.race([
+            Promise.all(requests.map((request) => request.response().then((response) => response?.finished()).catch(() => null))),
+            new Promise((resolve) => setTimeout(resolve, Math.max(0, deadline - Date.now()))),
+        ]);
         const still = await page.evaluate(
             (busy) =>
                 new Promise<string | null>((resolve) => {
