@@ -1,3 +1,8 @@
+---
+status: shipped
+recipes: autocomplete
+---
+
 # Plan: B. searchable choices
 
 _2026-10-07. Implements the B decision in [`ROADMAP.md`](ROADMAP.md): UX Autocomplete (Tom Select), styled with the

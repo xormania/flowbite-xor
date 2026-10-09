@@ -44,8 +44,14 @@ kit='lint-kit php static-site fresh-install demo'
 kit_contrast='lint-kit php static-site fresh-install contrast demo'
 
 # Read by people only
-check ''                          docs/TESTING.md CHANGELOG.md .github/pull_request_template.md
-check ''                          docs/ROADMAP.md CONTRIBUTING.md AGENTS.md
+check ''                          LICENSE NOTICE .github/dependabot.yml
+
+# Read by people and agents: Contrast checks the generated lists, the plans and what the markdown teaches
+check 'contrast'                  docs/TESTING.md CHANGELOG.md FOR-AGENTS.md .github/pull_request_template.md
+check 'contrast'                  docs/ROADMAP.md CONTRIBUTING.md AGENTS.md
+check 'contrast'                  tools/docs-lint.mjs tools/llms-txt.mjs llms.txt
+check 'static-site contrast'      tools/fence-coverage.mjs
+check "$kit_contrast"             INSTALL.md
 
 # A workflow: actionlint reads it, and the jobs that run what it runs check that part (a workflow's own triggers run
 # the rest: audit.yml and codeql.yml run on the pull request that changes them)

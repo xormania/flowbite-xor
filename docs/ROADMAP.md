@@ -3,6 +3,9 @@
 _2026-10-07. Decisions made with the user, item by item. Roadmap only: no code. Each package gets its own
 detailed plan before it is built._
 
+Each package's status is in the *Sequence* table: `shipped` means its recipes are in `README.md`, and their READMEs
+describe how they behave now. This page and the `shipped` plans are records of the decisions, not instructions.
+
 ## Context
 
 Two research docs (`…-integration-report.md` and `…-proposals.md`, which are not authoritative) and a third report
@@ -26,16 +29,16 @@ building **Turbo-driven apps** get rich UX from installed recipes with as little
 
 ## Sequence (confirmed)
 
-| # | Package | Decision |
-|---|---|---|
-| 1 | **D. Data table** | `data-table` (plain, Turbo Frame) plus `data-table-live`. Details below |
-| 2 | **B. Searchable choices** | **UX Autocomplete** (Tom Select) styled with our theme and form theme |
-| 3 | **C. Dates** | Our own `calendar`, `popover` and `date-picker` recipes from shadcn sources |
-| 4 | **E1. Charts** | **UX Chart.js** plus a theme bridge |
-| 5 | **E2. Files** | **UX Dropzone** styled, wired into the form theme |
-| 6 | **F. Rich editor** | **Tiptap** |
-| — | A. Conventions | Grows inside D and B. One CONTRIBUTING section after the second package |
-| — | Deferred | Cropper, Map, sortable lists, virtual grid, Uppy, FullCalendar, "select all matching" |
+| # | Package | Decision | Recipes | Status |
+|---|---|---|---|---|
+| 1 | **D. Data table** | `data-table` (plain, Turbo Frame) plus `data-table-live`. Details below | `data-table`, `data-table-live` | shipped |
+| 2 | **B. Searchable choices** | **UX Autocomplete** (Tom Select) styled with our theme and form theme | `autocomplete` | shipped |
+| 3 | **C. Dates** | Our own `calendar`, `popover` and `date-picker` recipes from shadcn sources | `calendar`, `popover`, `date-picker` | shipped |
+| 4 | **E1. Charts** | **UX Chart.js** plus a theme bridge | `chart` | shipped |
+| 5 | **E2. Files** | **UX Dropzone** styled, wired into the form theme | `dropzone` | shipped |
+| 6 | **F. Rich editor** | **Tiptap** | `editor`, `markdown-editor` | shipped |
+| — | A. Conventions | Grows inside D and B. One CONTRIBUTING section after the second package | — | shipped |
+| — | Deferred | Cropper, Map, sortable lists, virtual grid, Uppy, FullCalendar, "select all matching" | — | open |
 
 D and C can run in parallel because they touch different recipes.
 
