@@ -109,7 +109,8 @@ Its button goes in the `selection_actions` block, shown while rows are selected:
 The search, filters, sort, page and page size are in the URL, with the parameter names of `data-table` (`q`, `f`,
 `sort`, `dir`, `page`, `size`), and every value is checked as `data-table` checks it. Live Components replace the URL
 without adding a history entry: Back leaves the page, and coming back, or reloading, or opening a copied URL, shows
-the same state. The selection is not in the URL. For Back and Forward through every state, use the `data-table`
+the same state, in every field too: a search typed and not yet sent when the page was left is not shown (the live
+controller sets the fields from the component's state as it connects). The selection is not in the URL. For Back and Forward through every state, use the `data-table`
 recipe in its Turbo Frame.
 
 One table per page: the URL parameters are not prefixed (`paramPrefix()` does not apply to a Live table).

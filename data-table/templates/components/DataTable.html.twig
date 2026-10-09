@@ -24,7 +24,7 @@
     data-turbo-action="advance"
     {{ attributes.defaults({class: 'block'|tailwind_classes}) }}
 >
-    <form method="get" action="{{ view.path }}" class="mb-4 flex flex-wrap items-end gap-3" role="search" aria-label="{{ label ? label ~ ': search and filters' : 'Search and filters' }}">
+    <form method="get" action="{{ view.path }}" class="mb-4 flex flex-wrap items-end gap-3" data-controller="data-table" role="search" aria-label="{{ label ? label ~ ': search and filters' : 'Search and filters' }}">
         {%- for name, value in view.hiddenFields %}
             <input type="hidden" name="{{ name }}" value="{{ value }}">
         {%- endfor %}

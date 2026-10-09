@@ -3,6 +3,7 @@
     "type": "component",
     "name": "DataTable",
     "copy-files": {
+        "assets/": "assets/",
         "src/": "src/",
         "templates/": "templates/"
     },
