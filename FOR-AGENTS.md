@@ -71,6 +71,7 @@ Keep `php bin/console tailwind:build --watch` running while you work, or run `ta
 | A page title with its actions | `page-header` |
 | Navigation more than one level deep: links in branches that open and close | `side-nav` (in the `Sidebar`) |
 | The navigation on phones: a menu button opening it in a drawer | `mobile-nav` (in the `Navbar`; `layouts` has it) |
+| Menus in the top bar: links and buttons opening submenus, nested | `nav-menu` (in the `Navbar`'s `nav` block; `layouts`: `navbar_nav`) |
 | Forms rendered with the kit's components | `form-theme` |
 | A searchable select, one or several choices, server-side search | `autocomplete` |
 | A date field, typed or picked, in a form | `date-picker` |

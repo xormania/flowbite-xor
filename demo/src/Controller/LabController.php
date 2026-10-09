@@ -74,6 +74,7 @@ final class LabController extends AbstractController
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
         'side-nav' => 'A multi-level SideNav across Turbo visits, Back and reloads: the open branches hold, the branch of the current page opens, and the keyboard moves through the tree.',
         'mobile-nav' => 'A MobileNav holding a SideNav, the same tree beside the page on wide screens: the drawer opens from the menu button and closes on Escape, the backdrop, a link, Turbo visits, Back and Forward; the two trees share their open branches.',
+        'nav-menu' => 'A Navbar whose NavMenu opens submenus, nested two levels deep, as a disclosure navigation; the same menu in a MobileNav on small screens, and a second one in a data-turbo-permanent Navbar: the current page and its submenus are marked, the keyboard, a click outside and Turbo visits, Back and Forward close them.',
     ];
 
     private const ITEMS = ['apple' => 'Apple', 'banana' => 'Banana', 'cherry' => 'Cherry'];
@@ -296,6 +297,12 @@ final class LabController extends AbstractController
     public function mobileNav(string $page): Response
     {
         return $this->render('lab/mobile_nav.html.twig', ['page' => $page, 'description' => self::SCENARIOS['mobile-nav']]);
+    }
+
+    #[Route('/nav-menu/{page}', name: 'app_lab_nav_menu', requirements: ['page' => 'one|two|three|four'], defaults: ['page' => 'one'])]
+    public function navMenu(string $page): Response
+    {
+        return $this->render('lab/nav_menu.html.twig', ['page' => $page, 'description' => self::SCENARIOS['nav-menu']]);
     }
 
     #[Route('/popover-stream', name: 'app_lab_popover_stream', methods: ['GET', 'POST'])]

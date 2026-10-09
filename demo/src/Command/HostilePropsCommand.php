@@ -62,6 +62,7 @@ final class HostilePropsCommand
         ['Breadcrumb:Item', 'href', '<ol><twig:Breadcrumb:Item :href="value">Level</twig:Breadcrumb:Item></ol>', 'Level', null],
         ['Sidebar:Item', 'href', '<ul><twig:Sidebar:Item :href="value">Item</twig:Sidebar:Item></ul>', 'Item', null],
         ['SideNav:Item', 'href', '<ul role="tree" aria-label="Tree"><twig:SideNav:Item :href="value">Item</twig:SideNav:Item></ul>', 'Item', null],
+        ['NavMenu:Link', 'href', '<twig:NavMenu><twig:NavMenu:Link :href="value">Item</twig:NavMenu:Link></twig:NavMenu>', 'Item', null],
         ['LoginForm', 'forgotPasswordHref', '<twig:LoginForm :form="form" :forgotPasswordHref="value" />', 'Forgot your password?', 'login'],
         ['LoginForm', 'signupHref', '<twig:LoginForm :form="form" :signupHref="value" />', 'Create one', 'login'],
         ['ForgotPasswordForm', 'loginHref', '<twig:ForgotPasswordForm :form="form" :loginHref="value" />', 'Back to sign in', 'forgot-password'],

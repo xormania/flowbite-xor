@@ -119,7 +119,8 @@ Each recipe's README has its examples, props and usage.
 | [`drawer`](drawer/README.md) ✦ | A panel sliding over one side of the page, for navigation, filters or details, as a native `<dialog>`. |
 | [`empty-state`](empty-state/README.md) | What a list or page shows when it has nothing yet, with a way forward. |
 | [`mobile-nav`](mobile-nav/README.md) ✦ | The app's navigation on small screens: a menu button in the navbar opening a modal drawer that holds the side nav, closed by a link, Escape, the backdrop and every Turbo visit. |
-| [`navbar`](navbar/README.md) ✦ | The bar on top of the app: brand, search, actions, and the menu button opening the sidebar or a mobile nav on small screens. |
+| [`nav-menu`](nav-menu/README.md) ✦ | The navbar's menu: links and buttons opening submenus of links, nested at any depth, as a disclosure navigation; the current page and its submenus are marked, and the same menu opens in place in a mobile nav's drawer. |
+| [`navbar`](navbar/README.md) ✦ | The bar on top of the app: brand, navigation menu, search, actions, and the menu button opening the sidebar or a mobile nav on small screens. |
 | [`page-header`](page-header/README.md) | The top of a page: its title, a short description and the page's actions. |
 | [`popover`](popover/README.md) ✦ | Free content anchored to a button (text, links, a small form) in a non-modal dialog that closes on Escape, a click outside or when the focus leaves it. |
 | [`progress`](progress/README.md) | A bar showing how far a task has come. |
@@ -144,7 +145,7 @@ Each recipe's README has its examples, props and usage.
 
 | Recipe | |
 |---|---|
-| [`layouts`](layouts/README.md) | Page layouts to extend: an app shell with sidebar, navbar and mobile nav, a centered column for login, signup and password reset, settings, errors and a blank page. |
+| [`layouts`](layouts/README.md) | Page layouts to extend: an app shell with sidebar, navbar with its menu, and mobile nav, a centered column for login, signup and password reset, settings, errors and a blank page. |
 
 ### Blocks
 
@@ -211,6 +212,9 @@ How the recipes behave with Turbo and Live Components, and what your own pages a
   opens.
 - **The mobile nav closes before Turbo caches the page.** A `mobile-nav` drawer closes when a link inside it is
   followed and before every snapshot, so Back and Forward never show it open; its `side-nav` keeps its branches.
+- **Navbar menus close before Turbo caches the page.** A `nav-menu` closes its submenus when a link inside is
+  followed and before every snapshot, and marks the current page after every visit, in a `data-turbo-permanent`
+  navbar too.
 - **Overlays come back closed.** A dropdown, modal or drawer left open by a link inside it shows closed after Back,
   and opens again as before (a dialog as a modal).
 - **Stable ids in re-rendered markup.** Give a `<twig:Tooltip>` an explicit `id` inside a Live Component or a

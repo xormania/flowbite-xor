@@ -2,8 +2,11 @@
     ## string|null The id of the `Sidebar` the menu button opens on small screens; no button without it.
     sidebarId = null,
     ## string The accessible name of the menu button.
-    menuLabel = 'Open menu'
+    menuLabel = 'Open menu',
+    ## string The accessible name of the navigation in the `nav` block.
+    navLabel = 'Site'
 -%}
+{%- set _navbar_nav %}{##- The site's navigation, typically a `NavMenu`, shown from Tailwind's `md` breakpoint up (render it in a `MobileNav` for small screens). -#}{% block nav %}{% endblock %}{% endset -%}
 <header {{ attributes.defaults({class: 'flex h-16 items-center gap-3 border-b border-default bg-neutral-primary-soft px-4'|tailwind_classes, 'data-controller': 'navbar'}) }}>
     {%- if sidebarId %}
         <button type="button" data-action="navbar#toggleSidebar" data-navbar-sidebar-param="{{ sidebarId }}" data-sidebar-trigger="{{ sidebarId }}" aria-controls="{{ sidebarId }}" aria-expanded="false" aria-label="{{ menuLabel }}"
@@ -17,6 +20,9 @@
         {##- The brand: logo and product name, usually a link home. -#}
         {%- block brand %}{% endblock -%}
     </div>
+    {%- if _navbar_nav|trim is not empty %}
+        <nav aria-label="{{ navLabel }}" class="flex shrink-0 items-center max-md:hidden!">{{ _navbar_nav }}</nav>
+    {%- endif %}
     <div class="flex min-w-0 flex-1 justify-center">
         {##- A search form or other central content. -#}
         {%- block search %}{% endblock -%}

@@ -1,6 +1,6 @@
 # Layouts
 
-Page layouts to extend: an app shell with sidebar, navbar and mobile nav, a centered column for login, signup and password reset, settings, errors and a blank page.
+Page layouts to extend: an app shell with sidebar, navbar with its menu, and mobile nav, a centered column for login, signup and password reset, settings, errors and a blank page.
 
 ## Installation
 
@@ -30,7 +30,7 @@ The recipe copies six templates to `templates/layouts/`. Extend one from a page:
 | Layout | For | Blocks |
 |--------|-----|--------|
 | `base.html.twig` | every other layout: meta, the `theme-toggle` snippet that sets the theme before the first paint, the `app` importmap entrypoint with `data-turbo-track="reload"`, the `ToastRegion` and flash messages as toasts, Content Security Policy nonces (below). The Turbo progress bar takes the brand color from the `theme` recipe | `title`, `head`, `stylesheets`, `javascripts`, `body_class`, `toasts`, `body` |
-| `app.html.twig` | the application: `Sidebar` (`data-turbo-permanent`, so it keeps its scroll and collapsed state across Turbo visits), `Navbar`, a `MobileNav` (small screens: the menu button opens the `brand` and `sidebar` blocks in a modal drawer), `PageHeader` | `brand`, `sidebar`, `navbar_search`, `navbar_actions` (theme toggle by default), `page_title`, `page_description`, `page_before`, `page_actions`, `content` |
+| `app.html.twig` | the application: `Sidebar` (`data-turbo-permanent`, so it keeps its scroll and collapsed state across Turbo visits), `Navbar`, a `NavMenu` in the navbar from `md` (the `navbar_nav` block: `NavMenu:Link`s and `NavMenu:Submenu`s), a `MobileNav` (small screens: the menu button opens the `brand`, `sidebar` and `navbar_nav` blocks in a modal drawer), `PageHeader` | `brand`, `sidebar`, `navbar_nav`, `navbar_search`, `navbar_actions` (theme toggle by default), `page_title`, `page_description`, `page_before`, `page_actions`, `content` |
 | `auth.html.twig` | login, signup, password reset: a centered column | `brand`, `content` |
 | `settings.html.twig` | settings pages: the app shell with a secondary navigation and panels | `settings_nav`, `settings_nav_label`, `settings_content` (and the `app` blocks) |
 | `error.html.twig` | error pages, e.g. `templates/bundles/TwigBundle/Exception/error404.html.twig` | `content` |
