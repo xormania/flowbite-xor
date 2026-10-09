@@ -120,8 +120,11 @@ for (const [, path] of inventory.matchAll(/`([\w./-]+(?:\.spec\.ts|Test\.php)|to
 const rules = [...section(read('FOR-AGENTS.md'), 'FOR-AGENTS.md', 'Working well').matchAll(/^- \*\*(.+?)\*\*/gm)].map(([, rule]) => rule);
 const ruleRows = table(section(inventory, 'docs/TEST-INVENTORY.md', 'Rules and their tests'));
 for (const rule of rules) {
-    if (!ruleRows.some(([first]) => first === rule)) {
+    const count = ruleRows.filter(([first]) => first === rule).length;
+    if (0 === count) {
         errors.push(`FOR-AGENTS.md: the rule "${rule}" has no row in "Rules and their tests" of docs/TEST-INVENTORY.md`);
+    } else if (count > 1) {
+        errors.push(`docs/TEST-INVENTORY.md: "Rules and their tests" has ${count} rows for "${rule}"`);
     }
 }
 const named = /(?<![\w.-])lab\.[a-z0-9]|\b(?:recipe|shot):[a-z0-9]|`[A-Z]\w*Test(?:::test\w+)?`|`[\w./-]+(?:\.spec\.ts|Test\.php)`|`tools\/[\w./-]+\.(?:mjs|sh)`/;
