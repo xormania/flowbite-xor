@@ -76,7 +76,8 @@ jobs:
     # Every workflow's syntax, expressions, job graph, action inputs and reusable workflow calls, and the shell of its
     # run steps (ShellCheck). It reads the workflows only: tools/ci-changes.sh also runs the jobs that run what a
     # workflow runs (pages.yml: Static site; release.yml: Fresh install and Static site). Both tools are release
-    # binaries pinned by version and SHA-256.
+    # binaries pinned by version and SHA-256. Then release.yml's decision, as a dry run: tools/release-plan.sh's cases,
+    # and its plan for main as it is (the commit, the tag and the notes of each version; a wrong tag fails here).
     workflows:
         name: Workflows
         needs: changes
@@ -90,6 +91,8 @@ jobs:
             SHELLCHECK_SHA256: 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198 # shellcheck-v0.11.0.linux.x86_64.tar.xz
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0 # the release dry run reads main's history and the tags
 
             - name: Install actionlint and ShellCheck
               working-directory: ${{ runner.temp }}
@@ -104,6 +107,13 @@ jobs:
             # the runner's own ShellCheck and Python are not used: only the pinned tools decide
             - name: actionlint
               run: '"$RUNNER_TEMP/bin/actionlint" -shellcheck="$RUNNER_TEMP/bin/shellcheck" -pyflakes='
+
+            - name: The release plan's own cases
+              run: tools/tests/release-plan.sh
+
+            # what release.yml would tag and publish from main, with this commit's script; it creates nothing
+            - name: Release dry run on main
+              run: tools/release-plan.sh --dry-run --ref origin/main
 
     lint-kit:
         name: Lint kit

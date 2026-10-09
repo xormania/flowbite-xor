@@ -16,8 +16,9 @@ and pull request standard.
 | `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
 | `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
 | `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations and `failed-attempts.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
+| `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
-| `tools/tests/` | no | the cases of `tools/ci-changes.sh` and `tools/ci/playwright-summary.mjs`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
+| `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `FOR-AGENTS.md`, `llms.txt` | no | the page for coding agents given the repository's URL, and the list of every page for them ([llms.txt](https://llmstxt.org/)) |
 | `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), the testing patterns ([`docs/TESTING.md`](docs/TESTING.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
@@ -87,17 +88,20 @@ change to both paths.
 | `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `llms.txt` | *Contrast* |
 | `tools/fence-coverage.mjs` | *Contrast*, *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
+| `tools/release-plan.sh`, `tools/tests/release-plan.sh` | *Workflows* |
 | `tools/tests/fresh-install.sh`, `check-fresh-app.sh`, `docker-install.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
 | any other file in `tools/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
 | `demo/compose.yaml`, `demo/frankenphp/Caddyfile` | *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
 | any other file in `demo/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
 | `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, without the upload) |
-| `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, which has no dry run |
+| `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, *Workflows* runs its plan as a dry run |
 | `.github/workflows/audit.yml`, `.github/workflows/codeql.yml` | *Workflows*; each also runs itself on the pull request that changes it |
 | `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
 
 *Workflows* runs [actionlint](https://github.com/rhysd/actionlint) with ShellCheck on every workflow: YAML, expressions,
-job graph, action and reusable workflow inputs, and the shell of each `run` step.
+job graph, action and reusable workflow inputs, and the shell of each `run` step. Then it runs
+`tools/tests/release-plan.sh` and `tools/release-plan.sh --dry-run --ref origin/main` (*Releases*): it fails when a
+version's tag points at another commit than the one `release.yml` would tag.
 
 The PHP ones run on your machine as shown, or in the container: prefix them with
 `docker compose exec php` from `demo/`, with paths relative to `demo/`
@@ -381,7 +385,19 @@ patch), and `main` is then merged into `dev`.
 Once the release pull request is merged and CI has passed on `main`, `.github/workflows/release.yml` does the rest: it
 checks that the merge commit installs from GitHub in a fresh Symfony Docker project
 (`tools/tests/docker-install.sh`), tags it `X.Y.Z`, and publishes a GitHub Release with the section as its notes. If
-it fails, fix the cause and re-run it: it skips what is already done. If GitHub refuses the workflow's tag push
+it fails, fix the cause and re-run it: it skips what is already done.
+
+[`tools/release-plan.sh`](tools/release-plan.sh) makes that decision for each version: the commit is the first one of
+`main`'s first-parent history that adds the version's heading (the release pull request's merge commit), the notes
+are the version's section of `CHANGELOG.md` at that commit (a later edit to an old section changes no published
+notes), and an existing tag, lightweight or annotated, must point at that commit. A tag that points elsewhere is
+refused: the run fails at *Plan the tags and notes*, before any install check, tag or release. Look at what the tag
+holds, then delete it (`git push origin :refs/tags/X.Y.Z`, and locally `git tag -d X.Y.Z`) or move it to the commit
+the plan names, and re-run. See the plan before a release, or after a refusal, with
+`git fetch origin main --tags && tools/release-plan.sh --dry-run --ref origin/main`: for every version, the tag, the
+commit, whether the tag exists and where it points, the decision and the notes; it creates nothing. CI's *Workflows*
+job runs the same dry run, and the script's cases (`tools/tests/release-plan.sh`), whenever `release.yml` or the
+script changes. If GitHub refuses the workflow's tag push
 ("refusing to allow a GitHub App to create or update workflow … without `workflows` permission", as for `0.1.0`,
 whose commit's workflows differed from `main`'s), push the tag by hand
 (`git tag -a X.Y.Z <merge commit> -m "flowbite-xor X.Y.Z" && git push origin X.Y.Z`) and re-run the workflow: it
