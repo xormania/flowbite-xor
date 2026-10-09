@@ -90,9 +90,9 @@ The Link button opens a small dialog: type an address and press Enter or Apply; 
 | Quotes, horizontal lines | `blockquote`, `hr` |
 | Links | `a href`, with `rel="noopener noreferrer nofollow"` |
 
-Pasted content keeps only these: styles, classes, images, tables, colors and fonts are dropped. White space alone
-next to a block's tag (lines between paragraphs, a list's indentation) is dropped too, by the editor and by
-`EditorHtmlPolicy`; space between words and inline formatting stays. To change the set, change the controller's
+Pasted content keeps only these: styles, classes, images, tables, colors and fonts are dropped. White space is
+read as the editor reads it, by the editor and by `EditorHtmlPolicy`: a run of spaces or lines is one space, and none
+at the start or end of a block or after a line break (lines between paragraphs, a list's indentation). To change the set, change the controller's
 extensions and `EditorHtmlPolicy` together.
 
 ## Turbo and Live Components

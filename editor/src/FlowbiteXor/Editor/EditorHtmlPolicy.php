@@ -64,7 +64,7 @@ final class EditorHtmlPolicy
     }
 
     /**
-     * The HTML with only the editor's formatting, without white space alone next to a block's tag; '' when it holds no
+     * The HTML with only the editor's formatting, its white space as the editor reads it; '' when it holds no
      * text (e.g. `<p></p>`). Its own output gives the same output.
      *
      * @throws \LengthException when the HTML is longer than MAX_INPUT_BYTES, instead of storing part of it
@@ -74,7 +74,7 @@ final class EditorHtmlPolicy
         if (!self::isReadable($html)) {
             throw new \LengthException(\sprintf('The HTML holds %d bytes, more than the %d the editor policy reads.', \strlen($html), self::MAX_INPUT_BYTES));
         }
-        $clean = trim(self::withoutSpaceNextToBlocks($this->sanitizer->sanitize($html)));
+        $clean = trim(self::asTheEditorReadsIt($this->sanitizer->sanitize($html)));
 
         return self::isEmpty($clean) ? '' : $clean;
     }
@@ -92,16 +92,45 @@ final class EditorHtmlPolicy
     }
 
     /**
-     * Removes the text that is only HTML white space (no `&nbsp;`) between a block's tag and another tag: the editor
-     * parses none of it. Space between inline tags (`<strong>a</strong> <em>b</em>`) and other text stay. The sanitizer's
-     * output encodes `>` in text and attributes, so a `>` ends a tag.
+     * The white space as the editor's parser (ProseMirror, white space not preserved) reads it, so the stored HTML counts
+     * as the editor's counter shows it: each run of HTML white space (no `&nbsp;`) is one space, dropped at the start of
+     * a block, after a line break or after a space, and at the end of a block. Rendering is unchanged: browsers collapse
+     * it the same way. The sanitizer's output encodes `>` in text and attributes, so a `>` ends a tag.
      */
-    private static function withoutSpaceNextToBlocks(string $html): string
+    private static function asTheEditorReadsIt(string $html): string
     {
-        return preg_replace_callback(
-            '~(<\/?([a-z][a-z0-9]*)\b[^>]*>)[ \t\n\r\f]+(?=<\/?([a-z][a-z0-9]*)\b)~',
-            static fn (array $m): string => \in_array($m[2], self::BLOCKS, true) || \in_array($m[3], self::BLOCKS, true) ? $m[1] : $m[0],
-            $html,
-        ) ?? $html;
+        $parts = preg_split('~(<[^>]*>)~', $html, -1, \PREG_SPLIT_DELIM_CAPTURE | \PREG_SPLIT_NO_EMPTY) ?: [];
+        $out = [];
+        $lineStart = true;
+        $lastText = null;
+        foreach ($parts as $part) {
+            if (preg_match('~^</?([a-z][a-z0-9]*)\b~i', $part, $tag)) {
+                $name = strtolower($tag[1]);
+                if (\in_array($name, self::BLOCKS, true)) {
+                    if (null !== $lastText) {
+                        $out[$lastText] = rtrim($out[$lastText], ' ');
+                    }
+                    $lastText = null;
+                    $lineStart = true;
+                } elseif ('br' === $name) {
+                    $lastText = null;
+                    $lineStart = true;
+                }
+                $out[] = $part;
+                continue;
+            }
+            $text = preg_replace('~[ \t\n\r\f]+~', ' ', $part) ?? $part;
+            if ($lineStart) {
+                $text = ltrim($text, ' ');
+            }
+            if ('' === $text) {
+                continue;
+            }
+            $out[] = $text;
+            $lastText = array_key_last($out);
+            $lineStart = str_ends_with($text, ' ');
+        }
+
+        return implode('', $out);
     }
 }

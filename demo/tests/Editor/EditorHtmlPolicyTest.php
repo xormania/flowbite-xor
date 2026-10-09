@@ -108,7 +108,7 @@ final class EditorHtmlPolicyTest extends TestCase
 
     public function testSpaceBetweenInlineElementsStays(): void
     {
-        $html = '<p><strong>a</strong> <em>b</em> <a href="/x" rel="noopener noreferrer nofollow">c</a><br /> <code>d</code></p>';
+        $html = '<p><strong>a</strong> <em>b</em> <a href="/x" rel="noopener noreferrer nofollow">c</a><br /><code>d</code></p>';
 
         self::assertSame($html, (new EditorHtmlPolicy())->sanitize($html));
     }
@@ -116,7 +116,7 @@ final class EditorHtmlPolicyTest extends TestCase
     public function testTextBetweenBlocksStays(): void
     {
         // a no-break space is text, as in the editor
-        self::assertSame("<p>a</p> x <p>b</p>\u{A0}<p>c</p>", (new EditorHtmlPolicy())->sanitize("<p>a</p> x <p>b</p>\u{A0}<p>c</p>"));
+        self::assertSame("<p>a</p>x<p>b</p>\u{A0}<p>c</p>", (new EditorHtmlPolicy())->sanitize("<p>a</p> x <p>b</p>\u{A0}<p>c</p>"));
     }
 
     public function testTheTextOfIndentedBlocksCountsAsInTheEditorsCounter(): void
@@ -125,6 +125,18 @@ final class EditorHtmlPolicyTest extends TestCase
         $clean = (new EditorHtmlPolicy())->sanitize("<p>ab</p>\r\n<ul>\n  <li><p>cd</p></li>\n</ul>\n<h2>ef</h2>\n<hr>\n<p>gh</p>");
 
         self::assertSame(8, EditorHtmlPolicy::textLength($clean));
+    }
+
+    public function testWhiteSpaceIsReadAsTheEditorsParserReadsIt(): void
+    {
+        $policy = new EditorHtmlPolicy();
+        // ProseMirror drops white space after a line break and at a block's start and end, and makes a run one space
+        self::assertSame('<p>a<br />b</p>', $policy->sanitize('<p>a<br> b</p>'));
+        self::assertSame(3, EditorHtmlPolicy::textLength($policy->sanitize('<p>a<br> b</p>')));
+        self::assertSame('<p>a b <strong>c</strong></p>', $policy->sanitize("<p>  a \n\t b  <strong>c </strong> </p>"));
+        self::assertSame('<p>a <em>b</em></p>', $policy->sanitize('<p>a <em> b</em></p>'));
+        // a no-break space is text
+        self::assertSame("<p>\u{A0}a</p>", $policy->sanitize("<p> \u{A0}a</p>"));
     }
 
     public function testALineBreakIsOneCharacterAsInTheEditorsCounter(): void

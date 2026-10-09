@@ -97,9 +97,10 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
-- `editor`: `EditorHtmlPolicy::sanitize()` removes white space alone next to a block's tag (between paragraphs,
-  headings, lists, list items, quotes and lines, or a list's indentation), which the editor drops too: the server
-  counts the characters the editor's counter shows. Space between inline tags and other text between blocks stay.
+- `editor`: `EditorHtmlPolicy::sanitize()` stores white space as the editor reads it: a run of spaces or lines is one
+  space, and none at the start or end of a block or after a line break (lines between paragraphs, a list's
+  indentation). The server counts the characters the editor's counter shows; rendering is unchanged. A no-break space
+  stays.
 - `llms.txt` links the files of the release it was written for (or `dev` before a release), not `main`, and
   `FOR-AGENTS.md` lists every recipe, written from `README.md`'s tables like `llms.txt`.
 - `dropdown`, `modal`, `drawer`: the README examples size their wrapper with `min-h-*` classes instead of a `style`
