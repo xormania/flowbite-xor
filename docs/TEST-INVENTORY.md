@@ -396,6 +396,7 @@ where the guarantee stays.
 | `/preview/<recipe>/<id>?theme=light` builders | dropzone, editor, popover, markdown-editor; `gotoExample` | `inventory.ts` |
 | `dialogState` / `:modal` checks | lab.turbo-restore, lab.live-modal, lab.live-drawer | `fixtures.ts` |
 | `status`, `params` | lab.data-table-frame, lab.data-table-live | a data table helper module |
+| ~~Reading a shard's results with an inline `node -e` (stats only; a JSON error when setup had failed)~~ **Done:** `tools/ci/playwright-summary.mjs`: counts, failed and flaky tests with their errors, annotations, the tested commit and versions, `failed-attempts.json`; tells setup failure, missing and invalid reports apart | `.github/workflows/ci.yml` (*Demo + Playwright*, *Read the results*) | `tools/ci/playwright-summary.mjs`, its cases in `tools/tests/playwright-summary.test.mjs` ([`TESTING.md`](TESTING.md), *Reading CI results*) |
 
 ## Gaps, ranked by risk
 
