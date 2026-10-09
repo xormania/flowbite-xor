@@ -313,6 +313,8 @@ States: content, selection, toolbar states, counter, read-only; markdown's Write
 | editor | Form post 422; Back (content and selection); N visits; permanent; frame ×3; Stream; Live (typing kept, focused re-render); frame advance | E2E lab | lab.editor (9 tests) |
 | markdown-editor | Preview through Live, unsafe Markdown, toolbar, tab keys, counter, read-only, axe | E2E demo | markdown-editor (7 tests) |
 | markdown-editor | Form post 422; Back; N visits; permanent; frame ×3; Stream; frame advance | E2E lab | lab.markdown-editor (7 tests) |
+| editor | Server policy (`EditorHtmlPolicy`): the preset kept, everything else removed, the same output twice | unit | `EditorHtmlPolicyTest` (moved from hostile-props "the editor's policy keeps the preset…"); the Editor given a hostile value, parsed by the browser: hostile-props |
+| markdown-editor | Server renderer (`MarkdownRenderer`): Markdown kept, raw HTML and images stripped, unsafe links refused, nesting limited, long HTML whole | unit | `MarkdownRendererTest` (moved from hostile-props "the Markdown renderer keeps what Markdown makes…"); the MarkdownEditor given a hostile value, parsed by the browser: hostile-props |
 
 ### autocomplete
 

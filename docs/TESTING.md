@@ -545,8 +545,8 @@ Here: [`demo/tests/DataTable/`](../demo/tests/DataTable/), [`SelectionTest.php`]
 
 The demo has PHPUnit 13 and Symfony's test tools (what `symfony/test-pack` installs: `phpunit/phpunit`,
 `symfony/browser-kit`, `symfony/css-selector`), set up by the PHPUnit Flex recipe (`phpunit.dist.xml`,
-`tests/bootstrap.php`, `.env.test`). The tests are in `demo/tests/`, by area (`DataTable/`, `Live/`, `Twig/`,
-`Functional/`). Run them from `demo/`:
+`tests/bootstrap.php`, `.env.test`). The tests are in `demo/tests/`, by area (`DataTable/`, `Editor/`, `MarkdownEditor/`, `Live/`,
+`Twig/`, `Functional/`). Run them from `demo/`:
 
 ```sh
 bin/phpunit                                  # all of them
@@ -666,6 +666,12 @@ Render every component with hostile values through the app's own Twig (a console
 parse each rendering and check the DOM: no extra element, no `on*` attribute, links only with allowed schemes.
 
 Here: [`hostile-props.spec.ts`](../tests/e2e/hostile-props.spec.ts), [`HostilePropsCommand.php`](../demo/src/Command/HostilePropsCommand.php).
+
+What a server-side sanitizer or renderer returns is a string: test it where it runs, with PHPUnit, on the same hostile
+inputs, and keep the browser for the component that prints it. The editor's HTML policy and the Markdown renderer are
+unit tests ([`EditorHtmlPolicyTest.php`](../demo/tests/Editor/EditorHtmlPolicyTest.php),
+[`MarkdownRendererTest.php`](../demo/tests/MarkdownEditor/MarkdownRendererTest.php)); the Editor and the
+MarkdownEditor given a hostile value stay in `hostile-props.spec.ts`, parsed by the browser.
 
 ## Security headers and the Content Security Policy
 

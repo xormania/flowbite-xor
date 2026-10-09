@@ -9,6 +9,8 @@ import { test, expect } from './fixtures';
  * (demo/src/Command/HostilePropsCommand.php) renders the components through the demo's Twig, and the browser
  * parses each rendering. No value may add an element or an event handler, `as` renders only the tags a component
  * accepts, and a link prop keeps a relative, http(s), mailto or tel URL, any other rendering `#` (README, Security).
+ * The server-only rules behind the Editor and the MarkdownEditor (what EditorHtmlPolicy and MarkdownRenderer return)
+ * are PHPUnit tests: demo/tests/Editor/EditorHtmlPolicyTest.php, demo/tests/MarkdownEditor/MarkdownRendererTest.php.
  */
 type TagCase = { component: string; input: string; expected: string; html: string };
 type UrlCase = { component: string; prop: string; link: string; input: string; text: string; hostile: boolean; html: string };
@@ -18,8 +20,8 @@ type Cases = {
     urls: UrlCase[];
     calendar: { html: string };
     chart: { html: string };
-    editor: { policy: { input: string; once: string; twice: string }[]; html: string };
-    markdown: { renderer: { input: string; html: string }[]; expansion: { characters: number; kept: number; complete: boolean }; html: string };
+    editor: { html: string };
+    markdown: { html: string };
     sidebar: { path: string; html: string };
 };
 
@@ -256,47 +258,6 @@ test('a sidebar item whose link renders "#" is never the current page', async ({
     await expect(nav.getByRole('link', { name: 'Rejected' })).toHaveAttribute('href', '#');
     await expect(nav.getByRole('link', { name: 'Rejected' })).not.toHaveAttribute('aria-current');
     await expect(nav.getByRole('link', { name: 'Placeholder' })).not.toHaveAttribute('aria-current');
-});
-
-test("the editor's policy keeps the preset, removes everything else, and gives the same output twice", () => {
-    const [plain, blocks, links, hostileLinks, hostile, foreign, tricks, empty] = cases.editor.policy;
-    for (const { once, twice } of cases.editor.policy) {
-        expect(twice).toBe(once);
-        expect(once).not.toMatch(/<(script|style|img|svg|math|iframe|form|input|table|div|span|h1)\b|\s(style|class|id|data-[a-z-]+|on[a-z]+|target)=|javascript:|vbscript:|data:text/i);
-    }
-    // the sanitizer writes void elements as <br /> and <hr />
-    expect(plain.once).toBe(plain.input.replace('<br>', '<br />'));
-    expect(blocks.once).toBe(blocks.input.replace('<hr>', '<hr />'));
-    expect(links.once).toBe('<p><a href="https://example.com" title="Example" rel="noopener noreferrer nofollow">https</a> <a href="mailto:a&#64;example.com" rel="noopener noreferrer nofollow">mail</a> <a href="/pricing#faq" rel="noopener noreferrer nofollow">relative</a></p>');
-    expect(hostileLinks.once).not.toContain('href="j');
-    expect(hostile.once).toBe('<p>attributes</p>');
-    expect(foreign.once).toContain('H1');
-    expect(foreign.once).toContain('cell');
-    expect(tricks.once).toContain('&lt;script&gt;text&lt;/script&gt;');
-    expect(empty.once).toBe('');
-});
-
-test('the Markdown renderer keeps what Markdown makes, strips raw HTML and images, refuses unsafe links, and limits nesting', () => {
-    const [plain, blocks, links, hostileLinks, raw, images, deep, delimiters, blank] = cases.markdown.renderer;
-    for (const { html } of cases.markdown.renderer) {
-        // an unsafe autolink keeps its text, never its address
-        expect(html).not.toMatch(/<(script|style|img|svg|iframe|b)\b|\s(style|class|id|on[a-z]+|target)=|="\s*(javascript|vbscript|data):/i);
-    }
-    expect(plain.html).toBe('<p><strong>bold</strong> <em>italic</em> <del>strike</del> <code>code</code><br />\nnext line</p>');
-    expect(blocks.html).toContain('<h1>H1</h1>');
-    expect(blocks.html).toContain('<ol start="3">');
-    // a code block shows its HTML as text, without the language class
-    expect(blocks.html).toContain('<pre><code>code &lt;b&gt;x&lt;/b&gt;\n</code></pre>');
-    expect(links.html).toContain('<a href="/pricing#faq" rel="noopener noreferrer nofollow">relative</a>');
-    expect(links.html).toContain('<a href="https://example.org" rel="noopener noreferrer nofollow">https://example.org</a>');
-    expect(hostileLinks.html).not.toContain('href=');
-    expect(raw.html).toBe('');
-    expect(images.html).not.toContain('example.com');
-    expect(deep.html.match(/<blockquote>/g)).toHaveLength(20);
-    expect(delimiters.html.length).toBeGreaterThan(0);
-    expect(blank.html).toBe('');
-    // HTML far longer than its Markdown (each `&` is `&amp;`) is rendered whole
-    expect(cases.markdown.expansion).toEqual({ characters: 900000, kept: 900000, complete: true });
 });
 
 test('the MarkdownEditor prints a hostile value as text in its textarea', async ({ page }) => {
