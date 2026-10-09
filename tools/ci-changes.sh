@@ -73,7 +73,9 @@ while IFS= read -r path; do
         */tests/*.spec.ts) on contrast demo ;;
         */tests/*) on demo ;;
 
-        # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...)
+        # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...).
+        # Contrast checks the theme's roles, what the markdown teaches and the palette
+        # colors of the recipes' templates (tools/docs-lint.mjs), the README tables and the controllers' rows
         *)
             on lint-kit php static-site fresh-install demo
             case "$path" in
@@ -83,7 +85,7 @@ while IFS= read -r path; do
     esac
 
     # What Contrast's lints read wherever it lies: any markdown outside demo/ (tools/docs-lint.mjs, tools/icon-lint.mjs)
-    # and a recipe's templates (tools/icon-lint.mjs). The demo's copies of the recipes are not read.
+    # and a recipe's templates (tools/docs-lint.mjs, tools/icon-lint.mjs). The demo's copies of the recipes are not read.
     if [[ $path != demo/* && ( $path == *.md || $path =~ ^[^/]+/templates/ ) ]]; then on contrast; fi
 done
 

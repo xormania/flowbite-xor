@@ -17,9 +17,10 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
 - **No Flowbite JavaScript.** Never `import 'flowbite'` or call `initFlowbite()`: behavior lives in the
   recipes' Stimulus controllers, which survive Turbo visits and Live Component re-renders.
 - **Colors through the theme's roles only**: `bg-brand`, `text-heading`, `text-body`, `border-default`,
-  `bg-neutral-primary-soft`, `text-fg-danger-strong`… Never raw palette colors (`bg-blue-700`,
-  `text-gray-500`) or `dark:` color overrides: the roles already switch with the theme and pass the
-  contrast checks.
+  `bg-neutral-primary-soft`, `text-fg-danger-strong`… Text on a solid fill uses that fill's on-fill role:
+  `text-fg-on-brand` on `bg-brand`, `fg-on-success`, `fg-on-danger`, `fg-on-warning`, `fg-on-dark`. Never raw palette
+  colors (`bg-blue-700`, `text-gray-500`, `text-white`) or `dark:` color overrides: the roles already switch with the
+  theme and pass the contrast checks.
 - **Icons with UX Icons from the `flowbite` set**: `<twig:ux:icon name="flowbite:check-circle-outline" />` or
   `ux_icon('flowbite:check-circle-outline')`. Write each name in full: `php bin/console ux:icons:lock` finds only
   those, downloads them into `assets/icons/`, and you commit that folder. A name built from a variable
