@@ -302,9 +302,9 @@ function durationsSection(timing) {
     return lines.join('\n');
 }
 
-/** Text for a Markdown table cell. */
+/** Text for a Markdown table cell: a backslash of its own first, so it can't escape the \| that follows */
 function cell(text) {
-    return String(text).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+    return String(text).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
 
 function headlineOf(status) {

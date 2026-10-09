@@ -345,7 +345,7 @@
       "column": 0,
       "specs": [
         {
-          "title": "dismisses | each alert",
+          "title": "dismisses \\| each alert",
           "ok": true,
           "id": "g-1",
           "file": "tests/e2e/examples/recipes/alert.alert.spec.ts",

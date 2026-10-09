@@ -222,8 +222,9 @@ test('durations, report-only: wall time, summed test time, the 10 slowest tests 
     assert.match(run.summary, /### Slowest 10 tests/);
     const slowest = run.summary.split('### Slowest 10 tests')[1].split('### Per file')[0];
     assert.equal(slowest.split('\n').filter((line) => /^\| \d/.test(line)).length, 10);
-    // a test's time is the sum of its attempts; a recipe spec is named by its committed file; a | does not break the table
-    assert.ok(slowest.includes('| 12.5 s | 1 | [examples] alert/tests/alert.spec.ts:8 › dismisses \\| each alert |'));
+    // a test's time is the sum of its attempts; a recipe spec is named by its committed file; a | does not break the
+    // table, not even after a backslash of the title's own
+    assert.ok(slowest.includes('| 12.5 s | 1 | [examples] alert/tests/alert.spec.ts:8 › dismisses \\\\\\| each alert |'));
     assert.ok(slowest.includes('| 10.0 s | 2 | [smoke] tests/e2e/lab.turbo-stream-toast.spec.ts:19 › pauses while hovered |'));
     assert.doesNotMatch(slowest, /page 1 passes axe/, 'the 11th slowest is left out');
     assert.match(run.summary, /\| 45\.0 s \| 9 \| tests\/e2e\/a11y\.spec\.ts \|\n\| 12\.5 s \| 1 \| alert\/tests\/alert\.spec\.ts \|\n\| 10\.0 s \| 3 \| tests\/e2e\/lab\.turbo-stream-toast\.spec\.ts \|/);
