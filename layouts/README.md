@@ -32,16 +32,16 @@ The recipe copies six templates to `templates/layouts/`. Extend one from a page:
 | `base.html.twig` | every other layout: meta, the `theme-toggle` snippet that sets the theme before the first paint, the `app` importmap entrypoint with `data-turbo-track="reload"`, the `ToastRegion` and flash messages as toasts, Content Security Policy nonces (below). The Turbo progress bar takes the brand color from the `theme` recipe | `title`, `head`, `stylesheets`, `javascripts`, `body_class`, `toasts`, `body` |
 | `app.html.twig` | the application: `Sidebar` (`data-turbo-permanent`, so it keeps its scroll and collapsed state across Turbo visits), `Navbar`, a `NavMenu` in the navbar from `md` (the `navbar_nav` block: `NavMenu:Link`s and `NavMenu:Submenu`s), a `MobileNav` (small screens: the menu button opens the `brand`, `sidebar` and `navbar_nav` blocks in a modal drawer), `PageHeader` | `brand`, `sidebar`, `navbar_nav`, `navbar_search`, `navbar_actions` (theme toggle by default), `page_title`, `page_description`, `page_before`, `page_actions`, `content` |
 | `auth.html.twig` | login, signup, password reset: a centered column | `brand`, `content` |
-| `settings.html.twig` | settings pages: the app shell with a secondary navigation and panels | `settings_nav`, `settings_nav_label`, `settings_content` (and the `app` blocks) |
+| `settings.html.twig` | settings pages: the app shell with a `SectionNav` of the settings pages and the panels | `settings_nav`, `settings_nav_label`, `settings_content` (and the `app` blocks) |
 | `error.html.twig` | error pages, e.g. `templates/bundles/TwigBundle/Exception/error404.html.twig` | `content` |
 | `blank.html.twig` | anything else | `content` |
 
-Fill `settings_nav` with one link per settings page. The link of the current route gets `aria-current="page"`, which highlights it:
+Fill `settings_nav` with one `SectionNav:Item` per settings page (the `section-nav` recipe, installed with the layouts). The item of the current route gets `aria-current="page"`, which highlights it; below the `lg` breakpoint the sections are a row that scrolls sideways:
 
 ```twig
 {% block settings_nav %}
     {% for route, name in {app_settings_profile: 'Profile', app_settings_password: 'Password'} %}
-        <li><a href="{{ path(route) }}"{% if route == app.current_route %} aria-current="page"{% endif %} class="block rounded-base px-3 py-2 text-sm font-medium whitespace-nowrap text-body hover:bg-neutral-secondary-medium hover:text-heading aria-[current=page]:bg-brand-softer aria-[current=page]:text-fg-brand-strong">{{ name }}</a></li>
+        <twig:SectionNav:Item href="{{ path(route) }}" :route="route">{{ name }}</twig:SectionNav:Item>
     {% endfor %}
 {% endblock %}
 ```

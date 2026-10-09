@@ -1,0 +1,28 @@
+{%- props
+    ## string The accessible name of the navigation landmark.
+    label = 'Sections',
+    ## 'responsive'|'vertical'|'horizontal' A strip that scrolls sideways below the `lg` breakpoint and a column from it, always a column, or always a strip.
+    orientation = 'responsive'
+-%}
+{%- set style = html_cva(
+    base: 'flex gap-1 overflow-x-auto',
+    variants: {
+        orientation: {
+            responsive: 'lg:flex-col',
+            vertical: 'flex-col',
+            horizontal: '',
+        },
+    },
+) -%}
+{%- set orientation = orientation in ['responsive', 'vertical', 'horizontal'] ? orientation : 'responsive' -%}
+<nav aria-label="{{ label }}"
+    {{ attributes.defaults({
+        class: 'min-w-0'|tailwind_classes,
+        'data-controller': 'section-nav',
+    }) }}
+>
+    <ul data-section-nav-target="list" class="{{ style.apply({orientation: orientation})|tailwind_classes }}">
+        {##- The sections: one `SectionNav:Item` link per page. -#}
+        {%- block content %}{% endblock -%}
+    </ul>
+</nav>

@@ -3,13 +3,13 @@
     value
 -%}
 
-{%- set _tab_id = 'tab-' ~ value -%}
+{%- set _tab_id = (idPrefix ?? 'tab') ~ '-' ~ value -%}
 {%- set _tab_content_id = _tab_id ~ '-description' -%}
 {%- set open = defaultValue is same as(value) -%}
 <li class="me-2" role="presentation">
     <button
         id="{{ _tab_id }}"
-        data-action="click->tabs#open"
+        data-action="click->tabs#open keydown->tabs#keydown"
         data-tabs-target="trigger"
         data-tab-id="{{ value }}"
         role="tab"
