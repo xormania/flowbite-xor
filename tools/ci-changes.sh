@@ -3,14 +3,15 @@
 # Which CI jobs a change could affect. Reads the changed paths, one per line, on stdin and prints one
 # `<job>=true|false` line per job of .github/workflows/ci.yml, for $GITHUB_OUTPUT. A job is skipped only when none of
 # the paths could change what it checks. A path not listed counts as part of the kit, which runs every job but
-# Contrast.
+# Contrast and Workflows. A workflow runs Workflows (actionlint) and the jobs that run the same commands it runs; a
+# workflow or a file under .github/ that is not listed runs everything.
 #
 # Usage: git diff --name-only --no-renames <base> HEAD | tools/ci-changes.sh
 # Test:  tools/tests/ci-changes.sh
 
 set -euo pipefail
 
-jobs=(lint-kit php static-site fresh-install contrast demo)
+jobs=(lint-kit php static-site fresh-install contrast demo workflows)
 declare -A run
 for job in "${jobs[@]}"; do run[$job]=false; done
 
@@ -25,7 +26,15 @@ while IFS= read -r path; do
 
         # Read by people only: no job checks them
         docs/* | CHANGELOG.md | CONTRIBUTING.md | FOR-AGENTS.md | AGENTS.md | SECURITY.md | LICENSE | NOTICE) ;;
-        .github/pull_request_template.md | .github/dependabot.yml | .github/workflows/*.yml) ;;
+        .github/pull_request_template.md | .github/dependabot.yml) ;;
+
+        # The other workflows. CI cannot run them (they deploy, tag or upload), so it runs the jobs that run what they
+        # run: pages.yml builds the static site, release.yml checks the install from GitHub (docker-install.sh) and
+        # calls pages.yml. audit.yml and codeql.yml run themselves on the pull request that changes them.
+        .github/workflows/pages.yml) on static-site workflows ;;
+        .github/workflows/release.yml) on static-site fresh-install workflows ;;
+        .github/workflows/audit.yml | .github/workflows/codeql.yml | .github/actionlint.yaml) on workflows ;;
+        .github/*) all ;;
 
         # The browser tests and their tools
         tests/* | playwright.config.ts) on demo ;;

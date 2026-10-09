@@ -25,7 +25,8 @@ env:
 jobs:
     # Which jobs this change could affect (tools/ci-changes.sh): a job it cannot affect is skipped, and a skipped job
     # passes the branch rulesets. Pushes to main and dev, a run by hand and a change to this workflow run everything. A
-    # branch is compared with where it left dev, so each push checks the whole pull request, not only its last commit.
+    # branch is compared with where it left dev, so each push checks the whole pull request, not only its last commit
+    # (the rulesets require a branch to be up to date with its base before it merges, so that is the code that lands).
     changes:
         name: Changes
         runs-on: ubuntu-latest
@@ -37,6 +38,7 @@ jobs:
             fresh-install: ${{ steps.jobs.outputs.fresh-install }}
             contrast: ${{ steps.jobs.outputs.contrast }}
             demo: ${{ steps.jobs.outputs.demo }}
+            workflows: ${{ steps.jobs.outputs.workflows }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -60,11 +62,48 @@ jobs:
                   # without the script runs everything.
                   if [ -n "$base" ] && git show "$base:tools/ci-changes.sh" > "$RUNNER_TEMP/ci-changes.sh" 2>/dev/null; then
                       echo "Changed since $base:"
-                      git diff --name-only --no-renames "$base" HEAD | tee /dev/stderr | bash "$RUNNER_TEMP/ci-changes.sh" | tee -a "$GITHUB_OUTPUT"
+                      git diff --name-only --no-renames "$base" HEAD | tee /dev/stderr | bash "$RUNNER_TEMP/ci-changes.sh" > "$RUNNER_TEMP/jobs"
                   else
                       echo "Everything runs ($EVENT on $REF)"
-                      for job in lint-kit php static-site fresh-install contrast demo; do echo "$job=true"; done | tee -a "$GITHUB_OUTPUT"
+                      : > "$RUNNER_TEMP/jobs"
                   fi
+                  # a job the base's classifier does not know (one this branch adds) runs
+                  for job in lint-kit php static-site fresh-install contrast demo workflows; do
+                      grep -q "^$job=" "$RUNNER_TEMP/jobs" || echo "$job=true" >> "$RUNNER_TEMP/jobs"
+                  done
+                  tee -a "$GITHUB_OUTPUT" < "$RUNNER_TEMP/jobs"
+
+    # Every workflow's syntax, expressions, job graph, action inputs and reusable workflow calls, and the shell of its
+    # run steps (ShellCheck). It reads the workflows only: tools/ci-changes.sh also runs the jobs that run what a
+    # workflow runs (pages.yml: Static site; release.yml: Fresh install and Static site). Both tools are release
+    # binaries pinned by version and SHA-256.
+    workflows:
+        name: Workflows
+        needs: changes
+        if: needs.changes.outputs.workflows == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        env:
+            ACTIONLINT_VERSION: '1.7.12'
+            ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 # actionlint_1.7.12_linux_amd64.tar.gz
+            SHELLCHECK_VERSION: '0.11.0'
+            SHELLCHECK_SHA256: 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198 # shellcheck-v0.11.0.linux.x86_64.tar.xz
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Install actionlint and ShellCheck
+              working-directory: ${{ runner.temp }}
+              run: |
+                  curl -fsSLo actionlint.tar.gz "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+                  curl -fsSLo shellcheck.tar.xz "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz"
+                  printf '%s  %s\n' "$ACTIONLINT_SHA256" actionlint.tar.gz "$SHELLCHECK_SHA256" shellcheck.tar.xz | sha256sum --check --strict
+                  mkdir bin
+                  tar -xzf actionlint.tar.gz -C bin actionlint
+                  tar -xJf shellcheck.tar.xz -C bin --strip-components=1 "shellcheck-v${SHELLCHECK_VERSION}/shellcheck"
+
+            # the runner's own ShellCheck and Python are not used: only the pinned tools decide
+            - name: actionlint
+              run: '"$RUNNER_TEMP/bin/actionlint" -shellcheck="$RUNNER_TEMP/bin/shellcheck" -pyflakes='
 
     lint-kit:
         name: Lint kit
@@ -135,6 +174,7 @@ jobs:
                       if [ -d "${manifest%/manifest.json}/src" ]; then echo "${manifest%/manifest.json}/src"; fi
                   done > "$RUNNER_TEMP/php-dirs"
                   cat "$RUNNER_TEMP/php-dirs"
+                  # shellcheck disable=SC2046 # one directory per line, none with a space
                   find $(cat "$RUNNER_TEMP/php-dirs") -name '*.php' -print0 | xargs -0 -n1 php -l
 
             # The tests render the recipes' templates as the demo has them, and its pages with their CSS
@@ -166,6 +206,7 @@ jobs:
             - name: PHPStan
               run: |
                   (cd demo && bin/console cache:warmup --env=test)
+                  # shellcheck disable=SC2046 # one directory per line, none with a space
                   "$RUNNER_TEMP/phpstan/vendor/bin/phpstan" analyse --no-progress --configuration=tools/phpstan.neon \
                       --autoload-file=demo/vendor/autoload.php $(cat "$RUNNER_TEMP/php-dirs") demo/src/Demo demo/tests
 
@@ -397,7 +438,7 @@ jobs:
     result:
         name: CI result
         if: always()
-        needs: [changes, lint-kit, php, static-site, fresh-install, docker-install, contrast, demo]
+        needs: [changes, lint-kit, php, static-site, fresh-install, docker-install, contrast, workflows, demo]
         runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
