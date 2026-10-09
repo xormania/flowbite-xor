@@ -15,8 +15,9 @@ and pull request standard.
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
 | `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
 | `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
+| `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations and `failed-attempts.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
-| `tools/tests/` | no | `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
+| `tools/tests/` | no | the cases of `tools/ci-changes.sh` and `tools/ci/playwright-summary.mjs`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `FOR-AGENTS.md`, `llms.txt` | no | the page for coding agents given the repository's URL, and the list of every page for them ([llms.txt](https://llmstxt.org/)) |
 | `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), the testing patterns ([`docs/TESTING.md`](docs/TESTING.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
@@ -112,6 +113,7 @@ cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit
 node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
 node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles (see Docs)
 node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
+node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer (tools/ci/playwright-summary.mjs)
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 (cd demo && bin/phpunit)                            # the PHP tests (demo/tests/): the data tables' limits, Live and Twig components, snapshots, profiler counts
@@ -129,6 +131,11 @@ runs them with `CREATE_SNAPSHOTS=false`, so a missing snapshot fails there. The 
 [`docs/TESTING.md`](docs/TESTING.md) (*PHP tests*).
 
 `npx playwright test` runs two projects; pick one with `--project=smoke` or `--project=examples`.
+
+In CI each browser shard retries a failed test once and ends with its summary: the counts, every failed test and every
+flaky one (passed only on its retry) with its error, on the run's *Summary* page, as annotations at the failing lines
+and as the last step of the job log; a shard whose tests did not run says which step failed. A flaky test keeps the run
+green but is reported as flaky, never as a clean pass. See [`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*.
 
 - `smoke` runs the specs in `tests/e2e/`: the demo pages, the forms, the `/lab` pages for Turbo and Live
   Components, the components given hostile prop values (`hostile-props.spec.ts`), the demo's security headers and
