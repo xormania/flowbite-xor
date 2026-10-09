@@ -346,7 +346,9 @@ jobs:
         needs: changes
         if: needs.changes.outputs.demo == 'true'
         runs-on: ubuntu-latest
-        timeout-minutes: 25
+        # 25 for the tests, plus 3 for the advisory Jev step (2) and its upload: a diagnosis must never be what
+        # times the job out
+        timeout-minutes: 28
         # the browser suite is most of CI's time: three shards, each with its own demo and browser (shard 1 writes the
         # image cache the others read)
         env:
@@ -363,8 +365,9 @@ jobs:
                   node-version: 22
                   cache: npm
 
-            # The summarizer that reads the results below, on its own fixtures (tools/tests/fixtures/playwright-results/)
-            - name: The results summarizer's own cases
+            # The tools that read the results below, on their own cases: the summarizer (its fixtures are in
+            # tools/tests/fixtures/playwright-results/) and the Jev diagnosis (against a local stand-in for the provider)
+            - name: The CI tools' own cases
               id: summarizer-cases
               if: matrix.shard == 1
               run: node --test 'tools/tests/*.test.mjs'
@@ -450,7 +453,7 @@ jobs:
                   DEMO_STARTED: ${{ steps.start.outcome }}
                   TESTS_OUTCOME: ${{ steps.tests.outcome }}
                   SETUP_STEPS: |
-                      The results summarizer's own cases=${{ steps.summarizer-cases.outcome }}
+                      The CI tools' own cases=${{ steps.summarizer-cases.outcome }}
                       Build the demo image=${{ steps.image.outcome }}
                       Start the demo=${{ steps.start.outcome }}
                       Sync recipes into the demo=${{ steps.sync.outcome }}
@@ -492,6 +495,36 @@ jobs:
                       playwright-report/
                       test-results/
                   retention-days: 7
+
+            # Advisory diagnosis of each failed attempt, retry-recovered ones included, by Jev (TypeSafe):
+            # tools/ci/jev-diagnosis.mjs sends each attempt's sanitized error and the server log lines of its time span,
+            # and shows the likely cause and the excerpt it selects as a warning. It never changes the verdict: it may
+            # fail or time out (continue-on-error), it exits 0 when the key is missing or the provider fails, and it
+            # runs after the tests. The key is given to this step only.
+            - name: Jev diagnosis (advisory)
+              id: jev
+              if: ${{ always() && (steps.results.outputs.failed > 0 || steps.results.outputs.flaky > 0) }}
+              continue-on-error: true
+              timeout-minutes: 2
+              env:
+                  TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+                  SHARD: ${{ matrix.shard }}/3
+                  JEV_DIR: ${{ runner.temp }}/jev-${{ matrix.shard }}
+              run: |
+                  mkdir -p "$JEV_DIR"
+                  (cd demo && timeout 15 docker compose logs --no-color --timestamps php > "$JEV_DIR/server.log" 2>/dev/null) || true
+                  node tools/ci/jev-diagnosis.mjs --attempts playwright-results/failed-attempts.json \
+                      --server-log "$JEV_DIR/server.log" --output "$JEV_DIR/assessment"
+
+            # One assessment.json per failed attempt and the summary, kept like the results: 30 days
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              if: ${{ always() && steps.jev.outcome != 'skipped' }}
+              continue-on-error: true
+              with:
+                  name: jev-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: ${{ runner.temp }}/jev-${{ matrix.shard }}/assessment/
+                  if-no-files-found: warn
+                  retention-days: 30
 
             # Last, so the end of the job log names what failed (after the demo's logs): the summary written above
             - name: Playwright summary
