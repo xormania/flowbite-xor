@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
 # tools/ci-changes.sh: for each change below, the CI jobs it runs. A job missing from a case's list must be skipped.
+# check takes the changed paths; check_git makes the change in a scratch repository and reads its paths as CI does
+# (git diff --name-only --no-renames), so a deletion or a rename is classified by every path it touches.
 
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -16,13 +18,63 @@ check() {
     fi
 }
 
-all='lint-kit php static-site fresh-install contrast demo'
-kit='lint-kit php static-site fresh-install demo'
+# the change, as git commands run in a scratch repository holding every workflow of this one
+check_git() {
+    local expected="$1" change="$2"
+    local repo actual
+    repo=$(mktemp -d)
+    (
+        cd "$repo"
+        git init -q && mkdir -p .github/workflows
+        cp "$OLDPWD"/.github/workflows/*.yml .github/workflows/
+        git add -A && git -c user.name=t -c user.email=t@t commit -qm base
+        eval "$change"
+        git -c user.name=t -c user.email=t@t commit -qam change
+    )
+    actual=$(git -C "$repo" diff --name-only --no-renames HEAD^ HEAD | tools/ci-changes.sh | sed -n 's/=true$//p' | paste -sd ' ' -)
+    rm -rf "$repo"
+    if [ "$actual" != "$expected" ]; then
+        echo "FAIL: $change -> '$actual', expected '$expected'"
+        failures=$((failures + 1))
+    fi
+}
 
-check ''                          docs/TESTING.md CHANGELOG.md .github/pull_request_template.md
-check ''                          .github/workflows/audit.yml
+all='lint-kit php static-site fresh-install contrast demo workflows'
+kit='lint-kit php static-site fresh-install demo'
+kit_contrast='lint-kit php static-site fresh-install contrast demo'
+
+# Read by people only
+check ''                          LICENSE NOTICE .github/dependabot.yml
+
+# Read by people and agents: Contrast checks the generated lists, the plans and what the markdown teaches
+check 'contrast'                  docs/TESTING.md CHANGELOG.md FOR-AGENTS.md .github/pull_request_template.md
+check 'contrast'                  docs/ROADMAP.md CONTRIBUTING.md AGENTS.md
+check 'contrast'                  tools/docs-lint.mjs tools/llms-txt.mjs llms.txt
+check 'static-site contrast'      tools/fence-coverage.mjs
+check "$kit_contrast"             INSTALL.md
+
+# A workflow: actionlint reads it, and the jobs that run what it runs check that part (a workflow's own triggers run
+# the rest: audit.yml and codeql.yml run on the pull request that changes them)
+check 'static-site workflows'     .github/workflows/pages.yml
+check 'static-site fresh-install workflows' .github/workflows/release.yml
+check 'workflows'                 .github/workflows/audit.yml
+check 'workflows'                 .github/workflows/codeql.yml
+check 'workflows'                 .github/actionlint.yaml
 check "$all"                      .github/workflows/ci.yml
+check "$all"                      .github/workflows/nightly.yml
+check "$all"                      .github/actions/setup/action.yml
+check_git 'static-site workflows' 'git rm -q .github/workflows/pages.yml'
+check_git 'workflows'             'git rm -q .github/workflows/codeql.yml'
+check_git "$all"                  'git mv .github/workflows/pages.yml .github/workflows/site.yml'
+check_git "$all"                  'git mv .github/workflows/ci.yml .github/workflows/checks.yml'
+
+# A path no rule names is part of the kit
+check "$kit"                      new-recipe/manifest.json
+check "$kit"                      some-new-file.txt
+
 check "$all"                      tools/ci-changes.sh
+check 'workflows'                 tools/release-plan.sh
+check 'workflows'                 tools/tests/release-plan.sh
 check 'demo'                      tests/e2e/lab.side-nav.spec.ts
 check 'demo'                      alert/tests/screenshots/default-light.png
 check 'contrast demo'             package-lock.json
@@ -36,10 +88,10 @@ check 'demo'                      tools/tests/fixtures/sync-kit/manifest.json
 check 'php static-site fresh-install demo' demo/compose.yaml
 check 'php static-site fresh-install demo' demo/frankenphp/Caddyfile
 check "$kit"                      side-nav/assets/controllers/side_nav_controller.js
-check "$all"                      side-nav/README.md
-check "$all"                      kit.css
+check "$kit_contrast"             side-nav/README.md
+check "$kit_contrast"             kit.css
 check "$kit"                      .gitattributes
-check "$all"                      docs/NOTES.md kit.css
+check "$kit_contrast"             docs/NOTES.md kit.css
 
 if [ "$failures" -gt 0 ]; then
     exit 1

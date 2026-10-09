@@ -726,3 +726,51 @@ A script creates a new Symfony app, installs the kit as users do, and fetches it
 `curl`, without a browser.
 
 Here: [`fresh-install.sh`](../tools/tests/fresh-install.sh), [`check-fresh-app.sh`](../tools/tests/check-fresh-app.sh).
+
+### Locked and moving lanes
+
+Some CI jobs check fixed versions, others what a new user gets today. A failure in a moving lane with no change of
+ours in it is news from upstream: read the versions it resolved before looking for a regression.
+
+| Job | Fixed | Resolved at each run | Where the versions are |
+|---|---|---|---|
+| *Kit PHP*, *Static site* | the demo's `composer.lock`; PHP 8.4 (`PHP_VERSION`); PHPStan and its extensions by version | the PHP patch release; PHPStan's own dependencies | the composer and PHPStan steps' logs |
+| *Demo + Playwright* | `composer.lock`, `importmap.php`, `package-lock.json`, Playwright and its image by version | the FrankenPHP base image (`dunglas/frankenphp:1-php8.5`, a moving tag pulled at build) | the job summary: PHP, Symfony, Turbo, Node, Playwright |
+| *Lint kit* | `symfony/ux-toolkit` by version (`UX_TOOLKIT_VERSION`) | its dependencies, in a scratch project | the install step's log |
+| *Fresh install* | `symfony/ux-toolkit` by version | `symfony/skeleton` 7.4.\* and every other package, as for a new user | the composer steps' logs |
+| *Fresh install (Symfony Docker)* | the Symfony Docker template's commit, `symfony/ux-toolkit` by version | Symfony 8.1.\*, the template's FrankenPHP image, every other package | the last line (`ok: Symfony …`) and the logs |
+| *Workflows*, *Contrast* | actionlint and ShellCheck by version and SHA-256; `package-lock.json` | Node 22's patch release | the job's log |
+
+The moving parts are on purpose: the install jobs are the kit as a user installs it, and the toolkit is pinned
+because it is experimental (`ci.yml`, `UX_TOOLKIT_VERSION`).
+
+## Reading CI results
+
+**Catches:** a red shard whose failing test is lost in the log, a test that passed only on its retry and went
+unnoticed, a setup failure or a missing report read as "no tests failed".
+
+CI runs the browser tests in three shards, with one retry (`retries: 1` in `playwright.config.ts`). After the tests,
+each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summary.mjs) on its
+`playwright-results/results.json`. It does not decide pass or fail: Playwright's exit status does.
+
+- **The job summary** (the run's *Summary* page, one section per shard) gives the counts, then each failed and each
+  flaky test as `[project] file:line › title` with the first lines of each failed attempt's error, the tested commit,
+  the shard, the projects and the runtime versions (Node, Playwright, and PHP, Symfony and Turbo from the demo's
+  container). The same text is the last step of the job log (*Playwright summary*), after the demo's logs.
+- **Annotations:** an error at the line that failed for each failed test, a warning for each flaky one. They show on
+  the run's page and on the commit; GitHub shows at most 10 of each kind per step, so the summary is the full list. A
+  recipe's own spec runs as a generated copy in `tests/e2e/examples/recipes/`: its annotation points at the committed
+  `<recipe>/tests/*.spec.ts` instead.
+- **Flaky** means failed, then passed on its retry. The run stays green, but the summary says *flaky (passed on retry)*
+  instead of *all N passed*, and the shard keeps the traces (`playwright-report-<shard>`, 7 days). A flaky test is a
+  test to fix or a bug to find (see *Wait for the operation to complete*), not noise.
+- **No evidence** is said as such, and fails the step: *tests not reached: setup failed at &lt;step&gt;* (the image,
+  the demo's start, a check on shard 1 or the Playwright install failed, so no test ran), *no test evidence: tests not
+  reached or report not written* (Playwright ran but left no report), *report invalid* (it does not parse).
+- **Kept 30 days** in `playwright-results-<shard>`: `results.json` (every test's attempts), `summary.md`, and
+  `failed-attempts.json`, one entry per failed attempt, retry-recovered ones included (test id, file, line, title,
+  project, shard, retry, status, error, duration, error location), for tools that read them one by one.
+
+The script's exit status says what it found: 0 a report it read (whatever its tests did), 2 no report, 3 an invalid
+report, 4 tests not reached. Run it on a local report with `node tools/ci/playwright-summary.mjs` after
+`CI=1 npx playwright test` (CI writes the JSON report); its cases: `node --test tools/tests/*.test.mjs`.

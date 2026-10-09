@@ -13,9 +13,12 @@ and pull request standard.
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
 | `tools/demo-php` | no | runs PHP in the demo's container, for the Playwright specs (`DEMO_URL`) |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
-| `tools/llms-txt.mjs` | no | writes `llms.txt` from `README.md`'s recipe tables |
+| `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
+| `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
+| `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations and `failed-attempts.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
+| `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
-| `tools/tests/` | no | `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
+| `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `FOR-AGENTS.md`, `llms.txt` | no | the page for coding agents given the repository's URL, and the list of every page for them ([llms.txt](https://llmstxt.org/)) |
 | `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), the testing patterns ([`docs/TESTING.md`](docs/TESTING.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
@@ -65,11 +68,42 @@ controllers. Previewing untrusted code would need a separate origin and containe
 ## Checks
 
 CI runs them on every push, each job only when the change could affect what it checks
-([`tools/ci-changes.sh`](tools/ci-changes.sh): a docs-only change runs none, a recipe change runs all but *Contrast*,
-a change to the workflow runs everything); pushes to `main` and `dev` run everything. The rulesets require the one
-*CI result* check, which passes when every job passed or was skipped. CI runs the script as the base branch has it, so a
-branch cannot change its own checks; a new top-level path counts as part of the kit until `tools/ci-changes.sh` and
-its test (`tools/tests/ci-changes.sh`) say otherwise. The PHP ones run on your machine as shown, or in the container: prefix them with
+([`tools/ci-changes.sh`](tools/ci-changes.sh)); pushes to `main` and `dev`, and a run by hand, run everything. A
+branch is compared with where it left `dev`, so each push checks the whole pull request. The rulesets require the one
+*CI result* check, which passes when every job passed or was skipped, and require a branch to be up to date with its
+base before it merges: merge the base in and push, so that CI has run on the code that lands (there is no merge
+queue). CI runs the script as the base branch has it, so a branch cannot change its own checks; a job the base's
+script does not know yet runs. A path no row below names counts as part of the kit until `tools/ci-changes.sh` and its
+test (`tools/tests/ci-changes.sh`) say otherwise. A deleted file counts as a change to its path, a renamed one as a
+change to both paths.
+
+| A change to | runs |
+|---|---|
+| `LICENSE`, `NOTICE`, `.github/dependabot.yml` | nothing |
+| `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md`, `FOR-AGENTS.md`, `SECURITY.md`, `.github/pull_request_template.md` | *Contrast*, which checks the docs (*Docs*) |
+| a recipe, `kit.js`, `manifest.json`, `.gitattributes`, any path no other row names | *Lint kit*, *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
+| `kit.css`, `theme/`, `README.md`, `INSTALL.md`, a recipe's `README.md` | the same and *Contrast* |
+| `tests/`, `playwright.config.ts`, a recipe's `tests/`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
+| `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
+| `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `llms.txt` | *Contrast* |
+| `tools/fence-coverage.mjs` | *Contrast*, *Static site* |
+| `tools/phpstan.neon` | *Kit PHP* |
+| `tools/release-plan.sh`, `tools/tests/release-plan.sh` | *Workflows* |
+| `tools/tests/fresh-install.sh`, `check-fresh-app.sh`, `docker-install.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
+| any other file in `tools/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
+| `demo/compose.yaml`, `demo/frankenphp/Caddyfile` | *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
+| any other file in `demo/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
+| `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, without the upload) |
+| `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, *Workflows* runs its plan as a dry run |
+| `.github/workflows/audit.yml`, `.github/workflows/codeql.yml` | *Workflows*; each also runs itself on the pull request that changes it |
+| `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
+
+*Workflows* runs [actionlint](https://github.com/rhysd/actionlint) with ShellCheck on every workflow: YAML, expressions,
+job graph, action and reusable workflow inputs, and the shell of each `run` step. Then it runs
+`tools/tests/release-plan.sh` and `tools/release-plan.sh --dry-run --ref origin/main` (*Releases*): it fails when a
+version's tag points at another commit than the one `release.yml` would tag.
+
+The PHP ones run on your machine as shown, or in the container: prefix them with
 `docker compose exec php` from `demo/`, with paths relative to `demo/`
 (`docker compose exec php bash ../tools/tests/sync-demo.sh`).
 
@@ -80,7 +114,10 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
-node tools/llms-txt.mjs --check                     # llms.txt matches README.md's recipe tables (without --check: rewrites it)
+node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
+node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles (see Docs)
+node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
+node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer (tools/ci/playwright-summary.mjs)
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 (cd demo && bin/phpunit)                            # the PHP tests (demo/tests/): the data tables' limits, Live and Twig components, snapshots, profiler counts
@@ -88,6 +125,7 @@ phpstan analyse -c tools/phpstan.neon --autoload-file=demo/vendor/autoload.php d
 tools/tests/fresh-install.sh                        # a new Symfony app installs dashboard-home, signup and data-table from the last commit (PHP=…, COMPOSER_BIN=…: other binaries)
 KIT_REF=<pushed commit SHA or tag> tools/tests/docker-install.sh   # the same in a new Symfony Docker project (Symfony 8.1), kit downloaded from GitHub
 npx playwright test                                 # every browser test: see below
+actionlint                                          # every workflow, with ShellCheck on its run steps (CI pins actionlint 1.7.12 and ShellCheck 0.11.0)
 ```
 
 The PHP tests render the recipes as the demo has them, and the demo's pages with their CSS: run `tools/sync-demo` and
@@ -97,6 +135,11 @@ runs them with `CREATE_SNAPSHOTS=false`, so a missing snapshot fails there. The 
 [`docs/TESTING.md`](docs/TESTING.md) (*PHP tests*).
 
 `npx playwright test` runs two projects; pick one with `--project=smoke` or `--project=examples`.
+
+In CI each browser shard retries a failed test once and ends with its summary: the counts, every failed test and every
+flaky one (passed only on its retry) with its error, on the run's *Summary* page, as annotations at the failing lines
+and as the last step of the job log; a shard whose tests did not run says which step failed. A flaky test keeps the run
+green but is reported as flaky, never as a clean pass. See [`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*.
 
 - `smoke` runs the specs in `tests/e2e/`: the demo pages, the forms, the `/lab` pages for Turbo and Live
   Components, the components given hostile prop values (`hostile-props.spec.ts`), the demo's security headers and
@@ -114,7 +157,7 @@ Every test of both projects blocks requests leaving the demo, and fails on a con
 request that fails or answers >= 400, or a Content Security Policy violation (`tests/e2e/fixtures.ts`).
 The demo enforces a strict policy (`demo/src/EventListener/SecurityHeadersListener.php`): scripts and styles run
 only with the request's nonces, which the layouts print (`layouts/README.md`), and no inline event handler or style
-attribute runs, except the few style attributes of README examples it lists.
+attribute runs, README previews included.
 
 Against the Docker demo, run `DEMO_URL=https://localhost npx playwright test`: the specs then run PHP in the
 container (`tools/demo-php`). Without `DEMO_URL`, Playwright serves the demo itself with `php -S 127.0.0.1:8000`.
@@ -221,10 +264,66 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
    If the recipe puts a text, icon or bar color on a background that `tools/contrast/pairs.json` does not cover yet,
    add a row there: `fg`, `bg`, `min` (4.5 for text, 3 for icons, bars and focus rings) and `usage`.
 7. Add a row for the recipe to the matching table under *Recipes* in `README.md` (mark it ✦ if it ships a Stimulus
-   controller), run `node tools/llms-txt.mjs` to add it to `llms.txt`, and add an entry to `CHANGELOG.md` (see
-   *Changelog*). If agents need it for a common task, add it to *Which recipe* in `FOR-AGENTS.md`. Commit, then run
+   controller), run `node tools/llms-txt.mjs` to add it to `llms.txt` and to `FOR-AGENTS.md`'s table, and add an
+   entry to `CHANGELOG.md` (see *Changelog*). If it is close to another recipe, say which to pick in the list under
+   that table (*Which recipe*). Commit, then run
    the checks that cover a new recipe: the kit lint, `ux-toolkit-kit-debug`, `node tools/contrast/check.mjs` if you added pairs, and
    `npx playwright test`. CI runs all of them.
+
+## Docs
+
+The lists of recipes that agents read are written from `README.md`'s recipe tables by `tools/llms-txt.mjs`: edit a
+row there, never the copies, then run `node tools/llms-txt.mjs` and commit what it writes. CI's *Contrast* job runs
+it with `--check`, which fails when:
+
+- a directory with a `manifest.json` is missing from the tables, listed twice, or a row names no recipe;
+- a plan's status does not match the recipes that ship (*Plans* below);
+- `llms.txt`, or the table between `<!-- recipes:start` and `<!-- recipes:end -->` in `FOR-AGENTS.md`, is not what
+  the script writes;
+- `FOR-AGENTS.md` or `docs/PROJECT-AGENTS-SNIPPET.md` names a recipe that does not exist (`ux:install <name>`, a
+  `<name>/README.md` link).
+
+`llms.txt` links the raw files of the tree it describes, never `main`: the version of the newest `## [X.Y.Z]`
+heading in `CHANGELOG.md` (the tag `release.yml` puts on the commit that adds it), or `dev` while
+`## [Unreleased]` has entries. A release pull request therefore rewrites it to the new tag, and the first pull
+request that adds an unreleased entry after a release rewrites it back to `dev`: `--check` says when.
+
+**What the docs teach.** Agents copy examples from the markdown, so `node tools/docs-lint.mjs` (also in *Contrast*)
+fails a code block, in any markdown file outside `demo/`, that shows `initFlowbite`, `import 'flowbite'` or a
+`flowbite.js` file; a palette color (a color utility naming a Tailwind palette color that is not a theme role, from
+`tailwindcss/theme.css` and `kit.css` as the contrast check reads them: `bg-blue-700`, `text-white`); a `dark:` color
+override; an inline `on…=` handler; or a `style=` attribute. Raw HTML in prose counts too. Inline code does not: the
+rules quote what they forbid there. A block that shows what not to do says so after its language:
+
+````markdown
+```twig do-not
+<button onclick="openMenu()">Menu</button>
+```
+````
+
+A `markdown` block is read as a document: its code blocks are checked, its prose is not.
+
+**Every example has its page.** `node tools/fence-coverage.mjs` (in *Contrast*) reads each recipe's README as the
+demo does (`demo/src/Kit/KitReader.php`): a block opening at the start of a line with
+```` ```<language> {"preview":true} ```` is an example, named after the heading above it. A block that looks like
+one but that the demo skips (indented in a list, JSON that does not parse, `"preview"` not `true`) fails, and so does
+a recipe without a README. *Static site* runs it again with `--site _site` after `app:export-static`: every recipe
+needs its `r/<recipe>/` page and a link from the index, every example its light and dark preview pages, and a saved
+page that no source names fails too.
+
+**Plans.** `docs/PLAN-*.md` and `docs/ROADMAP.md` record decisions; they are not instructions. Each plan opens
+with front matter naming its status and the recipes it adds:
+
+```yaml
+---
+status: open        # open, shipped or abandoned
+recipes: chart      # comma-separated, or none for a plan that adds no recipe
+---
+```
+
+The roadmap's *Sequence* table has the same two columns per package. `--check` fails an `open` plan or roadmap row
+whose recipes are all in `README.md`'s tables, and a `shipped` one naming a recipe that is not: the pull request
+that adds a plan's last recipe marks the plan `shipped`. `llms.txt` never links a plan that is not `open`.
 
 ## Screenshots
 
@@ -274,7 +373,7 @@ install a `v` tag (see [`docs/NOTES.md`](docs/NOTES.md)). The version is declare
 
 A release is a pull request from `dev` to `main`, opened as a draft when the maintainer decides to release. Its own
 commit moves the entries under `## [Unreleased]` to the new `## [X.Y.Z] - YYYY-MM-DD` section and updates the compare
-links at the bottom. Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor
+links at the bottom. It also runs `node tools/llms-txt.mjs`, which points `llms.txt`'s links at the new tag (*Docs*). Pick the version from the entries: only *Fixed* is a patch, *Added* or *Changed* a minor
 version, *Removed* or anything that breaks an installed recipe a major version (a minor one while the version is
 `0.x`). CI runs on this pull request like on any other. The release checks (`docs/PLAN-test-tiers.md`: timings,
 harsh conditions, long sessions, fuzzing) will run on it too, and `main`'s ruleset will require them, once their
@@ -286,7 +385,19 @@ patch), and `main` is then merged into `dev`.
 Once the release pull request is merged and CI has passed on `main`, `.github/workflows/release.yml` does the rest: it
 checks that the merge commit installs from GitHub in a fresh Symfony Docker project
 (`tools/tests/docker-install.sh`), tags it `X.Y.Z`, and publishes a GitHub Release with the section as its notes. If
-it fails, fix the cause and re-run it: it skips what is already done. If GitHub refuses the workflow's tag push
+it fails, fix the cause and re-run it: it skips what is already done.
+
+[`tools/release-plan.sh`](tools/release-plan.sh) makes that decision for each version: the commit is the first one of
+`main`'s first-parent history that adds the version's heading (the release pull request's merge commit), the notes
+are the version's section of `CHANGELOG.md` at that commit (a later edit to an old section changes no published
+notes), and an existing tag, lightweight or annotated, must point at that commit. A tag that points elsewhere is
+refused: the run fails at *Plan the tags and notes*, before any install check, tag or release. Look at what the tag
+holds, then delete it (`git push origin :refs/tags/X.Y.Z`, and locally `git tag -d X.Y.Z`) or move it to the commit
+the plan names, and re-run. See the plan before a release, or after a refusal, with
+`git fetch origin main --tags && tools/release-plan.sh --dry-run --ref origin/main`: for every version, the tag, the
+commit, whether the tag exists and where it points, the decision and the notes; it creates nothing. CI's *Workflows*
+job runs the same dry run, and the script's cases (`tools/tests/release-plan.sh`), whenever `release.yml` or the
+script changes. If GitHub refuses the workflow's tag push
 ("refusing to allow a GitHub App to create or update workflow … without `workflows` permission", as for `0.1.0`,
 whose commit's workflows differed from `main`'s), push the tag by hand
 (`git tag -a X.Y.Z <merge commit> -m "flowbite-xor X.Y.Z" && git push origin X.Y.Z`) and re-run the workflow: it

@@ -25,7 +25,8 @@ env:
 jobs:
     # Which jobs this change could affect (tools/ci-changes.sh): a job it cannot affect is skipped, and a skipped job
     # passes the branch rulesets. Pushes to main and dev, a run by hand and a change to this workflow run everything. A
-    # branch is compared with where it left dev, so each push checks the whole pull request, not only its last commit.
+    # branch is compared with where it left dev, so each push checks the whole pull request, not only its last commit
+    # (the rulesets require a branch to be up to date with its base before it merges, so that is the code that lands).
     changes:
         name: Changes
         runs-on: ubuntu-latest
@@ -37,6 +38,7 @@ jobs:
             fresh-install: ${{ steps.jobs.outputs.fresh-install }}
             contrast: ${{ steps.jobs.outputs.contrast }}
             demo: ${{ steps.jobs.outputs.demo }}
+            workflows: ${{ steps.jobs.outputs.workflows }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -60,11 +62,58 @@ jobs:
                   # without the script runs everything.
                   if [ -n "$base" ] && git show "$base:tools/ci-changes.sh" > "$RUNNER_TEMP/ci-changes.sh" 2>/dev/null; then
                       echo "Changed since $base:"
-                      git diff --name-only --no-renames "$base" HEAD | tee /dev/stderr | bash "$RUNNER_TEMP/ci-changes.sh" | tee -a "$GITHUB_OUTPUT"
+                      git diff --name-only --no-renames "$base" HEAD | tee /dev/stderr | bash "$RUNNER_TEMP/ci-changes.sh" > "$RUNNER_TEMP/jobs"
                   else
                       echo "Everything runs ($EVENT on $REF)"
-                      for job in lint-kit php static-site fresh-install contrast demo; do echo "$job=true"; done | tee -a "$GITHUB_OUTPUT"
+                      : > "$RUNNER_TEMP/jobs"
                   fi
+                  # a job the base's classifier does not know (one this branch adds) runs
+                  for job in lint-kit php static-site fresh-install contrast demo workflows; do
+                      grep -q "^$job=" "$RUNNER_TEMP/jobs" || echo "$job=true" >> "$RUNNER_TEMP/jobs"
+                  done
+                  tee -a "$GITHUB_OUTPUT" < "$RUNNER_TEMP/jobs"
+
+    # Every workflow's syntax, expressions, job graph, action inputs and reusable workflow calls, and the shell of its
+    # run steps (ShellCheck). It reads the workflows only: tools/ci-changes.sh also runs the jobs that run what a
+    # workflow runs (pages.yml: Static site; release.yml: Fresh install and Static site). Both tools are release
+    # binaries pinned by version and SHA-256. Then release.yml's decision, as a dry run: tools/release-plan.sh's cases,
+    # and its plan for main as it is (the commit, the tag and the notes of each version; a wrong tag fails here).
+    workflows:
+        name: Workflows
+        needs: changes
+        if: needs.changes.outputs.workflows == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        env:
+            ACTIONLINT_VERSION: '1.7.12'
+            ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 # actionlint_1.7.12_linux_amd64.tar.gz
+            SHELLCHECK_VERSION: '0.11.0'
+            SHELLCHECK_SHA256: 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198 # shellcheck-v0.11.0.linux.x86_64.tar.xz
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0 # the release dry run reads main's history and the tags
+
+            - name: Install actionlint and ShellCheck
+              working-directory: ${{ runner.temp }}
+              run: |
+                  curl -fsSLo actionlint.tar.gz "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+                  curl -fsSLo shellcheck.tar.xz "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz"
+                  printf '%s  %s\n' "$ACTIONLINT_SHA256" actionlint.tar.gz "$SHELLCHECK_SHA256" shellcheck.tar.xz | sha256sum --check --strict
+                  mkdir bin
+                  tar -xzf actionlint.tar.gz -C bin actionlint
+                  tar -xJf shellcheck.tar.xz -C bin --strip-components=1 "shellcheck-v${SHELLCHECK_VERSION}/shellcheck"
+
+            # the runner's own ShellCheck and Python are not used: only the pinned tools decide
+            - name: actionlint
+              run: '"$RUNNER_TEMP/bin/actionlint" -shellcheck="$RUNNER_TEMP/bin/shellcheck" -pyflakes='
+
+            - name: The release plan's own cases
+              run: tools/tests/release-plan.sh
+
+            # what release.yml would tag and publish from main, with this commit's script; it creates nothing
+            - name: Release dry run on main
+              run: tools/release-plan.sh --dry-run --ref origin/main
 
     lint-kit:
         name: Lint kit
@@ -135,6 +184,7 @@ jobs:
                       if [ -d "${manifest%/manifest.json}/src" ]; then echo "${manifest%/manifest.json}/src"; fi
                   done > "$RUNNER_TEMP/php-dirs"
                   cat "$RUNNER_TEMP/php-dirs"
+                  # shellcheck disable=SC2046 # one directory per line, none with a space
                   find $(cat "$RUNNER_TEMP/php-dirs") -name '*.php' -print0 | xargs -0 -n1 php -l
 
             # The tests render the recipes' templates as the demo has them, and its pages with their CSS
@@ -166,6 +216,7 @@ jobs:
             - name: PHPStan
               run: |
                   (cd demo && bin/console cache:warmup --env=test)
+                  # shellcheck disable=SC2046 # one directory per line, none with a space
                   "$RUNNER_TEMP/phpstan/vendor/bin/phpstan" analyse --no-progress --configuration=tools/phpstan.neon \
                       --autoload-file=demo/vendor/autoload.php $(cat "$RUNNER_TEMP/php-dirs") demo/src/Demo demo/tests
 
@@ -217,6 +268,10 @@ jobs:
                       echo "::error::a preview form submits to a path without the theme: no file answers it"
                       exit 1
                   fi
+
+            # the sources against the saved pages: a recipe or a README example without its page fails
+            - name: Every recipe and README example has its saved pages
+              run: node tools/fence-coverage.mjs --site _site
 
     fresh-install:
         name: Fresh install
@@ -280,6 +335,12 @@ jobs:
             - name: llms.txt matches README.md's recipe tables
               run: node tools/llms-txt.mjs --check
 
+            - name: The markdown teaches no Flowbite JS, palette color, inline handler or style
+              run: node tools/docs-lint.mjs
+
+            - name: Every README example is one the demo reads
+              run: node tools/fence-coverage.mjs
+
     demo:
         name: Demo + Playwright (${{ matrix.shard }}/3)
         needs: changes
@@ -302,10 +363,17 @@ jobs:
                   node-version: 22
                   cache: npm
 
+            # The summarizer that reads the results below, on its own fixtures (tools/tests/fixtures/playwright-results/)
+            - name: The results summarizer's own cases
+              id: summarizer-cases
+              if: matrix.shard == 1
+              run: node --test 'tools/tests/*.test.mjs'
+
             # The demo runs in Symfony Docker (demo/compose.yaml): FrankenPHP in worker mode, PHP 8.5
             - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
             - name: Build the demo image
+              id: image
               uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
               with:
                   source: ./demo                # bake's working directory: compose files and build context in demo/
@@ -320,10 +388,12 @@ jobs:
                       ${{ matrix.shard == 1 && format('*.cache-to=type=gha,scope=demo-{0},mode=max', github.ref) || '' }}
 
             - name: Start the demo (composer install on first start)
+              id: start
               working-directory: demo
               run: docker compose up --wait --no-build
 
             - name: Sync recipes into the demo
+              id: sync
               working-directory: demo
               run: docker compose exec -T php php ../tools/sync-demo
 
@@ -331,6 +401,7 @@ jobs:
             # checks that the sync and the demo's start left every tracked file alone. tools/tests/sync-demo.sh below
             # checks that the copies are what ux:install writes. Deterministic checks run on one shard only.
             - name: The sync leaves tracked files unchanged
+              id: tracked
               if: matrix.shard == 1
               run: |
                   if [ -n "$(git status --porcelain)" ]; then
@@ -341,11 +412,13 @@ jobs:
 
             # The CSS is built by playwright.config.ts, which records what it was built from: no build here
             - name: The demo's composer.json and composer.lock are valid
+              id: composer
               if: matrix.shard == 1
               working-directory: demo
               run: docker compose exec -T php composer validate --no-check-publish --strict   # also fails on a stale composer.lock
 
             - name: sync-demo copies what ux:install copies
+              id: sync-parity
               if: matrix.shard == 1
               working-directory: demo
               run: docker compose exec -T php bash ../tools/tests/sync-demo.sh
@@ -353,22 +426,51 @@ jobs:
             # The browser runs in upstream's Playwright image (see playwright.config.ts), so the
             # screenshots compare with the baselines copied from symfony/ux.
             - name: Install Playwright
+              id: install
               run: |
                   npm ci
                   docker pull "mcr.microsoft.com/playwright:v$(node -p "require('@playwright/test/package.json').version")-noble"
 
             - name: Playwright (smoke + every README example + upstream recipe specs)
+              id: tests
               env:
                   DEMO_URL: https://localhost
               run: npx playwright test --shard=${{ matrix.shard }}/3
 
-            # Every shard keeps its results (each test's attempts, durations and outcome: passed, failed, flaky), green
-            # or red, so a test that failed once and passed on its retry leaves a record
+            # What the shard's tests did, read from playwright-results/results.json (tools/ci/playwright-summary.mjs): the
+            # counts, each failed and flaky (passed on retry) test with its error, the tested commit and versions, on the
+            # job's summary page and as annotations at the failing lines. It never turns a red run green: Playwright's exit
+            # status is the verdict. It fails when there is no evidence to read: a step before the tests failed ("tests
+            # not reached: setup failed at <step>"), or the report is missing or invalid (never a pass with zero tests).
             - name: Read the results
               id: results
               if: ${{ !cancelled() }}
-              run: node -e "const {stats} = require('./playwright-results/results.json'); console.log(stats); require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'flaky=' + stats.flaky + '\n')"
+              env:
+                  SHARD: ${{ matrix.shard }}/3
+                  DEMO_STARTED: ${{ steps.start.outcome }}
+                  TESTS_OUTCOME: ${{ steps.tests.outcome }}
+                  SETUP_STEPS: |
+                      The results summarizer's own cases=${{ steps.summarizer-cases.outcome }}
+                      Build the demo image=${{ steps.image.outcome }}
+                      Start the demo=${{ steps.start.outcome }}
+                      Sync recipes into the demo=${{ steps.sync.outcome }}
+                      The sync leaves tracked files unchanged=${{ steps.tracked.outcome }}
+                      The demo's composer.json and composer.lock are valid=${{ steps.composer.outcome }}
+                      sync-demo copies what ux:install copies=${{ steps.sync-parity.outcome }}
+                      Install Playwright=${{ steps.install.outcome }}
+              run: |
+                  if [ "$DEMO_STARTED" = success ]; then
+                      # the PHP snippet is single-quoted on purpose: its $m is PHP's, not the shell's
+                      # shellcheck disable=SC2016
+                      RUNTIME=$(cd demo && timeout 60 docker compose exec -T php php -r 'require "vendor/autoload.php"; $m = require "importmap.php";
+                          echo "PHP=", PHP_VERSION, "\nSymfony=", Symfony\Component\HttpKernel\Kernel::VERSION, "\nTurbo=", $m["@hotwired/turbo"]["version"] ?? "", "\n";') || true
+                      export RUNTIME
+                  fi
+                  node tools/ci/playwright-summary.mjs playwright-results/results.json
 
+            # Every shard keeps its results, green or red: results.json (each test's attempts, durations and outcome:
+            # passed, failed, flaky), failed-attempts.json (every failed attempt, retry-recovered ones included) and
+            # summary.md, so a test that failed once and passed on its retry leaves a record
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               if: ${{ !cancelled() }}
               with:
@@ -391,23 +493,32 @@ jobs:
                       test-results/
                   retention-days: 7
 
+            # Last, so the end of the job log names what failed (after the demo's logs): the summary written above
+            - name: Playwright summary
+              if: ${{ !cancelled() }}
+              run: |
+                  cat playwright-results/summary.md 2>/dev/null || echo "No summary, the Read the results step did not run to the end"
+
     # One check for the branch rulesets to require. A skipped matrix job reports one check named after its unexpanded
     # matrix ("Demo + Playwright (${{ matrix.shard }}/3)"), never the per-shard names, so requiring those would leave a
     # pull request pending forever; this passes when every job passed or was skipped as unaffected.
     result:
         name: CI result
         if: always()
-        needs: [changes, lint-kit, php, static-site, fresh-install, docker-install, contrast, demo]
+        needs: [changes, lint-kit, php, static-site, fresh-install, docker-install, contrast, workflows, demo]
         runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
+            # success and skipped (a lane the change cannot affect) pass; failure and cancelled do not: a cancelled job
+            # checked nothing
             - env:
-                  RESULTS: ${{ join(needs.*.result, ' ') }}
+                  NEEDS: ${{ toJSON(needs) }}
               run: |
-                  echo "Jobs: $RESULTS"
-                  for result in $RESULTS; do
-                      case "$result" in
-                          success | skipped) ;;
-                          *) echo "::error::a job ended with '$result'"; exit 1 ;;
-                      esac
-                  done
+                  echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+                  failed=$(echo "$NEEDS" | jq -r 'to_entries[] | select(.value.result != "success" and .value.result != "skipped")
+                      | "\(.key) ended with \(.value.result)" + (if .value.result == "cancelled" then " (a cancelled job is not a pass)" else "" end)')
+                  if [ -n "$failed" ]; then
+                      while IFS= read -r line; do echo "::error::$line"; done <<< "$failed"
+                      exit 1
+                  fi
+                  echo "Every job passed or was skipped as unaffected by the change"

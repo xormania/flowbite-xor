@@ -3,7 +3,7 @@
 Use the modal component to show interactive dialogs and notifications to your website users available in multiple sizes, colors, and styles
 
 ```twig {"preview":true}
-<div style="min-height: 304px">
+<div class="min-h-76">
     <twig:Modal id="delete_account">
         <twig:Modal:Trigger>
             <twig:Button variant="outline" {{ ...modal_trigger_attrs }}>Open Modal</twig:Button>
@@ -60,7 +60,7 @@ Use the modal component to show interactive dialogs and notifications to your we
 Use the prop `backdrop="static"` to prevent the modal from closing when clicking outside of it. This can be used with situations where you want to force the user to choose an option such as a cookie notice or when taking a survey.
 
 ```twig {"preview":true}
-<div style="min-height: 304px">
+<div class="min-h-76">
     <twig:Modal id="delete_account">
         <twig:Modal:Trigger>
             <twig:Button variant="outline" {{ ...modal_trigger_attrs }}>Open Modal</twig:Button>
@@ -93,7 +93,7 @@ Use the prop `backdrop="static"` to prevent the modal from closing when clicking
 You can use this modal example to show a pop-up decision dialog to your users especially when deleting an item and making sure if the user really wants to do that by double confirming.
 
 ```twig {"preview":true}
-<div style="min-height: 304px">
+<div class="min-h-76">
     <twig:Modal id="share_link">
         <twig:Modal:Trigger>
             <twig:Button variant="outline-danger" {{ ...modal_trigger_attrs }}>Delete</twig:Button>
@@ -125,7 +125,7 @@ You can use this modal example to show a pop-up decision dialog to your users es
 ### Opened by default
 
 ```twig {"preview":true}
-<div style="min-height: 304px">
+<div class="min-h-76">
     <twig:Modal id="delete_account" open>
         <twig:Modal:Trigger>
             <twig:Button variant="outline" {{ ...modal_trigger_attrs }}>Open Modal</twig:Button>
