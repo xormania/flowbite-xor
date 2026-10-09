@@ -19,14 +19,6 @@ import { test, expect } from './fixtures';
 
 const FRAME = 'orders';
 
-/*
- * Turbo 8.0.23, also without an interruption: the copy of the page Back restores keeps the text typed in the search
- * field. The promotion caches the page as it was when the frame visit started, the user's edit included, then puts
- * back the frame's old content from FrameController#willRenderFrame (`cloneNode(true)` of the frame just before it
- * renders: it carries an input's value, not a select's selection). So Back shows the old rows at the old URL with the
- * new search text.
- */
-const SEARCH_KEPT = 'Turbo 8.0.23: the copy restored on Back keeps the search text typed before the change';
 const PATH = '/lab/data-table-frame';
 
 type Change = { name: string; param: [string, string]; apply: (page: Page) => Promise<void> };
@@ -355,8 +347,6 @@ for (const change of changes) {
     });
 
     test(`${change.name}: Back after the frame rendered, before the promotion's turbo:load, leaves a consistent table`, async ({ page }) => {
-        // the copy Back restores was cached as the promotion started, before the hold: the same as the control below
-        test.fail('search' === change.name, SEARCH_KEPT);
         const { second } = await start(page);
         await page.evaluate(() => ((window as any).__hold = 'promotion'));
         const from = (await log(page)).length;
@@ -379,7 +369,6 @@ for (const change of changes) {
 
 for (const change of changes) {
     test(`control, ${change.name}: left to finish, then Back and Forward, each show a consistent table`, async ({ page }) => {
-        test.fail('search' === change.name, SEARCH_KEPT);
         const { second } = await start(page);
         await promoted(page, () => change.apply(page), change.param);
         const changed = page.url();
