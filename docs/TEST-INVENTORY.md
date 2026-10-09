@@ -186,7 +186,7 @@ States: the selected tab and its panel (`data-tabs-active-tab-value`), a disable
 | Selected tab after Back (kept: the value attribute is in the cached copy), default after a visit or reload | E2E lab | lab.section-nav "Turbo visits, Back, Forward and a reload show the section and the tab of the page shown" |
 | N visits: one controller per tab list | E2E lab | lab.section-nav "repeated Turbo visits leave one controller per navigation and tab list" |
 | The selected tab removed: another tab is the Tab stop; the controller disconnected: the rendered tabindex is back | E2E preview | lab.section-nav "horizontal tabs take Left and Right instead…" |
-| Tab moves on to the panel (a Tab stop), plain-text panels included; a tab disabled in place hands the Tab stop on | E2E lab, preview | lab.section-nav "the vertical tabs follow the keyboard…", "a panel with no focusable content is a Tab stop after its tab" |
+| Tab moves on to the panel (a Tab stop), plain-text panels included; the selected tab disabled in place hands the selection and the Tab stop on | E2E lab, preview | lab.section-nav "the vertical tabs follow the keyboard…", "a panel with no focusable content is a Tab stop after its tab" |
 | Live re-render with a tab selected by the browser | | G5 |
 | Frame reload, Stream replace | | G5 |
 

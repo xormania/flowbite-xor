@@ -26,7 +26,7 @@ export default class extends Controller {
     connect() {
         this.connected = true;
         // a tab disabled or enabled in place (a Live morph) moves the Tab stop
-        this.disabledObserver = new MutationObserver(() => this.updateTabStop());
+        this.disabledObserver = new MutationObserver(() => this.disabledChanged());
         this.disabledObserver.observe(this.element, { attributes: true, attributeFilter: ['disabled'], subtree: true });
     }
 
@@ -101,6 +101,17 @@ export default class extends Controller {
             tab.dataset.state = tab.dataset.tabId === this.activeTabValue ? 'active' : 'inactive';
         });
         this.updateTabStop();
+    }
+
+    /** The selected tab disabled in place: the selection moves to the first enabled tab, which is the Tab stop. */
+    disabledChanged() {
+        const selected = this.triggerTargets.find((trigger) => trigger.dataset.tabId === this.activeTabValue);
+        const fallback = this.enabledTriggers()[0];
+        if (selected?.disabled && fallback) {
+            this.activeTabValue = fallback.dataset.tabId; // updates the Tab stop too
+        } else {
+            this.updateTabStop();
+        }
     }
 
     /** The selected tab is the list's one Tab stop; without one, the first enabled tab. */

@@ -183,6 +183,10 @@ test('the vertical tabs follow the keyboard of the tabs pattern: Up, Down, Home,
     await tab(page, 'General').click();
     await tab(page, 'General').evaluate((trigger) => trigger.setAttribute('disabled', ''));
     await expect(tablist(page).locator('[role="tab"][tabindex="0"]')).toHaveText(['Privacy']);
+    // and the selection with it: the Tab stop is the selected tab, its panel shown
+    await expect(tab(page, 'Privacy')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tabpanel', { name: 'Privacy' })).toBeVisible();
+    await expect(page.getByRole('tabpanel', { name: 'General' })).toBeHidden();
 });
 
 test('a panel with no focusable content is a Tab stop after its tab', async ({ page }) => {
