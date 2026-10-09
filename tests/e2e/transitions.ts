@@ -92,7 +92,8 @@ function urlMatcher(expected: TurboCompletion['url'], base: string): { test: (ur
         return { test: (url) => expected(new URL(url)), describe: `a URL for which ${expected.name || 'the predicate'} holds` };
     }
     const want = new URL(expected, base);
-    const params = (url: URL) => [...url.searchParams].map(([key, value]) => `${key}=${value}`).sort().join('&');
+    // the decoded pairs, compared as pairs: an encoded `&` or `=` inside a value is not a boundary
+    const params = (url: URL) => JSON.stringify([...url.searchParams].sort(([a, x], [b, y]) => (a === b ? (x < y ? -1 : x > y ? 1 : 0) : a < b ? -1 : 1)));
     return {
         test: (url) => {
             const actual = new URL(url);
