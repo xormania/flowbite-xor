@@ -80,5 +80,6 @@
     { "fg": "body", "bg": "neutral-primary-soft", "min": 4.5, "usage": "editor toolbar buttons and counter" },
     { "fg": "fg-brand-strong", "bg": "brand-softer", "min": 4.5, "usage": "editor toolbar button pressed" },
     { "fg": "fg-brand", "bg": "neutral-primary-soft", "min": 4.5, "usage": "markdown editor selected tab" },
-    { "fg": "heading", "bg": "neutral-secondary-medium", "min": 4.5, "usage": "markdown editor source and preview text" }
+    { "fg": "heading", "bg": "neutral-secondary-medium", "min": 4.5, "usage": "markdown editor source and preview text" },
+    { "fg": "fg-brand-strong", "bg": "neutral-primary-soft", "min": 4.5, "usage": "nav menu button holding the current page, in the navbar and the drawer" }
 ]

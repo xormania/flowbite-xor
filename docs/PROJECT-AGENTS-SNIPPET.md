@@ -98,6 +98,11 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   `storageKey`, and the brand in its `header` block. It is a modal `Drawer`; the controller focuses the current page
   and closes it on links, Escape, the backdrop and Turbo visits: add no handlers of your own, and no fixed `id`s in
   the navigation, which renders twice.
+- **Menus in the top bar: `ux:install nav-menu`**: `<twig:NavMenu id="…">` in the `Navbar`'s `nav` block (with the
+  `layouts` app layout, fill its `navbar_nav` block with the items only), holding `NavMenu:Link`s (`href`, plus
+  `route` so the server marks the current page) and `NavMenu:Submenu`s (`label`, nested at any depth). It is a
+  disclosure navigation, not an ARIA menu: never add `role="menu"`, click or key handlers of your own. On phones,
+  include the same items in a `<twig:NavMenu orientation="vertical">` with another `id`, in the `MobileNav`.
 - **Live Components may sit inside `data-turbo-permanent` elements**: they keep their state and stay live
   across visits. A permanent element keeps its node but not its scroll position: if it scrolls, restore the
   position yourself, as the kit's `Sidebar` does.

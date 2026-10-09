@@ -1,6 +1,6 @@
 # Navbar
 
-The bar on top of the app: brand, search, actions, and the menu button opening the sidebar or a mobile nav on small screens.
+The bar on top of the app: brand, navigation menu, search, actions, and the menu button opening the sidebar or a mobile nav on small screens.
 
 ```twig {"preview":true}
 <twig:Navbar sidebarId="sidebar-preview" class="w-full rounded-base border">
@@ -23,10 +23,15 @@ The bar on top of the app: brand, search, actions, and the menu button opening t
 ```twig
 <twig:Navbar sidebarId="sidebar">
     <twig:block name="brand">…</twig:block>
+    <twig:block name="nav"><twig:NavMenu id="site-nav">…</twig:NavMenu></twig:block>
     <twig:block name="search">…</twig:block>
     <twig:block name="actions"><twig:ThemeToggle /></twig:block>
 </twig:Navbar>
 ```
+
+The `nav` block, after the brand, holds the site's navigation, typically a [`NavMenu`](../nav-menu/README.md) with
+its submenus. The bar wraps it in a `<nav>` named by `navLabel` (`Site` by default) and shows it from Tailwind's `md`
+breakpoint up; on smaller screens, render the same menu in a `MobileNav` (below).
 
 With `sidebarId`, a menu button (small screens only) opens that `Sidebar` over the page. For a modal drawer holding the
 navigation instead, put a [`MobileNav`](../mobile-nav/README.md) in the `menu` block, at the start of the bar, and
