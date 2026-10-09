@@ -218,7 +218,7 @@ test('a valid answer: two Choice questions on bounded excerpts, the selected tex
     assert.match(run.summary, /### Jev diagnosis, shard 2\/3/);
     assert.match(run.summary, /timing_assertion/);
     assert.match(run.summary, /&lt;script&gt;/);
-    assert.doesNotMatch(run.summary, /<script>/);
+    assert.ok(!run.summary.toLowerCase().includes('<script'), 'no raw script tag, whatever its case');
     assert.ok(run.stepSummary.includes(run.summary), 'the section is added to the job summary');
 });
 
