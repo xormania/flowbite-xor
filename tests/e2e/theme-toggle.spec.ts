@@ -3,8 +3,9 @@ import { test, expect } from './fixtures';
 
 /*
  * The theme on screen for every system preference and saved choice, and how it moves: the toggle, the system
- * changing while the page is open, a Turbo visit, Back and a reload. The state checked each time is the `dark` class
- * before the first paint and after, `aria-pressed`, the icon shown and the saved choice.
+ * changing while the page is open, a Turbo visit, Back and a reload; and the toggle with `localStorage` blocked. The
+ * state checked each time is the `dark` class before the first paint and after, `aria-pressed`, the icon shown and the
+ * saved choice.
  */
 
 type Scheme = 'light' | 'dark';
@@ -101,6 +102,28 @@ for (const system of ['light', 'dark'] as const) {
         });
     }
 }
+
+test.describe('storage blocked', () => {
+    test.use({ colorScheme: 'light' });
+
+    // localStorage throws (blocked site data, some private modes): the choice cannot be saved, and still holds
+    test('the toggle switches the theme, and the choice holds across a Turbo visit without localStorage', async ({ page }) => {
+        await page.addInitScript(() => {
+            const blocked = () => {
+                throw new DOMException('blocked', 'SecurityError');
+            };
+            Object.defineProperty(window, 'localStorage', { get: blocked });
+        });
+        await page.goto('/');
+        await expectTheme(page, 'light');
+        await toggle(page).click();
+        await expectTheme(page, 'dark');
+
+        await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Lab' }).click();
+        await expect(page).toHaveURL(/\/lab$/);
+        await expectTheme(page, 'dark');
+    });
+});
 
 test.describe('a switch', () => {
     test.use({ colorScheme: 'light' });

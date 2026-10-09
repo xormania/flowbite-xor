@@ -410,6 +410,9 @@ await page.addInitScript(() => new MutationObserver((_, observer) => {
 }).observe(document, { childList: true, subtree: true }));
 ```
 
+The same spec blocks `localStorage` (a getter that throws, as blocked site data does) and checks the choice still
+holds across a Turbo visit: the controller keeps it on `<html data-theme-choice>`.
+
 Here: [`tests/e2e/theme-toggle.spec.ts`](../tests/e2e/theme-toggle.spec.ts).
 
 ## Basic performance: counts, not timings

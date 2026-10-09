@@ -97,7 +97,7 @@ class at first paint and after, `aria-pressed`, the icon shown, the saved choice
 | Toggle, then Turbo visit, Back, reload | E2E demo | theme-toggle "the toggle switches the theme, saves it, and the choice holds across a Turbo visit, Back and a reload" (6) |
 | System changes while open | E2E demo | theme-toggle "the system switching to … is followed / ignored" (6) |
 | No color transition on a switch, running ones left alone | E2E demo | theme-toggle "a switch › by the toggle / by the system runs no color transition", "leaves a transition already running to finish on its own" |
-| Storage blocked, Turbo visit | E2E demo | smoke "storage blocked › keeps the choice across Turbo visits without localStorage" |
+| Storage blocked, Turbo visit | E2E demo | theme-toggle "storage blocked › the toggle switches the theme, and the choice holds across a Turbo visit without localStorage" (moved from smoke) |
 | Storage blocked, Back and reload | | G10 |
 | Theme before paint without a toggle (auth layout), under the CSP nonce | E2E demo | csp "the layout sets the theme before the first paint" |
 | Theme kept by a permanent panel's page | E2E lab | lab.turbo-nav "a data-turbo-permanent panel is kept across Turbo visits (not its scroll) and the theme persists" |
@@ -368,7 +368,7 @@ where the guarantee stays.
 
 | | Tests | Same guarantee? | Proposal |
 |---|---|---|---|
-| R1 | smoke "theme toggle › system in light mode › toggles dark mode and keeps it across Turbo visits and reloads, without a flash", "› system in dark mode › follows the system preference until a choice is saved" | Yes: theme-toggle's matrix runs both (system light, no choice: toggle, visit, Back, reload, first paint; system dark, no choice: first paint, system switching followed) | Move "storage blocked" (unique) into theme-toggle, remove the other two |
+| R1 | ~~smoke "theme toggle › system in light mode › toggles dark mode and keeps it across Turbo visits and reloads, without a flash", "› system in dark mode › follows the system preference until a choice is saved"~~ | Yes: theme-toggle's matrix runs both (system light, no choice: toggle, visit, Back, reload, first paint; system dark, no choice: first paint, system switching followed) | **Done:** "storage blocked" (unique) moved into theme-toggle, now with the icon checked too; the other two removed from smoke |
 | R2 | `SelectionTest::testFiveThousandIdsSentKeepTheFirstThousand`, `OrdersTableTest::testASelectionTheBrowserSendsIsCutToMaxSelection`, lab.data-table-live "a selection the browser sends is cut…" | The Live component test goes through the endpoint, checksum and `hydrateWith`, as the E2E one does through the live controller. The unit test is the rule alone | Keep unit and Live; the E2E one is TESTING.md's example of a crafted request: drop it only with that section updated. `testSelectThisPageStopsAtMaxSelection` exists in both `SelectionTest` and `OrdersTableTest`: the Live one is the action, keep both |
 | R3 | lab.data-table-frame "a page number too large for an offset shows the last page", "a search matching nothing shows the empty state", lab.data-table-frame and lab.data-table-live "a URL with values the table does not accept renders a valid table" | Server rendering only: the functional and Live tests already reach those requests | Move to `WebTestCase` crawler assertions (smallest scope), once checked that they assert nothing browser-side |
 | R4 | demo-app "on a phone the app layout hides the sidebar behind the navbar menu button", lab.turbo-nav "on a small screen the navbar button opens the sidebar over the page" | The lab one covers it and more (focus, `aria-expanded`, a visit) | Leave until `claude/mobile-nav` lands, which changes both |
@@ -388,7 +388,7 @@ where the guarantee stays.
 | The lab scaffold itself: `<recipe>-turbo` (page one and two, a Kept permanent copy, a Framed copy), `<recipe>-stream` with `_<recipe>_streamed`, `live-<recipe>` | `demo/templates/lab/` | reused as is by each step 6 group (dropdown, modal, drawer, tooltip, tabs); the overlays' pages share `LabController::overlayTurbo()` and `overlayStream()` |
 | Axe filtered to serious and critical | a11y, dropzone (`expectNoSeriousA11yIssue`), editor, markdown-editor, forms, lab.side-nav, demo-app ×2 | `fixtures.ts` |
 | `__sameDocument` marker | 13 times in 9 specs | `fixtures.ts` (mark, then expect) |
-| `__darkAtFirstBody` init script | smoke, csp, theme-toggle | `fixtures.ts` |
+| `__darkAtFirstBody` init script | csp, theme-toggle (smoke's copy left with its theme tests) | `fixtures.ts` |
 | Event counters (`countChanges`/`changes`, `countEvents`, `__events`) | lab.calendar, lab.date-picker, dropzone, calendar, lab.dropzone | `fixtures.ts`; the Stimulus instance count is there (`stimulusControllers`, used by lab.overlays) |
 | Document listener counter | lab.popover (inline) | `fixtures.ts` `trackGlobalListeners` (added with G1, used by lab.tooltip and lab.overlays); lab.popover to move onto it |
 | `day(scope, date)` | calendar, date-picker, lab.calendar, lab.date-picker | a calendar helper module |
