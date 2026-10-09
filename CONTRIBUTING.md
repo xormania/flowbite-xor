@@ -122,7 +122,7 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
 node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
-node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles (see Docs)
+node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles; no recipe template uses a palette color (see Docs)
 node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
 node tools/test-inventory.mjs                       # docs/TEST-INVENTORY.md has a matrix row per recipe with a controller, a row per rule of FOR-AGENTS.md's Working well, and names existing tests; a11y.spec.ts scans every lab page
 node --test tools/tests/*.test.mjs                  # the cases of the CI results summarizer and of the Jev diagnosis (tools/ci/), and of tools/prepare-tests.mjs
@@ -215,7 +215,8 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
 - **Naming.** Recipe folders in lower kebab case (`stat-card`), components in PascalCase (`StatCard`, parts
   `Sidebar:Item`), controller files in snake case and used in kebab case (`theme_toggle_controller.js`,
   `data-controller="theme-toggle"`). Copied recipe and controller names stay unchanged.
-- **Colors** only through the theme's role utilities (`bg-brand`, `text-heading`, `border-default`…).
+- **Colors** only through the theme's role utilities (`bg-brand`, `text-heading`, `border-default`…); text on a solid
+  fill through its on-fill role (`text-fg-on-brand` on `bg-brand`, `fg-on-dark` on `bg-dark`…).
 - **CSS order.** `flowbite.min.css` loads after Tailwind's utilities, so when both define a class, Flowbite's copy
   wins.
   - A variant class that Flowbite does not define loses to a plain class that it does: in `flex max-md:hidden` the
@@ -312,8 +313,9 @@ request that adds an unreleased entry after a release rewrites it back to `dev`:
 fails a code block, in any markdown file outside `demo/`, that shows `initFlowbite`, `import 'flowbite'` or a
 `flowbite.js` file; a palette color (a color utility naming a Tailwind palette color that is not a theme role, from
 `tailwindcss/theme.css` and `kit.css` as the contrast check reads them: `bg-blue-700`, `text-white`); a `dark:` color
-override; an inline `on…=` handler; or a `style=` attribute. Raw HTML in prose counts too. Inline code does not: the
-rules quote what they forbid there. A block that shows what not to do says so after its language:
+override; an inline `on…=` handler; or a `style=` attribute. Raw HTML in prose counts too. Inline code does not: the rules quote what they forbid there. Every line of a recipe's templates
+(`<recipe>/templates/**/*.twig`) is checked for palette colors too: text on a solid fill uses its `fg-on-*` role. A
+block that shows what not to do says so after its language:
 
 ````markdown
 ```twig do-not

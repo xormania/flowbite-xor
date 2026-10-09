@@ -97,6 +97,11 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `theme`: on-fill roles in `flowbite-xor.css`, the color of text on a solid fill (`fg-on-brand`, `fg-on-success`,
+  `fg-on-danger`, `fg-on-warning`, `fg-on-dark`) and of the toggle's knob (`knob`). All are white, so nothing looks
+  different, and a project with a light brand color can set `fg-on-brand` to a dark one. `button`, `indicator`,
+  `calendar`, `tabs` (pill), `tooltip`, `avatar` (group count) and `toggle` use them instead of `text-white` and
+  `bg-white`. **Upgrading:** reinstall `theme` with those recipes, or those components lose their white text.
 - `editor`: `EditorHtmlPolicy::sanitize()` stores white space as the editor reads it: a run of spaces or lines is one
   space, and none at the start or end of a block or after a line break (lines between paragraphs, a list's
   indentation). The server counts the characters the editor's counter shows; rendering is unchanged. A no-break space

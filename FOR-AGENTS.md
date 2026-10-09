@@ -73,7 +73,7 @@ Every recipe, as `README.md` lists it:
 
 | Install | What it is |
 |---|---|
-| [`theme`](theme/README.md) | Flowbite's color roles, with this kit's contrast fixes, as one stylesheet to import in `assets/styles/app.css`. A role is a named color with a light and a dark value, used as a utility: `bg-brand`, `text-heading`, `border-default`. |
+| [`theme`](theme/README.md) | Flowbite's color roles, with this kit's contrast fixes and its roles for text on a solid fill (`fg-on-*`), as one stylesheet to import in `assets/styles/app.css`. A role is a named color with a light and a dark value, used as a utility: `bg-brand`, `text-heading`, `border-default`. |
 | [`theme-toggle`](theme-toggle/README.md) | A button switching between the light and dark themes, remembered in `localStorage` and following the system preference until the user chooses. |
 
 **Basic components**
@@ -177,7 +177,9 @@ Where two recipes are close:
 - **Install a recipe, never write raw Flowbite HTML** for something the kit has. Never `import 'flowbite'` or call
   `initFlowbite()`.
 - **Colors through the theme's roles only** (`bg-brand`, `text-heading`, `text-body`, `border-default`…), never
-  palette colors such as `bg-blue-700`, and no `dark:` color overrides.
+  palette colors such as `bg-blue-700` or `text-white`, and no `dark:` color overrides. Text on a solid fill uses that
+  fill's on-fill role: `text-fg-on-brand` on `bg-brand`, and `fg-on-success`, `fg-on-danger`, `fg-on-warning`,
+  `fg-on-dark` on theirs.
 - **Icons from UX Icons' `flowbite` set**, each name written in full (`flowbite:check-circle-outline`), then
   `php bin/console ux:icons:lock` and commit `assets/icons/`.
 - **Form controllers answer 303 or 422**: redirect with `Response::HTTP_SEE_OTHER` on success, render the invalid
