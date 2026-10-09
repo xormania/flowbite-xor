@@ -18,13 +18,15 @@ export default class extends Controller {
         if (this.#wasOpen ?? this.openValue) {
             this.open();
         }
+        document.addEventListener('turbo:before-cache', this.#closeBeforeCache);
     }
 
     disconnect() {
+        document.removeEventListener('turbo:before-cache', this.#closeBeforeCache);
         // A <dialog> taken out of the DOM comes back open but no longer modal, so reopen it on reconnect.
         this.#wasOpen = this.modalTarget.open;
         if (this.#wasOpen) {
-            this.modalTarget.close();
+            this.#closeNow();
         }
     }
 
@@ -72,5 +74,23 @@ export default class extends Controller {
                 this.modalTarget.setAttribute('aria-hidden', 'true');
             }
         }
+    }
+
+    // Closes the modal before Turbo caches the page, so the copy shown on Back and Forward has it closed and its
+    // trigger collapsed. A data-turbo-permanent modal is not in that copy: Turbo moves the live one in.
+    #closeBeforeCache = () => {
+        if (this.modalTarget.open && !this.element.closest('[data-turbo-permanent]')) {
+            this.#closeNow();
+        }
+    };
+
+    // Closes the modal and updates the attributes at once, without waiting for a transition: Turbo copies the page
+    // before it ends.
+    #closeNow() {
+        this.modalTarget.close();
+        if (this.hasTriggerTarget) {
+            this.triggerTarget.setAttribute('aria-expanded', 'false');
+        }
+        this.modalTarget.setAttribute('aria-hidden', 'true');
     }
 }

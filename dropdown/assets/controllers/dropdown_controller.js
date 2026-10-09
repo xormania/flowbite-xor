@@ -6,8 +6,9 @@ import { Controller } from '@hotwired/stimulus';
  * It replaces Flowbite's `Dropdown` (and its Popper dependency) with the same behavior: the content
  * toggles `hidden`/`block` and `aria-hidden`, closes on a click outside, follows its trigger on scroll
  * and resize while open, flips to the opposite side when it does not fit, and is shifted back into the
- * viewport along the trigger. Every listener is removed when it closes or disconnects. The menu starts closed on
- * every connect: a copy of the page Turbo cached while it was open (Back) shows it closed, not open and inert.
+ * viewport along the trigger. Every listener is removed when it closes or disconnects. The menu closes before Turbo
+ * caches the page, and starts closed on every connect: a copy of the page Turbo cached while it was open (Back) shows
+ * it closed, not open and inert.
  *
  * @target trigger        The button opening the menu.
  * @target content        The menu, positioned next to the trigger.
@@ -50,6 +51,8 @@ export default class extends Controller {
         }
         on(this.triggerTarget, 'keydown', (event) => this.handleTriggerKeydown(event));
         on(this.contentTarget, 'keydown', (event) => this.handleContentKeydown(event));
+        // closed in the copy of the page Turbo shows on Back and Forward, not only once that copy connects
+        on(document, 'turbo:before-cache', () => this.hide());
 
         if (this.openValue) {
             this.show();
