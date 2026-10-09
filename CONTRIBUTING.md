@@ -66,11 +66,37 @@ controllers. Previewing untrusted code would need a separate origin and containe
 ## Checks
 
 CI runs them on every push, each job only when the change could affect what it checks
-([`tools/ci-changes.sh`](tools/ci-changes.sh): a docs-only change runs none, a recipe change runs all but *Contrast*,
-a change to the workflow runs everything); pushes to `main` and `dev` run everything. The rulesets require the one
-*CI result* check, which passes when every job passed or was skipped. CI runs the script as the base branch has it, so a
-branch cannot change its own checks; a new top-level path counts as part of the kit until `tools/ci-changes.sh` and
-its test (`tools/tests/ci-changes.sh`) say otherwise. The PHP ones run on your machine as shown, or in the container: prefix them with
+([`tools/ci-changes.sh`](tools/ci-changes.sh)); pushes to `main` and `dev`, and a run by hand, run everything. A
+branch is compared with where it left `dev`, so each push checks the whole pull request. The rulesets require the one
+*CI result* check, which passes when every job passed or was skipped, and require a branch to be up to date with its
+base before it merges: merge the base in and push, so that CI has run on the code that lands (there is no merge
+queue). CI runs the script as the base branch has it, so a branch cannot change its own checks; a job the base's
+script does not know yet runs. A path no row below names counts as part of the kit until `tools/ci-changes.sh` and its
+test (`tools/tests/ci-changes.sh`) say otherwise. A deleted file counts as a change to its path, a renamed one as a
+change to both paths.
+
+| A change to | runs |
+|---|---|
+| `docs/`, `CHANGELOG.md`, `CONTRIBUTING.md`, `AGENTS.md`, `FOR-AGENTS.md`, `SECURITY.md`, `LICENSE`, `NOTICE`, `.github/pull_request_template.md`, `.github/dependabot.yml` | nothing |
+| a recipe, `kit.js`, `manifest.json`, `.gitattributes`, any path no other row names | *Lint kit*, *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
+| `kit.css`, `theme/`, `README.md`, a recipe's `README.md` | the same and *Contrast* |
+| `tests/`, `playwright.config.ts`, a recipe's `tests/`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
+| `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
+| `tools/contrast/`, `tools/llms-txt.mjs`, `llms.txt` | *Contrast* |
+| `tools/phpstan.neon` | *Kit PHP* |
+| `tools/tests/fresh-install.sh`, `check-fresh-app.sh`, `docker-install.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
+| any other file in `tools/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
+| `demo/compose.yaml`, `demo/frankenphp/Caddyfile` | *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
+| any other file in `demo/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
+| `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, without the upload) |
+| `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, which has no dry run |
+| `.github/workflows/audit.yml`, `.github/workflows/codeql.yml` | *Workflows*; each also runs itself on the pull request that changes it |
+| `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
+
+*Workflows* runs [actionlint](https://github.com/rhysd/actionlint) with ShellCheck on every workflow: YAML, expressions,
+job graph, action and reusable workflow inputs, and the shell of each `run` step.
+
+The PHP ones run on your machine as shown, or in the container: prefix them with
 `docker compose exec php` from `demo/`, with paths relative to `demo/`
 (`docker compose exec php bash ../tools/tests/sync-demo.sh`).
 
@@ -90,6 +116,7 @@ phpstan analyse -c tools/phpstan.neon --autoload-file=demo/vendor/autoload.php d
 tools/tests/fresh-install.sh                        # a new Symfony app installs dashboard-home, signup and data-table from the last commit (PHP=…, COMPOSER_BIN=…: other binaries)
 KIT_REF=<pushed commit SHA or tag> tools/tests/docker-install.sh   # the same in a new Symfony Docker project (Symfony 8.1), kit downloaded from GitHub
 npx playwright test                                 # every browser test: see below
+actionlint                                          # every workflow, with ShellCheck on its run steps (CI pins actionlint 1.7.12 and ShellCheck 0.11.0)
 ```
 
 The PHP tests render the recipes as the demo has them, and the demo's pages with their CSS: run `tools/sync-demo` and
