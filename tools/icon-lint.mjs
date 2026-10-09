@@ -7,9 +7,11 @@
 //   a quoted `flowbite:` name: `tabler:search`, `search-outline` or `flowbite:Search` fail;
 // - a Twig expression (`name="{{ icons[variant] }}"`, `:name="_icon"`, `ux_icon(item.icon)`) only chooses between
 //   names written in full, where `ux:icons:lock` finds them: it fails when it builds a name (`~`, `#{…}`, text
-//   around `{{ }}` as in `flowbite:arrow-{{ dir }}-outline`), quotes a name from another set or a part of one
-//   (`'flowbite:'`), or is a variable with no quoted `flowbite:` name in its template or code block (Toast's
-//   `icons` map). It passes otherwise, and is listed. The values of a map are not traced to the variable;
+//   around `{{ }}` as in `flowbite:arrow-{{ dir }}-outline`), changes one with a filter other than `default`
+//   (`|upper`), quotes a value that is not a `flowbite:` name written in full (`'search-outline'`, `'flowbite:'`;
+//   a map's or a lookup's key and a side of a comparison are not values), or is a variable with no quoted
+//   `flowbite:` name in its template or code block (Toast's `icons` map). It passes otherwise, and is listed. The
+//   values of a map are not traced to the variable;
 // - a tag or call without a name fails.
 //
 // A code block that shows what not to do says so after its language (```` ```twig do-not ````), as for docs-lint.
@@ -22,8 +24,6 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const flowbite = /^flowbite:[a-z0-9]+(?:-[a-z0-9]+)*$/;
-// a quoted string that ux:icons:lock reads as an icon name (symfony/ux-icons TemplateIconFinder), or that starts one
-const iconish = /^[a-z0-9-]*:(?:[a-z0-9]+(?:-[a-z0-9]+)*)?$/i;
 const problems = [];
 const expressions = [];
 
@@ -78,6 +78,46 @@ function strings(expression) {
     return found;
 }
 
+// the quoted strings of an expression that can be its value: not a map's key, a lookup's key, or a side of a comparison
+function candidates(expression) {
+    const found = [];
+    const open = [];
+    for (let i = 0; i < expression.length; i++) {
+        const string = quoted(expression, i);
+        if (!string) {
+            const c = expression[i];
+            if ('([{'.includes(c)) {
+                open.push({ c, lookup: c === '[' && /[\w\])]\s*$/.test(expression.slice(0, i)) });
+            } else if (')]}'.includes(c)) {
+                open.pop();
+            }
+            continue;
+        }
+        const before = expression.slice(0, i);
+        const after = expression.slice(string.end);
+        const inside = open.at(-1);
+        const key = inside?.c === '{' && /[{,]\s*$/.test(before) && /^\s*:/.test(after);
+        const compared = /(?:[=!<>]=|[<>]|\b(?:in|matches|starts with|ends with|same as\())\s*$/.test(before)
+            || /^\s*(?:[=!<>]=|[<>]|(?:not\s+)?in\b|matches\b|starts with\b|ends with\b)/.test(after);
+        if (!key && !inside?.lookup && !compared) {
+            found.push(string.value);
+        }
+        i = string.end - 1;
+    }
+    return found;
+}
+
+// an expression with its quoted strings emptied, so a `|` or `~` inside one is not read as Twig
+const unquoted = (expression) => {
+    let out = '';
+    for (let i = 0; i < expression.length; i++) {
+        const string = quoted(expression, i);
+        out += string ? "''" : expression[i];
+        i = string ? string.end - 1 : i;
+    }
+    return out;
+};
+
 // what is wrong with a name: a literal, or a Twig expression (`expression` true) read in text; null when it is fine
 function fault(name, expression, text) {
     if (!expression) {
@@ -86,15 +126,19 @@ function fault(name, expression, text) {
     if (name === '') {
         return 'icon without a name';
     }
-    if (/~|#\{|\|\s*(?:format|replace|join)\b/.test(name)) {
+    if (/#\{/.test(name) || /~/.test(unquoted(name))) {
         return `icon name built from parts, ux:icons:lock misses it (${name})`;
     }
-    const other = strings(name).filter((value) => iconish.test(value) && !flowbite.test(value));
+    // a filter other than default changes the name ux:icons:lock found
+    if (/\|\s*(?!default\b)[a-z_]/i.test(unquoted(name))) {
+        return `icon name changed by a filter, ux:icons:lock misses it (${name})`;
+    }
+    const other = candidates(name).filter((value) => !flowbite.test(value));
     if (other.length) {
         return `icon not a flowbite: name written in full (${other.join(', ')})`;
     }
     // a variable or a lookup: the names it takes are written in full in the same template or code block
-    return strings(name).some((value) => flowbite.test(value)) || strings(text).some((value) => flowbite.test(value))
+    return candidates(name).some((value) => flowbite.test(value)) || strings(text).some((value) => flowbite.test(value))
         ? null
         : `icon name from a variable, and no flowbite: name written in full beside it for ux:icons:lock to find (${name})`;
 }

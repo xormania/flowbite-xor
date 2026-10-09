@@ -46,7 +46,9 @@ while IFS= read -r path; do
         package.json | package-lock.json) on contrast demo ;;
 
         # Repository tools, each with the jobs that run it
-        tools/contrast/* | tools/llms-txt.mjs | tools/docs-lint.mjs | tools/icon-lint.mjs | tools/test-inventory.mjs | llms.txt) on contrast ;;
+        tools/contrast/* | tools/llms-txt.mjs | tools/docs-lint.mjs | tools/test-inventory.mjs | llms.txt) on contrast ;;
+        # icon-lint runs in Contrast; its cases (tools/tests/*.test.mjs) in the browser job
+        tools/icon-lint.mjs | tools/tests/icon-lint.test.mjs) on contrast demo ;;
         tools/fence-coverage.mjs) on contrast static-site ;;
         tools/build-static.sh) on static-site ;;
         tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh) on fresh-install ;;
