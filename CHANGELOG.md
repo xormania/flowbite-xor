@@ -51,6 +51,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `data-table`: after Back or Forward, the search field showed the search applied next, or typed before leaving the
+  page, instead of the URL's; the filters and the page size could too. The form now shows the URL's state in every
+  field: a new `data-table` controller resets it to the values the server rendered when a restored copy connects.
 - `popover`, `date-picker`: beside a frame whose visits are promoted to history (a data table's pages), an open popover
   or picker no longer closes and drops the focus when the frame changes, and Back no longer shows it open: on
   `turbo:before-cache`, `closeSilently` now skips a frame visit promoted to history, and a popover open in a copy of

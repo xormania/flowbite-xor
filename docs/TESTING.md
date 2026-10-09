@@ -244,6 +244,41 @@ const isPromotedFrameCache = () => false === window.Turbo?.session?.navigator?.c
 lab.popover "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…" records
 the popover's state right after each `turbo:before-cache` and in each copy Turbo renders.
 
+### Restored fields show the URL's state
+
+**Catches:** a form whose fields mirror the URL (a table's search, filters, page size) showing, after Back or
+Forward, a value the user entered before leaving: the state applied next, or an edit never applied. Turbo copies the
+page with its edited fields (`PageSnapshot.clone` keeps each select's choice, `cloneNode` an input's value), and a
+frame visit promoted to history takes its copy once the form is submitted, edits made.
+
+Edit one field, apply, go Back, and check every field against the URL then shown, not only the one edited, and what
+the first frame of the restored copy showed. Wait for each step by its events, recorded from before the action: the
+frame's `turbo:frame-load`, then a `turbo:load` at the expected URL; on Back, a `turbo:load` at the earlier URL.
+
+```ts
+await recordTurboEvents(page);                    // turbo:load and turbo:frame-load, each with location.href
+const firstFrames = await recordFirstFrameValues(page);
+await page.getByLabel('Search', { exact: true }).fill('bonnie');
+let since = await mark(page);
+await page.getByRole('button', { name: 'Apply' }).click();
+await frameVisitDone(page, since, { sort: 'number', dir: 'desc', q: 'bonnie', 'f[status]': '', size: '10' });
+since = await mark(page);
+await page.goBack();
+await pageVisitDone(page, since, {});
+await expect.soft(page.getByLabel('Search', { exact: true })).toHaveValue('');   // soft: every field reported
+await expect.soft(page.getByLabel('Status')).toHaveValue('');
+await expect.soft(page.getByLabel('Rows per page')).toHaveValue('10');
+expect(await firstFrames()).toEqual([{ search: '', status: '', size: '10' }]);
+```
+
+Leave with an edit not applied too (a link away, then Back). The fix is a controller on the form that calls
+`form.reset()` as it connects, unless the focus is inside it: a copy is a new element, and `reset()` puts back the
+`value` and `selected` attributes the server rendered. A Live Component needs none: its controller sets each
+`data-model` field from the component's state as it connects.
+
+Here: [`lab.data-table-back.spec.ts`](../tests/e2e/lab.data-table-back.spec.ts),
+[`data_table_controller.js`](../data-table/assets/controllers/data_table_controller.js).
+
 ### State saved after the snapshot
 
 **Catches:** a component that shows the state of Turbo's cached copy after Back, when the user changed it on the next
