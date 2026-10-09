@@ -64,7 +64,7 @@ the transition cannot change the recipe's state, not that it is untested.
 | modal | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | G3 | · | G3 | lab.live-modal | T3 | · |
 | drawer | lab.turbo-restore | lab.turbo-restore | G10 | G3 | G3 | G3 | · | G3 | lab.live-drawer | T3 | · |
 | popover | lab.popover | · | G10 | lab.popover | lab.popover | lab.popover | G2 | lab.popover | lab.popover | T3 | · |
-| tooltip | G1 | G1 | · | G1 | G1 | G1 | G1 | G1 | lab.live-table | T3 | · |
+| tooltip | lab.turbo-restore, lab.tooltip | lab.turbo-restore | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.live-table | T3 | lab.tooltip |
 | calendar | lab.calendar | · | G10 | lab.calendar | lab.calendar | lab.calendar | G4 | lab.calendar | lab.calendar | css | · |
 | date-picker | lab.date-picker | · | G10 | lab.date-picker | lab.date-picker | lab.date-picker | G2 | lab.date-picker | lab.date-picker (G4) | css | · |
 | chart | lab.chart | · | G10 | lab.chart | lab.chart | lab.chart | G4 | lab.chart | lab.chart | lab.chart | G10 |
@@ -232,8 +232,11 @@ States: hidden or shown (hovered, focused), placement flipped, the trigger's `ar
 | Hover, focus, Escape, described, after Live re-sorts | E2E lab | lab.live-table "tooltips in rows re-sorted by a Live action keep working and stay described" |
 | Flip below | E2E lab | lab.live-table "a tooltip that does not fit above its trigger opens below it" |
 | Stays open while hovered or focused | E2E lab | lab.live-table "a tooltip stays open while its trigger is still hovered or focused" |
-| Shown when its trigger visits (a link, an icon button), Back, fast and slow: `connect()` never hides it, `disconnect()` hides it too late in the slow order | | G1 |
-| N visits, permanent, frame reload, frame advance, Stream | | G1 |
+| Shown when its trigger visits, then Back, fast and slow: hidden, and shows again (both orders failed before the fix) | E2E lab | lab.turbo-restore (overlay table) |
+| Shown by focus, then Back, Forward, reload: hidden; hover, leave, focus, Escape, described still work | E2E lab | lab.tooltip |
+| N visits: one tooltip per trigger, no document or window listener left | E2E lab | lab.tooltip |
+| Permanent: shown by focus stays shown through a visit; frame reload ×3; frame advance then Back; Stream replace and update | E2E lab | lab.tooltip |
+| System theme change while shown | E2E lab | lab.tooltip |
 
 ### calendar, date-picker
 
@@ -351,7 +354,7 @@ where the guarantee stays.
 | `__sameDocument` marker | 13 times in 9 specs | `fixtures.ts` (mark, then expect) |
 | `__darkAtFirstBody` init script | smoke, csp, theme-toggle | `fixtures.ts` |
 | Event counters (`countChanges`/`changes`, `countEvents`, `__events`) | lab.calendar, lab.date-picker, dropzone, calendar, lab.dropzone | `fixtures.ts`; tier 2 adds the Stimulus instance count next to it |
-| Document listener counter | lab.popover | `fixtures.ts`; G3 and G1 need it |
+| Document listener counter | lab.popover (inline) | `fixtures.ts` `trackGlobalListeners` (added with G1); lab.popover and G3 to move onto it |
 | `day(scope, date)` | calendar, date-picker, lab.calendar, lab.date-picker | a calendar helper module |
 | `PNG`, `png()`, `text()` | dropzone, forms, lab.dropzone | `tests/e2e/files.ts` |
 | `/preview/<recipe>/<id>?theme=light` builders | dropzone, editor, popover, markdown-editor; `gotoExample` | `inventory.ts` |
@@ -366,7 +369,7 @@ a browser, so E2E lab, on the existing scaffold.
 
 | | Gap | Why the risk | Proposed coverage | Step 6 group |
 |---|---|---|---|---|
-| G1 | **tooltip** has no Turbo coverage: shown during a visit then Back (fast and slow), N visits, permanent, frame, Stream | `connect()` only sets `aria-describedby`, never hides; `disconnect()` hides, which the slow order runs after the copy: a tooltip shown in the cached copy comes back shown. Same bug class `lab.turbo-restore` was built for; tooltips sit on icon links | Add tooltip to `lab.turbo-restore`'s overlay table (both orders); a `tooltip-turbo` lab page for the rest | Overlays |
+| G1 | ~~**tooltip** has no Turbo coverage~~ **Closed:** `connect()` now hides the tooltip unless the focus is inside it; lab.tooltip and lab.turbo-restore cover it | Both snapshot orders failed, not only the slow one | — | Overlays |
 | G2 | **Frame visit promoted to history** beside popover, dropdown, date-picker and a temporary toast | Covered only for editor, markdown-editor and the data table. Their cache safety is `turbo:before-cache`, which a promoted frame visit dispatches with the page still on screen (the editor spec): an open popover beside a data table closes on each page change, or is copied open (`open` is an attribute, reconnected open); Turbo removes `data-turbo-temporary` toasts on the same event. Data tables are the common source of promoted frame visits | A `data-turbo-action="advance"` frame on the popover, date-picker and turbo-restore labs (the turbo-restore lab holds the dropdown and the toast) (the editor lab's `history-steps` pattern) | Overlays |
 | G3 | **dropdown, modal, drawer** beyond Back and Live: Stream replace and update while open, N visits, permanent, frame reload (modal, drawer) | An open dropdown holds document and window listeners; popover has these exact tests (listener counter) and dropdown, the most used overlay, has none | lab.popover's tests, applied to each, with the shared listener counter | Overlays |
 | G4 | **Form widgets' values** across transitions: autocomplete values after Back, permanent and frame advance; data-table-live selection after a visit and Back; calendar, chart and dropzone beside a promoted frame visit; date-picker re-rendered by Live while open | Values are what the user typed or chose; the Back tests check only instance counts (autocomplete) or URL state (data-table-live) | Extend the existing lab specs | Form widgets |
