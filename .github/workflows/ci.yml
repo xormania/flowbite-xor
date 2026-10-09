@@ -336,7 +336,9 @@ jobs:
         needs: changes
         if: needs.changes.outputs.demo == 'true'
         runs-on: ubuntu-latest
-        timeout-minutes: 25
+        # 25 for the tests, plus 3 for the advisory Jev step (2) and its upload: a diagnosis must never be what
+        # times the job out
+        timeout-minutes: 28
         # the browser suite is most of CI's time: three shards, each with its own demo and browser (shard 1 writes the
         # image cache the others read)
         env:
