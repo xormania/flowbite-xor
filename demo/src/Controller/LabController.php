@@ -184,7 +184,7 @@ final class LabController extends AbstractController
         return $this->render('lab/permanent_plus_live.html.twig', ['page' => $page, 'description' => self::SCENARIOS['permanent-plus-live']]);
     }
 
-    #[Route('/form-back/{method}', name: 'app_lab_form_back', requirements: ['method' => 'get|post'], methods: ['GET', 'POST'])]
+    #[Route('/form-back/{method}', name: 'app_lab_form_back', requirements: ['method' => 'get|post'], defaults: ['method' => 'get'], methods: ['GET', 'POST'])]
     public function formBack(Request $request, string $method): Response
     {
         $fields = ['name', 'fruit', 'due'];
