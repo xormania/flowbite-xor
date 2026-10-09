@@ -1,3 +1,8 @@
+---
+status: shipped
+recipes: data-table, data-table-live
+---
+
 # Plan: D. data table
 
 _2026-10-07. Implements the D decisions in [`ROADMAP.md`](ROADMAP.md). Two pull requests: `data-table` (plain,

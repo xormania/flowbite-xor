@@ -1,3 +1,8 @@
+---
+status: open
+recipes: none
+---
+
 # Plan: test tiers (behavior, basic performance, release checks)
 
 _2026-10-08. Decided with the user on 2026-10-08:_
