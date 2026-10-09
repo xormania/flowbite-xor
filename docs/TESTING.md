@@ -66,6 +66,29 @@ export async function turboVisitDone(page: Page) {
 
 Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`turboVisitDone`).
 
+### One driver for the transitions
+
+**Catches:** nothing on its own; it keeps every spec waiting the same way. A spec that clicks and checks the URL only,
+or waits for the heading but not for the visit, passes on a cached preview and fails on the next run.
+
+Every lab page names itself in a `data-testid="page"` heading and links the next page with `Go to page two`; a
+`history-steps` frame (`demo/templates/lab/_history_steps.html.twig`) adds a history entry per step, as a data
+table's pages do. Each step of the driver waits for what the page shows, then for the visit (`turboVisitDone`):
+
+```ts
+import { back, forward, reload, shown, visit, visitAndBack } from './transitions';
+
+await visitAndBack(page);                          // Go to page two, then Back to page one
+await visit(page, 'Go to page one', 'Page one');   // a link by its exact name, a pattern or a locator
+await forward(page, 'Page two');
+await visit(page, 'Next step', { step: 1 });       // a frame visit promoted to history: the step shown, ?step=1
+await back(page, { step: 0 });
+await page.keyboard.press('Enter');                 // any other way to start a visit, then:
+await shown(page, 'Page two');
+```
+
+Here: [`tests/e2e/transitions.ts`](../tests/e2e/transitions.ts), used by the `lab.*` specs.
+
 ### Back after the cache snapshot
 
 **Catches:** components that come back broken after Back: an open menu or dialog in the snapshot, an editor
@@ -125,6 +148,43 @@ holds, and what the new controller starts from.
 
 Here: [`lab.mobile-nav.spec.ts`](../tests/e2e/lab.mobile-nav.spec.ts), [`lab.nav-menu.spec.ts`](../tests/e2e/lab.nav-menu.spec.ts),
 [`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts) (dropdown, modal, drawer).
+
+### Beside a frame visit promoted to history
+
+**Catches:** a component next to a data table (or any `data-turbo-action="advance"` frame) that closes, loses the
+focus or disappears when the frame changes, or comes back open on Back. Turbo copies the page when the frame visit
+starts, then dispatches `turbo:before-cache` on the page still shown and caches the earlier copy: a reset on that
+event hits the screen and misses the copy ([`NOTES.md`](NOTES.md)).
+
+Start the frame visit with the component open: from a link inside it (`data-turbo-frame="history-steps"`), or from
+the page's code, which no click or focus change precedes (a click on the frame's own link closes most overlays first,
+and the copy is then taken closed). Check the screen after the step, then Back and Forward, and what the first frame
+of each rendered copy shows:
+
+```ts
+const firstFrames = await recordFirstFrames(page, { steps: '#steps-content' }); // visible at the first frame of each render
+await page.getByRole('button', { name: 'Steps' }).click();
+await visit(page, 'Go to step 5', { step: 5 });     // a link inside the popover, targeting the frame
+await expect(dialog).toBeVisible();                  // still open, the focus still inside
+await back(page, { step: 0 });                       // the copy taken as the visit started: open
+await expect(dialog).toBeHidden();
+expect(await firstFrames()).toEqual([{ steps: false }]);
+await stepFromCode(page, 1);                          // Turbo.visit(url, { frame: 'history-steps', action: 'advance' })
+```
+
+Here: [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts), [`lab.date-picker.spec.ts`](../tests/e2e/lab.date-picker.spec.ts),
+[`lab.turbo-restore.spec.ts`](../tests/e2e/lab.turbo-restore.spec.ts) (a dropdown, a toast);
+[`transitions.ts`](../tests/e2e/transitions.ts) (`stepFromCode`, `recordFirstFrames`).
+
+A reset on `turbo:before-cache` tells the two apart with Turbo's current visit, which renders nothing for a frame
+visit promoted to history (Turbo 8):
+
+```js
+const isPromotedFrameCache = () => false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
+```
+
+lab.popover "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…" records
+the popover's state right after each `turbo:before-cache` and in each copy Turbo renders.
 
 ### State saved after the snapshot
 

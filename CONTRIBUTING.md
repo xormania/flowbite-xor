@@ -130,7 +130,10 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
 - **Behavior in Stimulus only.** No `import 'flowbite'` and no `initFlowbite()`. A controller's `connect()` must work
   when it runs again on the same element, since Turbo and Live Components reconnect controllers. `disconnect()` undoes
   everything `connect()` set up. No global state, and no `DOMContentLoaded` or `turbo:load` listeners. A Stimulus action on
-  `turbo:before-cache@document` is allowed, to reset state before Turbo snapshots the page (`popover` closes).
+  `turbo:before-cache@document` is allowed, to reset state before Turbo snapshots the page (`popover` closes). A frame
+  visit promoted to history dispatches it too, with the page still on screen and the copy already taken: skip the
+  reset then (`isPromotedFrameCache()` in `popover_controller.js`), and reset what Back must not show when the copy
+  connects.
 - **No inline code.** Recipes print no `<style>` element and no `style="…"` or `on…="…"` attribute, and an inline
   `<script>` only in the layouts' `<head>`, with `csp_script_nonce`. A Content Security Policy blocks inline code
   without its nonce, no nonce covers an attribute, and with a nonce per request Turbo reports the `<style>` of every

@@ -45,7 +45,7 @@ final class LabController extends AbstractController
         'autocomplete-frame' => 'An Autocomplete inside a Turbo Frame that reloads.',
         'autocomplete-stream' => 'An Autocomplete replaced by a Turbo Stream.',
         'live-autocomplete' => 'Autocomplete fields in a Live form that re-renders.',
-        'popover-turbo' => 'Popovers across Turbo visits and Back: a plain one, a group, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
+        'popover-turbo' => 'Popovers across Turbo visits and Back: a plain one, a group, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads, and one whose link steps a frame whose visits are promoted to history.',
         'popover-stream' => 'A Popover replaced and updated by Turbo Streams.',
         'live-popover' => 'A Popover open while its Live Component re-renders (action and model change).',
         'tooltip-turbo' => 'Tooltips across Turbo visits, Back and Forward: on the link that visits, on an icon button, inside a data-turbo-permanent element, inside a Turbo Frame that reloads, and on the link of a frame whose visits are promoted to history.',
@@ -59,7 +59,7 @@ final class LabController extends AbstractController
         'calendar-turbo' => 'Calendars in a GET form (one date, a range, several dates) across Turbo visits and Back, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'calendar-stream' => 'A Calendar replaced and updated by Turbo Streams.',
         'live-calendar' => 'Calendars bound to Live Component properties: a date, a range, bounds and a locale changed by the server.',
-        'date-picker-turbo' => 'Date pickers across Turbo visits and Back: one in a GET form, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
+        'date-picker-turbo' => 'Date pickers across Turbo visits and Back: one in a GET form, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads, beside a frame whose visits are promoted to history.',
         'date-picker-stream' => 'A DatePicker replaced and updated by Turbo Streams.',
         'live-date-picker' => 'Date pickers in a Live form through the form theme: each pick reaches the server, and the end date follows the start.',
         'chart-turbo' => 'Charts across Turbo visits and Back: a bar chart, a doughnut in a card, one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads; each follows the theme.',
@@ -74,7 +74,7 @@ final class LabController extends AbstractController
         'editor-turbo' => 'Editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'editor-stream' => 'An Editor replaced and updated by Turbo Streams.',
         'live-editor' => 'An Editor bound to a Live Component property: unrelated re-renders leave the typing alone, a save reads the content, a reset from the server replaces it.',
-        'turbo-restore' => 'Overlays left open when a link inside them visits another page, and a tooltip shown on such a link: Back shows them closed and working, also when the next page waits for a new stylesheet (Turbo then caches the page before the controllers disconnect). A toast outside the permanent region is not shown again on Back.',
+        'turbo-restore' => 'Overlays left open when a link inside them visits another page, and a tooltip shown on such a link: Back shows them closed and working, also when the next page waits for a new stylesheet (Turbo then caches the page before the controllers disconnect). A toast outside the permanent region is not shown again on Back. Beside a frame whose visits are promoted to history, an open menu and the toast stay on screen; Back shows the menu closed and the toast gone.',
         'markdown-turbo' => 'Markdown editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'markdown-stream' => 'A MarkdownEditor replaced and updated by Turbo Streams.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
@@ -130,9 +130,13 @@ final class LabController extends AbstractController
     }
 
     #[Route('/turbo-restore/{page}', name: 'app_lab_turbo_restore', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'])]
-    public function turboRestore(string $page): Response
+    public function turboRestore(Request $request, string $page): Response
     {
-        return $this->render('lab/turbo_restore.html.twig', ['page' => $page, 'description' => self::SCENARIOS['turbo-restore']]);
+        return $this->render('lab/turbo_restore.html.twig', [
+            'page' => $page,
+            'step' => $request->query->getInt('step'),
+            'description' => self::SCENARIOS['turbo-restore'],
+        ]);
     }
 
     #[Route('/turbo-nav/save', name: 'app_lab_turbo_nav_save', methods: ['POST'])]
@@ -264,6 +268,7 @@ final class LabController extends AbstractController
         return $this->render('lab/popover_turbo.html.twig', [
             'page' => $page,
             'load' => $request->query->getInt('load'),
+            'step' => $request->query->getInt('step'),
             'description' => self::SCENARIOS['popover-turbo'],
         ]);
     }
@@ -425,6 +430,7 @@ final class LabController extends AbstractController
         return $this->render('lab/date_picker_turbo.html.twig', [
             'page' => $page,
             'load' => $request->query->getInt('load'),
+            'step' => $request->query->getInt('step'),
             'submitted' => $request->query->has('due') ? $request->query->getString('due') : null,
             'description' => self::SCENARIOS['date-picker-turbo'],
         ]);

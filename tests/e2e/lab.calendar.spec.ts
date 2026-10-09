@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
+import { visit, visitAndBack } from './transitions';
 
 const day = (calendar: Locator, date: string) => calendar.locator(`[data-slot="calendar-day"][data-day="${date}"] button`);
 const grid = (calendar: Locator) => calendar.getByRole('grid');
@@ -17,12 +18,7 @@ test('a Turbo visit and Back show the same month and selection, and the calendar
     await expect(grid(calendar())).toHaveAccessibleName('April 2026');
     await day(calendar(), '2026-04-08').click();
 
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
-    await page.goBack();
-    await expect(page.getByTestId('page')).toHaveText('Page one');
-    await turboVisitDone(page);
+    await visitAndBack(page);
 
     await expect(grid(calendar())).toHaveAccessibleName('April 2026');
     await expect(day(calendar(), '2026-04-08')).toHaveAttribute('data-selected-single', 'true');
@@ -54,9 +50,7 @@ test('inside a data-turbo-permanent element, the calendar keeps its month across
     await page.goto('/lab/calendar-turbo');
     const kept = page.getByRole('group', { name: 'Kept' });
     await kept.getByRole('button', { name: 'Next month' }).click();
-    await page.getByRole('link', { name: 'Go to page two' }).click();
-    await expect(page.getByTestId('page')).toHaveText('Page two');
-    await turboVisitDone(page);
+    await visit(page, 'Go to page two', 'Page two');
     await expect(grid(kept)).toHaveAccessibleName('April 2026');
     await kept.getByRole('button', { name: 'Next month' }).click();
     await expect(grid(kept)).toHaveAccessibleName('May 2026');
