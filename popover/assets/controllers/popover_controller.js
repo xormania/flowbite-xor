@@ -1,15 +1,26 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
+ * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
+ * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
+ * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
+ * Copy it into a controller that needs it, as `position()` is.
+ */
+function isPromotedFrameCache() {
+    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
+}
+
+/**
  * Opens a `Popover`, a non-modal dialog anchored to its trigger: a click on the trigger toggles it,
  * Escape closes it and returns the focus to the trigger, and a click outside or the focus leaving it
  * closes it. Opening moves the focus into the content, places the content next to the trigger (flipping
  * and shifting like `Dropdown`) and keeps it there on scroll and resize. Popovers sharing a `name` close
  * each other. The open state is the `open` value, an attribute, so Live Components keep it across
- * re-renders. While the browser has it open, the element also carries `data-popover-opened`: a copy of
- * the page Turbo cached with it open (Back, Forward, a preview) connects closed. Turbo copies the page
- * before `turbo:before-cache` when a frame visit is promoted to history, and keeps it on screen, so the
- * popover does not close on that event: it stays open beside the frame, with the focus.
+ * re-renders. Before Turbo caches the page, an open popover closes, so Back never restores it open. A
+ * frame visit promoted to history (`data-turbo-action="advance"`, a data table's pages) dispatches
+ * `turbo:before-cache` too, but keeps the page on screen and caches a copy taken when it started: the
+ * popover then stays open, with the focus, and the copy is closed as it connects (while the browser has
+ * it open, the element carries `data-popover-opened`).
  * The document listeners exist only while it is open, and are removed when it closes or disconnects.
  * Before moving the focus, it dispatches a cancelable `popover:focus` on its element (detail: `content`):
  * cancel it to place the focus yourself; the popover stays open.
@@ -26,7 +37,7 @@ import { Controller } from '@hotwired/stimulus';
  * @action closeIfGrouped Closes the popover when another popover of its group opens.
  * @action escape         Closes the popover and focuses the trigger.
  * @action closeOnFocusOut Closes the popover when the focus moves to an element outside it.
- * @action closeSilently  Closes the popover without moving the focus or dispatching events.
+ * @action closeSilently  Closes the popover without moving the focus or dispatching events; on `turbo:before-cache`, only when the page is about to be replaced.
  */
 export default class extends Controller {
     static targets = ['trigger', 'content'];
@@ -118,7 +129,10 @@ export default class extends Controller {
         }
     }
 
-    closeSilently() {
+    closeSilently(event) {
+        if ('turbo:before-cache' === event?.type && isPromotedFrameCache()) {
+            return;
+        }
         this.openValue = false;
     }
 

@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
-import { back, forward, recordFirstFrames, stepFromCode, visit, visitAndBack } from './transitions';
+import { back, forward, recordFirstFrames, shown, stepFromCode, visit, visitAndBack } from './transitions';
 
 // counts the click listeners added to the document minus those removed: an open popover adds one, a closed one none
 test.beforeEach(async ({ page }) => {
@@ -180,4 +180,36 @@ test('a popover open while the page code steps a frame promoted to history stays
     await expect(dialog).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
+});
+
+test('turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when a frame visit is promoted to history', async ({ page }) => {
+    await page.goto('/lab/popover-turbo');
+    // the open value of the Details popover in each copy Turbo renders, and on screen right after each turbo:before-cache
+    await page.evaluate(() => {
+        const w = window as any;
+        w.__copies = [];
+        w.__afterBeforeCache = [];
+        document.addEventListener('turbo:before-render', (event: any) =>
+            w.__copies.push(event.detail.newBody.querySelector('#plain-trigger')?.closest('[data-controller~="popover"]')?.dataset.popoverOpenValue),
+        );
+        // after every listener of the event, the popover's included
+        document.addEventListener('turbo:before-cache', () =>
+            queueMicrotask(() => w.__afterBeforeCache.push(document.querySelector('#plain-trigger')!.closest<HTMLElement>('[data-controller~="popover"]')!.dataset.popoverOpenValue)),
+        );
+    });
+    const dialog = page.getByRole('dialog', { name: 'Details' });
+    await page.getByRole('button', { name: 'Details' }).click();
+
+    await stepFromCode(page, 1);
+    await expect(dialog).toBeVisible();
+
+    // a full visit started while it is open (from the page's code: a click outside would close it first)
+    await page.evaluate(() => (window as any).Turbo.visit('/lab/popover-turbo/two'));
+    await shown(page, 'Page two');
+    await back(page, { step: 1 });
+    await expect(dialog).toBeHidden();
+    // the frame step left it open, the visit closed it; then Back cached page two, its own popover closed
+    expect(await page.evaluate(() => (window as any).__afterBeforeCache)).toEqual(['true', 'false', 'false']);
+    // the last body rendered is the copy of step 1, taken after turbo:before-cache: closed before any controller connects
+    expect((await page.evaluate(() => (window as any).__copies as string[])).at(-1)).toBe('false');
 });

@@ -171,6 +171,16 @@ Here: [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts), [`lab.date-pick
 [`lab.turbo-restore.spec.ts`](../tests/e2e/lab.turbo-restore.spec.ts) (a dropdown, a toast);
 [`transitions.ts`](../tests/e2e/transitions.ts) (`stepFromCode`, `recordFirstFrames`).
 
+A reset on `turbo:before-cache` tells the two apart with Turbo's current visit, which renders nothing for a frame
+visit promoted to history (Turbo 8):
+
+```js
+const isPromotedFrameCache = () => false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
+```
+
+lab.popover "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…" records
+the popover's state right after each `turbo:before-cache` and in each copy Turbo renders.
+
 ### State saved after the snapshot
 
 **Catches:** a component that shows the state of Turbo's cached copy after Back, when the user changed it on the next

@@ -36,7 +36,7 @@
     {{ attributes.defaults({
         class: 'relative inline-block'|tailwind_classes,
         'data-controller': 'popover date-picker',
-        'data-action': 'popover:open@window->popover#closeIfGrouped keydown.esc->popover#escape focusout->popover#closeOnFocusOut calendar:select->date-picker#select popover:focus->date-picker#focusDay',
+        'data-action': 'popover:open@window->popover#closeIfGrouped keydown.esc->popover#escape focusout->popover#closeOnFocusOut turbo:before-cache@document->popover#closeSilently calendar:select->date-picker#select popover:focus->date-picker#focusDay',
     }) }}
 >
     {##- A `DatePicker:Trigger` (or a `DatePicker:Input` beside one) and a `DatePicker:Content` holding a `Calendar`. -#}
