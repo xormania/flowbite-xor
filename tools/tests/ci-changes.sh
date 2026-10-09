@@ -51,7 +51,8 @@ check 'contrast'                  docs/TESTING.md CHANGELOG.md FOR-AGENTS.md .gi
 check 'contrast'                  docs/ROADMAP.md CONTRIBUTING.md AGENTS.md
 check 'contrast'                  tools/docs-lint.mjs tools/llms-txt.mjs llms.txt
 check 'contrast'                  tools/test-inventory.mjs
-check 'contrast demo'             tools/icon-lint.mjs tools/tests/icon-lint.test.mjs
+check 'contrast demo'             tools/icon-lint.mjs
+check 'contrast demo'             tools/tests/icon-lint.test.mjs
 # What the lints read wherever it lies: a recipe's templates (icon-lint) and any markdown outside demo/ (docs-lint,
 # icon-lint); the demo's copies of the recipes are not read
 check "$kit_contrast"             input/templates/components/Input.html.twig
