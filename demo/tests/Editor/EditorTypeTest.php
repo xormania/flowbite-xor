@@ -6,7 +6,6 @@ use App\FlowbiteXor\Editor\EditorHtmlPolicy;
 use App\FlowbiteXor\Editor\EditorType;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Form\FormInterface;
-use Twig\Error\RuntimeError;
 
 /**
  * EditorType's limits on a submit: `max_bytes` counts the bytes of the HTML sent, before sanitizing; `max_chars` the
@@ -97,9 +96,6 @@ final class EditorTypeTest extends WebTestCase
         // the editor's counter shows 4 / 4
         $form = self::submit("<p>ab</p>\r\n<p>cd</p>", ['max_chars' => 4]);
 
-        if (!$form->isValid()) {
-            self::markTestIncomplete('Finding: EditorHtmlPolicy::textLength() counts the white space between blocks (here a line break) as characters, while the editor\'s counter (getText with no block separator) counts none, so the server refuses text the counter shows within the limit. Tiptap writes no such white space, so only HTML from another path is affected.');
-        }
         self::assertCount(0, $form->getErrors());
     }
 
@@ -111,15 +107,7 @@ final class EditorTypeTest extends WebTestCase
         $values = $form->getPhpValues();
         $values['editor_demo']['body'] = '<p>'.str_repeat('a', EditorHtmlPolicy::MAX_INPUT_BYTES).'</p>';
 
-        try {
-            $client->request('POST', '/lab/editor-turbo', $values);
-        } catch (RuntimeError $error) {
-            $e = $error->getPrevious();
-            if (!$e instanceof \LengthException) {
-                throw $error;
-            }
-            self::markTestIncomplete('Finding: a submit longer than EditorHtmlPolicy::MAX_INPUT_BYTES gets its max_bytes error, then re-rendering the form throws: the widget prints the refused value through flowbite_editor_html, whose sanitize() refuses it ('.$e->getMessage().'), so the page is a 500 instead of a 422 with the error.');
-        }
+        $client->request('POST', '/lab/editor-turbo', $values);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#editor_demo_body_error', 'bytes of formatting and text');
