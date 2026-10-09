@@ -15,7 +15,7 @@ use Twig\TemplateWrapper;
 /**
  * Renders the components whose props shape the markup with hostile and ordinary values, as JSON, for
  * tests/e2e/hostile-props.spec.ts: the `as` tag of six components, the attribute names of FormField's
- * `labelAttr` and `helpAttr`, the eight link props of the kit's own recipes, and the Calendar's dates, modifier
+ * `labelAttr` and `helpAttr`, the nine link props of the kit's own recipes, and the Calendar's dates, modifier
  * names and hidden-input attributes. Every value is a constant of
  * this class, never request data; the spec loads each rendering in the browser and checks what it parsed.
  */
@@ -62,6 +62,7 @@ final class HostilePropsCommand
         ['Breadcrumb:Item', 'href', '<ol><twig:Breadcrumb:Item :href="value">Level</twig:Breadcrumb:Item></ol>', 'Level', null],
         ['Sidebar:Item', 'href', '<ul><twig:Sidebar:Item :href="value">Item</twig:Sidebar:Item></ul>', 'Item', null],
         ['SideNav:Item', 'href', '<ul role="tree" aria-label="Tree"><twig:SideNav:Item :href="value">Item</twig:SideNav:Item></ul>', 'Item', null],
+        ['SectionNav:Item', 'href', '<ul><twig:SectionNav:Item :href="value">Item</twig:SectionNav:Item></ul>', 'Item', null],
         ['NavMenu:Link', 'href', '<twig:NavMenu><twig:NavMenu:Link :href="value">Item</twig:NavMenu:Link></twig:NavMenu>', 'Item', null],
         ['LoginForm', 'forgotPasswordHref', '<twig:LoginForm :form="form" :forgotPasswordHref="value" />', 'Forgot your password?', 'login'],
         ['LoginForm', 'signupHref', '<twig:LoginForm :form="form" :signupHref="value" />', 'Create one', 'login'],

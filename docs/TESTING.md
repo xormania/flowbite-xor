@@ -201,6 +201,26 @@ await expect(treeitem(page, 'Reference')).toHaveAttribute('aria-expanded', 'fals
 
 Here: [`lab.side-nav.spec.ts`](../tests/e2e/lab.side-nav.spec.ts).
 
+### One controller per element, counted
+
+**Catches:** a controller connected twice to the same element after Turbo visits, Back and the cached copy (a
+listener added to `document`, a second instance from a restored snapshot). Its behavior often hides it: two
+instances setting the same state look like one.
+
+Expose the Stimulus application in the app's own bootstrap (`window.Stimulus = app`, never in a recipe), then
+compare its connected controllers with the elements carrying the identifier:
+
+```ts
+const counts = await page.evaluate((id) => {
+    const controllers = (window as any).Stimulus.controllers.filter((controller: any) => controller.identifier === id);
+    return { controllers: controllers.length, elements: document.querySelectorAll(`[data-controller~="${id}"]`).length };
+}, 'section-nav');
+expect(counts.controllers).toBe(counts.elements);
+```
+
+Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`stimulusControllers`),
+[`lab.section-nav.spec.ts`](../tests/e2e/lab.section-nav.spec.ts).
+
 ## State × transition
 
 **Catches:** what a test of each state misses: the moves between states. The theme toggle showed no icon only after

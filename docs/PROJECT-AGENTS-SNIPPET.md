@@ -88,6 +88,11 @@ Its recipes are copied into `templates/components/`, `templates/layouts/`, `temp
   and `SideNav:Branch`es (`label`, nested at any depth), inside a `<nav>` or the `Sidebar`. It is an ARIA tree: the
   controller handles the keyboard and keeps the open branches across Turbo visits; never add click or key handlers
   of your own. One `storageKey` per tree; give a branch `name` when its label changes (a count).
+- **Sections of one area, each its own page (settings): `ux:install section-nav`**, then
+  `<twig:SectionNav label="…">` holding `SectionNav:Item`s (`href`, plus `route` so the server marks the current
+  section). They are links, not tabs: never give them `role="tab"` or arrow keys. The `settings` layout renders one:
+  fill its `settings_nav` block with the items. Panels switched in place on one page are `tabs`
+  (`orientation="vertical"` for a column), with a distinct `idPrefix` per `Tabs` of a page.
 - **The navigation on phones: `ux:install mobile-nav`** (the `layouts` app layout already has it): a
   `<twig:MobileNav>` in the `Navbar`'s `menu` block, holding the same `SideNav` as the `Sidebar`, with the same
   `storageKey`, and the brand in its `header` block. It is a modal `Drawer`; the controller focuses the current page

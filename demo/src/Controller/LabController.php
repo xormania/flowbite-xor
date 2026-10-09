@@ -73,6 +73,7 @@ final class LabController extends AbstractController
         'markdown-stream' => 'A MarkdownEditor replaced and updated by Turbo Streams.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
         'side-nav' => 'A multi-level SideNav across Turbo visits, Back and reloads: the open branches hold, the branch of the current page opens, and the keyboard moves through the tree.',
+        'section-nav' => 'A SectionNav (one page per section) across Turbo visits, Back, Forward and reloads, rendered by each page and inside a data-turbo-permanent element; next to vertical Tabs that switch panels in place, with the keyboard of the tabs pattern.',
         'mobile-nav' => 'A MobileNav holding a SideNav, the same tree beside the page on wide screens: the drawer opens from the menu button and closes on Escape, the backdrop, a link, Turbo visits, Back and Forward; the two trees share their open branches.',
         'nav-menu' => 'A Navbar whose NavMenu opens submenus, nested two levels deep, as a disclosure navigation; the same menu in a MobileNav on small screens, and a second one in a data-turbo-permanent Navbar: the current page and its submenus are marked, the keyboard, a click outside and Turbo visits, Back and Forward close them.',
     ];
@@ -297,6 +298,12 @@ final class LabController extends AbstractController
     public function sideNav(string $page): Response
     {
         return $this->render('lab/side_nav.html.twig', ['page' => $page, 'description' => self::SCENARIOS['side-nav']]);
+    }
+
+    #[Route('/section-nav/{page}', name: 'app_lab_section_nav', requirements: ['page' => 'profile|account|notifications|billing|security|integrations'], defaults: ['page' => 'profile'])]
+    public function sectionNav(string $page): Response
+    {
+        return $this->render('lab/section_nav.html.twig', ['page' => $page, 'description' => self::SCENARIOS['section-nav']]);
     }
 
     #[Route('/mobile-nav/{page}', name: 'app_lab_mobile_nav', requirements: ['page' => 'one|two|three'], defaults: ['page' => 'one'])]

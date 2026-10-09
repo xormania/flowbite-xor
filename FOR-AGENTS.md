@@ -70,6 +70,8 @@ Keep `php bin/console tailwind:build --watch` running while you work, or run `ta
 | The app's shell: sidebar, navbar, page layouts, flash toasts | `layouts` |
 | A page title with its actions | `page-header` |
 | Navigation more than one level deep: links in branches that open and close | `side-nav` (in the `Sidebar`) |
+| Vertical tabs between pages of one area (settings sections), each its own URL | `section-nav` (the `settings` layout has one) |
+| Panels switched in place on one page, in a row or a column | `tabs` |
 | The navigation on phones: a menu button opening it in a drawer | `mobile-nav` (in the `Navbar`; `layouts` has it) |
 | Menus in the top bar: links and buttons opening submenus, nested | `nav-menu` (in the `Navbar`'s `nav` block; `layouts`: `navbar_nav`) |
 | Forms rendered with the kit's components | `form-theme` |
