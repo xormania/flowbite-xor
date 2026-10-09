@@ -381,6 +381,32 @@ States: search, filter, sort and direction, page, page size (in the URL); data-t
 | Selection cut to `maxSelection`, ids cleaned, "Select this page" bounded | unit; Live component; E2E lab | `SelectionTest` (5 tests); `OrdersTableTest` (3 tests); lab.data-table-live "a selection the browser sends is cut to the table's limit before the server uses it" (R2) |
 | Stable row ids, cell blocks | E2E lab | lab.data-table-frame "rows have stable ids and render the page cell blocks" |
 
+## Rules and their tests
+
+The rules of [`FOR-AGENTS.md`](../FOR-AGENTS.md)'s *Working well*, each keyed by its bold lead-in exactly as written
+there, with the tests that enforce them. `FOR-AGENTS.md` is read in projects using the kit, so the mapping lives here,
+not beside the rules. The rules are for a project's own code: a test here holds the kit's docs, demo and recipes to
+the rule, or checks what the rule relies on, and its note says which part. `advice` marks a rule no test can hold, with
+the reason; `gap` one that is testable and untested, with what a test would assert (and its row in the gaps below).
+`node tools/test-inventory.mjs` fails when a rule has no row, a row names a rule that is gone, a row names no test and
+is neither, or a test it names does not exist. [`PROJECT-AGENTS-SNIPPET.md`](PROJECT-AGENTS-SNIPPET.md) words most
+of the same rules for a project's `AGENTS.md`; these rows cover its wording too.
+
+| Rule | Tests | What they establish |
+|---|---|---|
+| Install a recipe, never write raw Flowbite HTML | `tools/docs-lint.mjs` | Part: no markdown teaches Flowbite's JavaScript (`initFlowbite`, `import 'flowbite'`, a `flowbite.js` file). Raw Flowbite HTML written for something the kit has is a project's markup, which no kit test sees |
+| Colors through the theme's roles only | `tools/docs-lint.mjs` | Part: no markdown (code blocks, prose outside inline code) shows a palette color or a `dark:` color override. Not covered: the recipes' own templates are not scanned; docs-lint's patterns find `text-white` or `after:bg-white` in seven of them (avatar, button, calendar, indicator, tabs, toggle, tooltip) |
+| Icons from UX Icons' `flowbite` set | gap (G11) | Testable, untested: every icon name in the recipes' templates and the markdown is a `flowbite:` name written in full, so `ux:icons:lock` finds it |
+| Form controllers answer 303 or 422 | `tests/e2e/forms.spec.ts`, `tests/e2e/demo-app.spec.ts`, lab.editor, `MarkdownTypeTest::testAFormRefusingMoreThanTheRendererReadsShowsItsError` | The demo's forms and the signup block through Turbo Drive: an invalid submit answers 422 (the one error status each test allows) with its errors shown, a valid one redirects and the next page shows. The 303 is not asserted as such: any redirect Turbo follows passes, a 200 does not |
+| Opt form fields in, with no template code | lab.autocomplete, `tests/e2e/forms.spec.ts`, lab.date-picker | Choice fields with `'autocomplete' => true` are enhanced and submit (lab.autocomplete "form fields: one choice…"); `DateType` fields with the `flowbite_date_picker` block prefix render a picker whose pick is submitted (forms "the date picker opt-in…", lab.date-picker "in a Live form…"); none of their templates has field code |
+| No colors in chart data | `tests/e2e/chart.spec.ts` | What the rule relies on: series given no color take the `chart-*` roles in both themes, and a role given as `'var(--color-…)'` resolves in each. Nothing fails a color written in chart data (lab.chart keeps one, as it should) |
+| Stable ids in re-rendered markup | lab.live-table, lab.popover, lab.chart | A `Tooltip` (lab.live-table "tooltips in rows re-sorted…"), a `Popover` (lab.popover "…while its Live Component re-renders") and a `Chart` (lab.chart "in a Live Component…") with an explicit `id` keep working across Live re-renders. Not covered: a `DatePicker` re-rendered while open (G4) |
+| Toasts go through Turbo Streams | lab.turbo-stream-toast, lab.turbo-nav, `tests/e2e/demo-app.spec.ts` | A toast in a Stream response shows and dismisses itself, also after a visit; a flash written as `<twig:Toast:Stream>` in the page shows once across visits (lab.turbo-nav) and after the signup redirect (demo-app). Not covered: that a toast rendered inside the permanent region on a later page is dropped |
+| One owner per region | advice | How a project divides its own page between Live and Turbo: the kit ships no region with two owners for a test to hold, and a test could only reproduce the conflict the rule warns of |
+| Props and attributes are trusted input | `tests/e2e/hostile-props.spec.ts`, `ComponentsTest::testABadgeTagNotInItsListRendersADiv`, `ComponentsTest::testABreadcrumbLinkKeepsOnlyAllowedSchemes`, `tests/e2e/forms.spec.ts` | Part: what the kit does when the rule is broken. A hostile prop adds no element or handler, `as` falls back to the default tag, a link prop renders `#` for another scheme; the server refuses a date below the picker's bound (forms "the date picker opt-in…"). What a project passes is its own code |
+| No inline `<script>`, `<style>`, `style="…"` or `onclick="…"` | `tests/e2e/csp.spec.ts`, `tools/docs-lint.mjs` | The demo enforces a nonce-based policy without `style-src-attr` (csp), and the fixtures fail every test on a violation, so a template the suite renders with an inline script, style, style attribute or handler fails; the layouts' theme script carries the nonce (csp "the layout sets the theme before the first paint"). docs-lint: no markdown shows a `style=` attribute or an `on…=` handler |
+| Check your work in a browser | advice | A step for whoever makes the change, not a property of the code |
+
 ## Pending: branches in flight
 
 None. `claude/mobile-nav` (mobile-nav) and `claude/vtabs` (section-nav, vertical tabs) have landed, with their rows
@@ -428,7 +454,7 @@ where the guarantee stays.
 
 The input of plan step 6. Risk weighs how likely the fault is (what the code does on that path), what a user loses,
 and how common the recipe is. Scope is the smallest that shows the fault: every tier 1 gap here needs Turbo or Live in
-a browser, so E2E lab, on the existing scaffold.
+a browser, so E2E lab, on the existing scaffold. G11 comes from *Rules and their tests* and is a repository check.
 
 | | Gap | Why the risk | Proposed coverage | Step 6 group |
 |---|---|---|---|---|
@@ -442,6 +468,7 @@ a browser, so E2E lab, on the existing scaffold.
 | G8 | **drawer** own interactions: backdrop click, open on load, moved in the DOM | Modal has them in its recipe spec; the drawer copies its logic without the tests | A drawer recipe spec mirroring modal's | Overlays |
 | G9 | **layouts** `data-turbo-track="reload"`: changed assets after a deploy force a full load | Fails only after a deploy; one test, low cost | E2E lab: change the tracked asset's URL between two visits | Navigation |
 | G10 | Low: alert dismissed then Back, Stream, Live; theme-toggle with storage blocked on Back and reload, two toggles in sync; Forward for the recipes covered on Back (each stateful row's Forward cell: Forward restores page two's cached copy and reconnects its controllers, with what was open there); chart and a system change; side-nav with `sessionStorage` blocked; mobile-nav in a permanent element, mobile-nav and nav-menu beside a frame visit promoted to history (each closes on every `turbo:before-cache`) | Same code path as a covered transition, or a small state | Fold into the groups above when a spec is open anyway | Any |
+| G11 | **Icons from UX Icons' `flowbite` set** (*Rules and their tests*) has no check | A name `ux:icons:lock` misses is not in the project's `assets/icons/`; a name from another set teaches agents to use it. Today `input/README.md`'s "With Button" example uses `tabler:search` | A repository check (Contrast): every `ux:icon` and `ux_icon()` name in the recipes' templates and the markdown is a quoted `flowbite:` name | — (not tier 1) |
 
 Tier 2 (step 5) turns every "N visits" cell above into a Stimulus instance count, and tier 3 (step 7) takes the
 overlays and editors × both themes (wide matrices), which this map marks T3.

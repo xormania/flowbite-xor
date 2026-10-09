@@ -163,7 +163,7 @@ function inRepository(location, root) {
 }
 
 /*
- * playwright.config.ts runs each <recipe>/tests/<name>.spec.ts as tests/e2e/examples/recipes/<recipe>.<name>.spec.ts,
+ * tools/prepare-tests.mjs copies each <recipe>/tests/<name>.spec.ts to tests/e2e/examples/recipes/<recipe>.<name>.spec.ts,
  * with one header line added (gitignored): name the committed file and its line.
  */
 function committed(file, line) {
