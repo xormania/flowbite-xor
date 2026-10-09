@@ -134,7 +134,10 @@ test('a toast outside the permanent region stays shown while a frame visit is pr
     await expect(toast).toHaveCount(0);
     await forward(page, { step: 1 });
     await expect(toast).toHaveCount(0);
-    expect(await firstFrames()).toEqual([{ toast: false }, { toast: false }]);
+    expect(await firstFrames(2)).toEqual([
+        { render: 1, url: '/lab/turbo-restore', visible: { toast: false } },
+        { render: 2, url: '/lab/turbo-restore?step=1', visible: { toast: false } },
+    ]);
 });
 
 test('a dropdown menu whose item steps a frame promoted to history stays open, and Back shows it closed', async ({ page }) => {
@@ -152,7 +155,7 @@ test('a dropdown menu whose item steps a frame promoted to history stays open, a
 
     await back(page, { step: 0 });
     await menu.expectClosed(page);
-    expect(await firstFrames()).toEqual([{ menu: false }]);
+    expect(await firstFrames(1)).toEqual([{ render: 1, url: '/lab/turbo-restore', visible: { menu: false } }]);
     await menu.open(page);
     await menu.expectOpen(page);
     await page.getByRole('heading', { level: 1 }).click();

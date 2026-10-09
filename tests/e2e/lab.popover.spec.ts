@@ -150,7 +150,7 @@ test('a popover whose link steps a frame promoted to history stays open with the
     await back(page, { step: 0 });
     await expect(dialog).toBeHidden();
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
-    expect(await firstFrames()).toEqual([{ steps: false }]);
+    expect(await firstFrames(1)).toEqual([{ render: 1, url: '/lab/popover-turbo', visible: { steps: false } }]);
     expect(await documentClicks(page)).toBe(baseline);
     await trigger.click();
     await expect(dialog).toBeVisible();

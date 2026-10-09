@@ -116,7 +116,7 @@ test('a date picker open while the page code steps a frame promoted to history s
     await back(page, { step: 0 });
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Due date: choose date' })).toHaveAttribute('aria-expanded', 'false');
-    expect(await firstFrames()).toEqual([{ calendar: false }]);
+    expect(await firstFrames(1)).toEqual([{ render: 1, url: '/lab/date-picker-turbo', visible: { calendar: false } }]);
     await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 12, 2026');
     await expect(page.locator('input[name="due"]')).toHaveValue('2026-03-12');
     await pick(page, 'Due date', '2026-03-05');
