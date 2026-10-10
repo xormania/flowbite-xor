@@ -40,6 +40,9 @@ while IFS= read -r path; do
         # monthly.yml runs on its schedule and by hand on dev, never on a push, and no job here runs what it runs (the
         # browser tests' opt-in coverage, tests/e2e/coverage.ts, is part of the browser tests below)
         .github/workflows/monthly.yml) on workflows ;;
+        # The advisory Jev step every job calls on a failure (.github/actions/jev-diagnosis): a passing job never runs
+        # it, so no job checks it by passing; actionlint checks each call's inputs against it
+        .github/actions/jev-diagnosis/*) on workflows ;;
         .github/*) all ;;
 
         # The browser tests and their tools. tools/test-inventory.mjs (Contrast) reads which specs exist, the accessibility
@@ -65,6 +68,8 @@ while IFS= read -r path; do
         # the rest (the results summary) is the browser job's
         tools/ci/junit-attempts.mjs) on php ;;
         tools/ci/jev-diagnosis.mjs | tools/ci/jev-ci.json) on php demo ;;
+        # A failed step's log as failed attempts: the jobs run it only after a failure, so its cases (Tool tests) check it
+        tools/ci/step-attempts.mjs) ;;
         tools/ci/*) on demo ;;
         # Tools' cases and their fixtures, and the monthly report tools: Tool tests runs them on every run
         tools/tests/*.test.mjs | tools/tests/fixtures/playwright-results/* | tools/tests/fixtures/junit/* | tools/monthly/*) ;;
