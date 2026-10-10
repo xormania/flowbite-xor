@@ -4,8 +4,9 @@ import { advanceFrame, back, turboOperation, visit } from './transitions';
 
 /*
  * Dropzones under Turbo: a zone that Turbo shows again (Back, a Stream) works, with one controller, and shows what its
- * input holds (one file: nothing); a zone inside a data-turbo-permanent element keeps its file; a multipart form inside
- * a Turbo Frame posts its file; a controller passed to the Dropzone gets its actions, values and target.
+ * input holds (one file: nothing); a multipart form inside a Turbo Frame posts its file; a controller passed to the
+ * Dropzone gets its actions, values and target. A POST form's zone across each transition, a data-turbo-permanent one
+ * included, and its Remove button after it: lab.value-matrix (`a dropzone in a POST form`).
  */
 
 // a 1×1 PNG
@@ -137,22 +138,6 @@ test('repeated Turbo visits leave one controller per zone and one change per pic
     await expect(page.locator('.dropzone-preview-list-item')).toHaveCount(2);
     await expect(page.getByRole('button', { name: 'Remove tiny.png' })).toBeVisible();
     expect(await events(page, 'change')).toBe(2);
-});
-
-test('a zone inside a data-turbo-permanent element keeps its file across a visit', async ({ page }) => {
-    await page.goto('/lab/dropzone-turbo');
-    await page.locator('#kept').setInputFiles(png('kept.png'));
-    await expect(page.getByRole('button', { name: 'Remove kept.png' })).toBeVisible();
-
-    await visit(page, 'Go to page two', 'Page two');
-    await expect(page.getByRole('button', { name: 'Remove kept.png' })).toBeVisible();
-    expect(await fileCount(page.locator('#kept'))).toBe(1);
-
-    await countEvents(page);
-    await page.getByRole('button', { name: 'Remove kept.png' }).click();
-    await expectEmptySingle(page, 'kept');
-    await expect(page.locator('#kept')).toBeFocused();
-    expect(await events(page, 'clear')).toBe(1);
 });
 
 test('a multipart form inside a Turbo Frame reloaded three times posts its file: 303 into the frame, 422 with the error', async ({ page, allowHttpError }) => {

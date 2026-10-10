@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
-import { back, recordFirstFrames, stepFromCode, visit, visitAndBack } from './transitions';
+import { back, recordFirstFrames, stepFromCode, visit } from './transitions';
 
 const day = (scope: Locator, date: string) => scope.locator(`[data-slot="calendar-day"][data-day="${date}"] button`);
 const pick = async (page: Page, label: string, date: string) => {
@@ -23,22 +23,6 @@ test('a pick is submitted by the form; the day buttons never submit it', async (
     await page.getByRole('button', { name: 'Show' }).click();
     await expect(page.getByTestId('submitted')).toHaveText('due=2026-03-12');
     await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 12, 2026');
-});
-
-// its form is a GET form: Back shows the URL's value (none here), not the pick made before leaving (lab.form-back)
-test('a Turbo visit and Back show the date of the URL in the field, the calendar and the hidden input, closed, not the pick made before', async ({ page }) => {
-    await page.goto('/lab/date-picker-turbo');
-    await pick(page, 'Due date', '2026-03-12');
-    await visitAndBack(page);
-
-    await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('');
-    await expect(page.locator('input[name="due"]')).toHaveValue('');
-    await expect(day(page.locator('#due-picker-content'), '2026-03-12')).toHaveAttribute('data-selected-single', 'false');
-    await expect(page.getByRole('dialog')).toHaveCount(0);
-    await countChanges(page);
-    await pick(page, 'Due date', '2026-03-13');
-    await expect(page.locator('input[name="due"]')).toHaveValue('2026-03-13');
-    expect(await changes(page)).toBe(1);
 });
 
 test('repeated Turbo visits leave one controller per picker and one change per pick', async ({ page }) => {
@@ -66,20 +50,6 @@ test('inside a data-turbo-permanent element and a Turbo Frame reloaded three tim
     }
     await pick(page, 'Framed date', '2026-03-06');
     await expect(page.getByLabel('Framed date', { exact: true })).toHaveValue('Mar 6, 2026');
-});
-
-test('replaced or updated by a Turbo Stream, the new picker shows its date and works', async ({ page }) => {
-    await page.goto('/lab/date-picker-stream');
-    await page.getByRole('button', { name: 'Replace the picker' }).click();
-    await expect(page.getByTestId('stream-action')).toHaveText('replace');
-    await page.getByRole('button', { name: 'Update the picker' }).click();
-    await expect(page.getByTestId('stream-action')).toHaveText('update');
-    const trigger = page.getByRole('button', { name: /Mar 25, 2026/ });
-    await trigger.click();
-    await day(page.getByRole('dialog'), '2026-03-27').click();
-    await expect(page.getByRole('button', { name: /Mar 27, 2026/ })).toBeVisible();
-    await expect(page.locator('input[name="streamed"]')).toHaveValue('2026-03-27');
-    await expect(page.locator('[data-controller~="date-picker"]')).toHaveCount(1);
 });
 
 test('in a Live form, a pick reaches the server and the end date follows the start', async ({ page }) => {

@@ -4,8 +4,9 @@ import { back, visit, visitAndBack } from './transitions';
 
 /*
  * Editors under Turbo and Live: a form posts sanitized HTML (303) or shows its errors (422); Back shows the content and
- * selection and starts one editor again; a data-turbo-permanent editor keeps its content; frames and Streams give
- * fresh editors; in a Live Component, re-renders leave the typing alone, a save reads it, a reset replaces it.
+ * the selection and starts one editor again; repeated visits and frame loads give one fresh editor each; in a Live
+ * Component, re-renders leave the typing alone, a save reads it, a reset replaces it. Each transition's end state, one
+ * editor and the typing after it: lab.value-matrix (`an editor in a POST form`).
  */
 
 const editors = (page: Page) => page.locator('.ProseMirror');
@@ -80,23 +81,6 @@ test('repeated visits leave one editor per field', async ({ page }) => {
     await expect(page.locator('[data-controller~="editor"]')).toHaveCount(3);
 });
 
-test('a data-turbo-permanent editor keeps its content across visits and stays editable', async ({ page }) => {
-    await page.goto('/lab/editor-turbo');
-    await mounted(page);
-    const kept = page.getByRole('textbox', { name: 'Kept notes' });
-    await kept.click();
-    await page.keyboard.press('ControlOrMeta+End');
-    await page.keyboard.type(' Typed.');
-    await visit(page, 'Go to page two', 'Page two');
-    await mounted(page);
-    await expect(page.getByRole('textbox', { name: 'Kept notes' })).toHaveText('Kept across visits. Typed.');
-    await page.getByRole('textbox', { name: 'Kept notes' }).click();
-    await page.keyboard.press('ControlOrMeta+End');
-    await page.keyboard.type(' Again.');
-    expect(await page.locator('textarea[name="kept"]').inputValue()).toBe('<p>Kept across visits. Typed. Again.</p>');
-    await expect(editors(page)).toHaveCount(3);
-});
-
 test('a Turbo Frame reloaded three times gives a fresh editor each time', async ({ page }) => {
     await page.goto('/lab/editor-turbo');
     for (const load of ['1', '2', '3']) {
@@ -108,21 +92,6 @@ test('a Turbo Frame reloaded three times gives a fresh editor each time', async 
         await mounted(page);
         await expect(page.getByRole('textbox', { name: 'Framed notes' })).toHaveText('In a frame.');
         await expect(editors(page)).toHaveCount(3);
-    }
-});
-
-test('replaced or updated by a Turbo Stream, the editor shows the new content, once', async ({ page }) => {
-    await page.goto('/lab/editor-stream');
-    for (const action of ['replace', 'update']) {
-        await mounted(page);
-        await page.getByRole('textbox', { name: 'Streamed notes' }).click();
-        await page.keyboard.type('local ');
-        await page.getByRole('button', { name: `${action[0].toUpperCase()}${action.slice(1)} the editor` }).click();
-        await expect(page.getByTestId('stream-action')).toHaveText(action);
-        await mounted(page);
-        await expect(page.getByRole('textbox', { name: 'Streamed notes' })).toHaveText(`Streamed: ${action}.`);
-        await expect(editors(page)).toHaveCount(1);
-        await expect(page.getByRole('toolbar')).toHaveCount(1);
     }
 });
 

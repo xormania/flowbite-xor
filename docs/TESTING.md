@@ -365,7 +365,8 @@ Here: [`lab.form-back.spec.ts`](../tests/e2e/lab.form-back.spec.ts),
 keeping what was typed after Back, a POST form's file gone, a Turbo Stream or a frame reload leaving an old value in
 the part it replaced (or touching the part beside it), a Live re-render showing the user's value over the one the
 server set, an open overlay closed by a visit of its `data-turbo-permanent` element, a Live table's selection shown
-again after leaving the page.
+again after leaving the page; and what the widget owns across the transition: a second controller on an element, a
+listener left behind, the focus lost, a widget restored that no longer answers.
 
 [`lab.value-matrix.spec.ts`](../tests/e2e/lab.value-matrix.spec.ts) is data: `POLICY` maps each kind of state (a GET
 field, a POST field, an open overlay, a choice held in the page, a choice stored in the browser, a Live table's URL
@@ -378,8 +379,18 @@ started from the page's code (`Turbo.visit`, a frame visit, a Stream rendered wi
 Live action through `getComponent`), so no click closes what the test left open. The last test fails when a cell has
 neither an expectation its site can run nor an `n/a` with a reason. The `frame-advance` cell runs three steps: once
 the frame has rendered it expects the `frame-outside` state, after Back its own (a Back's: Turbo shows the copy it
-took as the frame visit started), after Forward the `forward` state, and a widget then shown as rendered must take a
-change again.
+took as the frame visit started), after Forward the `forward` state.
+
+Each check of a cell (`check()`) also expects one Stimulus controller per element for each of the component's
+`controllers`, the `listeners` it adds while changed and no others (an open popover's, counted with
+`trackGlobalListeners` from the cell's start), and the document the cell started in (no full load). A transition that
+leaves the widget in place and kept (a Live re-render, a frame or a Stream beside it, the frame step) also checks
+`keeps` (the focus). The cell ends with `stillWorks()`: a widget shown as rendered takes the change again; one shown
+changed is taken back by its `undo` (an overlay by its trigger, then, opened by the user, by Escape with the focus back
+on the trigger; a tab, a branch, a file, a row, an editor's typing, a Markdown editor's preview), changed again and
+undone again. A widget showing the server's values is left as it is. A single-transition journey of an older lab spec
+belongs here, with what it asserted beyond the end state: a lab spec keeps what the matrix cannot hold (the first
+frame of a copy, the order of a copy, repeated visits, another change than the row's, a route of its own).
 
 The widgets live on `/lab/value-matrix/{one,two}`, four times (rendered by the page, in a Turbo Frame, in a region
 Streams replace, inside a `data-turbo-permanent` element; `?only=<key>` renders one widget alone, as each test loads
@@ -388,8 +399,8 @@ tables run on their own lab pages.
 
 To add a row: render the widget in `demo/templates/lab/_value_matrix_widgets.html.twig` (or `_value_matrix_ui`)
 under its own `only` key, and bound to a property in `LiveValues`; add a component to `COMPONENTS` with its kind (a
-new kind needs a row of `POLICY`, from the owner's decision), its `change` and `shows`, and an `na` reason for each
-cell that cannot apply to it. A cell that fails is a kit bug, or the test's: never an expectation to relax. A
+new kind needs a row of `POLICY`, from the owner's decision), its `change` and `shows`, its `controllers` (and `undo`,
+`keeps`, `listeners` where it has them), and an `na` reason for each cell that cannot apply to it. A cell that fails is a kit bug, or the test's: never an expectation to relax. A
 policy that seems wrong for a cell is a question for the owner.
 
 Here: [`lab.value-matrix.spec.ts`](../tests/e2e/lab.value-matrix.spec.ts).
