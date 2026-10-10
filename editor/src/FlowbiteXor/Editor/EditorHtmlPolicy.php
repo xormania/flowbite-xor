@@ -27,6 +27,8 @@ final class EditorHtmlPolicy
 
     /** The most bytes of HTML the policy reads: longer input is refused, never cut. A field's `max_bytes` stays at or below it. */
     public const MAX_INPUT_BYTES = 1_000_000;
+    /** Sanitizer passes until the output no longer changes (one more than needed shows it is stable). */
+    private const MAX_PASSES = 4;
 
     private const ELEMENTS = ['p', 'br', 'strong', 'em', 'u', 's', 'code', 'h2', 'h3', 'ul', 'li', 'blockquote', 'hr'];
 
@@ -38,11 +40,12 @@ final class EditorHtmlPolicy
 
     private readonly HtmlSanitizer $sanitizer;
 
+    /** The same policy without a length limit, for the passes over its own output, which may be longer than the input. */
+    private readonly HtmlSanitizer $again;
+
     public function __construct()
     {
         $config = (new HtmlSanitizerConfig())
-            // the sanitizer cuts longer input: sanitize() refuses it first
-            ->withMaxInputLength(self::MAX_INPUT_BYTES)
             ->allowLinkSchemes(['https', 'http', 'mailto'])
             ->allowRelativeLinks(true)
             ->allowElement('ol', ['start'])
@@ -54,7 +57,10 @@ final class EditorHtmlPolicy
         foreach (self::UNWRAPPED as $element) {
             $config = $config->blockElement($element);
         }
-        $this->sanitizer = new HtmlSanitizer($config);
+        // the sanitizer cuts longer input: sanitize() refuses it first
+        $this->sanitizer = new HtmlSanitizer($config->withMaxInputLength(self::MAX_INPUT_BYTES));
+        // its own output is never cut: escaping makes it longer than the input it came from (each `&` is `&amp;`)
+        $this->again = new HtmlSanitizer($config->withMaxInputLength(-1));
     }
 
     /** Whether the policy reads the HTML whole: at most MAX_INPUT_BYTES bytes. */
@@ -74,7 +80,18 @@ final class EditorHtmlPolicy
         if (!self::isReadable($html)) {
             throw new \LengthException(\sprintf('The HTML holds %d bytes, more than the %d the editor policy reads.', \strlen($html), self::MAX_INPUT_BYTES));
         }
-        $clean = trim(self::asTheEditorReadsIt($this->sanitizer->sanitize($html)));
+        // until it no longer changes: a block unwrapped from between two others can leave one inside the other
+        // (`<h2><div><h2>` gives `<h2><h2>`), which the next parse, a browser's or this policy's, splits; another pass
+        // gives what it splits to, so the output is its own output
+        $clean = $this->sanitizer->sanitize($html);
+        for ($pass = 1; $pass < self::MAX_PASSES; ++$pass) {
+            $again = $this->again->sanitize($clean);
+            if ($again === $clean) {
+                break;
+            }
+            $clean = $again;
+        }
+        $clean = trim(self::asTheEditorReadsIt($clean));
 
         return self::isEmpty($clean) ? '' : $clean;
     }

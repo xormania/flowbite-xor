@@ -40,6 +40,10 @@ while IFS= read -r path; do
         # monthly.yml runs on its schedule and by hand on dev, never on a push, and no job here runs what it runs (the
         # browser tests' opt-in coverage, tests/e2e/coverage.ts, is part of the browser tests below)
         .github/workflows/monthly.yml) on workflows ;;
+        # release-checks.yml runs on the release pull request, daily on dev and by hand, never on a push: the browser
+        # job runs its setup (the demo's image and start, the sync, Playwright in the pinned image) and the tests it
+        # runs (the @release ones, left out there, run with the same projects and fixtures)
+        .github/workflows/release-checks.yml) on demo workflows ;;
         .github/*) all ;;
 
         # The browser tests and their tools. tools/test-inventory.mjs (Contrast) reads which specs exist, the accessibility
