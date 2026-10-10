@@ -13,6 +13,10 @@ moves or removes coverage updates the rows it touches, and its own coverage map 
   (`demo/tests/…`).
 - **Scope:** unit, Twig or Live component (PHPUnit with the UX helpers), functional (`WebTestCase`), E2E lab
   (`/lab/*` pages), E2E demo (`/preview/*`, `/forms`, `/demo`), screenshot.
+- **Browsers:** every E2E test named here runs in Chromium, Firefox and WebKit, in CI on every change the browser job
+  checks, except the screenshot comparisons (`shot:<recipe>`, `examples/examples`, `examples/pages`, `baselines`,
+  `forms` "rows rendered by the form theme look like the hand-written components"): tagged `@screenshot`, they run in
+  Chromium only, against its baselines ([`TESTING.md`](TESTING.md), *Browsers*).
 - **Cells:** a spec name means covered there; **G*n*** is a gap, ranked at the end; `·` means the transition cannot
   affect the recipe (no state it would lose, or the recipe never sits where it happens); `css` means the theme changes
   only CSS variables, so the screenshots of both themes cover the end states and nothing runs in between; **T2**,

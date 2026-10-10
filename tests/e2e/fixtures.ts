@@ -11,6 +11,16 @@ export type CancelledRequest = { url: string; method: 'GET' | 'POST'; frame: str
 
 type Guard = Awaited<ReturnType<typeof guardPage>>;
 
+/** How each engine names a request the page cancelled (an aborted fetch, a navigation away): Chromium, Firefox, WebKit. */
+const CANCELLED = ['net::ERR_ABORTED', 'NS_BINDING_ABORTED', 'Load request cancelled'];
+
+/**
+ * WebKit's rejection of a fetch the document still runs when a full load replaces it (a reload, a `goto`): Turbo's
+ * prefetch of a link under the pointer rethrows it, unhandled. The other engines drop the document without rejecting.
+ */
+// "Fetch API cannot load <url> due to access control checks.", which Playwright cuts at the URL's "://"
+const FETCH_CANCELLED_BY_UNLOAD = [/TypeError: Load failed$/, / due to access control checks\.$/];
+
 /**
  * Records every Content Security Policy violation of the page and its frames. The demo enforces a strict policy
  * (demo/src/EventListener/SecurityHeadersListener.php): a violation means some markup needs `'unsafe-inline'`.
@@ -35,7 +45,7 @@ export async function recordCspViolations(page: Page): Promise<string[]> {
 }
 
 /**
- * The checks every test of both projects runs. Requests leaving the demo are blocked (images get a local placeholder),
+ * The checks every test of every project runs. Requests leaving the demo are blocked (images get a local placeholder),
  * and the test fails on a console error, an uncaught page error, a Content Security Policy violation, or a local
  * request that fails or answers >= 400.
  *
@@ -43,9 +53,9 @@ export async function recordCspViolations(page: Page): Promise<string[]> {
  * document, in the main frame): the response itself and Chromium's matching "Failed to load resource" console message
  * are dropped, nothing else.
  *
- * `allowCancelledRequest({ url, method, frame, count })` accepts at most `count` requests that fail with exactly
- * `net::ERR_ABORTED` and match all of: this exact URL (same origin), this method, and the `Turbo-Frame` header naming
- * `frame`. Only for a test that interrupts that request on purpose (Back while a frame visit runs: Turbo cancels its
+ * `allowCancelledRequest({ url, method, frame, count })` accepts at most `count` requests that fail as cancelled
+ * (CANCELLED: each engine's text) and match all of: this exact URL (same origin), this method, and the `Turbo-Frame`
+ * header naming `frame`. Only for a test that interrupts that request on purpose (Back while a frame visit runs: Turbo cancels its
  * fetch); any other failed request, or one more than `count`, still fails the test.
  */
 export async function guardPage(page: Page, baseURL: string | undefined) {
@@ -53,6 +63,7 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
     const allowed: { url: RegExp | 'document'; status: number }[] = [];
     const cancellable: CancelledRequest[] = [];
     const documents = new Set<string>(); // the URLs the main frame navigated to
+    let unloading = false; // from a full load's request until its document replaces the one on screen
     const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
     const cspViolations = await recordCspViolations(page);
 
@@ -64,6 +75,12 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
     page.on('request', (request) => {
         if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
             documents.add(request.url());
+            unloading = true;
+        }
+    });
+    page.on('framenavigated', (frame) => {
+        if (frame === page.mainFrame()) {
+            unloading = false;
         }
     });
     page.on('console', (message) => {
@@ -79,14 +96,20 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
             url: failedLoad ? url : undefined,
         });
     });
-    page.on('pageerror', (error) => errors.push({ message: `pageerror: ${error.message}` }));
+    page.on('pageerror', (error) => {
+        // the document being replaced: what it still had running is cancelled, which nobody sees
+        if (unloading && FETCH_CANCELLED_BY_UNLOAD.some((pattern) => pattern.test(error.message))) {
+            return;
+        }
+        errors.push({ message: `pageerror: ${error.message}` });
+    });
     page.on('response', (response) => {
         if (response.status() >= 400 && isLocal(response.url())) {
             errors.push({ message: `http ${response.status()}: ${response.url()}`, httpStatus: response.status(), url: response.url() });
         }
     });
     page.on('requestfailed', (request) => {
-        const aborted = 'net::ERR_ABORTED' === request.failure()?.errorText;
+        const aborted = CANCELLED.includes(request.failure()?.errorText ?? '');
         // Turbo 8 prefetches a link on hover and cancels the request when the pointer leaves it
         const cancelledPrefetch = 'prefetch' === request.headers()['x-sec-purpose'] && aborted;
         // a request the test interrupts on purpose (allowCancelledRequest), each allowance used at most `count` times

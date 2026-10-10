@@ -338,21 +338,32 @@ jobs:
               run: node tools/readme-pairing.mjs --base "$BASE"
 
     demo:
-        name: Demo + Playwright (${{ matrix.shard }}/3)
+        name: Demo + Playwright (${{ matrix.browser }} ${{ matrix.shard }}/3)
         needs: changes
         if: needs.changes.outputs.demo == 'true'
         runs-on: ubuntu-latest
         # 25 for the tests, plus 3 for the advisory Jev step (2) and its upload: a diagnosis must never be what
         # times the job out
         timeout-minutes: 28
-        # the browser suite is most of CI's time: three shards, each with its own demo and browser (shard 1 writes the
-        # image cache the others read)
+        # the browser suite is most of CI's time: three shards per browser, each with its own demo and browser (Chromium's
+        # shard 1 writes the image cache the others read). Chromium runs every test, the screenshots included; Firefox
+        # and WebKit run every behavior test, without the @screenshot ones (playwright.config.ts, browserProjects()), in
+        # jobs of their own beside Chromium's: docs/TESTING.md, *Browsers*
         env:
             XDEBUG_MODE: 'off' # compose.override.yaml enables Xdebug's develop mode by default; the tests do not use it
         strategy:
             fail-fast: false
             matrix:
+                browser: [chromium, firefox, webkit]
                 shard: [1, 2, 3]
+                # each browser's two projects (smoke and examples)
+                include:
+                    - browser: chromium
+                      projects: --project=smoke --project=examples
+                    - browser: firefox
+                      projects: --project=smoke-firefox --project=examples-firefox
+                    - browser: webkit
+                      projects: --project=smoke-webkit --project=examples-webkit
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -365,7 +376,7 @@ jobs:
             # tools/tests/fixtures/playwright-results/) and the Jev diagnosis (against a local stand-in for the provider)
             - name: The CI tools' own cases
               id: summarizer-cases
-              if: matrix.shard == 1
+              if: matrix.browser == 'chromium' && matrix.shard == 1
               run: node --test 'tools/tests/*.test.mjs'
 
             # The demo runs in Symfony Docker (demo/compose.yaml): FrankenPHP in worker mode, PHP 8.5
@@ -384,7 +395,7 @@ jobs:
                   set: |
                       *.cache-from=type=gha,scope=demo-${{ github.ref }}
                       *.cache-from=type=gha,scope=demo-refs/heads/main
-                      ${{ matrix.shard == 1 && format('*.cache-to=type=gha,scope=demo-{0},mode=max', github.ref) || '' }}
+                      ${{ matrix.browser == 'chromium' && matrix.shard == 1 && format('*.cache-to=type=gha,scope=demo-{0},mode=max', github.ref) || '' }}
 
             - name: Start the demo (composer install on first start)
               id: start
@@ -398,10 +409,10 @@ jobs:
 
             # The copies sync-demo writes are gitignored (demo/.gitignore), so this cannot compare them with anything: it
             # checks that the sync and the demo's start left every tracked file alone. tools/tests/sync-demo.sh below
-            # checks that the copies are what ux:install writes. Deterministic checks run on one shard only.
+            # checks that the copies are what ux:install writes. Deterministic checks run on one shard only (Chromium's 1).
             - name: The sync leaves tracked files unchanged
               id: tracked
-              if: matrix.shard == 1
+              if: matrix.browser == 'chromium' && matrix.shard == 1
               run: |
                   if [ -n "$(git status --porcelain)" ]; then
                       git status --porcelain
@@ -411,18 +422,19 @@ jobs:
 
             - name: The demo's composer.json and composer.lock are valid
               id: composer
-              if: matrix.shard == 1
+              if: matrix.browser == 'chromium' && matrix.shard == 1
               working-directory: demo
               run: docker compose exec -T php composer validate --no-check-publish --strict   # also fails on a stale composer.lock
 
             - name: sync-demo copies what ux:install copies
               id: sync-parity
-              if: matrix.shard == 1
+              if: matrix.browser == 'chromium' && matrix.shard == 1
               working-directory: demo
               run: docker compose exec -T php bash ../tools/tests/sync-demo.sh
 
             # The browser runs in upstream's Playwright image (see playwright.config.ts), so the
-            # screenshots compare with the baselines copied from symfony/ux.
+            # screenshots compare with the baselines copied from symfony/ux. The image holds the three browsers; the tests
+            # launch only the job's own.
             - name: Install Playwright
               id: install
               run: |
@@ -443,7 +455,7 @@ jobs:
               id: tests
               env:
                   DEMO_URL: https://localhost
-              run: npx playwright test --shard=${{ matrix.shard }}/3 --workers=2
+              run: npx playwright test ${{ matrix.projects }} --shard=${{ matrix.shard }}/3 --workers=2
 
             # What the shard's tests did, read from playwright-results/results.json (tools/ci/playwright-summary.mjs): the
             # counts, each failed and flaky (passed on retry) test with its error, the tested commit and versions, and
@@ -455,7 +467,7 @@ jobs:
               id: results
               if: ${{ !cancelled() }}
               env:
-                  SHARD: ${{ matrix.shard }}/3
+                  SHARD: ${{ matrix.browser }} ${{ matrix.shard }}/3
                   DEMO_STARTED: ${{ steps.start.outcome }}
                   TESTS_OUTCOME: ${{ steps.tests.outcome }}
                   SETUP_STEPS: |
@@ -485,7 +497,7 @@ jobs:
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               if: ${{ !cancelled() }}
               with:
-                  name: playwright-results-${{ matrix.shard }}
+                  name: playwright-results-${{ matrix.browser }}-${{ matrix.shard }}
                   path: playwright-results/
                   retention-days: 30
 
@@ -498,7 +510,7 @@ jobs:
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               if: ${{ failure() || steps.results.outputs.flaky > 0 }}
               with:
-                  name: playwright-report-${{ matrix.shard }}
+                  name: playwright-report-${{ matrix.browser }}-${{ matrix.shard }}
                   path: |
                       playwright-report/
                       test-results/
@@ -516,8 +528,8 @@ jobs:
               timeout-minutes: 2
               env:
                   TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-                  SHARD: ${{ matrix.shard }}/3
-                  JEV_DIR: ${{ runner.temp }}/jev-${{ matrix.shard }}
+                  SHARD: ${{ matrix.browser }} ${{ matrix.shard }}/3
+                  JEV_DIR: ${{ runner.temp }}/jev-${{ matrix.browser }}-${{ matrix.shard }}
               run: |
                   mkdir -p "$JEV_DIR"
                   (cd demo && timeout 15 docker compose logs --no-color --timestamps php > "$JEV_DIR/server.log" 2>/dev/null) || true
@@ -529,8 +541,8 @@ jobs:
               if: ${{ always() && steps.jev.outcome != 'skipped' }}
               continue-on-error: true
               with:
-                  name: jev-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
-                  path: ${{ runner.temp }}/jev-${{ matrix.shard }}/assessment/
+                  name: jev-${{ matrix.browser }}-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: ${{ runner.temp }}/jev-${{ matrix.browser }}-${{ matrix.shard }}/assessment/
                   if-no-files-found: warn
                   retention-days: 30
 
@@ -541,7 +553,7 @@ jobs:
                   cat playwright-results/summary.md 2>/dev/null || echo "No summary, the Read the results step did not run to the end"
 
     # One check for the branch rulesets to require. A skipped matrix job reports one check named after its unexpanded
-    # matrix ("Demo + Playwright (${{ matrix.shard }}/3)"), never the per-shard names, so requiring those would leave a
+    # matrix ("Demo + Playwright (${{ matrix.browser }} ${{ matrix.shard }}/3)"), never the per-shard names, so requiring those would leave a
     # pull request pending forever; this passes when every job passed or was skipped as unaffected.
     result:
         name: CI result

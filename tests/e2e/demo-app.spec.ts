@@ -150,6 +150,9 @@ test('the app layout scrolls the document, so the keyboard scrolls it and Turbo 
     await main.getByRole('treeitem', { name: 'Settings' }).locator(':scope > [data-side-nav-toggle]').click();
     await main.getByRole('treeitem', { name: 'Profile' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+    // the visit's scroll to the top is delivered with the next frame: WebKit can dispatch its scroll event after a Back
+    // sent at once, and Turbo then records it as the restored page's position (0)
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     await page.goBack();
     await turboVisitDone(page);
     await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
@@ -174,6 +177,11 @@ test('flash messages show on every layout: the logout notice on the auth layout,
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page).toHaveURL(/\/demo\/login$/);
     await expect(page.getByRole('region', { name: 'Notifications' }).getByText('You are signed out.')).toBeVisible();
+    // the login form's csrf-protection controller is lazy: leaving before its module arrived cancels the request (a
+    // failed request, and the loader's console error in Firefox), so the next visit waits for the page to have loaded it
+    await expect
+        .poll(() => page.evaluate(() => performance.getEntriesByType('resource').some((entry) => entry.name.includes('/csrf_protection_controller-'))))
+        .toBe(true);
 
     await page.goto('/demo');
     await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();

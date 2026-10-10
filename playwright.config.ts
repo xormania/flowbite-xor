@@ -42,6 +42,42 @@ if (!process.env.TEST_WORKER_INDEX) {
     syncRecipeSpecs();
 }
 
+/*
+ * Two projects per browser: `smoke` (tests/e2e/*.spec.ts, desktop viewport) and `examples` (every README example and
+ * the upstream recipe specs, at upstream's 800x600 viewport; screenshots live in <recipe>/tests/screenshots/). Chromium's
+ * keep their plain names; Firefox's and WebKit's are suffixed: smoke-firefox, examples-webkit...
+ *
+ * Firefox and WebKit run the behavior tests only: every test tagged @screenshot (it compares pixels: a baseline, or two
+ * screenshots with each other) is left out, as the baselines are Chromium's. PW_SCREENSHOTS=all keeps the tagged tests
+ * in every browser, compared with the same Chromium baselines: a report of how far the other engines render from them,
+ * not a gate (the baselines are never written from another browser).
+ */
+const crossBrowserScreenshots = 'all' === process.env.PW_SCREENSHOTS;
+const desktop = { chromium: 'Desktop Chrome', firefox: 'Desktop Firefox', webkit: 'Desktop Safari' } as const;
+
+function browserProjects(browser: keyof typeof desktop) {
+    const suffix = 'chromium' === browser ? '' : `-${browser}`;
+    const grepInvert = 'chromium' === browser || crossBrowserScreenshots ? undefined : /@screenshot/;
+
+    return [
+        {
+            name: `smoke${suffix}`,
+            testDir: './tests/e2e',
+            testIgnore: 'examples/**',
+            grepInvert,
+            use: { ...devices[desktop[browser]] },
+        },
+        {
+            name: `examples${suffix}`,
+            testDir: './tests/e2e/examples',
+            fullyParallel: true,
+            grepInvert,
+            snapshotPathTemplate: '{testDir}/../../../{arg}{ext}',
+            use: { browserName: browser, viewport: { width: 800, height: 600 }, deviceScaleFactor: 1 },
+        },
+    ];
+}
+
 export default defineConfig({
     globalSetup: './tools/prepare-tests.mjs',
     forbidOnly: isCI,
@@ -64,21 +100,11 @@ export default defineConfig({
     },
 
     projects: [
-        {
-            name: 'smoke',
-            testDir: './tests/e2e',
-            testIgnore: 'examples/**',
-            use: { ...devices['Desktop Chrome'] },
-        },
-        {
-            // Every README example (examples.spec.ts) and the upstream recipe specs (recipes/), at
-            // upstream's viewport; screenshots live in <recipe>/tests/screenshots/.
-            name: 'examples',
-            testDir: './tests/e2e/examples',
-            fullyParallel: true,
-            snapshotPathTemplate: '{testDir}/../../../{arg}{ext}',
-            use: { viewport: { width: 800, height: 600 }, deviceScaleFactor: 1 },
-        },
+        // Chromium: every test, the screenshots included
+        ...browserProjects('chromium'),
+        // Firefox and WebKit: every behavior test, no screenshot comparison
+        ...browserProjects('firefox'),
+        ...browserProjects('webkit'),
     ],
 
     webServer: [

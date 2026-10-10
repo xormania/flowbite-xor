@@ -305,7 +305,7 @@ function durationsSection(timing) {
         }
         lines.push('');
     }
-    lines.push('The same numbers, each test included: `durations.json` in the shard\'s `playwright-results-<shard>` artifact.', '');
+    lines.push('The same numbers, each test included: `durations.json` in the shard\'s `playwright-results-<browser>-<shard>` artifact.', '');
     return lines.join('\n');
 }
 
@@ -379,7 +379,7 @@ function summary(data) {
     section('failed', 'Failed');
     section('flaky', 'Flaky: failed, then passed on retry');
     if (data.tests.some((test) => test.outcome === 'failed' || test.outcome === 'flaky')) {
-        lines.push('Every failed attempt, retry-recovered ones included: `failed-attempts.json` in the shard\'s `playwright-results-<shard>` artifact; traces and the HTML report in `playwright-report-<shard>`.', '');
+        lines.push('Every failed attempt, retry-recovered ones included: `failed-attempts.json` in the shard\'s `playwright-results-<browser>-<shard>` artifact; traces and the HTML report in `playwright-report-<browser>-<shard>`.', '');
     }
     return lines.join('\n');
 }
