@@ -178,12 +178,13 @@ jobs:
                   DEMO_URL: https://localhost
               run: node tools/prepare-tests.mjs
 
+            # Chromium's two projects: the coverage is Chromium's (page.coverage); Firefox and WebKit record none
             - name: Playwright with JS coverage (Chromium)
               id: tests
               env:
                   DEMO_URL: https://localhost
                   JS_COVERAGE: ${{ github.workspace }}/coverage/js/raw
-              run: npx playwright test --shard=${{ matrix.shard }}/3 --workers=2
+              run: npx playwright test --project=smoke --project=examples --shard=${{ matrix.shard }}/3 --workers=2
 
             - name: Read the results
               id: results
