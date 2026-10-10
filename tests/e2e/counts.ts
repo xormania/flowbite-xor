@@ -1,5 +1,5 @@
 import type { Page, Request } from '@playwright/test';
-import { expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 /*
  * Tier 2 of docs/PLAN-test-tiers.md: what one key interaction costs, counted. Counts give the same numbers on every
@@ -29,8 +29,14 @@ export type Expected = Counts & {
     maxBytes: number;
 };
 
-/** One step's counts, and its response bytes (bodies decoded). */
-export type Measured = { counts: Counts; bytes: number };
+/**
+ * One step's counts, its response bytes (bodies decoded) and its timings, which are reported, never gated:
+ * `durationMs` from the start of the step's action until the action's own completion resolves (the update it waits
+ * for has landed; the wait for quiet after it is not counted), Playwright's round trips included; `inpMs` the longest
+ * interaction the step caused, by the page's Event Timing (Chromium and Firefox; `null` where the engine has none or
+ * the step had no interaction).
+ */
+export type Measured = { counts: Counts; bytes: number; durationMs: number; inpMs: number | null };
 
 /*
  * The listeners every script of the page adds and removes, on document, window and every element, kept per target.
@@ -65,6 +71,25 @@ function installListenerTracker() {
         forget(this, keyOf(type, options), listener);
         return remove.call(this, type, listener, options);
     };
+    // the longest interaction (Event Timing, `interactionId` set) since the step was armed; where the engine has no
+    // Event Timing, null
+    if (PerformanceObserver.supportedEntryTypes?.includes('event')) {
+        const observer = new PerformanceObserver((list) => record(list.getEntries()));
+        const record = (entries: PerformanceEntryList) => {
+            for (const entry of entries as PerformanceEventTiming[]) {
+                if (entry.interactionId && entry.startTime >= w.__stepArmedAt) {
+                    w.__stepInp = Math.max(w.__stepInp ?? 0, entry.duration);
+                }
+            }
+        };
+        observer.observe({ type: 'event', durationThreshold: 16, buffered: true } as PerformanceObserverInit);
+        w.__readInp = () => {
+            record(observer.takeRecords());
+            return w.__stepInp ?? null;
+        };
+    } else {
+        w.__readInp = () => null;
+    }
     w.__countListeners = () => {
         const counts: Record<string, number> = {};
         for (const [target, keys] of byTarget) {
@@ -106,6 +131,8 @@ function armStep() {
     }
     app.__countsLog.length = 0;
     w.__countsListenersBefore = w.__countListeners();
+    w.__stepArmedAt = performance.now();
+    w.__stepInp = null;
 }
 
 /** What the step did in the page: the controllers connected and disconnected, the change in listeners. */
@@ -131,7 +158,7 @@ function readStep() {
             listeners[key] = change;
         }
     }
-    return { connected: tally('connect '), disconnected: tally('disconnect '), listeners };
+    return { connected: tally('connect '), disconnected: tally('disconnect '), listeners, inpMs: w.__readInp() };
 }
 
 const sorted = (counts: Record<string, number>) => Object.fromEntries(Object.entries(counts).sort(([a], [b]) => (a < b ? -1 : 1)));
@@ -144,7 +171,8 @@ const sorted = (counts: Record<string, number>) => Object.fromEntries(Object.ent
  * response, the overlay shown); the counters then wait until no request is in flight and two animation frames have
  * passed, and read. `expect(name, action, expected)` measures the step and fails, naming it, on any count that differs
  * and on bytes over the budget. `warmUp(...actions)` runs steps uncounted. `measure` is the one place a step is
- * observed: a timing taken around the same step would be recorded there, and reported, not gated.
+ * observed, its timings included: with PW_TIMINGS set, `expect` records each step's as a `timing` annotation of the
+ * test, which the monthly job's timings report reads (tools/monthly/timings.mjs); they never fail a test.
  */
 export async function trackCounts(page: Page) {
     await page.addInitScript(installListenerTracker);
@@ -174,8 +202,11 @@ export async function trackCounts(page: Page) {
         page.on('request', started);
         page.on('requestfinished', finished);
         page.on('requestfailed', failed);
+        let durationMs = 0;
         try {
+            const start = performance.now();
             await action();
+            durationMs = performance.now() - start;
             // quiet: nothing in flight, then still nothing after two animation frames (a render may start a request)
             await expect
                 .poll(
@@ -205,6 +236,8 @@ export async function trackCounts(page: Page) {
                 listeners: sorted(stimulus.listeners),
             },
             bytes,
+            durationMs,
+            inpMs: stimulus.inpMs,
         };
     };
 
@@ -228,6 +261,10 @@ export async function trackCounts(page: Page) {
                 listeners: sorted(expected.listeners),
             });
             expect(measured.bytes, `${name}: bytes of the responses, bodies decoded, at most ${maxBytes}`).toBeLessThanOrEqual(maxBytes);
+            if (process.env.PW_TIMINGS) {
+                const timing = { step: name, durationMs: Math.round(measured.durationMs * 10) / 10, inpMs: measured.inpMs };
+                test.info().annotations.push({ type: 'timing', description: JSON.stringify(timing) });
+            }
 
             return measured;
         },
