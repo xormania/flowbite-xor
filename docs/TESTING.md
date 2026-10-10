@@ -499,7 +499,9 @@ Here: [`lab.turbo-stream-toast.spec.ts`](../tests/e2e/lab.turbo-stream-toast.spe
 ## Basic performance: counts, not timings
 
 Counts give the same result on every run, so they fail like any other assertion; timings belong to separate,
-repeated runs ([`PLAN-test-tiers.md`](PLAN-test-tiers.md)).
+repeated runs ([`PLAN-test-tiers.md`](PLAN-test-tiers.md)). The monthly job times the same steps, report only
+(*Monthly job*, *Timings*): with `PW_TIMINGS` set, `measure()` records each counted step's time and its longest
+interaction as a `timing` annotation of the test, and never fails a test on them.
 
 ### Interaction counts
 
@@ -1088,7 +1090,9 @@ hand before a release. Nothing of it runs on a push or a pull request: CI's jobs
 |---|---|---|
 | *PHP coverage and mutants* | The demo's PHPUnit tests with PCOV: lines and methods of the recipes' `src/`, per file and class, and the methods no test runs. Then [Infection](https://infection.github.io/) on the same directories and tests: the MSI and every surviving mutant (escaped, or on a line no test runs) with its diff | job summary; `php-coverage` artifact: `php-coverage.md`, `clover.xml`, `html/`, `infection.md`, `survivors.md`, Infection's own logs |
 | *JS coverage (1/3–3/3)* | The whole browser suite in Chromium, sharded as in CI, with V8 coverage of the scripts under `/assets/controllers/` | each shard's Playwright summary; raw recordings, 7 days |
-| *Monthly report* | The shards merged and mapped to `<recipe>/assets/controllers/*.js`: lines and functions run per controller, and **every controller method runs once**, the named methods no test ran; then every number against the previous successful run | job summary; `js-coverage` and `monthly-trends` (`monthly.json`, `trends.md`) artifacts |
+| *Firefox and WebKit (firefox 1/3–webkit 3/3)* | The whole suite in each engine, sharded as in CI: the behavior tests (a failure fails the shard), then every `@screenshot` test against the Chromium baselines (`PW_SCREENSHOTS=all`, no retries): each one matches, differs (with the ratio of different pixels Playwright gives) or fails another way | each shard's Playwright summary; `screenshots-<browser>-<shard>` (`tools/monthly/screenshots.mjs`) and, where some differ, `screenshot-diffs-<browser>-<shard>` (the expected, actual and diff images), 30 days |
+| *Timings (Chromium)* | The interaction-count specs (`counts.spec.ts`), 5 runs one after another with `PW_TIMINGS` set: per counted step, the median, the spread (25th to 75th percentile), min and max of its time, from its action until the update it waits for has landed, Playwright's round trips included, and the median of its longest interaction (INP, Event Timing). A count that differs fails the job as in CI | job summary; `timings` artifact (`timings.json`, `timings.md`, `tools/monthly/timings.mjs`), 90 days |
+| *Monthly report* | The shards merged and mapped to `<recipe>/assets/controllers/*.js`: lines and functions run per controller, and **every controller method runs once**, the named methods no test ran; the screenshot shards merged per engine; then every number, the timings and the screenshots included, against the previous successful run | job summary; `js-coverage`, `screenshots` (`screenshots.json`, `screenshots.md`) and `monthly-trends` (`monthly.json`, `trends.md`) artifacts |
 
 Artifacts are kept 90 days, so each run finds last month's. A report that cannot be made fails its job, and the
 report says why, instead of showing 0%: PCOV not loaded, no `clover.xml` (the tests did not run) or one without a
@@ -1108,16 +1112,19 @@ comment ran; a controller no test loaded lists every method it declares. A test'
 **Reading the trends.** `trends.md` puts each number next to the previous successful monthly run on the same ref (its
 `monthly-trends` artifact, downloaded with the run's token), then lists what moved: files and controllers whose line
 coverage changed, files whose surviving mutants changed, and methods that never ran this time but ran, or did not
-exist, last time. The first run, or one whose predecessor's artifact expired, says *No previous run* and why. A run
-that failed is not compared with: the next one compares with the last green one.
+exist, last time. For each engine, the screenshots that differ now and matched last time, those that match now and
+differed, and those whose ratio changed: a difference from Chromium is expected, a change since last month is the
+news. A test is the same test from month to month by its project, file and titles, not its line. The screenshots
+are reported only when every shard of both engines made its report: a missing shard leaves them *not reported*,
+never partial totals. Each timed step's median and INP stand next to last time's. The first run, or one whose predecessor's artifact
+expired, says *No previous run* and why; a section last month's `monthly.json` did not have yet reads *not
+reported*. A run that failed is not compared with: the next one compares with the last green one.
 
 **Thresholds.** None yet. "Every controller method runs once" stays a report line; it moves to CI only if methods
 that never run keep slipping in. A surviving mutant is a question: a test to add, or a harmless mutant (an equivalent
-cast, a log message) to leave.
-
-**Not built yet.** Two jobs join this workflow later, marked where they go in `monthly.yml`: the full suite in Firefox
-and WebKit with a screenshot diff against last month's (behavior failures failing the run), and the timings,
-report-only.
+cast, a log message) to leave. Timings get thresholds later, from the spread the monthly runs measure; a screenshot
+newly differing in another engine is a question too: a kit change that renders differently there, or the engine's
+own update.
 
 **By hand.** Actions › *Monthly* › *Run workflow*, from the branch to check ("Use workflow from"), or
 `gh workflow run monthly.yml --ref <branch>`. A run checks the branch it starts from, with that branch's copy of the
