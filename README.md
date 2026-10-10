@@ -79,6 +79,14 @@ Each recipe's README has its examples, props and usage.
 | [`theme`](theme/README.md) | Flowbite's color roles, with this kit's contrast fixes and its roles for text on a solid fill (`fg-on-*`), as one stylesheet to import in `assets/styles/app.css`. A role is a named color with a light and a dark value, used as a utility: `bg-brand`, `text-heading`, `border-default`. |
 | [`theme-toggle`](theme-toggle/README.md) ✦ | A button switching between the light and dark themes, remembered in `localStorage` and following the system preference until the user chooses. |
 
+### Shared code
+
+Installed with the recipes that use it; install it yourself only for code of your own.
+
+| Recipe | |
+|---|---|
+| [`floating`](floating/README.md) | The positioning shared by `dropdown`, `popover` (so `date-picker`) and `tooltip`, one JavaScript module: a floating element placed next to the element it belongs to, flipped to the other side when it does not fit, kept in the viewport and following it on scroll and resize. |
+
 ### Basic components
 
 | Recipe | |
