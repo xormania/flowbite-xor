@@ -1,4 +1,5 @@
 import { test, expect, expectA11y, turboVisitDone } from './fixtures';
+import { turboOperation } from './transitions';
 
 test('the login block signs in through form_login and shows the authentication error', async ({ page }) => {
     await page.goto('/demo/login');
@@ -201,4 +202,33 @@ test('signing out needs a same-origin request: a direct GET to the logout URL do
     expect(response?.status()).toBe(403);
     await page.goto('/demo');
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
+});
+
+// The layouts mark the importmap `data-turbo-track="reload"` (UX Turbo's bundle sets the same default; the layout's
+// value wins): Turbo loads a page in full when its tracked elements differ from the current page's, so a page from a
+// new deploy never runs beside the old scripts
+test('a page whose tracked importmap changed between two visits, as after a deploy, is loaded in full', async ({ page }) => {
+    await page.goto('/demo/settings/profile');
+    const settings = page.getByRole('navigation', { name: 'Settings' });
+    await page.evaluate(() => ((window as any).__sameDocument = true));
+
+    // the same assets: Turbo renders the next page in the same document
+    await turboOperation(page, { url: '/demo/settings/notifications' }, () => settings.getByRole('link', { name: 'Notifications' }).click());
+    expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
+
+    // the billing page names another URL for the app's entrypoint (a new digest after a deploy), a URL that loads
+    await page.route('**/demo/settings/billing', async (route) => {
+        // uncompressed: Firefox accepts zstd, which Playwright does not decode
+        const response = await route.fetch({ headers: { ...route.request().headers(), 'accept-encoding': 'identity' } });
+        const body = (await response.text()).replace(/("app": "[^"?]+)"/, '$1?deploy=2"');
+        await route.fulfill({ response, body });
+    });
+    await settings.getByRole('link', { name: 'Billing' }).click();
+
+    await expect(page).toHaveURL(/\/demo\/settings\/billing$/);
+    await expect.poll(() => page.evaluate(() => (window as any).__sameDocument)).toBeUndefined();
+    // the new document, as it parses, carries the new importmap
+    await expect.poll(() => page.evaluate(() => document.querySelector('script[type="importmap"]')?.textContent ?? '')).toContain('?deploy=2');
+    await expect(settings.getByRole('link', { name: 'Billing' })).toHaveAttribute('aria-current', 'page');
+    await turboVisitDone(page);
 });
