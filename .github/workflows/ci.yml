@@ -162,9 +162,57 @@ jobs:
               run: |
                   "$RUNNER_TEMP/toolkit/vendor/bin/ux-toolkit-kit-debug" "$GITHUB_WORKSPACE"
 
+    # The demo's importmap packages (demo/importmap.php), downloaded once per run from the CDN (jsdelivr) and shared as
+    # an artifact with every job that installs the demo: the browser shards, Kit PHP and the static site. AssetMapper
+    # skips a package whose file and installed.php entry are already there, so their own install downloads nothing.
+    # A CDN error is retried here, twice, before the run fails: one bad connection no longer fails a shard before any
+    # test runs. The fresh-install jobs still download for themselves: that is what they check.
+    importmap:
+        name: Importmap packages
+        needs: changes
+        if: needs.changes.outputs.demo == 'true' || needs.changes.outputs.php == 'true' || needs.changes.outputs.static-site == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+              with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  extensions: intl # the calendar formats dates with twig/intl-extra
+                  tools: composer:v2
+                  coverage: none
+
+            # without the auto-scripts, whose importmap:install would download once, unretried
+            - name: Install the demo's dependencies
+              working-directory: demo
+              run: composer install --no-interaction --no-progress --no-scripts
+
+            - name: Download the importmap packages (3 attempts)
+              working-directory: demo
+              run: |
+                  for attempt in 1 2 3; do
+                      if bin/console importmap:install; then
+                          exit 0
+                      fi
+                      if [ "$attempt" -lt 3 ]; then
+                          echo "::warning::importmap:install failed (attempt $attempt of 3); retrying in $((attempt * 20)) s"
+                          sleep $((attempt * 20))
+                      fi
+                  done
+                  echo "::error::importmap:install failed 3 times: the CDN did not answer"
+                  exit 1
+
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: importmap-packages
+                  path: demo/assets/vendor/
+                  if-no-files-found: error
+                  retention-days: 1
+
     php:
         name: Kit PHP
-        needs: changes
+        needs: [changes, importmap]
         if: needs.changes.outputs.php == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 15
@@ -191,6 +239,12 @@ jobs:
                   cat "$RUNNER_TEMP/php-dirs"
                   # shellcheck disable=SC2046 # one directory per line, none with a space
                   find $(cat "$RUNNER_TEMP/php-dirs") -name '*.php' -print0 | xargs -0 -n1 php -l
+
+            # the run's importmap packages (job importmap): the install below downloads none
+            - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: importmap-packages
+                  path: demo/assets/vendor
 
             # The tests render the recipes' templates as the demo has them, and its pages with their CSS
             - name: Install the demo
@@ -229,7 +283,7 @@ jobs:
 
     static-site:
         name: Static site
-        needs: changes
+        needs: [changes, importmap]
         if: needs.changes.outputs.static-site == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 15
@@ -245,6 +299,12 @@ jobs:
                   extensions: intl # the calendar formats dates with twig/intl-extra
                   tools: composer
                   coverage: none
+
+            # the run's importmap packages (job importmap): the build's install downloads none
+            - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: importmap-packages
+                  path: demo/assets/vendor
 
             - name: Build and check the static site
               run: tools/build-static.sh _site --base-path=/flowbite-xor
@@ -339,7 +399,7 @@ jobs:
 
     demo:
         name: Demo + Playwright (${{ matrix.browser }} ${{ matrix.shard }}/3)
-        needs: changes
+        needs: [changes, importmap]
         if: needs.changes.outputs.demo == 'true'
         runs-on: ubuntu-latest
         # 25 for the tests, plus 3 for the advisory Jev step (2) and its upload: a diagnosis must never be what
@@ -397,10 +457,27 @@ jobs:
                       *.cache-from=type=gha,scope=demo-refs/heads/main
                       ${{ matrix.browser == 'chromium' && matrix.shard == 1 && format('*.cache-to=type=gha,scope=demo-{0},mode=max', github.ref) || '' }}
 
+            # the run's importmap packages (job importmap), and what they hold, to check below that the demo's first
+            # install downloaded none
+            - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: importmap-packages
+                  path: demo/assets/vendor
+
+            - name: Record the importmap packages
+              run: (cd demo/assets/vendor && find . -type f -print0 | sort -z | xargs -0 sha256sum) > "$RUNNER_TEMP/importmap.sha256"
+
             - name: Start the demo (composer install on first start)
               id: start
               working-directory: demo
               run: docker compose up --wait --no-build
+
+            # composer install's importmap:install found every package there: the files are the ones downloaded once
+            # for the run, and none was added
+            - name: The demo's install downloaded no importmap package
+              run: |
+                  diff "$RUNNER_TEMP/importmap.sha256" <(cd demo/assets/vendor && find . -type f -print0 | sort -z | xargs -0 sha256sum) \
+                      || { echo "::error::the demo's install changed demo/assets/vendor: it did not use the run's importmap packages"; exit 1; }
 
             - name: Sync recipes into the demo
               id: sync
@@ -561,7 +638,7 @@ jobs:
     result:
         name: CI result
         if: always()
-        needs: [changes, lint-kit, php, static-site, fresh-install, docker-install, contrast, workflows, demo]
+        needs: [changes, importmap, lint-kit, php, static-site, fresh-install, docker-install, contrast, workflows, demo]
         runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
