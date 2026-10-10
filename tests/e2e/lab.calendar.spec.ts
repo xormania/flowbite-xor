@@ -111,22 +111,6 @@ test('inside a Turbo Frame reloaded three times, the calendar works', async ({ p
     await expect(page.locator('[data-controller~="calendar"]')).toHaveCount(5);
 });
 
-test('replaced or updated by a Turbo Stream, the new calendar works', async ({ page }) => {
-    await page.goto('/lab/calendar-stream');
-    const calendar = page.getByRole('group', { name: 'Streamed' });
-    await page.getByRole('button', { name: 'Replace the calendar' }).click();
-    await expect(page.getByTestId('stream-action')).toHaveText('replace');
-    await calendar.getByRole('button', { name: 'Next month' }).click();
-    await expect(grid(calendar)).toHaveAccessibleName('April 2026');
-
-    await page.getByRole('button', { name: 'Update the calendar' }).click();
-    await expect(page.getByTestId('stream-action')).toHaveText('update');
-    await expect(grid(calendar)).toHaveAccessibleName('May 2026');
-    await calendar.getByRole('button', { name: 'Next month' }).click();
-    await expect(grid(calendar)).toHaveAccessibleName('June 2026');
-    await expect(page.locator('[data-controller~="calendar"]')).toHaveCount(1);
-});
-
 test('Live properties follow the picks, and bounds, locale and a clear from the server update the grid', async ({ page }) => {
     await page.goto('/lab/live-calendar');
     const dayCalendar = page.getByRole('group', { name: 'Day' });

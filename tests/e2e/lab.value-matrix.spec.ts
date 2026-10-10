@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { test, expect, turboVisitDone } from './fixtures';
+import { test, expect, listenerChanges, stimulusControllers, trackGlobalListeners, turboVisitDone } from './fixtures';
 import { advanceFrame, back, forward, observeTurbo, shown, turboOperation } from './transitions';
 
 /*
@@ -8,6 +8,10 @@ import { advanceFrame, back, forward, observeTurbo, shown, turboOperation } from
  * read from POLICY below and nowhere else: a row changes the widget from what the server rendered, runs the
  * transition, and expects the state POLICY gives for the component's kind. A cell the policy or the component marks
  * `n/a` carries its reason, and the last test fails when a cell has neither an expectation nor a reason.
+ *
+ * Each check of a cell also holds what the widget owns (`check`): one controller per element, the listeners it adds only
+ * while changed, the same document (no full load). After the transition the widget still answers the user
+ * (`stillWorks`): shown as rendered, it takes the change again; shown changed, its undo takes the change back first.
  *
  * Where it runs: /lab/value-matrix/{one,two} holds every widget four times (rendered by the page, in a Turbo Frame, in
  * a region Turbo Streams replace, inside a data-turbo-permanent element), /lab/live-values the same widgets bound to a
@@ -105,8 +109,20 @@ type Component = {
     shows: (scope: Locator, state: State) => Promise<void>;
     /** The Live re-render of this row, when not the site's server action. */
     rerender?: (page: Page, scope: Locator) => Promise<void>;
-    /** Checked after the Live re-render as well: what the policy keeps beside the value (the focus). */
-    liveAlsoKeeps?: (scope: Locator) => Promise<void>;
+    /**
+     * Checked when a transition left the widget in place and kept it (the Live re-render, a frame or a Stream beside it,
+     * the step of a promoted frame visit): what the policy keeps beside the value (the focus).
+     */
+    keeps?: (scope: Locator) => Promise<void>;
+    /**
+     * Takes the user's change back, from `changed` to `rendered`, as the user would (closes, removes, unselects).
+     * `afterChange`: it follows the user's own change on this page, not a state the transition handed over.
+     */
+    undo?: (scope: Locator, afterChange: boolean) => Promise<void>;
+    /** The Stimulus identifiers of the widget's controllers: each check expects one controller per element carrying one. */
+    controllers?: string[];
+    /** The `document` and `window` listeners the widget adds while changed (an open popover) and removes otherwise. */
+    listeners?: Record<string, number>;
 };
 
 const group = (scope: Locator, name: 'get' | 'post' | 'ui') => scope.locator(`[data-vm-group="${name}"]`);
@@ -206,7 +222,7 @@ function calendar(method: 'get' | 'post'): Pick<Component, 'change' | 'shows'> {
     };
 }
 
-const editor: Pick<Component, 'change' | 'shows'> = {
+const editor: Pick<Component, 'change' | 'shows' | 'undo'> = {
     change: async (scope) => {
         const box = group(scope, 'post').getByRole('textbox', { name: 'Body' });
         await expect(group(scope, 'post').locator('[data-editor-target="preview"]')).toHaveCount(0);
@@ -218,22 +234,42 @@ const editor: Pick<Component, 'change' | 'shows'> = {
     shows: async (scope, state) => {
         const text = pick(state, { rendered: 'Draft.', changed: 'Draft. Changed', server: 'Set by the server.' });
         await expect(group(scope, 'post').locator('[data-editor-target="preview"]')).toHaveCount(0);
+        // one editor, with its one toolbar: an editor set up twice shows two
+        await expect(group(scope, 'post').locator('.ProseMirror')).toHaveCount(1);
+        await expect(group(scope, 'post').getByRole('toolbar', { name: 'Formatting' })).toHaveCount(1);
         await expect(group(scope, 'post').getByRole('textbox', { name: 'Body' })).toHaveText(text);
         // what the form sends
         await expect(group(scope, 'post').locator('textarea[name="body"]')).toHaveValue(`<p>${text}</p>`);
     },
+    // the editor still takes typing, and the form what it typed
+    undo: async (scope) => {
+        const box = group(scope, 'post').getByRole('textbox', { name: 'Body' });
+        await box.click();
+        await box.press('ControlOrMeta+a');
+        await box.pressSequentially('Draft.');
+        await box.blur();
+    },
 };
 
-const markdownEditor: Pick<Component, 'change' | 'shows'> = {
+const markdownEditor: Pick<Component, 'change' | 'shows' | 'undo'> = {
     change: async (scope) => {
         await group(scope, 'post').getByRole('textbox', { name: 'Notes' }).fill('Changed.');
         await group(scope, 'post').getByRole('textbox', { name: 'Notes' }).blur();
     },
     // its value is a property of its own Live Component: after a re-render, the server's value is the draft sent
     shows: async (scope, state) => expect(group(scope, 'post').getByRole('textbox', { name: 'Notes' })).toHaveValue(pick(state, { rendered: 'Draft.', changed: 'Changed.', server: 'Changed.' })),
+    // its preview still renders what the field holds, then the field takes typing
+    undo: async (scope) => {
+        const notes = group(scope, 'post').locator('[data-controller~="markdown-editor"]');
+        await notes.getByRole('tab', { name: 'Preview' }).click();
+        await expect(notes.getByRole('tabpanel')).toContainText('Changed.');
+        await notes.getByRole('tab', { name: 'Write' }).click();
+        await group(scope, 'post').getByRole('textbox', { name: 'Notes' }).fill('Draft.');
+        await group(scope, 'post').getByRole('textbox', { name: 'Notes' }).blur();
+    },
 };
 
-const dropzone: Pick<Component, 'change' | 'shows'> = {
+const dropzone: Pick<Component, 'change' | 'shows' | 'undo'> = {
     change: async (scope) => {
         await group(scope, 'post').locator('input[type="file"]').setInputFiles({ name: 'changed.png', mimeType: 'image/png', buffer: PNG });
         await expect(group(scope, 'post').getByRole('button', { name: 'Remove changed.png' })).toBeVisible();
@@ -245,9 +281,15 @@ const dropzone: Pick<Component, 'change' | 'shows'> = {
         await expect(group(scope, 'post').getByRole('button', { name: 'Remove changed.png' })).toHaveCount(picked ? 1 : 0);
         expect(await input.evaluate((element: HTMLInputElement) => [...(element.files ?? [])].map((file) => file.name)), 'the files the input holds').toEqual(picked ? ['changed.png'] : []);
     },
+    // its Remove button empties the zone and gives the focus to the input
+    undo: async (scope) => {
+        await group(scope, 'post').getByRole('button', { name: 'Remove changed.png' }).click();
+        await expect(group(scope, 'post').locator('input[type="file"]')).toBeFocused();
+        await leaveField(scope);
+    },
 };
 
-const tabs: Pick<Component, 'change' | 'shows' | 'liveAlsoKeeps'> = {
+const tabs: Pick<Component, 'change' | 'shows' | 'keeps' | 'undo'> = {
     change: async (scope) => {
         await group(scope, 'ui').getByRole('tab', { name: 'Second' }).click();
         await expect(group(scope, 'ui').getByRole('tab', { name: 'Second' })).toHaveAttribute('aria-selected', 'true');
@@ -259,12 +301,23 @@ const tabs: Pick<Component, 'change' | 'shows' | 'liveAlsoKeeps'> = {
         await expect(group(scope, 'ui').getByText(second ? 'Second panel.' : 'First panel.')).toBeVisible();
         await expect(group(scope, 'ui').getByText(second ? 'First panel.' : 'Second panel.')).toBeHidden();
     },
-    liveAlsoKeeps: (scope) => expect(group(scope, 'ui').getByRole('tab', { name: 'Second' })).toBeFocused(),
+    keeps: (scope) => expect(group(scope, 'ui').getByRole('tab', { name: 'Second' })).toBeFocused(),
+    undo: (scope) => group(scope, 'ui').getByRole('tab', { name: 'First' }).click(),
 };
 
-function overlay(trigger: string, open: (scope: Locator) => Locator): Pick<Component, 'change' | 'shows'> {
+function overlay(trigger: string, open: (scope: Locator) => Locator): Pick<Component, 'change' | 'shows' | 'undo'> {
     const button = (scope: Locator) => group(scope, 'ui').getByRole('button', { name: trigger, exact: true });
     return {
+        // as handed over by the transition, its trigger closes it: one toggle per click (a second controller would open
+        // it again); opened by the user, Escape closes it and gives the focus back to the trigger
+        undo: async (scope, afterChange) => {
+            if (!afterChange) {
+                return button(scope).click();
+            }
+            await scope.page().keyboard.press('Escape');
+            await expect(open(scope)).toBeHidden();
+            await expect(button(scope)).toBeFocused();
+        },
         change: async (scope) => {
             await button(scope).click();
             await expect(open(scope)).toBeVisible();
@@ -279,11 +332,20 @@ function overlay(trigger: string, open: (scope: Locator) => Locator): Pick<Compo
 }
 
 /** A <dialog> open as a modal, or closed: the overlay's own check, beside the visibility. */
-function dialog(trigger: string, text: string): Pick<Component, 'change' | 'shows'> {
+function dialog(trigger: string, text: string): Pick<Component, 'change' | 'shows' | 'undo'> {
     const element = (scope: Locator) => group(scope, 'ui').locator('dialog').filter({ hasText: text });
     const base = overlay(trigger, element);
     return {
         change: base.change,
+        // Escape closes it (the page behind is inert); opened from its trigger, it gives the focus back to it (one moved
+        // into another page open, inside a data-turbo-permanent element, has no opener left there)
+        undo: async (scope, afterChange) => {
+            await scope.page().keyboard.press('Escape');
+            await expect(element(scope)).toBeHidden();
+            if (afterChange) {
+                await expect(group(scope, 'ui').getByRole('button', { name: trigger, exact: true })).toBeFocused();
+            }
+        },
         shows: async (scope, state) => {
             await base.shows(scope, state);
             expect(await element(scope).evaluate((node: HTMLDialogElement) => ({ open: node.open, modal: node.matches(':modal') }))).toEqual(
@@ -293,13 +355,15 @@ function dialog(trigger: string, text: string): Pick<Component, 'change' | 'show
     };
 }
 
-const popover: Pick<Component, 'change' | 'shows' | 'liveAlsoKeeps'> = {
+const popover: Pick<Component, 'change' | 'shows' | 'keeps' | 'undo' | 'listeners'> = {
     ...overlay('Popover', (scope) => group(scope, 'ui').getByRole('dialog', { name: 'Popover' })),
     // opening it focused its field
-    liveAlsoKeeps: (scope) => expect(group(scope, 'ui').getByRole('textbox', { name: 'Popover note' })).toBeFocused(),
+    keeps: (scope) => expect(group(scope, 'ui').getByRole('textbox', { name: 'Popover note' })).toBeFocused(),
+    // popover_controller.js, while open
+    listeners: { 'document click capture': 1, 'window scroll capture': 1, 'window resize': 1 },
 };
 
-const sideNav: Pick<Component, 'change' | 'shows'> = {
+const sideNav: Pick<Component, 'change' | 'shows' | 'undo'> = {
     change: async (scope) => {
         await group(scope, 'ui').getByRole('treeitem', { name: 'Branch' }).locator(':scope > [data-side-nav-toggle]').click();
         await expect(group(scope, 'ui').getByRole('treeitem', { name: 'Branch' })).toHaveAttribute('aria-expanded', 'true');
@@ -309,9 +373,10 @@ const sideNav: Pick<Component, 'change' | 'shows'> = {
         await expect(group(scope, 'ui').getByRole('treeitem', { name: 'Branch' })).toHaveAttribute('aria-expanded', String(open));
         await expect(group(scope, 'ui').getByRole('treeitem', { name: 'Leaf' })).toBeVisible({ visible: open });
     },
+    undo: (scope) => group(scope, 'ui').getByRole('treeitem', { name: 'Branch' }).locator(':scope > [data-side-nav-toggle]').click(),
 };
 
-const themeToggle: Pick<Component, 'change' | 'shows'> = {
+const themeToggle: Pick<Component, 'change' | 'shows' | 'undo'> = {
     change: async (scope) => {
         await group(scope, 'ui').getByRole('button', { name: 'Toggle dark mode' }).click();
         await expect(scope.page().locator('html')).toHaveClass(/\bdark\b/);
@@ -321,6 +386,7 @@ const themeToggle: Pick<Component, 'change' | 'shows'> = {
         await expect(scope.page().locator('html')).toHaveClass(dark ? /\bdark\b/ : /^(?!.*\bdark\b)/);
         await expect(group(scope, 'ui').getByRole('button', { name: 'Toggle dark mode' })).toHaveAttribute('aria-pressed', String(dark));
     },
+    undo: (scope) => group(scope, 'ui').getByRole('button', { name: 'Toggle dark mode' }).click(),
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -397,13 +463,74 @@ async function openMatrix(page: Page, component: Component) {
     await settled(page);
 }
 
-/** Changes the widget in `scope`, runs `transition`, and expects `expected` in the scope `after` gives (`scope` by default). */
-async function runCell(component: Component, scope: Locator, expected: State, transition: () => Promise<void>, after: () => Locator = () => scope) {
-    await component.shows(scope, 'rendered');
+/**
+ * The widget in `scope` shows `state`, and holds what it owns: one controller per element, the listeners it adds while
+ * changed and no others (counted from the cell's start), in the document the cell started in (no full load).
+ */
+async function check(component: Component, scope: Locator, state: State) {
+    await component.shows(scope, state);
+    const page = scope.page();
+    expect(await page.evaluate(() => Boolean((window as any).__vmStart)), 'the document the cell started in: no full load').toBe(true);
+    for (const identifier of component.controllers ?? []) {
+        await expect
+            .poll(async () => {
+                const { controllers, elements, distinctElements } = await stimulusControllers(page, identifier);
+                return { 'controllers beyond one per element': controllers - elements, 'elements without one': elements - distinctElements };
+            }, { message: `one ${identifier} controller per element` })
+            .toEqual({ 'controllers beyond one per element': 0, 'elements without one': 0 });
+    }
+    if (component.listeners) {
+        const names = Object.keys(component.listeners);
+        const [start, now] = await page.evaluate(() => [(window as any).__vmStart.listeners, (window as any).__globalListeners()]);
+        const only = (counts: Record<string, number>) => Object.fromEntries(Object.entries(counts).filter(([name]) => names.includes(name)));
+        expect(listenerChanges(only(start), only(now)), `the listeners it holds, ${state}`).toEqual('changed' === state ? component.listeners : {});
+    }
+}
+
+/**
+ * After the transition the widget still answers the user: shown as rendered, it takes the change again; shown changed,
+ * its undo (when it has one) takes the change back, the change is made again, and undone again. A widget showing the
+ * server's values is left as it is.
+ */
+async function stillWorks(component: Component, scope: Locator, shown: State, { leaveChanged = false } = {}) {
+    if ('server' === shown || ('changed' === shown && !component.undo)) {
+        return;
+    }
+    if ('changed' === shown) {
+        await component.undo!(scope, false);
+        await check(component, scope, 'rendered');
+    }
     await component.change(scope);
-    await component.shows(scope, 'changed');
+    await check(component, scope, 'changed');
+    if ('changed' === shown && !leaveChanged) {
+        await component.undo!(scope, true);
+        await check(component, scope, 'rendered');
+    }
+}
+
+type RunOptions = {
+    /** The scope the widget is in after the transition: `scope` by default. */
+    after?: () => Locator;
+    /** The transition leaves the widget in place: a kept widget also keeps what `keeps` checks. */
+    inPlace?: boolean;
+    /** Whether the cell ends here, with `stillWorks`: true unless the cell goes on. */
+    last?: boolean;
+};
+
+/** Changes the widget in `scope`, runs `transition`, expects `expected` in the scope `after` gives, and that it still works. */
+async function runCell(component: Component, scope: Locator, expected: State, transition: () => Promise<void>, { after = () => scope, inPlace = false, last = true }: RunOptions = {}) {
+    await scope.page().evaluate(() => ((window as any).__vmStart = { listeners: (window as any).__globalListeners?.() ?? {} }));
+    await check(component, scope, 'rendered');
+    await component.change(scope);
+    await check(component, scope, 'changed');
     await transition();
-    await component.shows(after(), expected);
+    await check(component, after(), expected);
+    if (inPlace && 'changed' === expected) {
+        await component.keeps?.(after());
+    }
+    if (last) {
+        await stillWorks(component, after(), expected);
+    }
 }
 
 const matrixSite: Site = {
@@ -436,28 +563,24 @@ const matrixSite: Site = {
         },
         'frame-outside': async (page, component, expected) => {
             await openMatrix(page, component);
-            await runCell(component, region(page, 'plain'), expected, () => reloadFrame(page, 'value-matrix-frame', matrixPage(component)));
+            await runCell(component, region(page, 'plain'), expected, () => reloadFrame(page, 'value-matrix-frame', matrixPage(component)), { inPlace: true });
         },
         'frame-advance': async (page, component, expected) => {
             await openMatrix(page, component);
             const scope = region(page, 'plain');
             const before = page.url();
-            await runCell(component, scope, expectation(component, 'frame-outside'), () => advanceFrame(page, 'value-matrix-frame', matrixPage(component)));
+            await runCell(component, scope, expectation(component, 'frame-outside'), () => advanceFrame(page, 'value-matrix-frame', matrixPage(component)), { inPlace: true, last: false });
             const advanced = page.url();
             await turboOperation(page, { url: before }, () => page.goBack());
             await shown(page, 'Page one');
             await settled(page);
-            await component.shows(scope, expected);
+            await check(component, scope, expected);
             await turboOperation(page, { url: advanced }, () => page.goForward());
             await shown(page, 'Page one');
             await settled(page);
             const afterForward = expectation(component, 'forward');
-            await component.shows(scope, afterForward);
-            // the restored widget still takes a change
-            if ('rendered' === afterForward) {
-                await component.change(scope);
-                await component.shows(scope, 'changed');
-            }
+            await check(component, scope, afterForward);
+            await stillWorks(component, scope, afterForward);
         },
         'stream-replace': async (page, component, expected) => {
             await openMatrix(page, component);
@@ -475,33 +598,45 @@ const matrixSite: Site = {
         },
         'stream-rest': async (page, component, expected) => {
             await openMatrix(page, component);
-            await runCell(component, region(page, 'plain'), expected, () =>
-                streamFromCode(page, MATRIX.one, 'replace', region(page, 'streamed').getByTestId('stream-action'), { only: component.widget! }),
+            await runCell(
+                component,
+                region(page, 'plain'),
+                expected,
+                () => streamFromCode(page, MATRIX.one, 'replace', region(page, 'streamed').getByTestId('stream-action'), { only: component.widget! }),
+                { inPlace: true },
             );
         },
         live: async (page, component, expected) => {
             if (component.rerender) {
                 // a component that is a Live Component itself re-renders on the matrix page
                 await openMatrix(page, component);
-                await runCell(component, region(page, 'plain'), expected, () => component.rerender!(page, region(page, 'plain')));
+                await runCell(component, region(page, 'plain'), expected, () => component.rerender!(page, region(page, 'plain')), { inPlace: true });
                 return;
             }
             await page.goto(MATRIX.live);
             await settled(page);
             const root = page.getByTestId('live-values');
-            await runCell(component, root, expected, async () => {
-                await liveAction(root, 'serverValues');
-                await expect(root.getByTestId('renders')).toHaveText('1');
-                await settled(page);
-            });
-            await component.liveAlsoKeeps?.(root);
+            await runCell(
+                component,
+                root,
+                expected,
+                async () => {
+                    await liveAction(root, 'serverValues');
+                    await expect(root.getByTestId('renders')).toHaveText('1');
+                    await settled(page);
+                },
+                { inPlace: true },
+            );
         },
         permanent: async (page, component, expected) => {
             await openMatrix(page, component);
             await runCell(component, region(page, 'kept'), expected, async () => {
                 await visitFromCode(page, matrixPage(component, 'two'), 'Page two');
                 await settled(page);
-                await component.shows(region(page, 'kept'), expected);
+                await check(component, region(page, 'kept'), expected);
+                // moved into page two, it answers there too (a controller that left its listeners behind would answer
+                // twice), and is left changed again for Back
+                await stillWorks(component, region(page, 'kept'), expected, { leaveChanged: true });
                 await back(page, 'Page one');
                 await settled(page);
             });
@@ -595,13 +730,14 @@ const dataTableLiveSite: Site = {
         },
         live: async (page, component, expected) => {
             await page.goto(DTL.table);
-            await runCell(component, page.locator('main'), expected, () => component.rerender!(page, page.locator('main')));
+            await runCell(component, page.locator('main'), expected, () => component.rerender!(page, page.locator('main')), { inPlace: true });
         },
         permanent: async (page, component, expected) => {
             await page.goto(DTL.kept);
             await runCell(component, page.locator('main'), expected, async () => {
                 await visitFromCode(page, '/lab/data-table-live-permanent/two', 'Page two');
-                await component.shows(page.locator('main'), expected);
+                await check(component, page.locator('main'), expected);
+                await stillWorks(component, page.locator('main'), expected, { leaveChanged: true });
                 await back(page, 'Page one');
             });
         },
@@ -625,19 +761,20 @@ const GET_IN_LIVE = 'a Live Component binds its fields to properties, whatever f
 const COMPONENTS: Component[] = [
     { row: 'a text field in a GET form (input)', widget: 'get-name', kind: 'get-field', site: matrixSite, ...textField('get'), na: { live: GET_IN_LIVE } },
     { row: 'a checkbox in a GET form (checkbox)', widget: 'get-agree', kind: 'get-field', site: matrixSite, ...checkbox('get', 'Agree') },
-    { row: 'an autocomplete in a GET form', widget: 'get-fruit', kind: 'get-field', site: matrixSite, ...autocomplete('get'), na: { live: GET_IN_LIVE } },
-    { row: 'a date picker in a GET form', widget: 'get-due', kind: 'get-field', site: matrixSite, ...datePicker('get'), na: { live: GET_IN_LIVE } },
-    { row: 'a calendar in a GET form', widget: 'get-day', kind: 'get-field', site: matrixSite, ...calendar('get') },
+    { row: 'an autocomplete in a GET form', widget: 'get-fruit', kind: 'get-field', site: matrixSite, ...autocomplete('get'), controllers: ['symfony--ux-autocomplete--autocomplete', 'autocomplete-sync'], na: { live: GET_IN_LIVE } },
+    { row: 'a date picker in a GET form', widget: 'get-due', kind: 'get-field', site: matrixSite, ...datePicker('get'), controllers: ['date-picker', 'calendar'], na: { live: GET_IN_LIVE } },
+    { row: 'a calendar in a GET form', widget: 'get-day', kind: 'get-field', site: matrixSite, ...calendar('get'), controllers: ['calendar'] },
     { row: 'a text field in a POST form (input)', widget: 'post-name', kind: 'post-field', site: matrixSite, ...textField('post') },
     { row: 'a toggle in a POST form', widget: 'post-notify', kind: 'post-field', site: matrixSite, ...checkbox('post', 'Notify me') },
-    { row: 'an autocomplete in a POST form', widget: 'post-fruit', kind: 'post-field', site: matrixSite, ...autocomplete('post') },
-    { row: 'a date picker in a POST form', widget: 'post-due', kind: 'post-field', site: matrixSite, ...datePicker('post') },
-    { row: 'an editor in a POST form', widget: 'post-body', kind: 'post-field', site: matrixSite, ...editor },
+    { row: 'an autocomplete in a POST form', widget: 'post-fruit', kind: 'post-field', site: matrixSite, ...autocomplete('post'), controllers: ['symfony--ux-autocomplete--autocomplete', 'autocomplete-sync'] },
+    { row: 'a date picker in a POST form', widget: 'post-due', kind: 'post-field', site: matrixSite, ...datePicker('post'), controllers: ['date-picker', 'calendar'] },
+    { row: 'an editor in a POST form', widget: 'post-body', kind: 'post-field', site: matrixSite, ...editor, controllers: ['editor'] },
     {
         row: 'a markdown editor in a POST form', widget: 'post-notes',
         kind: 'post-field',
         site: matrixSite,
         ...markdownEditor,
+        controllers: ['markdown-editor', 'live'],
         // it is a Live Component itself: its Preview tab re-renders it
         rerender: async (_page, scope) => {
             const notes = group(scope, 'post').locator('[data-controller~="markdown-editor"]');
@@ -646,23 +783,33 @@ const COMPONENTS: Component[] = [
             await notes.getByRole('tab', { name: 'Write' }).click();
         },
     },
-    { row: 'a dropzone in a POST form', widget: 'post-file', kind: 'post-field', site: matrixSite, ...dropzone, liveProp: false },
-    { row: 'tabs (the selected tab)', widget: 'tabs', kind: 'chosen-ui', site: matrixSite, ...tabs },
-    { row: 'a dropdown left open', widget: 'menu', kind: 'open-ui', site: matrixSite, ...overlay('Menu', (scope) => group(scope, 'ui').getByRole('menuitem', { name: 'Menu item' })) },
-    { row: 'a popover left open', widget: 'popover', kind: 'open-ui', site: matrixSite, ...popover },
-    { row: 'a modal left open', widget: 'dialog', kind: 'open-ui', site: matrixSite, ...dialog('Dialog', 'In a modal.') },
-    { row: 'a drawer left open', widget: 'drawer', kind: 'open-ui', site: matrixSite, ...dialog('Drawer', 'In a drawer.') },
-    { row: 'a side-nav branch opened', widget: 'tree', kind: 'stored', site: matrixSite, ...sideNav, fresh: 'changed' },
-    { row: 'the theme toggle', widget: 'theme', kind: 'stored', site: matrixSite, ...themeToggle, fresh: 'changed' },
+    { row: 'a dropzone in a POST form', widget: 'post-file', kind: 'post-field', site: matrixSite, ...dropzone, controllers: ['symfony--ux-dropzone--dropzone', 'dropzone-assist'], liveProp: false },
+    { row: 'tabs (the selected tab)', widget: 'tabs', kind: 'chosen-ui', site: matrixSite, ...tabs, controllers: ['tabs'] },
+    { row: 'a dropdown left open', widget: 'menu', kind: 'open-ui', site: matrixSite, ...overlay('Menu', (scope) => group(scope, 'ui').getByRole('menuitem', { name: 'Menu item' })), controllers: ['dropdown'] },
+    { row: 'a popover left open', widget: 'popover', kind: 'open-ui', site: matrixSite, ...popover, controllers: ['popover'] },
+    { row: 'a modal left open', widget: 'dialog', kind: 'open-ui', site: matrixSite, ...dialog('Dialog', 'In a modal.'), controllers: ['flowbite-modal'] },
+    { row: 'a drawer left open', widget: 'drawer', kind: 'open-ui', site: matrixSite, ...dialog('Drawer', 'In a drawer.'), controllers: ['drawer'] },
+    { row: 'a side-nav branch opened', widget: 'tree', kind: 'stored', site: matrixSite, ...sideNav, controllers: ['side-nav'], fresh: 'changed' },
+    { row: 'the theme toggle', widget: 'theme', kind: 'stored', site: matrixSite, ...themeToggle, controllers: ['theme-toggle'], fresh: 'changed' },
     {
-        row: 'a data table search typed and not applied (data-table)',
+        row: 'a data table form edited and not applied (data-table)',
         kind: 'get-field',
         site: dataTableSite,
+        controllers: ['data-table'],
+        // every control of the table's form: the search, the filter and the page size
         change: async (scope) => {
             await scope.getByLabel('Search', { exact: true }).fill('bonnie');
-            await scope.getByLabel('Search', { exact: true }).blur();
+            await scope.getByLabel('Status').selectOption('paid');
+            await scope.getByLabel('Rows per page').selectOption('50');
+            await leaveField(scope);
         },
-        shows: async (scope, state) => expect(scope.getByLabel('Search', { exact: true })).toHaveValue('changed' === state ? 'bonnie' : ''),
+        shows: async (scope, state) => {
+            const [search, status, size] = 'changed' === state ? ['bonnie', 'paid', '50'] : ['', '', '10'];
+            // soft: a failure names every control that does not match
+            await expect.soft(scope.getByLabel('Search', { exact: true }), 'Search').toHaveValue(search);
+            await expect.soft(scope.getByLabel('Status'), 'Status').toHaveValue(status);
+            await expect(scope.getByLabel('Rows per page'), 'Rows per page').toHaveValue(size);
+        },
         na: {
             'frame-outside': 'the table is its Turbo Frame: no part of it sits outside',
             'frame-advance': 'the table is its Turbo Frame, whose own visits are promoted to history: the frame-inside cell',
@@ -677,6 +824,7 @@ const COMPONENTS: Component[] = [
         row: 'a Live data table page (data-table-live, in the URL)',
         kind: 'live-table-url',
         site: dataTableLiveSite,
+        controllers: ['data-table-live', 'live'],
         na: { 'frame-advance': LIVE_TABLE_ADVANCE },
         url: 'changed',
         change: async (scope) => {
@@ -685,6 +833,11 @@ const COMPONENTS: Component[] = [
             await expect.poll(() => new URL(scope.page().url()).searchParams.get('page')).toBe('2');
         },
         shows: async (scope, state) => expect(rowsShown(scope)).toHaveText(pick(state, { rendered: 'Showing 1–10 of 57', changed: 'Showing 11–20 of 57', server: 'Showing 1–25 of 57' })),
+        // the table is still live: its pager loads the first page
+        undo: async (scope) => {
+            await scope.getByRole('link', { name: 'Page 1', exact: true }).click();
+            await expect.poll(() => new URL(scope.page().url()).searchParams.get('page')).toBe('1');
+        },
         // a page size change: the server goes back to the first page
         rerender: async (page, scope) => {
             await scope.getByLabel('Rows per page').selectOption('25');
@@ -695,6 +848,7 @@ const COMPONENTS: Component[] = [
         row: 'a Live data table selection (data-table-live)',
         kind: 'live-table-selection',
         site: dataTableLiveSite,
+        controllers: ['data-table-live', 'live'],
         na: { 'frame-advance': LIVE_TABLE_ADVANCE },
         change: async (scope) => {
             await scope.getByRole('checkbox', { name: 'Select row 57' }).check();
@@ -704,6 +858,10 @@ const COMPONENTS: Component[] = [
             const selected = 'changed' === state;
             await expect(selectedCount(scope)).toHaveText(selected ? '1 selected' : '0 selected');
             await expect(scope.getByRole('checkbox', { name: 'Select row 57' })).toBeChecked({ checked: selected });
+        },
+        undo: async (scope) => {
+            await scope.getByRole('checkbox', { name: 'Select row 57' }).uncheck();
+            await expect(selectedCount(scope)).toHaveText('0 selected');
         },
         // the server clears the selection
         rerender: (page) => liveAction(liveTable(page), 'clearSelection'),
@@ -759,6 +917,9 @@ for (const component of COMPONENTS) {
                 continue; // n/a, with its reason: listed by the completeness test below
             }
             test(`${transition}: ${ruleOf(component, transition)}, shows it ${expected}`, async ({ page }) => {
+                if (component.listeners) {
+                    await trackGlobalListeners(page);
+                }
                 await component.site.cells[transition]!(page, component, expected);
             });
         }

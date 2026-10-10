@@ -10,7 +10,10 @@ import { back, forward, holdUntilCopied, recordFirstFrames, stepFromCode, visit 
  * (`holdUntilCopied`), it makes Turbo copy page one before its controllers disconnect, the order a slow stylesheet
  * gives in production. Page one also holds the `history-steps`
  * frame, whose visits are promoted to history: Turbo copies the page as such a visit starts, then dispatches
- * `turbo:before-cache` with the page still on screen.
+ * `turbo:before-cache` with the page still on screen. What one transition leaves of an overlay open (its state, one
+ * controller, closing it and opening it again), a data-turbo-permanent one and a Live re-render included:
+ * lab.value-matrix (`a dropdown left open`, `a modal left open`, `a drawer left open`); here, the order of the copy, the
+ * first frame, the focus and repeated steps.
  */
 
 type Overlay = {
@@ -218,27 +221,6 @@ for (const overlay of overlays) {
             await expectOpen(page, overlay, overlay.main.name);
             await page.keyboard.press('Escape');
             await expectClosed(page, overlay, overlay.main.name);
-        });
-
-        test('inside a data-turbo-permanent element, it keeps working across visits', async ({ page }) => {
-            await page.goto(turboPage('one'));
-            await trigger(page, 'Kept').click();
-            await expectOpen(page, overlay, 'Kept');
-            // Turbo moves the permanent element into page two, open
-            await page.evaluate((url) => (window as any).Turbo.visit(url), turboPage('two'));
-            await expect(page.getByTestId('page')).toHaveText('Page two');
-            await turboVisitDone(page);
-            // as the user left it (owner decision 6b: inside data-turbo-permanent, all kept): a dialog reopened as a
-            // modal, the page behind inert; a menu open, the focus gone with the move, so its trigger closes it
-            await expectOpen(page, overlay, 'Kept');
-            await ('dropdown' === overlay.recipe ? trigger(page, 'Kept').click() : page.keyboard.press('Escape'));
-            await expectWorks(page, overlay, 'Kept', 'In a permanent element');
-
-            await page.getByRole('link', { name: 'Go to page one' }).click();
-            await expect(page.getByTestId('page')).toHaveText('Page one');
-            await turboVisitDone(page);
-            await expectWorks(page, overlay, 'Kept', 'In a permanent element');
-            expect(await stimulusControllers(page, overlay.controller)).toEqual({ controllers: 3, elements: 3, distinctElements: 3 });
         });
 
         test('inside a Turbo Frame reloaded three times from inside the open overlay, the new one starts closed and works', async ({ page }) => {

@@ -167,24 +167,6 @@ test('Back after applying every control at once, twice, shows each URL\'s values
     await expectState(page, DEFAULTS, 'Showing 1–10 of 57', 10);
 });
 
-test('edits left unapplied are not shown when Back returns to the table', async ({ page }) => {
-    await page.goto(TABLE);
-    await recordTurboEvents(page);
-    await search(page).fill('bonnie');
-    await statusFilter(page).selectOption('paid');
-    await size(page).selectOption('50');
-
-    await page.getByRole('link', { name: 'Leave the table' }).click();
-    await expect(page).toHaveURL(/\/lab\/turbo-nav\/two$/);
-    await turboVisitDone(page);
-
-    const since = await mark(page);
-    await page.goBack();
-    await pageVisitDone(page, since, {});
-    await expect(page).toHaveURL(new RegExp(`${TABLE}$`));
-    await expectState(page, DEFAULTS, 'Showing 1–10 of 57', 10);
-});
-
 test('a URL parameter named reset, kept as a hidden field, does not stop the form showing the URL\'s state on Back', async ({ page }) => {
     // the kept field shadows the form's reset() method as a named property
     await page.goto(`${TABLE}?reset=1`);

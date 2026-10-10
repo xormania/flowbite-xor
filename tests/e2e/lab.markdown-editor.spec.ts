@@ -1,11 +1,12 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
-import { back, visit, visitAndBack } from './transitions';
+import { visit } from './transitions';
 
 /*
  * Markdown editors under Turbo: a form posts the Markdown (303) or shows its errors (422), and the stored rendering is
- * the preview's; Back shows what was typed and its preview; repeated visits leave one editor per field; a
- * data-turbo-permanent editor keeps its typing; frames and Streams give fresh editors.
+ * the preview's; repeated visits leave one editor per field; a frame reloaded three times gives a fresh one each time.
+ * Back, Forward, a promoted frame visit, a permanent element and Streams, with the preview after each:
+ * lab.value-matrix (`a markdown editor in a POST form`).
  */
 
 const editors = (page: Page) => page.locator('[data-controller~="markdown-editor"]');
@@ -41,17 +42,6 @@ test('a form posts the Markdown through Turbo, or answers 422 with the field err
     expect(new URL(page.url()).searchParams.get('saved')).toBe('1');
 });
 
-test('after a visit and Back, the typing comes back in one editor, and its preview renders it', async ({ page }) => {
-    await page.goto('/lab/markdown-turbo');
-    await page.getByRole('textbox', { name: 'Body' }).fill('Typed **before** leaving');
-    await visitAndBack(page);
-    await expect(editors(page)).toHaveCount(3);
-
-    await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed **before** leaving');
-    await tab(page, 'markdown_demo_body', 'Preview').click();
-    await expect(panel(page, 'markdown_demo_body').locator('strong')).toHaveText('before');
-});
-
 test('repeated visits leave one markdown editor per field', async ({ page }) => {
     await page.goto('/lab/markdown-turbo');
     for (let round = 0; round < 3; round++) {
@@ -61,17 +51,6 @@ test('repeated visits leave one markdown editor per field', async ({ page }) => 
         await expect(editors(page)).toHaveCount(3);
     }
     await expect(page.getByRole('tablist')).toHaveCount(3);
-});
-
-test('a data-turbo-permanent markdown editor keeps its typing across visits, and its preview works', async ({ page }) => {
-    await page.goto('/lab/markdown-turbo');
-    const kept = page.getByRole('textbox', { name: 'Kept notes' });
-    await kept.fill('Kept across visits. **Typed.**');
-    await visit(page, 'Go to page two', 'Page two');
-    await expect(page.getByRole('textbox', { name: 'Kept notes' })).toHaveValue('Kept across visits. **Typed.**');
-    await tab(page, 'kept', 'Preview').click();
-    await expect(panel(page, 'kept').locator('strong')).toHaveText('Typed.');
-    await expect(editors(page)).toHaveCount(3);
 });
 
 test('a Turbo Frame reloaded three times gives a fresh markdown editor each time', async ({ page }) => {
@@ -86,33 +65,4 @@ test('a Turbo Frame reloaded three times gives a fresh markdown editor each time
         await tab(page, 'framed', 'Write').click();
         await expect(editors(page)).toHaveCount(3);
     }
-});
-
-test('replaced or updated by a Turbo Stream, the markdown editor shows the new content, once', async ({ page }) => {
-    await page.goto('/lab/markdown-stream');
-    for (const action of ['replace', 'update']) {
-        await page.getByRole('textbox', { name: 'Streamed notes' }).fill('local');
-        await page.getByRole('button', { name: `${action[0].toUpperCase()}${action.slice(1)} the editor` }).click();
-        await expect(page.getByTestId('stream-action')).toHaveText(action);
-        await expect(page.getByRole('textbox', { name: 'Streamed notes' })).toHaveValue(`Streamed: **${action}**.`);
-        await tab(page, 'streamed', 'Preview').click();
-        await expect(panel(page, 'streamed').locator('strong')).toHaveText(action);
-        await expect(editors(page)).toHaveCount(1);
-        await expect(page.getByRole('tablist')).toHaveCount(1);
-        await tab(page, 'streamed', 'Write').click();
-    }
-});
-
-test('after a frame visit promoted to history and Back, the typing comes back, and its preview renders it', async ({ page }) => {
-    await page.goto('/lab/markdown-turbo');
-    await page.getByRole('textbox', { name: 'Body' }).fill('Typed **before** the step');
-
-    // Turbo copies the page as soon as the frame visit starts, before turbo:before-cache
-    await visit(page, 'Next step', { step: 1 });
-    await back(page, { step: 0 });
-    await expect(editors(page)).toHaveCount(3);
-
-    await expect(page.getByRole('textbox', { name: 'Body' })).toHaveValue('Typed **before** the step');
-    await tab(page, 'markdown_demo_body', 'Preview').click();
-    await expect(panel(page, 'markdown_demo_body').locator('strong')).toHaveText('before');
 });

@@ -1,36 +1,9 @@
 import type { Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
-import { visit } from './transitions';
 
 const status = (page: Page) => page.getByRole('status').filter({ hasText: /Showing|No rows/ });
 const selected = (page: Page) => page.getByRole('status').filter({ hasText: 'selected' });
 const params = (page: Page) => Object.fromEntries(new URL(page.url()).searchParams);
-
-test('its state is in the URL: a Turbo visit away and Back show the same rows, and the table is still live', async ({ page }) => {
-    await page.goto('/lab/data-table-live');
-    await expect(status(page)).toHaveText('Showing 1–10 of 57');
-
-    await page.getByRole('button', { name: 'Customer' }).click();
-    await expect(page.getByRole('columnheader', { name: 'Customer' })).toHaveAttribute('aria-sort', 'ascending');
-    await page.getByRole('link', { name: 'Page 3' }).click();
-    await expect(status(page)).toHaveText('Showing 21–30 of 57');
-    await expect.poll(() => params(page)).toMatchObject({ sort: 'customer', dir: 'asc', page: '3' });
-    const firstRow = await page.locator('tbody tr').first().getAttribute('id');
-
-    await page.getByRole('link', { name: 'Leave the table' }).click();
-    await expect(page).toHaveURL(/\/lab\/turbo-nav\/two$/);
-    await turboVisitDone(page);
-    await page.goBack();
-    await turboVisitDone(page);
-
-    await expect.poll(() => params(page)).toMatchObject({ sort: 'customer', dir: 'asc', page: '3' });
-    await expect(status(page)).toHaveText('Showing 21–30 of 57');
-    await expect(page.locator('tbody tr').first()).toHaveAttribute('id', firstRow!);
-    await expect(page.getByRole('columnheader', { name: 'Customer' })).toHaveAttribute('aria-sort', 'ascending');
-
-    await page.getByRole('link', { name: 'Page 4' }).click();
-    await expect(status(page)).toHaveText('Showing 31–40 of 57');
-});
 
 test('repeated Turbo visits away and back keep one working table', async ({ page }) => {
     await page.goto('/lab/data-table-live');
@@ -132,49 +105,4 @@ test('a URL with values the table does not accept renders a valid table', async 
     await expect(page.getByLabel('Status')).toHaveValue('');
     await page.getByRole('link', { name: 'Page 5' }).click();
     await expect(status(page)).toHaveText('Showing 41–50 of 57');
-});
-
-test('inside a Turbo Frame that reloads, the reloaded table is live again', async ({ page }) => {
-    await page.goto('/lab/data-table-live-frame');
-    await page.evaluate(() => ((window as any).__sameDocument = true));
-    await page.getByRole('link', { name: 'Page 2' }).click();
-    await expect(status(page)).toHaveText('Showing 11–20 of 57');
-
-    await page.getByRole('link', { name: 'Reload the frame' }).click();
-    await expect(page.getByTestId('frame-load')).toHaveText('1');
-    await expect(status(page)).toHaveText('Showing 1–10 of 57');
-    await page.getByRole('link', { name: 'Page 3' }).click();
-    await expect(status(page)).toHaveText('Showing 21–30 of 57');
-    await expect(page.locator('[data-controller~="live"]')).toHaveCount(1);
-    expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
-});
-
-test('inside a data-turbo-permanent element, it keeps its state across Turbo visits', async ({ page }) => {
-    await page.goto('/lab/data-table-live-permanent');
-    await page.getByRole('link', { name: 'Page 2' }).click();
-    await expect(status(page)).toHaveText('Showing 11–20 of 57');
-
-    await visit(page, 'Go to page two', 'Page two');
-    await expect(status(page)).toHaveText('Showing 11–20 of 57');
-
-    await page.getByRole('link', { name: 'Page 3' }).click();
-    await expect(status(page)).toHaveText('Showing 21–30 of 57');
-});
-
-test('replaced or updated by a Turbo Stream, it reconnects from the server state', async ({ page }) => {
-    await page.goto('/lab/data-table-live-stream');
-    await page.getByRole('link', { name: 'Page 2' }).click();
-    await expect(status(page)).toHaveText('Showing 11–20 of 57');
-
-    await page.getByRole('button', { name: 'Replace the table' }).click();
-    await expect(page.getByTestId('stream-action')).toHaveText('replace');
-    await expect(page.locator('#live-table-region')).toHaveCount(1);
-    await page.getByRole('link', { name: 'Page 3' }).click();
-    await expect(status(page)).toHaveText('Showing 21–30 of 57');
-
-    await page.getByRole('button', { name: 'Update the table' }).click();
-    await expect(page.getByTestId('stream-action')).toHaveText('update');
-    await page.getByRole('link', { name: 'Page 2' }).click();
-    await expect(status(page)).toHaveText('Showing 11–20 of 57');
-    await expect(page.locator('[data-controller~="live"]')).toHaveCount(1);
 });

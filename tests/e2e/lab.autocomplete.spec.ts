@@ -84,24 +84,6 @@ test('Turbo visits away and Back leave one working Tom Select per field', async 
     await expect(page.locator('#autocomplete_demo_country')).toHaveValue('ES');
 });
 
-test('inside a Turbo Frame that reloads, the field is enhanced once and works', async ({ page }) => {
-    await page.goto('/lab/autocomplete-frame');
-    await page.getByRole('link', { name: 'Reload the frame' }).click();
-    await expect(page.getByTestId('frame-load')).toHaveText('1');
-    await expect(wrappers(page)).toHaveCount(1);
-    await pick(page, control(page, 'Fruit'), 'ban', 'Banana');
-    await expect(page.locator('#framed-fruit')).toHaveValue('banana');
-});
-
-test('replaced by a Turbo Stream, the field is enhanced once and works', async ({ page }) => {
-    await page.goto('/lab/autocomplete-stream');
-    await page.getByRole('button', { name: 'Replace the field' }).click();
-    await expect(page.getByTestId('stream-count')).toHaveText('1');
-    await expect(wrappers(page)).toHaveCount(1);
-    await pick(page, control(page, 'Fruit'), 'app', 'Apple');
-    await expect(page.locator('#streamed-fruit')).toHaveValue('apple');
-});
-
 test('in a Live form, a re-render keeps the chosen values and one Tom Select per field', async ({ page }) => {
     await page.goto('/lab/live-autocomplete');
     await pick(page, control(page, 'Country'), 'ita', 'Italy');
