@@ -150,6 +150,9 @@ export function exportedNames(source) {
     return [...source.matchAll(/^export\s+(?:async\s+)?(?:function\*?|const|let|var|class)\s+([\w$]+)/gm)].map((match) => match[1]);
 }
 
+/** `text` as a literal inside a regular expression: every character with a meaning there escaped. */
+const escapeRegExp = (text) => text.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+
 /**
  * The declarations in `files` of a name that a shared module exports: `function <name>`, `const|let|var <name> =` or
  * `class <name>`, in any file but the module itself. `shared` maps each shared module's path to its source.
@@ -158,7 +161,7 @@ export function findRedeclared(files, shared) {
     const problems = [];
     for (const [module, source] of Object.entries(shared)) {
         for (const name of exportedNames(source)) {
-            const declaration = new RegExp(`(?:\\bfunction\\*?\\s+|\\b(?:const|let|var|class)\\s+)${name.replace(/\$/g, '\\$')}\\b`);
+            const declaration = new RegExp(`(?:\\bfunction\\*?\\s+|\\b(?:const|let|var|class)\\s+)${escapeRegExp(name)}\\b`);
             for (const [file, code] of Object.entries(files)) {
                 if (file === module) {
                     continue;
