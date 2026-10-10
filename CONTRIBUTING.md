@@ -457,9 +457,13 @@ a work order (below); a single change stays one branch and one pull request into
 - **Bringing `dev` in:** the work order takes no direct push (a new commit has no checks yet), so `dev` comes in
   through a job, `claude/wo-<name>--sync`, that merges it; once just before the final pull request, and earlier
   when a job needs something `dev` gained.
-- **Finishing:** the work order's pull request into `dev` is marked ready when every job has merged and CI has passed
-  on the work order with `dev` in it; its description then checks each completion criterion against that commit. It
-  merges like any pull request into `dev`. Each job ends merged, superseded (naming its successor) or abandoned
+- **CI on the work order:** while its pull request into `dev` is a draft or not open, a push to `claude/wo-<name>` (a
+  job's merge) runs only *Changes* and *Tool tests*, and *CI result* fails with "work order draft: CI ran no tests":
+  each job already ran CI on its own branch. Once the pull request is ready, re-run the work order's latest CI run
+  (*Re-run all jobs*); that run checks everything, and its push event is what the rulesets count.
+- **Finishing:** the work order's pull request into `dev` is marked ready when every job has merged, `dev` included;
+  its CI is then re-run and must pass on that commit, and its description checks each completion criterion against
+  it. It merges like any pull request into `dev`. Each job ends merged, superseded (naming its successor) or abandoned
   (saying why); its branch is deleted once its work is in the work order or recorded as dropped.
 
 **Pull request:** one topic, with a title in the commit subject format. The description follows

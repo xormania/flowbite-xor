@@ -27,11 +27,21 @@ jobs:
     # passes the branch rulesets. Pushes to main and dev, a run by hand and a change to this workflow run everything. A
     # branch is compared with where it left dev, so each push checks the whole pull request, not only its last commit
     # (the rulesets require a branch to be up to date with its base before it merges, so that is the code that lands).
+    #
+    # A work order's own branch (claude/wo-<name>, not its jobs' claude/wo-<name>--<job>) runs nothing else while its pull
+    # request into dev is a draft or not open: each job ran CI on its own branch before it merged. CI result then fails,
+    # saying so, so a draft never shows a pass that tested nothing. Once the pull request is ready, re-run the work
+    # order's latest run (Re-run all jobs): a re-run keeps its push event, which the rulesets count, and reads the pull
+    # request's state again (CONTRIBUTING.md, *Work orders*).
     changes:
         name: Changes
         runs-on: ubuntu-latest
         timeout-minutes: 5
+        permissions:
+            contents: read
+            pull-requests: read # whether a work order's pull request into dev is a draft
         outputs:
+            wo-draft: ${{ steps.jobs.outputs.wo-draft }}
             lint-kit: ${{ steps.jobs.outputs.lint-kit }}
             php: ${{ steps.jobs.outputs.php }}
             static-site: ${{ steps.jobs.outputs.static-site }}
@@ -52,7 +62,23 @@ jobs:
               env:
                   EVENT: ${{ github.event_name }}
                   REF: ${{ github.ref }}
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
               run: |
+                  # A work order's own branch while its pull request into dev is a draft or not open: nothing else runs
+                  branch=${REF#refs/heads/}
+                  if [ "$EVENT" = push ] && [[ "$branch" == claude/wo-* ]] && [[ "$branch" != claude/wo-*--* ]]; then
+                      state=$(gh api "repos/$REPO/pulls?head=${REPO%%/*}:$branch&base=dev&state=open" \
+                          --jq 'if length == 0 then "not open" elif .[0].draft then "draft" else "ready" end')
+                      echo "Work order $branch: its pull request into dev is $state"
+                      if [ "$state" != ready ]; then
+                          echo "wo-draft=true" >> "$GITHUB_OUTPUT"
+                          for job in lint-kit php static-site fresh-install contrast demo workflows; do
+                              echo "$job=false" | tee -a "$GITHUB_OUTPUT"
+                          done
+                          exit 0
+                      fi
+                  fi
                   # Where the branch left dev; none for main, dev or a run by hand. Computed here, in the workflow, not by a
                   # script in the tree: a branch cannot choose the range it is checked against. Contrast reads the same
                   # range (tools/readme-pairing.mjs --base).
@@ -679,7 +705,12 @@ jobs:
             # checked nothing
             - env:
                   NEEDS: ${{ toJSON(needs) }}
+                  WO_DRAFT: ${{ needs.changes.outputs.wo-draft }}
               run: |
+                  if [ "$WO_DRAFT" = true ]; then
+                      echo "::error::work order draft: CI ran no tests. Mark its pull request into dev ready, then re-run this run (Re-run all jobs)"
+                      exit 1
+                  fi
                   echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
                   failed=$(echo "$NEEDS" | jq -r 'to_entries[] | select(.value.result != "success" and .value.result != "skipped")
                       | "\(.key) ended with \(.value.result)" + (if .value.result == "cancelled" then " (a cancelled job is not a pass)" else "" end)')
