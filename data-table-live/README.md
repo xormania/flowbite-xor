@@ -14,7 +14,10 @@ Run `ux:install` from your project's root directory: this recipe copies `Abstrac
 `src/FlowbiteXor/DataTableLive/` (namespace `App\FlowbiteXor\DataTableLive`), and installs the `data-table` recipe,
 whose classes it extends. If your project's root namespace is not `App`, change the `namespace` and `use` lines of
 those files to match. Run the `composer require` command `ux:install` prints right away: until
-`symfony/ux-live-component` is installed, the copied class stops the app (and its console) from booting.
+`symfony/ux-live-component` is installed, the copied class stops the app (and its console) from booting. Symfony Flex
+then adds `@symfony/ux-live-component`, which the recipe's controller imports, to the import map. Run the
+`importmap:require` command `ux:install` prints only if `importmap.php` has no such entry afterwards: it replaces the
+entry that points at the bundle's own copy with one downloaded from the CDN.
 
 ## Usage
 

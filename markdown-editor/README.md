@@ -16,7 +16,10 @@ stored Markdown will be printed. CommonMark with strikethrough; raw HTML, images
 ::: installation
 
 Then run the `composer require` command `ux:install` prints: `league/commonmark`, `symfony/html-sanitizer` and
-`symfony/ux-live-component` (the preview is a Live Component).
+`symfony/ux-live-component` (the preview is a Live Component). Symfony Flex then adds `@symfony/ux-live-component`,
+which the recipe's controller imports, to the import map. Run the `importmap:require` command `ux:install` prints only
+if `importmap.php` has no such entry afterwards: it replaces the entry that points at the bundle's own copy with one
+downloaded from the CDN.
 
 ## Usage
 

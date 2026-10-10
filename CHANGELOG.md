@@ -54,6 +54,10 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `data-table-live`, `markdown-editor`: their manifests declare `@symfony/ux-live-component`, which their
+  controllers import, as an import map package, so the kit lint no longer warns; Symfony Flex adds it with
+  `symfony/ux-live-component`, and the READMEs say to run the `importmap:require` that `ux:install` prints only when
+  `importmap.php` has no entry for it.
 - `dropdown`: ArrowRight on a submenu's item opened the submenu but left the focus on the item, and closed a submenu
   already open (by a click); it now opens the submenu, or keeps it open, and focuses its first item.
 - `sidebar`: with `localStorage` blocked, a Turbo visit expanded a collapsed sidebar; the collapse now lasts until the
