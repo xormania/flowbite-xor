@@ -76,3 +76,29 @@ test('a URL with values the table does not accept renders a table that stays liv
     await expect(status(page)).toHaveText('Showing 41–50 of 57');
     await expect.poll(() => params(page)).toMatchObject({ sort: 'number', dir: 'desc', page: '5', size: '10' });
 });
+
+test('its state is in the URL: a Turbo visit away and Back show the same rows, and the table is still live', async ({ page }) => {
+    await page.goto('/lab/data-table-live');
+    await expect(status(page)).toHaveText('Showing 1–10 of 57');
+
+    await page.getByRole('button', { name: 'Customer' }).click();
+    await expect(page.getByRole('columnheader', { name: 'Customer' })).toHaveAttribute('aria-sort', 'ascending');
+    await page.getByRole('link', { name: 'Page 3' }).click();
+    await expect(status(page)).toHaveText('Showing 21–30 of 57');
+    await expect.poll(() => params(page)).toMatchObject({ sort: 'customer', dir: 'asc', page: '3' });
+    const firstRow = await page.locator('tbody tr').first().getAttribute('id');
+
+    await page.getByRole('link', { name: 'Leave the table' }).click();
+    await expect(page).toHaveURL(/\/lab\/turbo-nav\/two$/);
+    await turboVisitDone(page);
+    await page.goBack();
+    await turboVisitDone(page);
+
+    await expect.poll(() => params(page)).toMatchObject({ sort: 'customer', dir: 'asc', page: '3' });
+    await expect(status(page)).toHaveText('Showing 21–30 of 57');
+    await expect(page.locator('tbody tr').first()).toHaveAttribute('id', firstRow!);
+    await expect(page.getByRole('columnheader', { name: 'Customer' })).toHaveAttribute('aria-sort', 'ascending');
+
+    await page.getByRole('link', { name: 'Page 4' }).click();
+    await expect(status(page)).toHaveText('Showing 31–40 of 57');
+});

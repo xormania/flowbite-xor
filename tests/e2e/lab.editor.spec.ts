@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
-import { visit, visitAndBack } from './transitions';
+import { back, visit, visitAndBack } from './transitions';
 
 /*
  * Editors under Turbo and Live: a form posts sanitized HTML (303) or shows its errors (422); Back shows the content and
@@ -134,4 +134,30 @@ test('in a Live Component, a re-render while the editor has the focus does not l
     await expect(body).toBeFocused();
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByTestId('saved')).toHaveText('<p>Draft from the server. Typed while it re-renders.</p>');
+});
+
+test('a frame visit promoted to history leaves the editor beside the frame working, and Back brings its content back in one editor', async ({ page }) => {
+    await page.goto('/lab/editor-turbo');
+    await mounted(page);
+    const body = page.getByRole('textbox', { name: 'Body' });
+    await body.click();
+    await page.keyboard.type('Before the step');
+
+    // Turbo copies the page and dispatches turbo:before-cache, but the editor stays on screen
+    await visit(page, 'Next step', { step: 1 });
+    await expect(editors(page)).toHaveCount(3);
+    await page.getByRole('textbox', { name: 'Body' }).click();
+    await page.keyboard.press('ControlOrMeta+End');
+    await page.keyboard.type(' and after');
+    expect(await page.locator('textarea[name="editor_demo[body]"]').inputValue()).toBe('<p>Before the step and after</p>');
+
+    await back(page, { step: 0 });
+    await mounted(page);
+    await expect(editors(page)).toHaveCount(3);
+    await expect(page.getByRole('toolbar', { name: 'Formatting' })).toHaveCount(3);
+    await expect(page.getByRole('textbox', { name: 'Body' })).toHaveText('Before the step');
+    await page.getByRole('textbox', { name: 'Body' }).click();
+    await page.keyboard.press('ControlOrMeta+End');
+    await page.keyboard.type(', again');
+    expect(await page.locator('textarea[name="editor_demo[body]"]').inputValue()).toBe('<p>Before the step, again</p>');
 });
