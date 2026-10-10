@@ -121,6 +121,16 @@ check "$kit_contrast"             theme/assets/styles/flowbite-xor.css
 check "$kit_contrast"             button/templates/components/Button.html.twig
 check "$kit_contrast"             layouts/templates/layouts/app.html.twig
 check "$kit"                      .gitattributes
+# tools/readme-pairing.mjs (Contrast) pairs a recipe's code with its README, tools/readme-versions.mjs its README with
+# its manifest: any file of a recipe runs Contrast, a README alone and a manifest alone too
+check "$kit_contrast"             alert/templates/components/Alert.html.twig
+check "$kit_contrast"             data-table/src/Table/DataTable.php
+check "$kit_contrast"             alert/README.md
+check "$kit_contrast"             alert/manifest.json
+check_git "$kit_contrast"         'mkdir -p alert/templates && echo a > alert/templates/x.html.twig && git add alert'
+check 'contrast demo'             tools/readme-pairing.mjs tools/readme-versions.mjs
+check 'contrast demo'             tools/tests/readme-pairing.test.mjs
+check 'demo'                      tools/tests/jev-diagnosis.test.mjs
 check "$kit_contrast"             docs/NOTES.md kit.css
 
 if [ "$failures" -gt 0 ]; then

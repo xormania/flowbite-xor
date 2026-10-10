@@ -50,6 +50,8 @@ while IFS= read -r path; do
         # icon-lint runs in Contrast; its cases (tools/tests/*.test.mjs) in the browser job
         tools/icon-lint.mjs | tools/tests/icon-lint.test.mjs) on contrast demo ;;
         tools/fence-coverage.mjs) on contrast static-site ;;
+        # The README checks: Contrast runs them and their cases, the browser job's node --test runs the cases too
+        tools/readme-versions.mjs | tools/readme-pairing.mjs | tools/tests/readme-*.test.mjs) on contrast demo ;;
         tools/build-static.sh) on static-site ;;
         tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh) on fresh-install ;;
         tools/tests/install-scenario.sh) on fresh-install ;;
@@ -74,12 +76,14 @@ while IFS= read -r path; do
         */tests/*) on demo ;;
 
         # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...).
-        # Contrast checks the theme's roles, what the markdown teaches and the palette
-        # colors of the recipes' templates (tools/docs-lint.mjs), the README tables and the controllers' rows
+        # Contrast checks the theme's roles, what the markdown teaches and the palette colors of the recipes' templates
+        # (tools/docs-lint.mjs), the README tables and the controllers' rows; it reads every file in a directory (a
+        # recipe: tools/readme-pairing.mjs pairs its code with its README, tools/readme-versions.mjs its README with its
+        # manifest) and the root files below
         *)
             on lint-kit php static-site fresh-install demo
             case "$path" in
-                kit.css | theme/* | */assets/controllers/* | */manifest.json) on contrast ;;
+                */* | kit.css | README.md | INSTALL.md) on contrast ;;
             esac
             ;;
     esac

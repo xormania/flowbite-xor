@@ -255,6 +255,16 @@ export type A11yPolicy = { impact: 'serious' | 'all'; include?: string; exclude?
  * automated rules can find.
  */
 export async function expectA11y(page: Page, policy: A11yPolicy, label?: string): Promise<void> {
+    // the state the spec drove, settled: a color transition it started (a tab's fill on selection) is finished, or axe
+    // can read its colors half-way. Endless (a spinner) and paused animations (a hovered toast's timer) are not awaited
+    await page.evaluate(() =>
+        Promise.all(
+            document
+                .getAnimations()
+                .filter((animation) => 'running' === animation.playState && Number.isFinite(animation.effect?.getComputedTiming().endTime ?? Infinity))
+                .map((animation) => animation.finished.catch(() => undefined)),
+        ),
+    );
     let builder = new AxeBuilder({ page });
     if (policy.include) {
         builder = builder.include(policy.include);
