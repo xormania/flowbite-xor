@@ -38,8 +38,8 @@ for a request a test cancels on purpose, *Back during a frame visit promoted to 
 The guard drops two page errors of its own, each the rejection of Turbo's prefetch (a link under the pointer) that a
 full load (a reload, a `goto`) cancels, in the one engine that throws it (*Browsers*): WebKit's
 (`FETCH_CANCELLED_BY_UNLOAD`, from the full load's request until its document replaces the old one) and Firefox's
-(`PREFETCH_CANCELLED_BY_UNLOAD`: *NetworkError when attempting to fetch resource.*, thrown from Turbo's prefetch code,
-each error paired with a prefetch request of its own that failed as cancelled before the next document). Anywhere else
+(`PREFETCH_CANCELLED_BY_UNLOAD`: *NetworkError when attempting to fetch resource.*, thrown from Turbo's prefetch code
+as its own request ends cancelled, and a full load after it commits). Anywhere else
 the same messages fail the test: `smoke.spec.ts` ("the page guard") calibrates both, with the real case and with the
 message where one condition is missing.
 
@@ -1011,11 +1011,16 @@ What differs between the engines, met so far, and how the kit and the suite stay
   its prefetch from a timer with no catch (`PrefetchCache.putLater`) and rethrows all but an AbortError, so the page
   error is unhandled, reported before or after the full load's request. A library behavior, not the kit's: the
   error's stack is Turbo's (`perform`, from `putLater`'s timer). `guardPage()` drops that message in Firefox only,
-  thrown from there, each error paired with a prefetch request of its own, started before it and cancelled, both
-  before the document of the first full load after that request started (`PREFETCH_CANCELLED_BY_UNLOAD`).
-  `smoke.spec.ts` ("the page guard") holds a real prefetch and leaves with `goto`: nothing reported, in every engine.
-  It reports the same message thrown by the page outside a full load, or during one by a fetch like Turbo's, and
-  thrown by Turbo's prefetch failing with no cancellation, or after a full load cancelled another prefetch request.
+  thrown from there, when it is the end of Turbo's own request: as it is thrown, no prefetch request still runs and the
+  last one to end failed as cancelled, on the document on screen (after its last commit), paired with no other error;
+  then a full load follows, a main-frame navigation request after that commit and the document it commits
+  (`PREFETCH_CANCELLED_BY_UNLOAD`). The cancel and the error can come before or after the load's request, so the rule
+  asks only for the load somewhere after the last commit. Firefox also cancels the prefetch, with the same error, on a
+  navigation answered 204 and on `window.stop()`: the document stays, so those are reported. `smoke.spec.ts` ("the
+  page guard") holds a real prefetch and leaves with `goto`: nothing reported, in every engine. It reports the same
+  message thrown by the page outside a full load, or during one by a fetch like Turbo's; thrown by Turbo's prefetch
+  failing with no cancellation, after a full load cancelled another prefetch request, or after the page cancelled a
+  prefetch request of its own; and Turbo's prefetch cancelled by a 204 or by `window.stop()`.
 
 - **A cancelled request** fails with `net::ERR_ABORTED` in Chromium, `NS_BINDING_ABORTED` in Firefox, `Load request
   cancelled` in WebKit: `allowCancelledRequest` accepts each engine's own text (`CANCELLED` in `tests/e2e/fixtures.ts`),

@@ -144,7 +144,9 @@ test.describe('the page guard', () => {
      * rejected with this message and rethrown by Turbo. Above, the real one: nothing reported. Below, the same message
      * where one of its conditions is missing: thrown by the page itself, outside a full load or during one; thrown by
      * Turbo's prefetch whose request failed without being cancelled, a full load after it; thrown by Turbo's prefetch
-     * after a full load that cancelled another prefetch request. Each is reported.
+     * after a full load that cancelled another prefetch request, or after the page cancelled one of its own, a full
+     * load after it; and Turbo's prefetch cancelled with no full load: by a navigation the server answers 204 (the
+     * document stays) or by `window.stop()`. Each is reported.
      */
     const PREFETCH_MESSAGE = 'NetworkError when attempting to fetch resource.';
 
@@ -222,4 +224,64 @@ test.describe('the page guard', () => {
         }
         await page.close();
     });
+
+    test("Turbo's prefetch failing after the page cancelled a prefetch request of its own, then a full load: reported", async ({ context, baseURL, browserName }) => {
+        const page = await context.newPage();
+        const guard = await guardPage(page, baseURL);
+        await page.goto('/');
+        // Turbo started: its history entry replaced (a commit of the same document, which must come before the cancel)
+        await page.waitForFunction(() => undefined !== history.state?.turbo);
+        // a prefetch request cancelled by the page, no full load: its AbortError handled, no page error of its own
+        const release = await holdPrefetch(page, '/forms');
+        const cancelled = page.waitForEvent('requestfailed', (request) => request.url().endsWith('/forms'));
+        await page.evaluate(async () => {
+            const controller = new AbortController();
+            const sent = fetch('/forms', { headers: { 'X-Sec-Purpose': 'prefetch' }, signal: controller.signal }).catch(() => undefined);
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            controller.abort();
+            await sent;
+        });
+        await cancelled;
+        release();
+        // then Turbo's prefetch fails on its own, and a full load follows
+        await page.route('**/lab', (route) => ('prefetch' === route.request().headers()['x-sec-purpose'] ? route.abort('failed') : route.fallback()));
+        const rejected = page.waitForEvent('pageerror');
+        await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Lab' }).hover();
+        await rejected;
+        await page.goto('/lab/turbo-nav');
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+        const errors = errorsOf(guard);
+        expect(errors).toContain('pageerror: ');
+        if ('firefox' === browserName) {
+            expect(errors).toContain(`pageerror: ${PREFETCH_MESSAGE}`);
+        }
+        await page.close();
+    });
+
+    for (const [how, leave] of [
+        ['a navigation that left the document in place (a 204)', (page: Page) => page.evaluate(() => location.assign('/lab/no-content'))],
+        ['window.stop(), no navigation', (page: Page) => page.evaluate(() => window.stop())],
+    ] as const) {
+        test(`Turbo's prefetch cancelled by ${how}: reported`, async ({ context, baseURL, browserName }) => {
+            const page = await context.newPage();
+            const guard = await guardPage(page, baseURL);
+            await page.goto('/');
+            await page.waitForFunction(() => 'Turbo' in window);
+            await page.route('**/lab/no-content', (route) => route.fulfill({ status: 204 }));
+            const release = await holdPrefetch(page, '/lab');
+            const prefetch = page.waitForRequest((request) => 'prefetch' === request.headers()['x-sec-purpose']);
+            await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Lab' }).hover();
+            await prefetch;
+            // Firefox cancels the prefetch, and Turbo rethrows the rejection, on a document that stays
+            const rejected = 'firefox' === browserName ? page.waitForEvent('pageerror', { predicate: (error) => PREFETCH_MESSAGE === error.message }) : null;
+            await leave(page);
+            await rejected;
+            release();
+            await expect(page.getByRole('heading', { level: 1, name: 'Flowbite xor' })).toBeVisible();
+            if ('firefox' === browserName) {
+                expect(errorsOf(guard)).toContain(`pageerror: ${PREFETCH_MESSAGE}`);
+            }
+            await page.close();
+        });
+    }
 });

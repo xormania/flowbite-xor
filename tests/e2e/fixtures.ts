@@ -27,12 +27,12 @@ const FETCH_CANCELLED_BY_UNLOAD = [/TypeError: Load failed$/, / due to access co
 /**
  * Firefox's rejection of Turbo's prefetch (a link under the pointer) when a full load cancels its request: Turbo
  * (8.0.23, `PrefetchCache.putLater`) runs `request.perform()` with no catch, and `perform()` rethrows every error but
- * an AbortError, so the TypeError Firefox gives the document's fetches at unload is unhandled. Firefox reports it
- * before or after the full load's request, so the guard decides in check(): dropped in Firefox only, for this exact
- * message thrown from Turbo's prefetch (`perform` called by `putLater`, in Turbo's module of the demo), with a prefetch
- * request of its own, started before it, that failed as cancelled; the first full load of the main frame after that
- * request started is what cancelled it: the error and the cancellation come before its document replaces the one on
- * screen. Calibrated in smoke.spec.ts ("the page guard").
+ * an AbortError, so the TypeError Firefox gives the document's fetches at unload is unhandled. Dropped in Firefox
+ * only, for this exact message thrown from Turbo's prefetch (`perform` called by `putLater`, in Turbo's module of the
+ * demo), when, as it is thrown, the rejection is its own request's: no prefetch request still runs, and the last one to
+ * end failed as cancelled, on the document on screen (after its last commit), never paired before. Firefox reports
+ * the error before or after the full load's request, so check() then asks for that load: a main-frame navigation
+ * request after that commit, and the document it commits. Calibrated in smoke.spec.ts ("the page guard").
  */
 const PREFETCH_CANCELLED_BY_UNLOAD = 'NetworkError when attempting to fetch resource.';
 /** Thrown by Turbo's `perform()` (its first frame), from the timer of `putLater` (Turbo's module of the demo). */
@@ -88,13 +88,22 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
     let pendingDocument: Request | null = null;
     const engine = page.context().browser()?.browserType().name();
     const webkit = 'webkit' === engine;
-    // in order of the events: prefetch requests (started, failed as cancelled), Turbo's prefetch rejections
-    // (PREFETCH_CANCELLED_BY_UNLOAD), main-frame navigation requests and documents, matched in check()
+    // in order of the events: local prefetch requests (when each ended, cancelled or not), main-frame navigation
+    // requests and documents (commits), and Turbo's prefetch rejections (PREFETCH_CANCELLED_BY_UNLOAD) with the request
+    // each one ends, if any, and the last commit before it; check() asks for the full load after that commit
+    type Prefetch = { ended?: number; cancelled?: boolean; paired?: boolean };
     let step = 0;
-    const prefetches = new Map<Request, { started: number; cancelled?: number }>();
-    const prefetchRejections: number[] = [];
+    const prefetches = new Map<Request, Prefetch>();
+    const prefetchRejections: { request: Prefetch | null; previousCommit: number }[] = [];
     const navigations: number[] = [];
     const commits: number[] = [];
+    const prefetchEnded = (request: Request, cancelled: boolean) => {
+        const prefetch = prefetches.get(request);
+        if (prefetch) {
+            prefetch.ended = ++step;
+            prefetch.cancelled = cancelled;
+        }
+    };
     const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
     const cspViolations = await recordCspViolations(page);
 
@@ -109,7 +118,7 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
             pendingDocument = request;
             navigations.push(++step);
         } else if ('prefetch' === request.headers()['x-sec-purpose'] && isLocal(request.url())) {
-            prefetches.set(request, { started: ++step });
+            prefetches.set(request, {});
         }
     });
     page.on('framenavigated', (frame) => {
@@ -137,11 +146,20 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
             return;
         }
         if ('firefox' === engine && PREFETCH_CANCELLED_BY_UNLOAD === error.message && fromTurboPrefetch(error.stack ?? '', baseURL)) {
-            prefetchRejections.push(++step);
+            // the request this rejection ends: none still running, the last to end, cancelled on this document
+            const previousCommit = commits.at(-1) ?? 0;
+            const requests = [...prefetches.values()];
+            const last = requests.reduce<Prefetch | null>((latest, request) => ((request.ended ?? 0) > (latest?.ended ?? 0) ? request : latest), null);
+            const own = requests.every((request) => undefined !== request.ended) && last?.cancelled && !last.paired && last.ended! > previousCommit ? last : null;
+            if (own) {
+                own.paired = true;
+            }
+            prefetchRejections.push({ request: own, previousCommit });
             return;
         }
         errors.push({ message: `pageerror: ${error.message}` });
     });
+    page.on('requestfinished', (request) => prefetchEnded(request, false));
     page.on('response', (response) => {
         if (response.status() >= 400 && isLocal(response.url())) {
             errors.push({ message: `http ${response.status()}: ${response.url()}`, httpStatus: response.status(), url: response.url() });
@@ -152,10 +170,7 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
             pendingDocument = null; // the document on screen stays (a 204 answer, a download)
         }
         const aborted = CANCELLED.includes(request.failure()?.errorText ?? '');
-        const prefetch = prefetches.get(request);
-        if (prefetch && aborted) {
-            prefetch.cancelled = ++step;
-        }
+        prefetchEnded(request, aborted);
         // Turbo 8 prefetches a link on hover and cancels the request when the pointer leaves it
         const cancelledPrefetch = 'prefetch' === request.headers()['x-sec-purpose'] && aborted;
         // a request the test interrupts on purpose (allowCancelledRequest), each allowance used at most `count` times
@@ -189,20 +204,11 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
             cancellable.push({ ...allowance });
         },
         check: () => {
-            // each of Turbo's prefetch rejections takes a prefetch request of its own: started before it, cancelled, and
-            // both before the document of the first full load after that request started (the load that cancelled it)
-            const available = [...prefetches.values()];
-            const unmatchedRejections = prefetchRejections.filter((thrown) => {
-                const index = available.findIndex(({ started, cancelled }) => {
-                    const load = navigations.find((navigation) => navigation > started);
-                    const commit = undefined === load ? undefined : commits.find((document) => document > load);
-                    return undefined !== cancelled && undefined !== commit && started < thrown && thrown < commit && cancelled < commit;
-                });
-                if (index < 0) {
-                    return true;
-                }
-                available.splice(index, 1);
-                return false;
+            // each of Turbo's prefetch rejections, its own request cancelled, needs the full load that cancelled it: a
+            // main-frame navigation request after the last commit before the rejection, and the document it commits
+            const unmatchedRejections = prefetchRejections.filter(({ request, previousCommit }) => {
+                const load = navigations.find((navigation) => navigation > previousCommit);
+                return null === request || undefined === load || !commits.some((commit) => commit > load);
             });
             const unexpected = [
                 ...errors.filter((error) => !isAllowed(error)).map(({ message }) => message),
