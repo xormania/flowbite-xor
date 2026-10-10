@@ -97,7 +97,8 @@ D and C can run in parallel because they touch different recipes.
 - **`popover`:** a new recipe, separate from `dropdown`.
   - It behaves as a non-modal dialog: Escape and outside click close it, it has groups, and focus moves in and back.
   - Its positioning is copied from `dropdown_controller.js` (flip, shift, follow on scroll and resize).
-  - `dropdown` and `tooltip` are unchanged. A shared helper is deferred.
+  - `dropdown` and `tooltip` are unchanged. A shared helper is deferred. (Done since: the `floating` recipe, one
+    module that `dropdown`, `popover` and `tooltip` import; see its README.)
 - **Times:** native `<input type="time">`. Native `type="date"` keeps working.
 
 ## E1. Charts

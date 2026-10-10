@@ -7,6 +7,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `floating`: the positioning that `dropdown`, `popover` (so `date-picker`) and `tooltip` share, one JavaScript
+  module (`assets/lib/flowbite-xor-floating.js`) that those recipes install with them: placement, flip, shift into
+  the viewport, following the trigger on scroll and resize.
 - `nav-menu`: the navbar's menu, a disclosure navigation: links and buttons opening submenus of links, nested at any
   depth; opening one closes the others, Escape closes the innermost and focuses its button, a click outside, the
   focus leaving and Turbo caching the page close them all; the current page and its submenus are marked, a submenu
@@ -134,6 +137,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `dropdown`, `popover` and `tooltip` place their content with the `floating` recipe's module instead of a copy
+  each, and depend on that recipe (`ux:install` adds `assets/lib/flowbite-xor-floating.js`). Where they place it
+  does not change.
 - Motion: transitions name the properties they animate and stop under `prefers-reduced-motion`. `tabs` triggers fade
   their colors only (was `transition-all`), the `toggle` knob animates `translate` and its border color (was
   `transition-all`), and the `modal` backdrop its color (was every property); these, the `sidebar` width and chevron,

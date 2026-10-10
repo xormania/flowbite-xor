@@ -49,7 +49,9 @@ Free content anchored to a button: text, links or a small form, in a non-modal d
   itself. Escape closes it and focuses the trigger; a click outside or the focus leaving it closes it.
 - `placement` sets the side (`top`, `bottom`, `left`, `right`, optionally `-start` or `-end`). The content flips to the
   other side when it does not fit, shifts along the trigger to stay in the viewport, and follows the trigger on
-  scroll and resize.
+  scroll and resize; `offsetDistance` is the gap in pixels (8). The final placement is in the content's
+  `data-placement`. The placing is the `floating` recipe's module (`assets/lib/flowbite-xor-floating.js`), shared with
+  `dropdown` and `tooltip`, which `ux:install popover` installs with it.
 - Popovers with the same `name` close each other.
 - `open` renders it open, without taking the focus.
 - `Popover:Content` takes `label` for the dialog's name; without it, the trigger's text names it.
@@ -116,5 +118,5 @@ Opening one popover of the group closes the other.
 - The popover is not modal: the page stays reachable, and the focus is not trapped. Use `modal` when the user must
   deal with the content first.
 
-Built from the `popover` recipe of the Symfony UX Toolkit shadcn kit (3.5.1, MIT), with this kit's colors and the
-`dropdown` recipe's positioning.
+Built from the `popover` recipe of the Symfony UX Toolkit shadcn kit (3.5.1, MIT), with this kit's colors and its
+shared positioning (the `floating` recipe).

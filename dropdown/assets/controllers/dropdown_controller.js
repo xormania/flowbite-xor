@@ -1,10 +1,11 @@
 import { Controller } from '@hotwired/stimulus';
+import { follow, position } from '../lib/flowbite-xor-floating.js';
 
 /**
  * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
  * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
  * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
- * Copy it into a controller that needs it, as `position()` is.
+ * Copy it into a controller that needs it.
  */
 function isPromotedFrameCache() {
     return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
@@ -113,10 +114,8 @@ export default class extends Controller {
                 this.hide({ restoreFocus: false });
             }
         };
-        this.onReposition = () => this.position();
         document.addEventListener('click', this.onClickOutside, true);
-        window.addEventListener('scroll', this.onReposition, true);
-        window.addEventListener('resize', this.onReposition);
+        this.stopFollowing = follow(() => this.position());
 
         this.position();
     }
@@ -127,8 +126,8 @@ export default class extends Controller {
         }
         this.visible = false;
         document.removeEventListener('click', this.onClickOutside, true);
-        window.removeEventListener('scroll', this.onReposition, true);
-        window.removeEventListener('resize', this.onReposition);
+        this.stopFollowing?.();
+        this.stopFollowing = null;
         if (silent) {
             return;
         }
@@ -140,60 +139,14 @@ export default class extends Controller {
 
     /**
      * Places the content like Popper does for Flowbite (absolute, `translate(x, y)`, offset, flip,
-     * shift along the trigger within the viewport), so menus land on the same pixels.
+     * shift along the trigger within the viewport), so menus land on the same pixels: the kit's shared
+     * positioning (`assets/lib/flowbite-xor-floating.js`, the `floating` recipe).
      */
     position() {
-        const content = this.contentTarget;
-        // absolute first: the size to place is the menu's own (w-fit), not the width it takes in flow
-        Object.assign(content.style, { position: 'absolute', inset: '0px auto auto 0px', margin: '0px' });
-        const [side, align = 'center'] = (this.placementValue || 'bottom').split('-');
-        const reference = this.triggerTarget.getBoundingClientRect();
-        const size = { width: content.offsetWidth, height: content.offsetHeight };
-        const viewport = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
-        const vertical = 'top' === side || 'bottom' === side;
-        const opposite = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
-
-        const place = (s) => {
-            const point = { x: 0, y: 0 };
-            if (vertical) {
-                point.y = 'bottom' === s ? reference.bottom + this.offsetDistanceValue : reference.top - size.height - this.offsetDistanceValue;
-                point.x = 'start' === align ? reference.left : 'end' === align ? reference.right - size.width : reference.left + reference.width / 2 - size.width / 2;
-            } else {
-                point.x = 'right' === s ? reference.right + this.offsetDistanceValue : reference.left - size.width - this.offsetDistanceValue;
-                point.y = 'start' === align ? reference.top : 'end' === align ? reference.bottom - size.height : reference.top + reference.height / 2 - size.height / 2;
-            }
-            return point;
-        };
-        const overflows = (s, point) =>
-            ({ top: -point.y, bottom: point.y + size.height - viewport.height, left: -point.x, right: point.x + size.width - viewport.width })[s] > 0;
-
-        let finalSide = side;
-        let point = place(side);
-        if (overflows(side, point) && !overflows(opposite[side], place(opposite[side]))) {
-            finalSide = opposite[side];
-            point = place(finalSide);
-        }
-
-        // shift along the trigger to stay in the viewport, without leaving the trigger
-        const axis = vertical ? 'x' : 'y';
-        const length = vertical ? size.width : size.height;
-        const [refStart, refEnd] = vertical ? [reference.left, reference.right] : [reference.top, reference.bottom];
-        const limit = vertical ? viewport.width : viewport.height;
-        point[axis] = Math.min(Math.max(point[axis], 0), limit - length);
-        point[axis] = Math.min(Math.max(point[axis], refStart - length), refEnd);
-
-        // viewport coordinates -> coordinates of the content's containing block
-        const parent = content.offsetParent;
-        let origin = { x: -window.scrollX, y: -window.scrollY };
-        if (parent && parent !== document.body && parent !== document.documentElement) {
-            const rect = parent.getBoundingClientRect();
-            origin = { x: rect.left + parent.clientLeft - parent.scrollLeft, y: rect.top + parent.clientTop - parent.scrollTop };
-        }
-        const dpr = window.devicePixelRatio || 1;
-        const round = (value) => Math.round(value * dpr) / dpr || 0;
-
-        content.style.transform = `translate(${round(point.x - origin.x)}px, ${round(point.y - origin.y)}px)`;
-        content.dataset.popperPlacement = 'center' === align ? finalSide : `${finalSide}-${align}`;
+        this.contentTarget.dataset.popperPlacement = position(this.contentTarget, this.triggerTarget, {
+            placement: this.placementValue,
+            offset: this.offsetDistanceValue,
+        });
     }
 
     getMenuItems() {

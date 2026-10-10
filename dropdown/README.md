@@ -77,6 +77,14 @@ The dropdown component can be used to show a list of menu items when clicking on
 </twig:Dropdown>
 ```
 
+### Positioning
+
+The menu opens on its `placement` side, `offsetDistance` pixels from the trigger, flips to the other side when it does
+not fit there, and shifts along the trigger to stay in the viewport; while open it follows the trigger on scroll and
+resize, and the final placement is in `data-popper-placement`, as with Flowbite's Popper. The placing is the
+`floating` recipe's module (`assets/lib/flowbite-xor-floating.js`), which `ux:install dropdown` installs with it:
+`popover` and `tooltip` place their content with the same module.
+
 ### With Turbo and Live Components
 
 - Before Turbo caches a page, an open menu closes: Back and Forward show it closed. One inside a
