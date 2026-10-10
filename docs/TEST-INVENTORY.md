@@ -407,7 +407,7 @@ reduced motion; an animation that is the content runs three times slower there.
 |---|---|---|---|
 | tabs, toggle, sidebar, nav-menu, side-nav, table, toast, modal | Without a preference: the computed `transition-property` holds what the part animates (tabs: colors; toggle knob `::after`: `translate`, `border-color`; sidebar: `width`; chevrons: transforms; table rows: colors; toast: `opacity`; modal `::backdrop`: colors) and no other layout property; under reduced motion it is `none` (failed before the change for each, the sidebar's and the chevrons' under reduce only) | E2E demo | motion "…: animates only what it names, and nothing under reduced motion" (11) |
 | tabs | No `all`, no layout property, a non-zero duration (the `transition-all` axe raced: `expectA11y` waits for running finite animations) | E2E demo | motion "a tabs trigger animates its colors only…" |
-| spinner, skeleton | `animation-duration` 1 s and 2 s, 3 s and 6 s under reduced motion | E2E demo | motion "the spinner and the skeleton pulse run three times slower under reduced motion" |
+| spinner, skeleton | `animation-duration` 1 s and 2 s, 3 s and 6 s under reduced motion; every animated element of their previews, a README example's own `animate-*` class included | E2E demo | motion "the spinner and the skeleton pulse run three times slower under reduced motion", "every animation in … is slowed under reduced motion" (5 previews) |
 | alert, toast, modal | Hide, removal and `aria-*` updates complete under reduced motion | E2E demo | motion (rows of alert, toast, modal above) |
 | all | Screenshots are taken under reduced motion with animations disabled: the end states | screenshot | shot:tabs, shot:alert |
 

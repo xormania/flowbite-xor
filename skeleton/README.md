@@ -37,7 +37,7 @@ Under `prefers-reduced-motion`, the pulse runs three times slower (6 s instead o
 Use this example to show a placeholder when loading content inside a card.
 
 ```twig {"preview":true}
-<twig:Card class="animate-pulse" role="status">
+<twig:Card class="animate-pulse motion-reduce:[animation-duration:6s]!" role="status">
     <twig:Card:Header>
         <twig:Skeleton class="flex items-center justify-center h-48 max-w-sm" shape="rounded" role="status">
             <twig:ux:icon name="flowbite:image-outline" class="w-11 h-11 text-fg-disabled" aria-hidden="true" />

@@ -84,6 +84,21 @@ test('the spinner and the skeleton pulse run three times slower under reduced mo
     await expect.poll(() => animationDurationOf(page.locator('.animate-pulse').first())).toBe('6s');
 });
 
+// every animated element of the skeleton and spinner previews, the README examples' own classes included (a card that
+// pulses around its skeletons): slowed three times under reduced motion, spin 1 s → 3 s, pulse 2 s → 6 s
+for (const id of ['skeleton/default', 'skeleton/card-placeholder', 'spinner/default', 'spinner/spinner-with-card', 'spinner/buttons']) {
+    test(`every animation in ${id} is slowed under reduced motion`, async ({ page }) => {
+        await open(page, id, 'reduce');
+        await expect(page.locator('.animate-pulse, .animate-spin').first()).toBeAttached();
+        const durations = await page
+            .locator('.animate-pulse, .animate-spin')
+            .evaluateAll((elements) => elements.map((element) => `${element.classList.contains('animate-spin') ? 'spin' : 'pulse'} ${getComputedStyle(element).animationDuration}`));
+        for (const duration of durations) {
+            expect(['spin 3s', 'pulse 6s'], duration).toContain(duration);
+        }
+    });
+}
+
 /*
  * Dismissing: the alert hides and the toast leaves the DOM after their fade. Under reduced motion there is no fade:
  * both finish at once, within the click (checked in the same task, before any timer could run).
