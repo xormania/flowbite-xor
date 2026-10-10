@@ -1227,9 +1227,9 @@ sanitized again, an overlay or an editor that breaks in the dark theme. Tier 3 o
 [`PLAN-test-tiers.md`](PLAN-test-tiers.md): Chromium only, and not on every push.
 
 [`.github/workflows/release-checks.yml`](../.github/workflows/release-checks.yml) runs on the release pull request
-(`dev` to `main`), once a day on `dev` when `dev` changed since the last daily run that tested a commit (it compares
-`dev`'s head with the commit the latest successful daily run recorded, looking past the days that tested nothing, and
-stops in seconds when nothing was merged), and by hand (Actions › *Release
+(`dev` to `main`), once a day on `dev` unless the release checks already passed on `dev`'s head (a passing run
+uploads a `release-checks-passed-<sha>` artifact; the daily run asks for the one of `dev`'s head, one API call, and
+stops in seconds when it exists), and by hand (Actions › *Release
 checks* › *Run workflow*). It sets up the demo as CI's browser job does and runs `RELEASE_CHECKS=1 npx playwright test --grep @release` (the variable adds the `smoke-dark@release` and `harsh@release` projects),
 then the PHPUnit properties with a random seed. CI's browser job leaves the same tests out (`--grep-invert @release`).
 A daily run that fails opens one issue labeled `release-checks`, or comments on the open one; a green one closes it.

@@ -40,16 +40,16 @@ concurrency:
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-    # What to check: dev's head for the schedule, unless the latest successful scheduled run's release-checks-commit
-    # artifact names it (the commit a run tested; a skipped run carries the last tested one forward); the pull request's
-    # or the branch's own commit otherwise.
+    # What to check: dev's head for the schedule, unless the release checks already passed on that commit (an unexpired
+    # release-checks-passed-<sha> artifact, which a passing run uploads); the pull request's or the branch's own commit
+    # otherwise.
     changed:
         name: What to check
         runs-on: ubuntu-latest
         timeout-minutes: 5
         permissions:
             contents: read
-            actions: read # the last successful scheduled run and its artifact
+            actions: read # the release-checks-passed-<sha> artifacts
         outputs:
             run: ${{ steps.compare.outputs.run }}
             ref: ${{ steps.compare.outputs.ref }}
@@ -66,36 +66,17 @@ jobs:
                       exit 0
                   fi
                   head=$(gh api "repos/$REPO/commits/dev" --jq .sha)
-                  # the latest successful scheduled run with the commit the checks last passed on: a skipped run carries
-                  # it forward; one whose artifact expired, or from before that, holds none, so look further back
-                  last=
-                  ids=$(gh api "repos/$REPO/actions/workflows/release-checks.yml/runs?event=schedule&status=success&per_page=30" --jq '.workflow_runs[].id')
-                  for id in $ids; do
-                      if gh run download "$id" --repo "$REPO" --name release-checks-commit --dir "$RUNNER_TEMP/last-$id" 2>/dev/null; then
-                          last=$(cat "$RUNNER_TEMP/last-$id/commit")
-                          echo "run $id tested $last"
-                          break
-                      fi
-                  done
-                  echo "dev is at $head; the last successful scheduled run tested ${last:-nothing it recorded}"
-                  if [ "$head" = "$last" ]; then
+                  # a run whose release checks passed uploads release-checks-passed-<the commit it tested>: one that has
+                  # not expired names dev's head when nothing was merged since
+                  passed=$(gh api "repos/$REPO/actions/artifacts?name=release-checks-passed-$head" --jq '[.artifacts[] | select(.expired | not)] | length')
+                  echo "dev is at $head; release checks passed on it before: ${passed:-0} artifact(s)"
+                  if [ "${passed:-0}" -gt 0 ]; then
                       echo "run=false" >> "$GITHUB_OUTPUT"
-                      echo "Nothing was merged into dev since: no release checks today" >> "$GITHUB_STEP_SUMMARY"
-                      # carried forward, so the next run finds it in this run however many days nothing changes
-                      mkdir -p "$RUNNER_TEMP/tested"
-                      echo "$last" > "$RUNNER_TEMP/tested/commit"
+                      echo "Nothing was merged into dev since the release checks last passed on it: none today" >> "$GITHUB_STEP_SUMMARY"
                   else
                       echo "run=true" >> "$GITHUB_OUTPUT"
                   fi
                   echo "ref=$head" >> "$GITHUB_OUTPUT"
-
-            # A run that skipped records the commit the checks last passed on, as a run that tested it does
-            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ steps.compare.outputs.run == 'false' }}
-              with:
-                  name: release-checks-commit
-                  path: ${{ runner.temp }}/tested/commit
-                  retention-days: 90
 
     checks:
         name: Release checks
@@ -276,15 +257,18 @@ jobs:
 
             # The commit this run tested, read by the next scheduled run's first job (a successful run's only)
             - name: Record the tested commit
+              id: tested
               if: ${{ success() }}
               run: |
                   mkdir -p "$RUNNER_TEMP/tested"
-                  git rev-parse HEAD > "$RUNNER_TEMP/tested/commit"
+                  git rev-parse HEAD | tee "$RUNNER_TEMP/tested/commit"
+                  echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+            # named by the commit: the next scheduled run asks for this name, one API call, nothing downloaded
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               if: ${{ success() }}
               with:
-                  name: release-checks-commit
+                  name: release-checks-passed-${{ steps.tested.outputs.sha }}
                   path: ${{ runner.temp }}/tested/commit
                   retention-days: 90
 

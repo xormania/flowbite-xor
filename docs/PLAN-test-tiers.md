@@ -99,8 +99,8 @@ taken in the browser after the response, so FrankenPHP (CI) and `php -S` (local)
 - **`release-checks.yml` (tier 3), new:**
   - `pull_request` targeting `main`: the release pull request from `dev`. `main`'s ruleset requires this check, so
     merging the release pull request needs it green;
-  - `schedule` once a day, on `dev`: first compares `dev`'s head with the commit of its last successful scheduled
-    run (GitHub API) and stops in seconds when nothing was merged;
+  - `schedule` once a day, on `dev`: first asks whether the release checks already passed on `dev`'s head (a
+    `release-checks-passed-<sha>` artifact, GitHub API) and stops in seconds when they did;
   - `workflow_dispatch`, with a `record` input to write a new baseline as an artifact;
   - Runs `npx playwright test --grep @release` in the same setup as CI.
   - A failed daily run opens one issue (label `release-checks`), or comments on the open one, instead of failing
