@@ -337,7 +337,7 @@ States: empty, one or several files picked, dragging, invalid, disabled; focus a
 | Transition | Scope | Covered by |
 |---|---|---|
 | Keyboard, picks, previews, several files, drag, invalid, disabled | E2E demo, screenshot | dropzone (6 tests); shot:dropzone (3 × 2 themes) |
-| Back (empty), N visits, permanent keeps the file, frame multipart post 303 and 422, Stream, controllers passed in, Turbo form beside a Live re-render, Live files action | E2E lab | lab.dropzone (8 tests) |
+| Back (empty), N visits, permanent keeps the file, Back keeps every file of a POST form's single-file zones (11 zones, more than the copies Turbo keeps), frame multipart post 303 and 422, Stream, controllers passed in, Turbo form beside a Live re-render, Live files action | E2E lab | lab.dropzone (9 tests) |
 | Rendered through the form theme, server refusal, files sent back, a valid submit, size limit | E2E demo | forms (5 dropzone tests) |
 | One file in a POST form after Back and Forward: still picked, shown and in the input (failed before the fix: UX Dropzone clears the copy's input as it connects) | E2E lab | lab.value-matrix |
 

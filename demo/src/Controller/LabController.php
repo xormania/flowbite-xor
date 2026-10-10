@@ -539,6 +539,7 @@ final class LabController extends AbstractController
         return $this->render('lab/dropzone_turbo.html.twig', [
             'page' => $page,
             'load' => $request->query->getInt('load'),
+            'zones' => max(0, min(20, $request->query->getInt('zones'))),
             'framed' => $request->query->getString('framed'),
             'error' => $error,
             'description' => self::SCENARIOS['dropzone-turbo'],
