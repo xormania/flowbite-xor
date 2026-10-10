@@ -1,5 +1,12 @@
-import { test, expect } from './fixtures';
-import { shown, visit, visitAndBack } from './transitions';
+import type { Page } from '@playwright/test';
+import { stimulusControllers, test, expect } from './fixtures';
+import { back, forward, reload, shown, visit, visitAndBack } from './transitions';
+
+const phone = { width: 600, height: 800 };
+const desktop = { width: 1280, height: 800 };
+const sidebar = (page: Page) => page.locator('#lab-sidebar');
+const current = (page: Page) => page.getByRole('navigation', { name: 'Lab' }).locator('[aria-current="page"]');
+const menu = (page: Page) => page.getByRole('button', { name: 'Open menu' });
 
 test('a data-turbo-permanent panel is kept across Turbo visits (not its scroll) and the theme persists', async ({ page }) => {
     await page.goto('/lab/turbo-nav');
@@ -90,4 +97,94 @@ test('on a small screen the navbar button opens the sidebar over the page', asyn
     await shown(page, 'Page two');
     await expect(sidebar).toBeHidden();
     await expect(page.getByRole('button', { name: 'Open menu' })).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('Back and Forward mark the current item of the page shown in the permanent sidebar', async ({ page }) => {
+    await page.goto('/lab/turbo-nav');
+    await expect(current(page)).toHaveText('Page one');
+
+    await visit(page, 'Go to page two', 'Page two');
+    await expect(current(page)).toHaveText('Page two');
+
+    // the cached copy of page one comes back around the same sidebar element: it marks page one again
+    await back(page, 'Page one');
+    await expect(current(page)).toHaveCount(1);
+    await expect(current(page)).toHaveText('Page one');
+
+    await forward(page, 'Page two');
+    await expect(current(page)).toHaveCount(1);
+    await expect(current(page)).toHaveText('Page two');
+    expect(await stimulusControllers(page, 'sidebar')).toEqual({ controllers: 1, elements: 1, distinctElements: 1 });
+});
+
+// localStorage throws (blocked site data, some private modes): the collapse cannot be saved, and lasts the page
+test('with localStorage blocked, the sidebar stays collapsed across Turbo visits, Back and Forward, until a reload', async ({ page }) => {
+    await page.addInitScript(() => {
+        const blocked = () => {
+            throw new DOMException('blocked', 'SecurityError');
+        };
+        Object.defineProperty(window, 'localStorage', { get: blocked });
+    });
+    await page.goto('/lab/turbo-nav');
+    const collapsed = async () => {
+        await expect(sidebar(page)).toHaveAttribute('data-collapsed');
+        await expect(page.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute('aria-expanded', 'false');
+    };
+
+    await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+    await collapsed();
+
+    await visit(page, 'Go to page two', 'Page two');
+    await collapsed();
+    await back(page, 'Page one');
+    await collapsed();
+    await forward(page, 'Page two');
+    await collapsed();
+
+    // nothing was saved: a new page load starts expanded
+    await reload(page, 'Page two');
+    await expect(sidebar(page)).not.toHaveAttribute('data-collapsed');
+    await expect(page.getByRole('button', { name: 'Collapse sidebar' })).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('on a small screen, the sidebar open over the page is closed after Back, and after Forward to its page', async ({ page }) => {
+    await page.setViewportSize(phone);
+    await page.goto('/lab/turbo-nav');
+    await visit(page, 'Go to page two', 'Page two');
+    await menu(page).click();
+    await expect(sidebar(page)).toBeVisible();
+    await expect(menu(page)).toHaveAttribute('aria-expanded', 'true');
+
+    await back(page, 'Page one');
+    await expect(sidebar(page)).toBeHidden();
+    await expect(menu(page)).toHaveAttribute('aria-expanded', 'false');
+
+    // the copy of page two was taken with the sidebar open over it: its menu button must not say so
+    await forward(page, 'Page two');
+    await expect(sidebar(page)).toBeHidden();
+    await expect(menu(page)).toHaveAttribute('aria-expanded', 'false');
+
+    await menu(page).click();
+    await expect(sidebar(page)).toBeVisible();
+    await expect(menu(page)).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('the sidebar open over the page closes when the screen grows to a desktop, and opens again with one click', async ({ page }) => {
+    await page.setViewportSize(phone);
+    await page.goto('/lab/turbo-nav');
+    await menu(page).click();
+    await expect(sidebar(page)).toBeVisible();
+
+    // the menu button is hidden there, so out of the accessibility tree: found by the sidebar it controls
+    await page.setViewportSize(desktop);
+    const hiddenMenu = page.locator('[data-sidebar-trigger="lab-sidebar"]');
+    await expect(sidebar(page)).toBeVisible();
+    await expect(hiddenMenu).toBeHidden();
+    await expect(hiddenMenu).toHaveAttribute('aria-expanded', 'false');
+
+    await page.setViewportSize(phone);
+    await expect(sidebar(page)).toBeHidden();
+    await menu(page).click();
+    await expect(sidebar(page)).toBeVisible();
+    await expect(menu(page)).toHaveAttribute('aria-expanded', 'true');
 });
