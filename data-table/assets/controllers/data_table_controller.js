@@ -1,12 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-
-/**
- * Whether `turbo:before-cache` comes from a frame visit promoted to history, which keeps the page on screen and caches
- * a copy taken earlier (Turbo 8: its visit renders nothing). Copied from `popover_controller.js`.
- */
-function isPromotedFrameCache() {
-    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
-}
+import { isPromotedFrameCache } from '../lib/flowbite-xor-turbo.js';
 
 /**
  * Keeps a `DataTable`'s Turbo Frame and the URL on screen in agreement after Back and Forward, even when they are

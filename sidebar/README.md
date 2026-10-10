@@ -49,3 +49,6 @@ The app's main navigation: grouped links with icons and counts, collapsible to i
 - **Small screens:** the sidebar is hidden. The `Navbar` menu button opens it over the page, and Escape closes it, as do a Turbo visit, Back, Forward and the screen growing to where the sidebar sits beside the page; the menu button's `aria-expanded` follows, on a page Turbo restores from its cache too. To open it from another button, dispatch a `sidebar:toggle` event on `window` with the sidebar's id: `window.dispatchEvent(new CustomEvent('sidebar:toggle', {detail: {id: 'sidebar'}}))`. For a modal drawer instead (the page behind inert, a backdrop, closed by links and Turbo visits), render the same navigation in a [`MobileNav`](../mobile-nav/README.md), as the `layouts` app layout does.
 - **Motion:** collapsing animates the sidebar's width and turns its chevron; under `prefers-reduced-motion` both change
   at once.
+
+Marking the current item and closing the sidebar opened over the page when the screen grows are the `navigation`
+recipe's module (`assets/lib/flowbite-xor-navigation.js`), which `ux:install sidebar` installs with it.

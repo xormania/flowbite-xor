@@ -121,3 +121,7 @@ The table keeps working through Turbo visits, inside a Turbo Frame, inside a `da
 its state across visits) and after a Turbo Stream replaces or updates it (it starts again from the state the stream
 rendered). Give a region one owner: let Live re-render the table, or replace it with a Turbo Frame or Stream, not both
 at once. Turbo 8's refresh with morphing is not supported.
+
+Whether a `turbo:before-cache` leaves the table as it is (a frame visit promoted to history, a `data-turbo-permanent`
+element) is answered by the `turbo` recipe's module (`assets/lib/flowbite-xor-turbo.js`), which `ux:install
+data-table-live` installs with it.

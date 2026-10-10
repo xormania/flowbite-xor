@@ -1,14 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-
-/**
- * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
- * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
- * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
- * The same helper as in the popover controller: the kit copies it into each controller that needs it.
- */
-function isPromotedFrameCache() {
-    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
-}
+import { isKeptOnCache } from '../lib/flowbite-xor-turbo.js';
 
 /**
  * Opens a `Drawer`, a native `<dialog>` docked to a side of the viewport: modal by default (the page is
@@ -83,7 +74,7 @@ export default class extends Controller {
     // a data-turbo-permanent drawer is not in the copy Turbo shows on Back: Turbo moves the live one in; a frame visit
     // promoted to history keeps the page on screen and took its copy when it started: the drawer stays open
     #closeBeforeCache = () => {
-        if (this.dialogTarget.open && !this.element.closest('[data-turbo-permanent]') && !isPromotedFrameCache()) {
+        if (this.dialogTarget.open && !isKeptOnCache(this.element)) {
             this.#closeNow();
         }
     };

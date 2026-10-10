@@ -69,6 +69,10 @@ anything else next to a control.
 - Without `id`, the popover gets a random one on every render. Inside a Live Component or a Turbo Frame, pass a stable
   `id` (e.g. `id="row-{{ row.id }}-details"`).
 
+Whether a `turbo:before-cache` leaves the popover as it is (a frame visit promoted to history, a
+`data-turbo-permanent` element) and whether it connects in a cached copy are answered by the `turbo` recipe's module
+(`assets/lib/flowbite-xor-turbo.js`), which `ux:install popover` installs with it.
+
 ## Examples
 
 ### Placements

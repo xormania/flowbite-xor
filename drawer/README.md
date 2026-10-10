@@ -46,3 +46,7 @@ Spread `drawer_trigger_attrs` on the element that opens the drawer, inside `Draw
 A modal drawer traps focus and makes the page inert (native `showModal()`); Escape or a click on the backdrop closes it. With `:modal="false"` the page stays usable and Escape still closes the drawer while focus is inside it.
 
 In a Live Component, an open drawer stays open across a re-render. A re-render that replaces the drawer's container (a wrapper whose id changes) moves the `<dialog>` to a new controller: the old one disconnects without an error, and the new one starts as its `open` value says, closed by default, its triggers collapsed and the page not left inert.
+
+Whether a `turbo:before-cache` leaves the drawer open (a frame visit promoted to history, a `data-turbo-permanent`
+element) is answered by the `turbo` recipe's module (`assets/lib/flowbite-xor-turbo.js`), which `ux:install drawer`
+installs with it.
