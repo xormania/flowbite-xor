@@ -168,9 +168,10 @@
     {%- endset -%}
     {%- set _control = 'Select' -%}
     {%- set _control_attr = {multiple: multiple} -%}
-    {%- if 'symfony--ux-autocomplete--autocomplete' in (attr['data-controller'] ?? '')|split(' ') -%}
-        {#- the autocomplete recipe's autocomplete-sync: Tom Select shows the choice a Live Component's re-render sets -#}
-        {%- if 'autocomplete-sync' not in attr['data-controller']|split(' ') -%}
+    {%- set _controllers = (attr['data-controller'] ?? '')|split(' ') -%}
+    {%- if 'symfony--ux-autocomplete--autocomplete' in _controllers -%}
+        {#- the autocomplete recipe's autocomplete-sync: Tom Select shows the choice a Live Component's re-render sets, and the one a reset of the select's form puts back -#}
+        {%- if 'autocomplete-sync' not in _controllers -%}
             {%- set _control_attr = _control_attr|merge({'data-controller': attr['data-controller'] ~ ' autocomplete-sync'}) -%}
         {%- endif -%}
         {%- if attr['aria-labelledby'] is not defined and label is not same as(false) -%}

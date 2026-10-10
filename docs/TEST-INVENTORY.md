@@ -125,6 +125,7 @@ flash messages; the forms of a page restored on Back and Forward (`form-reset` o
 | A GET form's date picker goes back to the month rendered, focus on its day | E2E lab | lab.form-back "a date picker in a GET form also goes back to the month rendered" (failed without the calendar's `reset` listener) |
 | A calendar follows the reset of a form outside it, tied by the inputs' `form` attribute, before a multiple calendar has any input | E2E | calendar "a calendar whose inputs belong to a form outside it…" (failed when the form was only looked up through the inputs and around the calendar) |
 | A GET form holding the focus as the page's scripts start keeps what was typed; one not holding it is reset | E2E lab | lab.form-back "a GET form holding the focus…", "…not holding the focus…" (the controller's request held; failed without the focus exception, and without `form-reset`) |
+| A GET form after Back: the layouts' sync of Tom Select and the autocomplete's own (`autocomplete-sync`) leave one item and dispatch no `input` or `change`; a later `form.reset()` still syncs it | E2E lab | lab.form-back "a GET form after Back: the two syncs of Tom Select…" (failed without `autocomplete-sync`'s reset listener on the later reset: Banana shown, Apple expected) |
 | The data table's search form resets itself, without `form-reset` (a table installed without `layouts`) | E2E lab | lab.data-table-back (passes with `form-reset` removed from `<body>`; 4 of its tests failed so before the table's own reset was restored) |
 | The value matrix (owner decision 6b): each widget holding a value or a state the user changes (the fields of a GET and of a POST form, autocomplete, date picker, calendar, editor, Markdown editor, dropzone, tabs, dropdown, popover, modal, drawer, side-nav, theme toggle, the data tables' search, page and selection) × Back, Forward, a frame reload around and beside it, a Stream replace and update of its region and beside it, a Live re-render, a `data-turbo-permanent` visit and Back, a visit away and back; each cell the policy table's expectation or `n/a` with its reason | E2E lab | lab.value-matrix (22 components × 10 transitions: 190 cells run, 30 `n/a` with their reason, and a test that every cell is one or the other). It found five kit bugs: a popover and a dropdown open in a `data-turbo-permanent` element closed by a visit, a dropzone's file in a POST form gone after Back and Forward, an autocomplete showing the user's choice over the one a Live re-render set, a Live table's selection shown again by Back and Forward |
 | Changed assets force a full load (`data-turbo-track="reload"`) | | G9 |
@@ -309,6 +310,7 @@ modifiers, locale; the picker closed or open, typed text valid or invalid.
 | Recipe | Transition | Scope | Covered by |
 |---|---|---|---|
 | calendar | Keys, month and year dropdowns and their bounds, modifiers gone in a re-render, impossible dates, form submit, one input and one change per pick, ranges over disabled days, multiple mode inputs | E2E demo | calendar (9 tests) |
+| calendar | A form reset cancelled by another listener (a capture listener on `form.reset()` and the reset button, a listener after the calendar's on the button) leaves the selection; the next reset brings back the date rendered with `calendar:select` source `reset`; a calendar disconnected while its reset waits does nothing | E2E demo | calendar "a reset another listener cancels leaves the selection…" (failed before the deferred reset: the cancelled reset brought back 2026-03-10) |
 | calendar | Back in a GET form shows the URL's month and selection, not the pick made before (`form-reset`); N visits; permanent; frame ×3; Stream; Live props, bounds, locale, clear | E2E lab | lab.calendar (6 tests) |
 | date-picker | Trigger, pick, typed dates, invalid text, ArrowDown, range | E2E demo | date-picker (3 tests) |
 | date-picker | Form submit; Back in a GET form (the URL's date, closed, not the pick); N visits; permanent and frame ×3; Stream; Live form | E2E lab | lab.date-picker (6 tests) |
@@ -360,7 +362,7 @@ States: content, selection, toolbar states, counter, read-only; markdown's Write
 
 ### autocomplete
 
-States: chosen values (one, several, remote, created), the Tom Select instance, invalid.
+States: chosen values (one, several, remote, created), the Tom Select instance, invalid, the values a form reset puts back.
 
 | Transition | Scope | Covered by |
 |---|---|---|
@@ -368,6 +370,10 @@ States: chosen values (one, several, remote, created), the Tom Select instance, 
 | Visits away and Back leave one Tom Select per field | E2E lab | lab.autocomplete "Turbo visits away and Back leave one working Tom Select per field" |
 | Chosen values after Back: a GET form shows the URL's choice in the `<select>` and Tom Select's item, a POST form (the lab's Symfony form) the choice left | E2E lab | lab.form-back (its autocomplete tests) |
 | Frame reload, Stream, Live re-render keeps values | E2E lab | lab.autocomplete (3 tests) |
+| A reset of the field's form (reset button, `form.reset()`) puts back the values rendered in the `<select>`, the form's data and Tom Select's items: one and several choices, the form theme's fields and `Autocomplete`, a field tied by `form="…"` outside its form; with and without the layouts' `form-reset` on `<body>` (`?bare=1`); no `input` or `change` | E2E lab | lab.autocomplete "…a reset button puts back the values rendered…" (×2 compositions; failed without `autocomplete-sync`'s reset listener: Japan shown, France expected) |
+| A reset cancelled in a capture listener changes nothing; the next one, from `form.reset()`, puts back the values | E2E lab | lab.autocomplete "…a reset cancelled in a capture listener…" (×2; failed without `autocomplete-sync`'s reset listener on the real reset; the cancelled part cannot fail with a sync, which mirrors the `<select>`) |
+| A reset syncs the current Tom Select once: none after the controller disconnects (also for a reset pending then), once after it reconnects, once on the Tom Select UX Autocomplete rebuilds when an option is added | E2E lab | lab.autocomplete "a reset syncs the current Tom Select once…" (failed without `autocomplete-sync`'s reset listener: Fish shown, Dog expected) |
+| In a Live form, a reset shows the default in Tom Select, with no event and no Live request | E2E lab | lab.autocomplete "in a Live form, a reset shows…" (failed without `autocomplete-sync`'s reset listener: Tom Select kept Germany) |
 | Permanent: the choice kept across a visit and Back | E2E lab | lab.value-matrix |
 | A choice the server sets in a Live re-render shows in Tom Select (failed before the fix: the `<select>` held the server's value, Tom Select still showed the user's) | E2E lab | lab.value-matrix |
 | Frame advance | | G12 |

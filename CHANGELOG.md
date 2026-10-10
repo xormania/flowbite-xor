@@ -59,12 +59,19 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 - `autocomplete`: in a Live Component form, a value the server set in a re-render (a reset, another record) reached the
   `<select>` but Tom Select still showed the one before; the new `autocomplete-sync` controller, put next to UX
   Autocomplete's by the `Autocomplete` component and the form theme, makes Tom Select show it.
+- `autocomplete`: after a reset of its form (a reset button, `form.reset()`), Tom Select showed the choice made before,
+  the `<select>` holding the one rendered; it showed it right only after Back through the layouts' `form-reset`.
+  `autocomplete-sync` now also syncs Tom Select once the reset is done, without `layouts`, for a field tied to its
+  form by `form` too, with no `input` or `change` event (no Live request).
 - `data-table-live`: the row selection, which leaving the page drops, came back with Back and Forward when Turbo
   showed its copy of the page; the new `data-table-live` controller clears it as such a copy connects.
 - `modal`, `drawer`: a Live re-render that replaced the container of the component (a wrapper whose id changes)
   logged "Missing target element" errors: the morph moves the `<dialog>` to the new controller before the old one
   disconnects. The old controller now disconnects without it; the new one works as before (an open modal stays open,
   its new trigger expanded; a drawer starts as its `open` value says).
+- `calendar`: a form reset cancelled by another listener (`preventDefault()` on `reset`) still brought back the dates
+  rendered; the calendar now resets its hidden inputs in the same task, after the form's own listeners, and only when
+  the reset was not cancelled (one cancelled later is put back). Its README lists the `reset` source of `calendar:select`.
 - `editor`: a submit of more than `EditorHtmlPolicy::MAX_INPUT_BYTES` (1000000 bytes) was a 500: the form showing its
   error printed the refused value through `flowbite_editor_html`, which refuses it. It is now a 422 with the field's
   error, the editor and its textarea empty (the value is never cut); the same in a Live Component.

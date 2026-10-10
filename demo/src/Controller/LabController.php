@@ -41,7 +41,7 @@ final class LabController extends AbstractController
         'data-table-live-frame' => 'A Live DataTable inside a Turbo Frame that reloads: the reloaded table is live again.',
         'data-table-live-permanent' => 'A Live DataTable inside a data-turbo-permanent element: it keeps its state across Turbo visits.',
         'data-table-live-stream' => 'A Live DataTable replaced and updated by Turbo Streams: it reconnects and starts from the server state.',
-        'autocomplete' => 'Autocomplete fields in a Symfony form (one choice, several, a remote search) and the Autocomplete component outside a form, across Turbo visits and Back.',
+        'autocomplete' => 'Autocomplete fields in a Symfony form (one choice, several, a remote search) and the Autocomplete component outside a form, across Turbo visits and Back; a reset button puts back the values rendered (?defaults=1 gives the form some), in the Symfony form and in a form of Autocomplete components, one of them outside it (the form attribute), also without the layouts\' form-reset controller (?bare=1).',
         'autocomplete-frame' => 'An Autocomplete inside a Turbo Frame that reloads.',
         'autocomplete-stream' => 'An Autocomplete replaced by a Turbo Stream.',
         'live-autocomplete' => 'Autocomplete fields in a Live form that re-renders.',
@@ -290,7 +290,8 @@ final class LabController extends AbstractController
     #[Route('/autocomplete', name: 'app_lab_autocomplete', methods: ['GET', 'POST'])]
     public function autocomplete(Request $request): Response
     {
-        $form = $this->createForm(AutocompleteDemoType::class);
+        // ?defaults=1: the fields rendered with values, which a reset of the form puts back
+        $form = $this->createForm(AutocompleteDemoType::class, $request->query->getBoolean('defaults') ? ['country' => 'FR', 'languages' => ['en', 'fr']] : null);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -301,6 +302,8 @@ final class LabController extends AbstractController
         return $this->render('lab/autocomplete.html.twig', [
             'form' => $form,
             'submitted' => $request->query->getString('submitted'),
+            // ?bare=1: the page without the layouts' form-reset controller on <body>
+            'form_reset' => !$request->query->getBoolean('bare'),
             'description' => self::SCENARIOS['autocomplete'],
         ], new Response(null, $form->isSubmitted() ? 422 : 200));
     }
