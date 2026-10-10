@@ -1286,7 +1286,10 @@ node tools/ci/release-timings.mjs --record tests/perf/baseline.json --commit "$(
 
 **Recording a baseline.** Run the workflow by hand on `dev` with `record` checked: the `release-baseline` artifact is
 the run's timings as a `baseline.json` (per step and metric, INP included, the median and the spread of the runs, with
-the commit and the date). It replaces `tests/perf/baseline.json` through a pull request that shows the old and new numbers (the
-report of that run, which compares them). The first file was recorded locally on `dev` (`3bd5b88`, 2026-10-10, the
-Docker demo on a development machine, one worker); CI's first `record` run replaces it, as its machine sets the numbers
-the tolerances will be read against.
+the commit, the date and the timing harness). It replaces `tests/perf/baseline.json` through a pull request that shows the
+old and new numbers (the report of that run, which compares them). A baseline of another timing harness (`HARNESS` in
+`tools/ci/release-timings.mjs`, raised whenever a metric starts measuring something else) is not compared with: the
+report says to record it again. The first file was recorded locally on `dev` (`3bd5b88`, 2026-10-10, the Docker demo on a
+development machine, one worker) with harness 1, whose duration ended before the frame that presents the update; harness
+2 counts that frame, so the report waits for CI's first `record` run, whose machine also sets the numbers the
+tolerances will be read against.

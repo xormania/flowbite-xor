@@ -7,7 +7,8 @@
  * spread. It never fails on a timing: tolerances come later (the plan's step 8).
  *
  * With --record <file>, it also writes the run as a new baseline: per step and metric, the median and the spread of
- * the runs, with the commit and the date. The baseline changes only through a pull request that shows the old and
+ * the runs, with the commit, the date and the timing harness (HARNESS); a baseline of another harness is not compared
+ * with, the report says to record it again. The baseline changes only through a pull request that shows the old and
  * new numbers (this report, run with --baseline on the old file).
  *
  * Usage: node tools/ci/release-timings.mjs [--baseline tests/perf/baseline.json] [--record <file>] [--commit <sha>]
@@ -21,6 +22,13 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { gather } from '../monthly/timings.mjs';
+
+/**
+ * The version of the timing harness (tests/e2e/counts.ts, `measure`): a baseline recorded with another one measured
+ * something else and is not compared with. 1: the duration ended when the action's update landed; 2: at the frame
+ * presented after it. Raise it with any change to what a metric measures.
+ */
+export const HARNESS = 2;
 
 /** The metrics of a step, by name, each { median, spread, runs }: the duration and INP, then the extra metrics. */
 export function metricsOf(step) {
@@ -42,6 +50,7 @@ export function baseline({ steps }, { commit, date }) {
     return {
         commit,
         date,
+        harness: HARNESS,
         note: 'Medians of the release checks\' timed steps (tools/ci/release-timings.mjs --record). Report only until the tolerances are set (docs/PLAN-test-tiers.md, step 8).',
         steps: Object.fromEntries(Object.entries(steps).map(([name, step]) => [name, metricsOf(step)])),
     };
@@ -66,7 +75,7 @@ export function markdown(current, base, { baselineNote = '' } = {}) {
     const out = [
         '## Release checks: timings (report only)',
         '',
-        'Per step, the median of its runs in Chromium, against `tests/perf/baseline.json`. Duration: from the step\'s action until the update it waits for has landed (Playwright\'s round trips included); INP: its longest interaction (Event Timing); TBT: long tasks\' time over 50 ms; style, layout, script: Chromium\'s renderer counters over the step. No tolerance yet: nothing here fails the run.',
+        'Per step, the median of its runs in Chromium, against `tests/perf/baseline.json`. Duration: from the step\'s action until the frame presented after the update it waits for (Playwright\'s round trips included); INP: its longest interaction (Event Timing); TBT: long tasks\' time over 50 ms; style, layout, script: Chromium\'s renderer counters over the step. No tolerance yet: nothing here fails the run.',
         '',
     ];
     if (base) {
@@ -122,6 +131,11 @@ function main(argv) {
         current = gather(options.files.map((file) => JSON.parse(readFileSync(file, 'utf8'))));
         if (options.baseline && existsSync(options.baseline)) {
             base = JSON.parse(readFileSync(options.baseline, 'utf8'));
+            const recordedWith = base.harness ?? 1;
+            if (HARNESS !== recordedWith) {
+                baselineNote = `${options.baseline} was recorded with timing harness ${recordedWith}, this run uses ${HARNESS}: record it again`;
+                base = null;
+            }
         } else if (options.baseline) {
             baselineNote = `${options.baseline} does not exist`;
         }

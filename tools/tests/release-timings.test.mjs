@@ -88,3 +88,22 @@ test('no timed step fails (no report, never an empty one); bad usage and an unre
     writeFileSync(join(dir, 'ok.json'), JSON.stringify(fiveRuns([1, 1, 1, 1, 1])));
     assert.equal(run(['--baseline', join(dir, 'bad.json'), join(dir, 'ok.json')]).status, 64);
 });
+
+test('a baseline recorded with another timing harness is not compared with: the report says to re-record it', () => {
+    const dir = scratch();
+    writeFileSync(join(dir, 'results.json'), JSON.stringify(fiveRuns([200, 200, 200, 200, 200])));
+    // what the checked-in baseline was before the harness version: the duration ended before the presented frame
+    const old = baseline(gather([fiveRuns([100, 100, 100, 100, 100])]), { commit: 'abcdef1234567890', date: '2026-10-10' });
+    delete old.harness;
+    writeFileSync(join(dir, 'old.json'), JSON.stringify(old));
+    const result = run(['--baseline', join(dir, 'old.json'), join(dir, 'results.json')]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /No baseline to compare with \(.*old\.json was recorded with timing harness 1, this run uses 2: record it again\)/);
+    assert.doesNotMatch(result.stdout, /\| 100 ms \|/);
+
+    // one recorded now carries the version and is compared with
+    const recorded = join(dir, 'new.json');
+    assert.equal(run(['--record', recorded, '--commit', 'abc', join(dir, 'results.json')]).status, 0);
+    assert.equal(JSON.parse(readFileSync(recorded, 'utf8')).harness, 2);
+    assert.match(run(['--baseline', recorded, join(dir, 'results.json')]).stdout, /Baseline: commit `abc`/);
+});
