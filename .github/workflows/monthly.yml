@@ -191,6 +191,8 @@ jobs:
               if: ${{ !cancelled() }}
               env:
                   SHARD: ${{ matrix.shard }}/3
+                  BROWSER: chromium
+                  RESULTS_ARTIFACT: monthly-playwright-results-${{ matrix.shard }}
                   TESTS_OUTCOME: ${{ steps.tests.outcome }}
                   SETUP_STEPS: |
                       Build the demo image=${{ steps.image.outcome }}

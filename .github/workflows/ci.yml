@@ -467,7 +467,10 @@ jobs:
               id: results
               if: ${{ !cancelled() }}
               env:
-                  SHARD: ${{ matrix.browser }} ${{ matrix.shard }}/3
+                  SHARD: ${{ matrix.shard }}/3
+                  BROWSER: ${{ matrix.browser }}
+                  RESULTS_ARTIFACT: playwright-results-${{ matrix.browser }}-${{ matrix.shard }}
+                  REPORT_ARTIFACT: playwright-report-${{ matrix.browser }}-${{ matrix.shard }}
                   DEMO_STARTED: ${{ steps.start.outcome }}
                   TESTS_OUTCOME: ${{ steps.tests.outcome }}
                   SETUP_STEPS: |
