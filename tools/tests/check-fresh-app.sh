@@ -32,6 +32,16 @@ for expected in '<h1[^>]*>[[:space:]]*Dashboard[[:space:]]*</h1>' 'Recent orders
 done
 echo "ok: the dashboard renders (HTTP 200)"
 
+# The page's import map serves every local module it names, the kit's controllers among them: what a browser loads to
+# start Stimulus in this freshly installed app (a missing or failed asset here leaves every widget inert)
+modules="$(grep -oE '<script type="importmap"[^>]*>.*</script>' <<< "$page" | grep -oE ':[[:space:]]*"/assets/[^"]+\.js"' | grep -oE '/assets/[^"]+' | sort -u)"
+grep -q '^/assets/controllers/' <<< "$modules" || { echo "FAIL: the dashboard's import map names no controller of the kit" >&2; exit 1; }
+while IFS= read -r module; do
+    status="$(curl -s "$@" -o /dev/null -w '%{http_code} %{content_type}' "$base$module")"
+    [[ "$status" == "200 "*javascript* ]] || { echo "FAIL: $module (in the import map) answered $status" >&2; exit 1; }
+done <<< "$modules"
+echo "ok: the import map's $(wc -l <<< "$modules") local modules answer as JavaScript, the kit's controllers included"
+
 # Symfony's default layout would print a bare <input id="form_email"> and <label for="form_email" class="required">;
 # the theme prints the kit's components
 page="$(fetch /register "$@")"

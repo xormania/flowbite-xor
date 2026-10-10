@@ -68,7 +68,10 @@ function browserProjects(browser: keyof typeof desktop) {
         {
             name: `smoke${suffix}`,
             testDir: './tests/e2e',
-            testIgnore: 'examples/**',
+            // each test is its own unit for the shards (no spec shares state between its tests), so they balance
+            fullyParallel: true,
+            // the broad axe scans (a11y.spec.ts) run in Chromium only: Firefox and WebKit run the behavior
+            testIgnore: other ? ['examples/**', 'a11y.spec.ts'] : 'examples/**',
             ...select,
             use: { ...devices[desktop[browser]] },
         },

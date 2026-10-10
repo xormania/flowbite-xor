@@ -924,7 +924,9 @@ because it is experimental (`ci.yml`, `UX_TOOLKIT_VERSION`).
 **Catches:** a controller that works only in Chromium (an event order, a focus rule, an API another engine lacks or
 implements differently), and a test that passes only there.
 
-Chromium runs every test; Firefox and WebKit run every behavior test, without the screenshot comparisons. Each
+Chromium runs every test; Firefox and WebKit run every behavior test, without the screenshot comparisons and without
+the broad axe scans of `a11y.spec.ts` (443 per engine, a third of the run's test time; a component's own scan in its
+spec still runs in every engine). Each
 browser has two projects in `playwright.config.ts` (`browserProjects()`): `smoke` and `examples` for Chromium,
 `smoke-firefox` and `examples-firefox`, `smoke-webkit` and `examples-webkit` for the others. A test that compares
 pixels, with a baseline or two screenshots with each other, is tagged `@screenshot` (`screenshotAnnotation()` in
@@ -1046,8 +1048,8 @@ and screenshot (shard 3) shards were not measured. Three workers in CI is untest
 
 ### Jev diagnosis (advisory)
 
-When a shard has a failed or flaky test, a later step,
-[`tools/ci/jev-diagnosis.mjs`](../tools/ci/jev-diagnosis.mjs), asks Jev (TypeSafe's model, pinned in
+When a shard has a failed or flaky test (in CI and in the monthly *Browsers* jobs), or *Kit PHP*'s PHPUnit fails, a
+later step, [`tools/ci/jev-diagnosis.mjs`](../tools/ci/jev-diagnosis.mjs), asks Jev (TypeSafe's model, pinned in
 [`tools/ci/jev-ci.json`](../tools/ci/jev-ci.json)) two questions about each failed attempt in
 `failed-attempts.json`, retry-recovered ones included: which category of the policy's rubric the cause likely belongs
 to (`environment_failure`, `product_defect`, `test_defect`, `timing_assertion`, or `unknown`), and which of the
@@ -1075,7 +1077,9 @@ key, a provider error or an answer that does not validate gives an *unavailable*
   cannot find every secret in arbitrary text, so a test must not print one.
 
 The `TYPESAFE_API_KEY` secret is given to this step alone; without it (a fork's run, for instance) every attempt is
-*unavailable (missing_credential)*. Turn the step off with `"enabled": false` in the policy. Its cases run with the summarizer's, against a local stand-in for the provider:
+*unavailable (missing_credential)*. For *Kit PHP*, [`tools/ci/junit-attempts.mjs`](../tools/ci/junit-attempts.mjs)
+first turns PHPUnit's JUnit report (`--log-junit`) into the same `failed-attempts.json`, one attempt per failed test,
+with `demo/var/log/test.log` as its server log; that job's artifact is `jev-phpunit-<run>-<attempt>`. Turn the step off with `"enabled": false` in the policy. Its cases run with the summarizer's, against a local stand-in for the provider:
 `node --test tools/tests/*.test.mjs`. They check what is sent and accepted, not how good the diagnosis is.
 
 ## Monthly job
@@ -1090,9 +1094,9 @@ hand before a release. Nothing of it runs on a push or a pull request: CI's jobs
 | Job | What it measures | Where it reads |
 |---|---|---|
 | *PHP coverage and mutants* | The demo's PHPUnit tests with PCOV: lines and methods of the recipes' `src/`, per file and class, and the methods no test runs. Then [Infection](https://infection.github.io/) on the same directories and tests: the MSI and every surviving mutant (escaped, or on a line no test runs) with its diff | job summary; `php-coverage` artifact: `php-coverage.md`, `clover.xml`, `html/`, `infection.md`, `survivors.md`, Infection's own logs |
-| *JS coverage (1/3–3/3)* | The whole browser suite in Chromium, sharded as in CI, with V8 coverage of the scripts under `/assets/controllers/` | each shard's Playwright summary; raw recordings, 7 days |
-| *Firefox and WebKit (firefox 1/3–webkit 3/3)* | The whole suite in each engine, sharded as in CI: the behavior tests (a failure fails the shard), then every `@screenshot` test against the Chromium baselines (`PW_SCREENSHOTS=all`, no retries): each one matches, differs (with the ratio of different pixels Playwright gives) or fails another way | each shard's Playwright summary; `screenshots-<browser>-<shard>` (`tools/monthly/screenshots.mjs`) and, where some differ, `screenshot-diffs-<browser>-<shard>` (the expected, actual and diff images), 30 days |
-| *Timings (Chromium)* | The interaction-count specs (`counts.spec.ts`), 5 runs one after another with `PW_TIMINGS` set: per counted step, the median, the spread (25th to 75th percentile), min and max of its time, from its action until the update it waits for has landed, Playwright's round trips included, and the median of its longest interaction (INP, Event Timing). A count that differs fails the job as in CI | job summary; `timings` artifact (`timings.json`, `timings.md`, `tools/monthly/timings.mjs`), 90 days |
+| *Browsers (coverage-chromium-1–3)* | The whole browser suite in Chromium, sharded as in CI, with V8 coverage of the scripts under `/assets/controllers/` | each shard's Playwright summary; raw recordings, 7 days |
+| *Browsers (engines-firefox-1–3, engines-webkit-1–3)* | The whole suite in each engine, sharded as in CI: the behavior tests (a failure fails the shard), then every `@screenshot` test against the Chromium baselines (`PW_SCREENSHOTS=all`, no retries): each one matches, differs (with the ratio of different pixels Playwright gives) or fails another way | each shard's Playwright summary; `screenshots-<browser>-<shard>` (`tools/monthly/screenshots.mjs`) and, where some differ, `screenshot-diffs-<browser>-<shard>` (the expected, actual and diff images), 30 days |
+| *Browsers (timings-chromium-1)* | The interaction-count specs (`counts.spec.ts`), 5 runs one after another with `PW_TIMINGS` set: per counted step, the median, the spread (25th to 75th percentile), min and max of its time, from its action until the update it waits for has landed, Playwright's round trips included, and the median of its longest interaction (INP, Event Timing). A count that differs fails the job as in CI | job summary; `timings` artifact (`timings.json`, `timings.md`, `tools/monthly/timings.mjs`), 90 days |
 | *Monthly report* | The shards merged and mapped to `<recipe>/assets/controllers/*.js`: lines and functions run per controller, and **every controller method runs once**, the named methods no test ran; the screenshot shards merged per engine; then every number, the timings and the screenshots included, against the previous successful run | job summary; `js-coverage`, `screenshots` (`screenshots.json`, `screenshots.md`) and `monthly-trends` (`monthly.json`, `trends.md`) artifacts |
 
 Artifacts are kept 90 days, so each run finds last month's. A report that cannot be made fails its job, and the

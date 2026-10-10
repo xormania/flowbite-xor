@@ -45,26 +45,29 @@ while IFS= read -r path; do
         # The browser tests and their tools. tools/test-inventory.mjs (Contrast) reads which specs exist, the accessibility
         # scan's list of lab pages and, below, the PHPUnit tests, the lab's routes and which recipes ship a controller
         tests/e2e/*.spec.ts) on contrast demo ;;
-        tests/* | playwright.config.ts | tools/prepare-tests.mjs | tools/tests/prepare-tests.test.mjs) on demo ;;
+        tests/* | playwright.config.ts | tools/prepare-tests.mjs) on demo ;;
         package.json | package-lock.json) on contrast demo ;;
 
         # Repository tools, each with the jobs that run it
         tools/contrast/* | tools/llms-txt.mjs | tools/docs-lint.mjs | tools/test-inventory.mjs | llms.txt) on contrast ;;
-        # icon-lint runs in Contrast; its cases (tools/tests/*.test.mjs) in the browser job
-        tools/icon-lint.mjs | tools/tests/icon-lint.test.mjs) on contrast demo ;;
+        # icon-lint runs in Contrast; its cases in Tool tests, on every run
+        tools/icon-lint.mjs) on contrast ;;
         tools/fence-coverage.mjs) on contrast static-site ;;
         # The README checks: Contrast runs them and their cases, the browser job's node --test runs the cases too
-        tools/readme-versions.mjs | tools/readme-pairing.mjs | tools/tests/readme-*.test.mjs) on contrast demo ;;
+        tools/readme-versions.mjs | tools/readme-pairing.mjs) on contrast ;;
         tools/build-static.sh) on static-site ;;
         tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh) on fresh-install ;;
         tools/tests/install-scenario.sh) on fresh-install ;;
         tools/tests/live-action.php | tools/tests/fixtures/fresh-app/*) on fresh-install ;;
         tools/tests/sync-demo.sh | tools/tests/fixtures/sync-kit/*) on demo ;;
         tools/phpstan.neon) on php ;;
-        # The browser job's own tools (its results summary, the Jev diagnosis) and their cases: only that job runs them
-        tools/ci/* | tools/tests/*.test.mjs | tools/tests/fixtures/playwright-results/*) on demo ;;
-        # The monthly job's report tools and their cases: only monthly.yml runs them (run it by hand on the branch)
-        tools/monthly/*) ;;
+        # The jobs' own CI tools: Kit PHP turns its JUnit report into failed attempts; Jev diagnoses both jobs' failures;
+        # the rest (the results summary) is the browser job's
+        tools/ci/junit-attempts.mjs) on php ;;
+        tools/ci/jev-diagnosis.mjs | tools/ci/jev-ci.json) on php demo ;;
+        tools/ci/*) on demo ;;
+        # Tools' cases and their fixtures, and the monthly report tools: Tool tests runs them on every run
+        tools/tests/*.test.mjs | tools/tests/fixtures/playwright-results/* | tools/tests/fixtures/junit/* | tools/monthly/*) ;;
         # release.yml's plan: Workflows runs its cases and its dry run
         tools/release-plan.sh | tools/tests/release-plan.sh) on workflows ;;
         tools/*) on php static-site demo ;;
