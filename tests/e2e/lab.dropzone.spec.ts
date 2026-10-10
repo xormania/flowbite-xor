@@ -61,6 +61,23 @@ test('after a Turbo visit and Back, the zones are empty, have one controller eac
     expect(await events(page, 'change')).toBe(2);
 });
 
+test('after a visit and Back, every file of a POST form comes back, also with more zones than Turbo keeps copies', async ({ page }) => {
+    // 11 single-file zones in one copy of the page: the files are kept per copy, not per zone (Turbo keeps 10 copies)
+    await page.goto('/lab/dropzone-turbo?zones=11');
+    for (let i = 1; i <= 11; i++) {
+        await page.locator(`#many-${i}`).setInputFiles(png(`f${i}.png`));
+        await expect(page.getByRole('button', { name: `Remove f${i}.png` })).toBeVisible();
+    }
+
+    await visit(page, 'Go to page two', 'Page two');
+    await back(page, 'Page one');
+
+    for (let i = 1; i <= 11; i++) {
+        await expect(page.getByRole('button', { name: `Remove f${i}.png` })).toBeVisible();
+        expect(await fileCount(page.locator(`#many-${i}`)), `#many-${i}`).toBe(1);
+    }
+});
+
 test('repeated Turbo visits leave one controller per zone and one change per pick', async ({ page }) => {
     await page.goto('/lab/dropzone-turbo');
     for (let visitCount = 0; visitCount < 6; visitCount++) {

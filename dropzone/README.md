@@ -152,8 +152,10 @@ and the constraints refuse large files (each comes back as its field's error).
   any form.
 - Files never come back from the server: after a 422, or when a Turbo Stream replaces the field, the zone is empty
   and the user picks the files again. Say so next to the errors.
-- After Back, a zone for one file starts empty. A zone for several files lists what its input holds: Turbo's copy of
-  the page keeps the files in some browsers (Chromium), not in others.
+- After Back and Forward, a zone for one file in a POST form (any form but a GET one) shows the file picked, as the
+  form holds the user's work: the zone keeps it for Turbo's copy of the page. Outside such a form it starts empty. A
+  zone for several files lists what its input holds: Turbo's copy of the page keeps the files in some browsers
+  (Chromium), not in others.
 - A zone inside a `data-turbo-permanent` element keeps its files across visits.
 
 ### In a Live Component
