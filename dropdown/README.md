@@ -77,6 +77,13 @@ The dropdown component can be used to show a list of menu items when clicking on
 </twig:Dropdown>
 ```
 
+### With Turbo and Live Components
+
+- Before Turbo caches a page, an open menu closes: Back and Forward show it closed. One inside a
+  `data-turbo-permanent` element stays open: Turbo moves it into the next page as the user left it. Beside a frame
+  whose visits are promoted to history (a data table's pages), an open menu stays open when the frame changes.
+- A Live Component re-render keeps an open menu open. Pass a stable `id` inside Live Components and Turbo Frames.
+
 ## Examples
 
 ### Dropdown hover

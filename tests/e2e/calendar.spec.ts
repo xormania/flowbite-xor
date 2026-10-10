@@ -170,3 +170,76 @@ test('a calendar whose inputs belong to a form outside it, with no date yet, fol
     await expect(inputs).toHaveCount(0);
     await expect(dates.locator('[data-slot="calendar-day"][data-day="2026-03-10"]')).toHaveAttribute('aria-selected', 'false');
 });
+
+// the `reset` event is cancelable and comes before the fields are reset: the calendar acts on the window, after the
+// form's listeners, in the same task (hidden inputs are not reset by the browser), and undoes it if a later one cancels
+test('a reset another listener cancels leaves the selection; the next one brings back the date rendered, with the source reset', async ({ page }) => {
+    await page.goto('/lab/calendar-turbo?day=2026-03-10');
+    const calendar = page.getByRole('group', { name: 'Day' });
+    const input = page.locator('#cal-day input[name="day"]');
+    await day(calendar, '2026-03-12').click();
+    await expect(input).toHaveValue('2026-03-12');
+    await page.evaluate(() => {
+        const element = document.getElementById('cal-day')!;
+        const form = element.closest('form')!;
+        (window as any).__sources = [];
+        element.addEventListener('calendar:select', (event) => (window as any).__sources.push((event as CustomEvent).detail.source));
+        (window as any).__cancel = 'capture';
+        // a capture listener on the window, and one on the form added after the calendar's: the calendar's runs first
+        window.addEventListener('reset', (event) => 'capture' === (window as any).__cancel && event.preventDefault(), true);
+        form.addEventListener('reset', (event) => 'later' === (window as any).__cancel && event.preventDefault());
+        const button = document.createElement('button');
+        button.type = 'reset';
+        button.textContent = 'Reset the calendars';
+        form.append(button);
+    });
+    const sources = () => page.evaluate(() => (window as any).__sources as string[]);
+    const settle = () => page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const expectSelected = async (date: string, other: string) => {
+        await expect(input).toHaveValue(date);
+        await expect(calendar.locator(`[data-slot="calendar-day"][data-day="${date}"]`)).toHaveAttribute('aria-selected', 'true');
+        await expect(calendar.locator(`[data-slot="calendar-day"][data-day="${other}"]`)).toHaveAttribute('aria-selected', 'false');
+    };
+
+    // cancelled in a capture listener, from form.reset() and from the reset button
+    await page.evaluate(() => document.getElementById('cal-day')!.closest('form')!.reset());
+    await page.getByRole('button', { name: 'Reset the calendars' }).click();
+    await settle();
+    await expectSelected('2026-03-12', '2026-03-10');
+    // cancelled by a listener after the calendar's, on a click of the reset button (microtasks run between listeners)
+    await page.evaluate(() => ((window as any).__cancel = 'later'));
+    await page.getByRole('button', { name: 'Reset the calendars' }).click();
+    await settle();
+    await expectSelected('2026-03-12', '2026-03-10');
+    expect(await sources()).toEqual([]);
+
+    // not cancelled: back to the date rendered, as the README lists it (`calendar:select` with the source `reset`)
+    await page.evaluate(() => ((window as any).__cancel = null));
+    await page.getByRole('button', { name: 'Reset the calendars' }).click();
+    await expectSelected('2026-03-10', '2026-03-12');
+    expect(await sources()).toEqual(['reset']);
+
+    // form.reset() resets the hidden inputs in the same task: a FormData taken right after it holds the date rendered
+    await day(calendar, '2026-03-12').click();
+    await expect(input).toHaveValue('2026-03-12');
+    expect(
+        await page.evaluate(() => {
+            const form = document.getElementById('cal-day')!.closest('form')!;
+            form.reset();
+            return new FormData(form).getAll('day');
+        })
+    ).toEqual(['2026-03-10']);
+    await expectSelected('2026-03-10', '2026-03-12');
+
+    // cancelled by a window listener added after the calendar's: once the event is over, the calendar shows its dates again
+    await day(calendar, '2026-03-12').click();
+    await expect(input).toHaveValue('2026-03-12');
+    await page.evaluate(() => {
+        (window as any).__sources = [];
+        window.addEventListener('reset', (event) => event.preventDefault());
+        document.getElementById('cal-day')!.closest('form')!.reset();
+    });
+    await settle();
+    await expectSelected('2026-03-12', '2026-03-10');
+    expect(await sources()).toEqual(['reset', 'reset']);
+});

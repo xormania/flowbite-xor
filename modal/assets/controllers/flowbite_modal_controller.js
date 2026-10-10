@@ -27,14 +27,19 @@ export default class extends Controller {
         }
         if (this.#wasOpen ?? this.openValue) {
             this.open();
+        } else if (this.modalTarget.matches(':modal')) {
+            // a dialog already open and modal: a Live re-render that replaced the container moved it in, and the
+            // trigger rendered with it says it is open
+            this.#markOpen();
         }
         document.addEventListener('turbo:before-cache', this.#closeBeforeCache);
     }
 
     disconnect() {
         document.removeEventListener('turbo:before-cache', this.#closeBeforeCache);
-        // A <dialog> taken out of the DOM comes back open but no longer modal, so reopen it on reconnect.
-        this.#wasOpen = this.modalTarget.open;
+        // A <dialog> taken out of the DOM comes back open but no longer modal, so reopen it on reconnect. A Live
+        // re-render that replaces the container may have moved the dialog to a new controller already: nothing to close.
+        this.#wasOpen = this.hasModalTarget && this.modalTarget.open;
         if (this.#wasOpen) {
             this.#closeNow();
         }
@@ -95,6 +100,13 @@ export default class extends Controller {
             this.#closeNow();
         }
     };
+
+    #markOpen() {
+        if (this.hasTriggerTarget) {
+            this.triggerTarget.setAttribute('aria-expanded', 'true');
+        }
+        this.modalTarget.setAttribute('aria-hidden', 'false');
+    }
 
     // Closes the modal and updates the attributes at once, without waiting for a transition: Turbo copies the page
     // before it ends.

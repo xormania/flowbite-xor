@@ -18,7 +18,7 @@
 {%- set _own = (attributes.all['data-controller'] ?? '')|split(' ')|filter((name) => name) -%}
 {%- set _controllers = ([controller, 'dropzone-assist']|merge(_own))|join(' ') -%}
 {%- set _wrapperKeys = ['class']|merge(attributes.all|keys|filter((key) => _own|filter((name) => key starts with ('data-' ~ name ~ '-') and key != ('data-' ~ name ~ '-target'))|length > 0)) -%}
-{%- set _actions = 'dragenter->dropzone-assist#dragOver dragover->dropzone-assist#dragOver dragleave->dropzone-assist#dragLeave drop->dropzone-assist#drop change->dropzone-assist#remember:capture dropzone:change->dropzone-assist#changed dropzone:clear->dropzone-assist#cleared dropzone:remove->dropzone-assist#removed' -%}
+{%- set _actions = 'dragenter->dropzone-assist#dragOver dragover->dropzone-assist#dragOver dragleave->dropzone-assist#dragLeave drop->dropzone-assist#drop change->dropzone-assist#remember:capture dropzone:change->dropzone-assist#changed dropzone:clear->dropzone-assist#cleared dropzone:remove->dropzone-assist#removed turbo:before-cache@document->dropzone-assist#cache' -%}
 {%- set _describedby = [attributes.all['aria-describedby'] ?? null, hint ? _id ~ '_hint' : null, reselect ? _id ~ '_reselect' : null]|filter((id) => id)|join(' ') -%}
 <div
     {{ attributes.only(..._wrapperKeys).defaults({class: 'group w-full'|tailwind_classes, 'data-controller': _controllers}) }}

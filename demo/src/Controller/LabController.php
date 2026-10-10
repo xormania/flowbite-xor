@@ -37,11 +37,11 @@ final class LabController extends AbstractController
         'turbo-stream-toast' => 'A form whose Turbo Stream response appends a Toast to the region: it appears, pauses while hovered, dismisses itself, and focus stays put.',
         'turbo-frame-detail' => 'A list and a detail Turbo Frame holding a Dropdown, reloaded several times.',
         'permanent-plus-live' => 'A Live Component inside a data-turbo-permanent element across Turbo visits.',
-        'data-table-live' => 'A Live DataTable: its state in the URL across Turbo visits and Back, rows selected across pages, values the table does not accept normalized.',
+        'data-table-live' => 'A Live DataTable: its state in the URL across Turbo visits and Back, rows selected across pages, values the table does not accept normalized; beside it, a Turbo Frame that reloads and a region Turbo Streams replace.',
         'data-table-live-frame' => 'A Live DataTable inside a Turbo Frame that reloads: the reloaded table is live again.',
         'data-table-live-permanent' => 'A Live DataTable inside a data-turbo-permanent element: it keeps its state across Turbo visits.',
         'data-table-live-stream' => 'A Live DataTable replaced and updated by Turbo Streams: it reconnects and starts from the server state.',
-        'autocomplete' => 'Autocomplete fields in a Symfony form (one choice, several, a remote search) and the Autocomplete component outside a form, across Turbo visits and Back.',
+        'autocomplete' => 'Autocomplete fields in a Symfony form (one choice, several, a remote search) and the Autocomplete component outside a form, across Turbo visits and Back; a reset button puts back the values rendered (?defaults=1 gives the form some), in the Symfony form and in a form of Autocomplete components, one of them outside it (the form attribute), also without the layouts\' form-reset controller (?bare=1).',
         'autocomplete-frame' => 'An Autocomplete inside a Turbo Frame that reloads.',
         'autocomplete-stream' => 'An Autocomplete replaced by a Turbo Stream.',
         'live-autocomplete' => 'Autocomplete fields in a Live form that re-renders.',
@@ -82,6 +82,8 @@ final class LabController extends AbstractController
         'side-nav' => 'A multi-level SideNav across Turbo visits, Back and reloads: the open branches hold, the branch of the current page opens, and the keyboard moves through the tree.',
         'section-nav' => 'A SectionNav (one page per section) across Turbo visits, Back, Forward and reloads, rendered by each page and inside a data-turbo-permanent element; next to vertical Tabs that switch panels in place, with the keyboard of the tabs pattern.',
         'mobile-nav' => 'A MobileNav holding a SideNav, the same tree beside the page on wide screens: the drawer opens from the menu button and closes on Escape, the backdrop, a link, Turbo visits, Back and Forward; the two trees share their open branches.',
+        'value-matrix' => 'The value matrix (tests/e2e/lab.value-matrix.spec.ts): every widget holding a value or a state the user changes (the fields of a GET and of a POST form, autocomplete, date picker, calendar, editor, Markdown editor, dropzone, tabs, the overlays, a tree, the theme toggle), four times on each page: rendered by the page, in a Turbo Frame that reloads, in a region Turbo Streams replace and update, and inside a data-turbo-permanent element.',
+        'live-values' => 'The value matrix\'s widgets in a Live Component: a server action sets every property, which each widget then shows; the open overlays, the selected tab, the open branch and the focus stay.',
         'nav-menu' => 'A Navbar whose NavMenu opens submenus, nested two levels deep, as a disclosure navigation; the same menu in a MobileNav on small screens, and a second one in a data-turbo-permanent Navbar: the current page and its submenus are marked, the keyboard, a click outside and Turbo visits, Back and Forward close them.',
     ];
 
@@ -110,6 +112,7 @@ final class LabController extends AbstractController
     #[Route('/live-chart', name: 'app_lab_live_chart')]
     #[Route('/live-dropzone', name: 'app_lab_live_dropzone')]
     #[Route('/live-editor', name: 'app_lab_live_editor')]
+    #[Route('/live-values', name: 'app_lab_live_values')]
     public function live(string $_route): Response
     {
         $name = str_replace('_', '-', substr($_route, \strlen('app_lab_')));
@@ -203,6 +206,31 @@ final class LabController extends AbstractController
         ]);
     }
 
+    #[Route('/value-matrix/{page}', name: 'app_lab_value_matrix', requirements: ['page' => 'one|two'], defaults: ['page' => 'one'], methods: ['GET', 'POST'])]
+    public function valueMatrix(Request $request, string $page): Response
+    {
+        // one widget alone (`?only=get-name`), as each test of the matrix loads it; a key the templates do not know shows none
+        $only = $request->isMethod('POST') ? $request->request->getString('only') : $request->query->getString('only');
+        $only = 1 === preg_match('/^[a-z-]{1,20}$/', $only) ? $only : '';
+        // the stream buttons: the streamed region rendered anew, replaced or updated
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/value_matrix.stream.html.twig', [
+                'page' => $page,
+                'only' => $only,
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/value_matrix.html.twig', [
+            'page' => $page,
+            'only' => $only,
+            'load' => $request->query->getInt('load'),
+            'description' => self::SCENARIOS['value-matrix'],
+        ]);
+    }
+
     #[Route('/data-table-frame', name: 'app_lab_data_table_frame')]
     public function dataTableFrame(Request $request, OrdersTable $orders): Response
     {
@@ -212,10 +240,22 @@ final class LabController extends AbstractController
         ]);
     }
 
-    #[Route('/data-table-live', name: 'app_lab_data_table_live')]
-    public function dataTableLive(): Response
+    #[Route('/data-table-live', name: 'app_lab_data_table_live', methods: ['GET', 'POST'])]
+    public function dataTableLive(Request $request): Response
     {
-        return $this->render('lab/data_table_live.html.twig', ['description' => self::SCENARIOS['data-table-live']]);
+        // the region beside the table, replaced or updated by a Turbo Stream
+        if ($request->isMethod('POST')) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('lab/data_table_live.stream.html.twig', [
+                'action' => 'update' === $request->request->get('action') ? 'update' : 'replace',
+            ]);
+        }
+
+        return $this->render('lab/data_table_live.html.twig', [
+            'description' => self::SCENARIOS['data-table-live'],
+            'load' => $request->query->getInt('load'),
+        ]);
     }
 
     #[Route('/data-table-live-frame', name: 'app_lab_data_table_live_frame')]
@@ -250,7 +290,8 @@ final class LabController extends AbstractController
     #[Route('/autocomplete', name: 'app_lab_autocomplete', methods: ['GET', 'POST'])]
     public function autocomplete(Request $request): Response
     {
-        $form = $this->createForm(AutocompleteDemoType::class);
+        // ?defaults=1: the fields rendered with values, which a reset of the form puts back
+        $form = $this->createForm(AutocompleteDemoType::class, $request->query->getBoolean('defaults') ? ['country' => 'FR', 'languages' => ['en', 'fr']] : null);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -261,6 +302,8 @@ final class LabController extends AbstractController
         return $this->render('lab/autocomplete.html.twig', [
             'form' => $form,
             'submitted' => $request->query->getString('submitted'),
+            // ?bare=1: the page without the layouts' form-reset controller on <body>
+            'form_reset' => !$request->query->getBoolean('bare'),
             'description' => self::SCENARIOS['autocomplete'],
         ], new Response(null, $form->isSubmitted() ? 422 : 200));
     }
@@ -496,6 +539,7 @@ final class LabController extends AbstractController
         return $this->render('lab/dropzone_turbo.html.twig', [
             'page' => $page,
             'load' => $request->query->getInt('load'),
+            'zones' => max(0, min(20, $request->query->getInt('zones'))),
             'framed' => $request->query->getString('framed'),
             'error' => $error,
             'description' => self::SCENARIOS['dropzone-turbo'],

@@ -17,8 +17,9 @@ function isPromotedFrameCache() {
  * toggles `hidden`/`block` and `aria-hidden`, closes on a click outside, follows its trigger on scroll
  * and resize while open, flips to the opposite side when it does not fit, and is shifted back into the
  * viewport along the trigger. Every listener is removed when it closes or disconnects. The menu closes before Turbo
- * caches the page, and starts closed on every connect: a copy of the page Turbo cached while it was open (Back) shows
- * it closed, not open and inert. A frame visit promoted to history (`data-turbo-action="advance"`) dispatches
+ * caches the page, and a new controller starts closed: a copy of the page Turbo cached while it was open (Back) shows
+ * it closed, not open and inert. Inside a `data-turbo-permanent` element it stays open: Turbo moves it into the next
+ * page, and the same controller reconnecting (its element moved in the DOM) opens it again as it was. A frame visit promoted to history (`data-turbo-action="advance"`) dispatches
  * `turbo:before-cache` too, but keeps the page on screen and caches a copy taken when it started: the menu then stays
  * open, and the copy is closed as it connects.
  *
@@ -31,6 +32,8 @@ function isPromotedFrameCache() {
  * @value  offsetDistance The gap between the trigger and the menu, in pixels.
  */
 export default class extends Controller {
+    #reopen = false;
+
     static targets = ['trigger', 'content'];
     static values = {
         placement: { type: String, default: 'bottom' },
@@ -41,6 +44,9 @@ export default class extends Controller {
     };
 
     connect() {
+        // open when this controller last disconnected: its element moved in the DOM (Turbo moving a permanent element)
+        const reopen = this.#reopen;
+        this.#reopen = false;
         this.visible = false;
         this.#closeMarkup();
         this.timeouts = new Set();
@@ -64,15 +70,17 @@ export default class extends Controller {
         on(this.triggerTarget, 'keydown', (event) => this.handleTriggerKeydown(event));
         on(this.contentTarget, 'keydown', (event) => this.handleContentKeydown(event));
         // closed in the copy of the page Turbo shows on Back and Forward, not only once that copy connects; a frame
-        // visit promoted to history took its copy already and keeps the page on screen, so the menu stays open
-        on(document, 'turbo:before-cache', () => isPromotedFrameCache() || this.hide());
+        // visit promoted to history took its copy already and keeps the page on screen, so the menu stays open; Turbo
+        // moves a permanent element into the next page, the menu as the user left it
+        on(document, 'turbo:before-cache', () => isPromotedFrameCache() || this.element.closest('[data-turbo-permanent]') || this.hide());
 
-        if (this.openValue) {
+        if (this.openValue || reopen) {
             this.show();
         }
     }
 
     disconnect() {
+        this.#reopen = this.visible;
         this.hide({ restoreFocus: false, silent: true });
         this.listeners.forEach((remove) => remove());
         this.timeouts.forEach((id) => clearTimeout(id));

@@ -29,8 +29,6 @@ type Overlay = {
     reloadLink: (page: Page) => ReturnType<Page['getByRole']>;
     /** the overlay's panel, by the name of its trigger */
     panel: (page: Page, name: string) => ReturnType<Page['getByRole']>;
-    /** a dialog left open by a Turbo move of its data-turbo-permanent element comes back open; a menu, closed */
-    keptOpenAcrossVisit: boolean;
 };
 
 const overlays: Overlay[] = [
@@ -43,7 +41,6 @@ const overlays: Overlay[] = [
         stepLink: (page) => page.getByRole('menuitem', { name: 'Step 5 from the menu' }),
         reloadLink: (page) => page.getByRole('menuitem', { name: 'Reload the frame' }),
         panel: (page, name) => page.getByRole('menu', { name, includeHidden: true }),
-        keptOpenAcrossVisit: false,
     },
     {
         recipe: 'modal',
@@ -54,7 +51,6 @@ const overlays: Overlay[] = [
         stepLink: (page) => page.getByRole('link', { name: 'Step 5 from the dialog' }),
         reloadLink: (page) => page.getByRole('link', { name: 'Reload the frame' }),
         panel: (page, name) => page.getByRole('dialog', { name, includeHidden: true }),
-        keptOpenAcrossVisit: true,
     },
     {
         recipe: 'drawer',
@@ -65,7 +61,6 @@ const overlays: Overlay[] = [
         stepLink: (page) => page.getByRole('link', { name: 'Step 5 from the dialog' }),
         reloadLink: (page) => page.getByRole('link', { name: 'Reload the frame' }),
         panel: (page, name) => page.getByRole('dialog', { name, includeHidden: true }),
-        keptOpenAcrossVisit: true,
     },
 ];
 
@@ -233,11 +228,10 @@ for (const overlay of overlays) {
             await page.evaluate((url) => (window as any).Turbo.visit(url), turboPage('two'));
             await expect(page.getByTestId('page')).toHaveText('Page two');
             await turboVisitDone(page);
-            if (overlay.keptOpenAcrossVisit) {
-                // reopened as a modal: the page behind stays inert
-                await expectOpen(page, overlay, 'Kept');
-                await page.keyboard.press('Escape');
-            }
+            // as the user left it (owner decision 6b: inside data-turbo-permanent, all kept): a dialog reopened as a
+            // modal, the page behind inert; a menu open, the focus gone with the move, so its trigger closes it
+            await expectOpen(page, overlay, 'Kept');
+            await ('dropdown' === overlay.recipe ? trigger(page, 'Kept').click() : page.keyboard.press('Escape'));
             await expectWorks(page, overlay, 'Kept', 'In a permanent element');
 
             await page.getByRole('link', { name: 'Go to page one' }).click();
