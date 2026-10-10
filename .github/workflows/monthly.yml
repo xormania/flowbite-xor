@@ -117,120 +117,17 @@ jobs:
                   if-no-files-found: warn
                   retention-days: 90
 
-    # The browser suite in Chromium as CI runs it (the demo in Symfony Docker, three shards), with JS_COVERAGE set:
-    # tests/e2e/coverage.ts records each test's V8 coverage of the scripts under /assets/controllers/. A behavior
-    # failure fails the shard, as in CI; the coverage it recorded is kept either way.
-    js:
-        name: JS coverage (${{ matrix.shard }}/3)
-        runs-on: ubuntu-latest
-        timeout-minutes: 40
-        env:
-            XDEBUG_MODE: 'off' # compose.override.yaml enables Xdebug's develop mode by default; the tests do not use it
-        strategy:
-            fail-fast: false
-            matrix:
-                shard: [1, 2, 3]
-        steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-              with:
-                  ref: ${{ github.event_name == 'schedule' && 'dev' || '' }} # empty: the branch the run was started from
-
-            # no npm cache: the scheduled run executes dev's code in the default branch's context, so a cache it saved would
-            # come from code main has not taken yet; once a month, the install costs little
-            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-              with:
-                  node-version: 22
-
-            - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-
-            # reads the image cache CI writes for dev and main; writes none
-            - name: Build the demo image
-              id: image
-              uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
-              with:
-                  source: ./demo
-                  files: |
-                      compose.yaml
-                      compose.override.yaml
-                  load: true
-                  pull: true
-                  set: |
-                      *.cache-from=type=gha,scope=demo-refs/heads/dev
-                      *.cache-from=type=gha,scope=demo-refs/heads/main
-
-            - name: Start the demo (composer install on first start)
-              id: start
-              working-directory: demo
-              run: docker compose up --wait --no-build
-
-            - name: Sync recipes into the demo
-              id: sync
-              working-directory: demo
-              run: docker compose exec -T php php ../tools/sync-demo
-
-            - name: Install Playwright
-              id: install
-              run: |
-                  npm ci
-                  docker pull "mcr.microsoft.com/playwright:v$(node -p "require('@playwright/test/package.json').version")-noble"
-
-            - name: Prepare the tests
-              id: prepare
-              env:
-                  DEMO_URL: https://localhost
-              run: node tools/prepare-tests.mjs
-
-            # Chromium's two projects: the coverage is Chromium's (page.coverage); Firefox and WebKit record none
-            - name: Playwright with JS coverage (Chromium)
-              id: tests
-              env:
-                  DEMO_URL: https://localhost
-                  JS_COVERAGE: ${{ github.workspace }}/coverage/js/raw
-              run: npx playwright test --project=smoke --project=examples --shard=${{ matrix.shard }}/3 --workers=2
-
-            - name: Read the results
-              id: results
-              if: ${{ !cancelled() }}
-              env:
-                  SHARD: ${{ matrix.shard }}/3
-                  BROWSER: chromium
-                  RESULTS_ARTIFACT: monthly-playwright-results-${{ matrix.shard }}
-                  TESTS_OUTCOME: ${{ steps.tests.outcome }}
-                  SETUP_STEPS: |
-                      Build the demo image=${{ steps.image.outcome }}
-                      Start the demo=${{ steps.start.outcome }}
-                      Sync recipes into the demo=${{ steps.sync.outcome }}
-                      Install Playwright=${{ steps.install.outcome }}
-                      Prepare the tests=${{ steps.prepare.outcome }}
-              run: node tools/ci/playwright-summary.mjs playwright-results/results.json
-
-            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ !cancelled() }}
-              with:
-                  name: js-coverage-raw-${{ matrix.shard }}
-                  path: coverage/js/raw/
-                  if-no-files-found: warn
-                  retention-days: 7
-
-            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ !cancelled() }}
-              with:
-                  name: monthly-playwright-results-${{ matrix.shard }}
-                  path: playwright-results/
-                  retention-days: 30
-
-            - name: Demo logs
-              if: failure()
-              working-directory: demo
-              run: docker compose logs php
-
-    # The whole suite in Firefox and WebKit (decision 6c, A2), sharded as in CI. First the behavior tests, whose failure
-    # fails the shard as in CI. Then every @screenshot test against the Chromium baselines (PW_SCREENSHOTS=all,
-    # playwright.config.ts), without retries: another engine renders differently, so its differences fail that step
-    # only, and tools/monthly/screenshots.mjs reads them for the report, which compares them with last month's. A
-    # screenshot run that leaves nothing to read fails the shard.
+    # Every browser run of the month, one job per kind and shard, each with its own demo, set up once here:
+    # - coverage: the suite in Chromium as CI runs it, with JS_COVERAGE set (tests/e2e/coverage.ts records each test's
+    #   V8 coverage of the scripts under /assets/controllers/);
+    # - engines: the whole suite in Firefox and WebKit (decision 6c, A2): the behavior tests, then every @screenshot test
+    #   against the Chromium baselines (PW_SCREENSHOTS=all, without retries), whose differences fail that step only and
+    #   are read for the report (tools/monthly/screenshots.mjs), which compares them with last month's;
+    # - timings: the interaction-count specs in Chromium, 5 runs on one worker with PW_TIMINGS set (decision 6d, report
+    #   only; tools/monthly/timings.mjs).
+    # A behavior test or a count that fails fails its job, as in CI; Jev diagnoses each failed attempt, as in CI.
     browsers:
-        name: Firefox and WebKit (${{ matrix.browser }} ${{ matrix.shard }}/3)
+        name: Browsers (${{ matrix.kind }}-${{ matrix.browser }}-${{ matrix.shard }})
         runs-on: ubuntu-latest
         timeout-minutes: 45
         env:
@@ -238,8 +135,17 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                browser: [firefox, webkit]
-                shard: [1, 2, 3]
+                include:
+                    - { kind: coverage, browser: chromium, shard: 1 }
+                    - { kind: coverage, browser: chromium, shard: 2 }
+                    - { kind: coverage, browser: chromium, shard: 3 }
+                    - { kind: engines, browser: firefox, shard: 1 }
+                    - { kind: engines, browser: firefox, shard: 2 }
+                    - { kind: engines, browser: firefox, shard: 3 }
+                    - { kind: engines, browser: webkit, shard: 1 }
+                    - { kind: engines, browser: webkit, shard: 2 }
+                    - { kind: engines, browser: webkit, shard: 3 }
+                    - { kind: timings, browser: chromium, shard: 1 }
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -290,19 +196,27 @@ jobs:
                   DEMO_URL: https://localhost
               run: node tools/prepare-tests.mjs
 
-            - name: Playwright, behavior
+            - name: Playwright
               id: tests
               env:
                   DEMO_URL: https://localhost
-              run: npx playwright test --project=smoke-${{ matrix.browser }} --project=examples-${{ matrix.browser }} --shard=${{ matrix.shard }}/3 --workers=2
+                  KIND: ${{ matrix.kind }}
+                  BROWSER: ${{ matrix.browser }}
+                  SHARD: ${{ matrix.shard }}
+              run: |
+                  case "$KIND" in
+                      coverage) JS_COVERAGE="$GITHUB_WORKSPACE/coverage/js/raw" npx playwright test --project=smoke --project=examples --shard="$SHARD/3" --workers=2 ;;
+                      engines) npx playwright test --project="smoke-$BROWSER" --project="examples-$BROWSER" --shard="$SHARD/3" --workers=2 ;;
+                      timings) PW_TIMINGS=1 npx playwright test tests/e2e/counts.spec.ts --project=smoke --repeat-each=5 --workers=1 ;;
+                  esac
 
             - name: Read the results
               id: results
               if: ${{ !cancelled() }}
               env:
-                  SHARD: ${{ matrix.shard }}/3
+                  SHARD: ${{ matrix.kind == 'timings' && '1/1' || format('{0}/3', matrix.shard) }}
                   BROWSER: ${{ matrix.browser }}
-                  RESULTS_ARTIFACT: monthly-playwright-results-${{ matrix.browser }}-${{ matrix.shard }}
+                  RESULTS_ARTIFACT: monthly-playwright-results-${{ matrix.kind }}-${{ matrix.browser }}-${{ matrix.shard }}
                   TESTS_OUTCOME: ${{ steps.tests.outcome }}
                   SETUP_STEPS: |
                       Build the demo image=${{ steps.image.outcome }}
@@ -315,14 +229,47 @@ jobs:
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               if: ${{ !cancelled() }}
               with:
-                  name: monthly-playwright-results-${{ matrix.browser }}-${{ matrix.shard }}
+                  name: monthly-playwright-results-${{ matrix.kind }}-${{ matrix.browser }}-${{ matrix.shard }}
                   path: playwright-results/
                   retention-days: 30
 
-            # writes over the behavior run's results.json, uploaded above
+            # Advisory diagnosis of each failed attempt by Jev (TypeSafe), as in CI (ci.yml): it never changes the verdict
+            - name: Jev diagnosis (advisory)
+              id: jev
+              if: ${{ always() && (steps.results.outputs.failed > 0 || steps.results.outputs.flaky > 0) }}
+              continue-on-error: true
+              timeout-minutes: 2
+              env:
+                  TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+                  SHARD: monthly ${{ matrix.kind }} ${{ matrix.browser }} ${{ matrix.shard }}
+                  JEV_DIR: ${{ runner.temp }}/jev-${{ matrix.kind }}-${{ matrix.browser }}-${{ matrix.shard }}
+              run: |
+                  mkdir -p "$JEV_DIR"
+                  (cd demo && timeout 15 docker compose logs --no-color --timestamps php > "$JEV_DIR/server.log" 2>/dev/null) || true
+                  node tools/ci/jev-diagnosis.mjs --attempts playwright-results/failed-attempts.json \
+                      --server-log "$JEV_DIR/server.log" --output "$JEV_DIR/assessment"
+
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              if: ${{ always() && steps.jev.outcome != 'skipped' }}
+              continue-on-error: true
+              with:
+                  name: monthly-jev-${{ matrix.kind }}-${{ matrix.browser }}-${{ matrix.shard }}
+                  path: ${{ runner.temp }}/jev-${{ matrix.kind }}-${{ matrix.browser }}-${{ matrix.shard }}/assessment/
+                  if-no-files-found: warn
+                  retention-days: 30
+
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              if: ${{ !cancelled() && matrix.kind == 'coverage' }}
+              with:
+                  name: js-coverage-raw-${{ matrix.shard }}
+                  path: coverage/js/raw/
+                  if-no-files-found: warn
+                  retention-days: 7
+
+            # engines: writes over the behavior run's results.json, uploaded above
             - name: Playwright, screenshots against the Chromium baselines (report only)
               id: screenshots
-              if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+              if: ${{ !cancelled() && matrix.kind == 'engines' && steps.prepare.outcome == 'success' }}
               continue-on-error: true
               env:
                   DEMO_URL: https://localhost
@@ -330,11 +277,11 @@ jobs:
               run: npx playwright test --project=smoke-${{ matrix.browser }} --project=examples-${{ matrix.browser }} --shard=${{ matrix.shard }}/3 --workers=2 --retries=0
 
             - name: Read the screenshots
-              if: ${{ !cancelled() && steps.screenshots.outcome != 'skipped' }}
+              if: ${{ !cancelled() && matrix.kind == 'engines' && steps.screenshots.outcome != 'skipped' }}
               run: node tools/monthly/screenshots.mjs --browser ${{ matrix.browser }} --shard ${{ matrix.shard }}/3 --out screenshots playwright-results/results.json
 
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ !cancelled() && steps.screenshots.outcome != 'skipped' }}
+              if: ${{ !cancelled() && matrix.kind == 'engines' && steps.screenshots.outcome != 'skipped' }}
               with:
                   name: screenshots-${{ matrix.browser }}-${{ matrix.shard }}
                   path: screenshots/
@@ -343,117 +290,23 @@ jobs:
 
             # the expected, actual and diff images of each screenshot that differs, to look at
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ !cancelled() && steps.screenshots.outcome == 'failure' }}
+              if: ${{ !cancelled() && matrix.kind == 'engines' && steps.screenshots.outcome == 'failure' }}
               with:
                   name: screenshot-diffs-${{ matrix.browser }}-${{ matrix.shard }}
                   path: test-results/
                   retention-days: 30
 
-            - name: Demo logs
-              if: failure()
-              working-directory: demo
-              run: docker compose logs php
-
-    # The timings, report only (decision 6d): the interaction-count specs in Chromium, 5 runs one after another (one
-    # worker), with PW_TIMINGS set. Each counted step records how long it took and its longest interaction (INP;
-    # tests/e2e/counts.ts), and tools/monthly/timings.mjs gives per step the median, the spread, min, max and the median
-    # INP. A count that differs fails the job as in CI; a timing never does (no threshold yet).
-    timings:
-        name: Timings (Chromium)
-        runs-on: ubuntu-latest
-        timeout-minutes: 30
-        env:
-            XDEBUG_MODE: 'off' # compose.override.yaml enables Xdebug's develop mode by default; the tests do not use it
-        steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-              with:
-                  ref: ${{ github.event_name == 'schedule' && 'dev' || '' }} # empty: the branch the run was started from
-
-            # no npm cache: the scheduled run executes dev's code in the default branch's context, so a cache it saved would
-            # come from code main has not taken yet; once a month, the install costs little
-            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-              with:
-                  node-version: 22
-
-            - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-
-            # reads the image cache CI writes for dev and main; writes none
-            - name: Build the demo image
-              id: image
-              uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
-              with:
-                  source: ./demo
-                  files: |
-                      compose.yaml
-                      compose.override.yaml
-                  load: true
-                  pull: true
-                  set: |
-                      *.cache-from=type=gha,scope=demo-refs/heads/dev
-                      *.cache-from=type=gha,scope=demo-refs/heads/main
-
-            - name: Start the demo (composer install on first start)
-              id: start
-              working-directory: demo
-              run: docker compose up --wait --no-build
-
-            - name: Sync recipes into the demo
-              id: sync
-              working-directory: demo
-              run: docker compose exec -T php php ../tools/sync-demo
-
-            - name: Install Playwright
-              id: install
-              run: |
-                  npm ci
-                  docker pull "mcr.microsoft.com/playwright:v$(node -p "require('@playwright/test/package.json').version")-noble"
-
-            - name: Prepare the tests
-              id: prepare
-              env:
-                  DEMO_URL: https://localhost
-              run: node tools/prepare-tests.mjs
-
-            - name: Interaction counts, timed, 5 runs
-              id: tests
-              env:
-                  DEMO_URL: https://localhost
-                  PW_TIMINGS: '1'
-              run: npx playwright test tests/e2e/counts.spec.ts --project=smoke --repeat-each=5 --workers=1
-
-            - name: Read the results
-              id: results
-              if: ${{ !cancelled() }}
-              env:
-                  BROWSER: chromium
-                  RESULTS_ARTIFACT: monthly-timings-results
-                  TESTS_OUTCOME: ${{ steps.tests.outcome }}
-                  SETUP_STEPS: |
-                      Build the demo image=${{ steps.image.outcome }}
-                      Start the demo=${{ steps.start.outcome }}
-                      Sync recipes into the demo=${{ steps.sync.outcome }}
-                      Install Playwright=${{ steps.install.outcome }}
-                      Prepare the tests=${{ steps.prepare.outcome }}
-              run: node tools/ci/playwright-summary.mjs playwright-results/results.json
-
             - name: Timings report
-              if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
+              if: ${{ !cancelled() && matrix.kind == 'timings' && steps.tests.outcome != 'skipped' }}
               run: node tools/monthly/timings.mjs --out coverage/timings playwright-results/results.json
 
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ !cancelled() }}
+              if: ${{ !cancelled() && matrix.kind == 'timings' }}
               with:
                   name: timings
                   path: coverage/timings/
                   if-no-files-found: warn
                   retention-days: 90
-
-            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ !cancelled() }}
-              with:
-                  name: monthly-timings-results
-                  path: playwright-results/
-                  retention-days: 30
 
             - name: Demo logs
               if: failure()
@@ -466,7 +319,7 @@ jobs:
     # when a job above failed too, and shows a missing report as missing.
     report:
         name: Monthly report
-        needs: [php, js, browsers, timings]
+        needs: [php, browsers]
         if: ${{ !cancelled() }}
         runs-on: ubuntu-latest
         timeout-minutes: 10

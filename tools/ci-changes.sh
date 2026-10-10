@@ -61,7 +61,10 @@ while IFS= read -r path; do
         tools/tests/live-action.php | tools/tests/fixtures/fresh-app/*) on fresh-install ;;
         tools/tests/sync-demo.sh | tools/tests/fixtures/sync-kit/*) on demo ;;
         tools/phpstan.neon) on php ;;
-        # The browser job's own tools (its results summary, the Jev diagnosis): the browser job uses them
+        # The jobs' own CI tools: Kit PHP turns its JUnit report into failed attempts; Jev diagnoses both jobs' failures;
+        # the rest (the results summary) is the browser job's
+        tools/ci/junit-attempts.mjs) on php ;;
+        tools/ci/jev-diagnosis.mjs | tools/ci/jev-ci.json) on php demo ;;
         tools/ci/*) on demo ;;
         # Tools' cases and their fixtures, and the monthly report tools: Tool tests runs them on every run
         tools/tests/*.test.mjs | tools/tests/fixtures/playwright-results/* | tools/monthly/*) ;;

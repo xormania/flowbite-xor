@@ -275,10 +275,37 @@ jobs:
             # the extension contracts of the data table and the editors' form types.
             # A missing snapshot fails here instead of being written.
             - name: PHPUnit
+              id: phpunit
               working-directory: demo
               env:
                   CREATE_SNAPSHOTS: 'false'
-              run: bin/phpunit
+              run: bin/phpunit --log-junit "$RUNNER_TEMP/phpunit.xml"
+
+            # Advisory diagnosis of each failed PHPUnit test by Jev (TypeSafe), as for the browser tests: the JUnit report
+            # becomes the same failed-attempts.json (tools/ci/junit-attempts.mjs), with the test log as the server log. It
+            # never changes the verdict (continue-on-error, and it exits 0 without the key or when the provider fails).
+            - name: Jev diagnosis (advisory)
+              id: jev
+              if: ${{ failure() && steps.phpunit.outcome == 'failure' }}
+              continue-on-error: true
+              timeout-minutes: 2
+              env:
+                  TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+                  JEV_DIR: ${{ runner.temp }}/jev-phpunit
+              run: |
+                  mkdir -p "$JEV_DIR"
+                  node tools/ci/junit-attempts.mjs "$RUNNER_TEMP/phpunit.xml" "$JEV_DIR/failed-attempts.json"
+                  node tools/ci/jev-diagnosis.mjs --attempts "$JEV_DIR/failed-attempts.json" \
+                      --server-log demo/var/log/test.log --output "$JEV_DIR/assessment" --job "Kit PHP"
+
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              if: ${{ always() && steps.jev.outcome != 'skipped' }}
+              continue-on-error: true
+              with:
+                  name: jev-phpunit-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: ${{ runner.temp }}/jev-phpunit/assessment/
+                  if-no-files-found: warn
+                  retention-days: 30
 
             # PHPStan reads the classes the kit's PHP uses (Symfony) from the demo's dependencies, and also checks the
             # demo's tables and tests; it is installed in a scratch directory with its Symfony and PHPUnit extensions

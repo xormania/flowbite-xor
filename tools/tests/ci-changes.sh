@@ -115,6 +115,8 @@ check 'fresh-install'             tools/tests/live-action.php
 check 'fresh-install'             tools/tests/fixtures/fresh-app/templates/home.html.twig
 check 'demo'                      tools/tests/fixtures/sync-kit/manifest.json
 check 'demo'                      tools/ci/playwright-summary.mjs
+check 'php'                       tools/ci/junit-attempts.mjs
+check 'php demo'                  tools/ci/jev-diagnosis.mjs tools/ci/jev-ci.json
 # tools' cases and their fixtures run in Tool tests, on every run: no other job
 check ''                          tools/tests/playwright-summary.test.mjs tools/tests/fixtures/playwright-results/timed.json
 check 'php static-site demo'      tools/sync-demo
