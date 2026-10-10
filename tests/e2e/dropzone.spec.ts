@@ -172,7 +172,7 @@ test('an invalid zone is red and described by its error', async ({ page }) => {
             return getComputedStyle(probe).backgroundColor;
         }),
     );
-    await expectA11y(page, { impact: 'serious' });
+    // axe on this state, mounted, in both themes: a11y.spec.ts (/preview/dropzone/invalid)
 });
 
 test('a disabled zone is disabled and described by its hint', async ({ page }) => {

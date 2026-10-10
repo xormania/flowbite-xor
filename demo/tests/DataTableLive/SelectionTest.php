@@ -21,6 +21,16 @@ final class SelectionTest extends TestCase
         self::assertSame('1000', $ids[999]);
     }
 
+    public function testOnlyTheFirstThousandEntriesAreReadThenTheirInvalidIdsDropped(): void
+    {
+        // cut first, then cleaned: an invalid entry among the first thousand takes a place, no later id fills it
+        $ids = (new RecordingLiveDataTable())->hydrateSelectedIds([str_repeat('x', 129), ...array_map('strval', range(1_001, 6_000))]);
+
+        self::assertCount(999, $ids);
+        self::assertSame('1001', $ids[0]);
+        self::assertSame('1999', $ids[998]);
+    }
+
     public function testIdsAreKeptOnceEachAsStringsAndTooLongOrNonScalarIdsAreDropped(): void
     {
         $ids = (new RecordingLiveDataTable())->hydrateSelectedIds([1, '1', 2, str_repeat('x', 129), ['nested'], null]);

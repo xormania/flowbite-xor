@@ -559,6 +559,19 @@ What makes the numbers the same on every run:
   `AbortSignal` (taken off when the signal aborts), listeners on other targets (a media query, an `AbortSignal`),
   observers and timers, and Playwright's own listeners (scripts without a URL).
 
+What the numbers do not show:
+
+- **Not a leak check.** The listener change leaves out `{ once: true }` listeners and targets no longer in the
+  document: a net zero says the listeners still reachable from the document came back to where they were, not that
+  a detached element or its listeners can be collected (the tracker's own map even holds them). No count measures
+  the heap.
+- **Bytes are not the transfer size.** They are the decoded bodies (a body that cannot be read, such as a redirect's,
+  counts 0), not the compressed bytes on the wire.
+- **`durationMs` is not the component's time.** It runs from the action's start to its own completion, Playwright's
+  round trips to the browser included, under this synthetic workload; warm-up and the wait for quiet are not in it.
+- **`inpMs` is not INP.** It is the longest Event Timing entry of one scripted step, not a page's real-user
+  Interaction to Next Paint (Core Web Vitals). Both timings are reported, never gated.
+
 **Updating an expected number.** A change that makes a step cost more, or less, on purpose updates the step's numbers
 in the spec in the same pull request, and says why in its description: the failure prints each count as it is now.
 A budget is raised to the new bytes plus a quarter, rounded up to the thousand, only for a response that grew for a
@@ -662,20 +675,25 @@ Here: [`lab.mobile-nav.spec.ts`](../tests/e2e/lab.mobile-nav.spec.ts) ("repeated
 **Catches:** server code trusting writable `LiveProp`s. The browser can send any value for them; the template's
 widgets are not a limit.
 
-The live controller's own API sends the request, so the test goes through the real endpoint, checksum and hydration:
+What the server makes of such a value is a PHPUnit test through real Live requests (below, *A Live Component through
+real Live requests*): it goes through the endpoint, the checksum and the hydration, as the live controller's request
+does, and reads the props and the HTML the next request gets. Bound such a prop in its `hydrateWith` method: it reads
+what the browser sends before your code does. A browser test sends a crafted value only for what happens in the
+browser after it (an open overlay kept by the re-render, the focus), with the live controller's own API:
 
 ```ts
-await page.evaluate(async () => {
+await page.locator('[data-controller~="live"]').first().evaluate(async (element) => {
     const { getComponent } = await import('@symfony/ux-live-component'); // resolved by the import map
-    const component = await getComponent(document.querySelector<HTMLElement>('[data-controller~="live"]')!);
-    component.set('selectedIds', Array.from({ length: 5_000 }, (_, i) => String(i)), true); // true: re-render
+    const component = await getComponent(element as HTMLElement);
+    component.set('stay.start', '2026-03-14');
+    await component.render();
 });
-await expect(page.getByRole('status').filter({ hasText: 'selected' })).toHaveText('1000 selected, the most this table selects');
 ```
 
-Bound such a prop in its `hydrateWith` method: it reads what the browser sends before your code does.
-
-Here: [`lab.data-table-live.spec.ts`](../tests/e2e/lab.data-table-live.spec.ts) ("a selection the browser sends is cut…").
+Here: [`OrdersTableTest.php`](../demo/tests/Live/OrdersTableTest.php) (a selection cut to the table's limit, hostile
+ids dropped, a full selection taking no more rows until cleared), [`SelectionTest.php`](../demo/tests/DataTableLive/SelectionTest.php)
+(the rule alone); in a browser, [`lab.date-picker.spec.ts`](../tests/e2e/lab.date-picker.spec.ts) (the server's
+value set from the page's code while a picker is open).
 
 ### Without a browser
 
@@ -873,15 +891,18 @@ One helper owns the scan, the policy and the report; the spec drives the state a
 The policy is explicit at each call: `serious` fails on serious and critical violations, `all` on any, and `include`
 or `exclude` scope the scan. Each violation is reported as `<rule> (<impact>): <targets>`. The scan waits for the
 page's running animations to finish first, so a color transition the spec started (a tab's fill on selection) is
-read at its end, not half-way; endless and paused ones are not awaited.
+read at its end, not half-way; endless and paused ones are not awaited. A whole-page scan first waits for the
+widgets to mount, every controller named in a `data-controller` connected (`controllersConnected`, lazy ones
+loaded), so it reads what the controllers render, not the server's markup before them.
 
 ```ts
+await controllersConnected(page);                                                  // the widgets mounted
 await expectA11y(page, { impact: 'serious', exclude: 'iframe' });                 // a whole page, its previews scanned on their own
 await menu(page).click();                                                          // the spec drives the state
 await expectA11y(page, { impact: 'all', include: '#drawer-lab-mobile-nav' }, 'open'); // the component's own markup
 ```
 
-Here: [`fixtures.ts`](../tests/e2e/fixtures.ts) (`expectA11y`), [`a11y.spec.ts`](../tests/e2e/a11y.spec.ts) (every page;
+Here: [`fixtures.ts`](../tests/e2e/fixtures.ts) (`expectA11y`, `controllersConnected`), [`a11y.spec.ts`](../tests/e2e/a11y.spec.ts) (every page;
 [`tools/test-inventory.mjs`](../tools/test-inventory.mjs) fails when a lab page of `LabController` is missing from its
 `labPages`),
 and the specs of the dropzone, editor, markdown-editor, forms, demo-app, lab.side-nav, lab.section-nav, lab.mobile-nav
@@ -959,9 +980,10 @@ What differs between the engines, met so far, and how the kit and the suite stay
   two frames after the visit first (`demo-app.spec.ts`).
 - **A full load (reload, `goto`) while the document still runs a fetch:** WebKit rejects the fetch (`TypeError: Load
   failed`, *due to access control checks*); Turbo's prefetch of a link under the pointer rethrows it, unhandled. The
-  other engines drop the document without rejecting. `guardPage()` drops exactly those two messages, and only from a
-  full load's request until its document replaces the old one (`FETCH_CANCELLED_BY_UNLOAD`); anywhere else they fail
-  the test.
+  other engines drop the document without rejecting. `guardPage()` drops exactly those two messages, in WebKit only,
+  and only from a full load's request until its document replaces the old one (`FETCH_CANCELLED_BY_UNLOAD`); a
+  navigation that fails or leaves the document in place (a 204) ends that window. Anywhere else they fail the test:
+  `smoke.spec.ts` ("the page guard") plants them during a full load, outside one and after a 204, in every engine.
 
 - **A cancelled request** fails with `net::ERR_ABORTED` in Chromium, `NS_BINDING_ABORTED` in Firefox, `Load request
   cancelled` in WebKit: `allowCancelledRequest` accepts each engine's own text (`CANCELLED` in `tests/e2e/fixtures.ts`),

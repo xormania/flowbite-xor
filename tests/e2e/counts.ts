@@ -5,6 +5,12 @@ import { expect, test } from './fixtures';
  * Tier 2 of docs/PLAN-test-tiers.md: what one key interaction costs, counted. Counts give the same numbers on every
  * run of the same build, so they gate like any other assertion; timings do not, and are reported elsewhere
  * (docs/TESTING.md, *Interaction counts*).
+ *
+ * What they do not measure: the listener change leaves out `{ once: true }` listeners and targets no longer in the
+ * document, so a net zero is no proof that nothing is retained (and the tracker's own map holds references): it is not
+ * a heap-leak check. Bytes are response bodies decoded, not the compressed size on the wire, and a body that cannot be
+ * read counts as 0. `durationMs` includes Playwright's round trips to the browser, not the component's work alone, and
+ * `inpMs` is one step's longest Event Timing entry under this synthetic workload, not a page's real-user INP.
  */
 
 /** What one step of an interaction did, counted from its start until the page is quiet again. */
@@ -18,23 +24,26 @@ export type Counts = {
     /**
      * The change in event listeners on `document`, `window` and elements in the document, by `<target> <type>`, with
      * ` capture` for a capturing one (`document click capture`, `button click`, `window resize`): those added minus
-     * those removed, the elements that left the document no longer counted. `{}` when the step leaves the same listeners.
+     * those removed, the elements that left the document no longer counted (a listener on a detached element is not
+     * seen, kept or not), `{ once: true }` ones never counted. `{}` when the step leaves the same listeners: the
+     * listeners still reachable from the document, not proof that nothing is retained.
      */
     listeners: Record<string, number>;
 };
 
 /** What a step is expected to count, and a budget for its bytes. */
 export type Expected = Counts & {
-    /** the most bytes the step's responses may carry, bodies decoded (the HTML or JSON received, not its compressed size) */
+    /** the most bytes the step's responses may carry, bodies decoded (the HTML or JSON received, not its compressed size on the wire) */
     maxBytes: number;
 };
 
 /**
- * One step's counts, its response bytes (bodies decoded) and its timings, which are reported, never gated:
- * `durationMs` from the start of the step's action until the action's own completion resolves (the update it waits
- * for has landed; the wait for quiet after it is not counted), Playwright's round trips included; `inpMs` the longest
- * interaction the step caused, by the page's Event Timing (Chromium and Firefox; `null` where the engine has none or
- * the step had no interaction).
+ * One step's counts, its response bytes (bodies decoded; one that cannot be read counts 0) and its timings, which are
+ * reported, never gated: `durationMs` from the start of the step's action until the action's own completion resolves
+ * (the update it waits for has landed; the wait for quiet after it is not counted), Playwright's round trips included,
+ * so not the component's time alone; `inpMs` the longest interaction the step caused, by the page's Event Timing
+ * (Chromium and Firefox; `null` where the engine has none or the step had no interaction): one synthetic step's
+ * longest entry, not the real-user INP of Core Web Vitals.
  */
 export type Measured = { counts: Counts; bytes: number; durationMs: number; inpMs: number | null };
 
