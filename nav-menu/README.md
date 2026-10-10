@@ -74,6 +74,7 @@ The navbar's menu: links and buttons opening submenus of links, nested at any de
 - **Small screens:** the `Navbar` shows its `nav` block from Tailwind's `md` breakpoint up. Below, render the same
   items in a [`MobileNav`](../mobile-nav/README.md), in a vertical `NavMenu` with another `id` (below); the `layouts`
   app layout does both from its `navbar_nav` block.
+- **Motion:** a submenu's chevron turns with a transform transition, which stops under `prefers-reduced-motion`.
 
 ### In a mobile nav
 

@@ -71,6 +71,7 @@ A multi-level navigation tree: links grouped in branches that open and close, at
   go to the first and last item; typing letters moves to the next item starting with them. Enter or Space follows a
   link, or opens or closes a branch. A click on a branch's row opens or closes it.
 - **Turbo:** the tree works on every page or inside a `data-turbo-permanent` element; such an element needs an `id`.
+- **Motion:** a branch's chevron turns with a transform transition, which stops under `prefers-reduced-motion`.
 
 ### In a sidebar
 

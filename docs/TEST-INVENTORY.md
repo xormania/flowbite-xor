@@ -191,12 +191,14 @@ States: counting down, paused (hovered, focused), closing, removed; in the perma
 | Moved into the region | E2E lab | lab.turbo-restore "a toast moved into the permanent region stays across visits" |
 | Flash written as a Stream shows once | E2E lab | lab.turbo-nav "a flash toast written as a Turbo Stream shows once across Turbo visits" |
 | A toast outside the region while a frame visit is promoted to history: stays on screen; Back and Forward do not show it, from their first frame (failed before the fix: Turbo removed it from the screen on `turbo:before-cache` and Back showed the copy's) | E2E lab | lab.turbo-restore "a toast outside the permanent region stays shown while a frame visit is promoted to history…" |
+| Closed under reduced motion: leaves the DOM within the click, no fade waited for; closed without a preference: leaves after its fade | E2E demo | motion "under reduced motion a closed toast leaves the DOM at once…", "a toast closed with … motion leaves the DOM" (2) |
 
 ### alert, avatar
 
 | Recipe | State or transition | Scope | Covered by |
 |---|---|---|---|
 | alert | Close by click, by keyboard, each independently | E2E demo, screenshot | recipe:alert "dismisses each alert independently", "dismisses an alert with the keyboard"; shot:alert "hides an alert when its close button is clicked" |
+| alert | Dismissed under reduced motion: hidden within the click, no fade; with either preference it ends hidden | E2E demo | motion "under reduced motion an alert hides at once…", "an alert dismissed with … motion is hidden" (2) |
 | alert | Dismissed, then Back; inserted by a Stream; Live re-render | | G10 |
 | avatar | Image loaded, loaded before connect, failed, a new image failing | E2E demo | avatar (4 tests) |
 | avatar | Turbo visit and Back | E2E lab | avatar "shows the picture of a page reached by a Turbo visit or restored from its cache" |
@@ -255,6 +257,7 @@ drawer closed, open as a modal, open on load, static backdrop, drawer non-modal;
 | modal | Closed until opened; Escape; close buttons; backdrop; static backdrop; several openings; open on load | E2E demo | recipe:modal (8 tests) |
 | modal | Moved in the DOM, open and closed | screenshot | shot:modal "stays modal after being moved in the DOM", "stays closed after being moved in the DOM once closed" |
 | modal | Live re-render, open and closed | E2E lab | lab.live-modal "an open modal stays modal across a Live re-render, a closed one stays closed" |
+| modal | Opened and closed with and without reduced motion: the trigger's `aria-expanded` and the dialog's `aria-hidden` follow (the controller waits for a `transitionend` only while the dialog has a running transition) | E2E demo | motion "a modal opened and closed with … motion updates its trigger and hides" (2) |
 | drawer | Modal: trap, Live re-render, Escape; non-modal | E2E lab | lab.live-drawer (2 tests) |
 | drawer | Backdrop click, open on load, moved in the DOM | | G8 (modal has them; an open drawer moved by Turbo in a `data-turbo-permanent` element: lab.overlays) |
 | all three | The copy Turbo renders on Back and Forward, and on Back after a visit started by the page with the next page waiting for a stylesheet: closed, trigger not `aria-expanded="true"` (recorded from `turbo:before-render`); closed and working once connected | E2E lab | lab.overlays "left open by Back, Forward or a visit from the page, every copy Turbo renders shows it closed" (3) |
@@ -394,6 +397,19 @@ States: search, filter, sort and direction, page, page size (in the URL); data-t
 | Counts (tier 2): sort, page and filter each make one request (the frame's, or the Live action's), connect no controller and leave no listener, their responses under a budget | E2E lab | counts "data-table in a Turbo Frame: …", "data-table-live: …" |
 | Selection cut to `maxSelection`, ids cleaned, "Select this page" bounded | unit; Live component; E2E lab | `SelectionTest` (5 tests); `OrdersTableTest` (3 tests); lab.data-table-live "a selection the browser sends is cut to the table's limit before the server uses it" (R2) |
 | Stable row ids, cell blocks | E2E lab | lab.data-table-frame "rows have stable ids and render the page cell blocks" |
+
+### motion (every recipe that moves)
+
+States: no preference or `prefers-reduced-motion: reduce`. Each transition names its properties and stops under
+reduced motion; an animation that is the content runs three times slower there.
+
+| Recipe | State or transition | Scope | Covered by |
+|---|---|---|---|
+| tabs, toggle, sidebar, nav-menu, side-nav, table, toast, modal | Without a preference: the computed `transition-property` holds what the part animates (tabs: colors; toggle knob `::after`: `translate`, `border-color`; sidebar: `width`; chevrons: transforms; table rows: colors; toast: `opacity`; modal `::backdrop`: colors) and no other layout property; under reduced motion it is `none` (failed before the change for each, the sidebar's and the chevrons' under reduce only) | E2E demo | motion "…: animates only what it names, and nothing under reduced motion" (11) |
+| tabs | No `all`, no layout property, a non-zero duration (the `transition-all` axe raced: `expectA11y` waits for running finite animations) | E2E demo | motion "a tabs trigger animates its colors only…" |
+| spinner, skeleton | `animation-duration` 1 s and 2 s, 3 s and 6 s under reduced motion; every animated element of their previews, a README example's own `animate-*` class included | E2E demo | motion "the spinner and the skeleton pulse run three times slower under reduced motion", "every animation in … is slowed under reduced motion" (5 previews) |
+| alert, toast, modal | Hide, removal and `aria-*` updates complete under reduced motion | E2E demo | motion (rows of alert, toast, modal above) |
+| all | Screenshots are taken under reduced motion with animations disabled: the end states | screenshot | shot:tabs, shot:alert |
 
 ## Rules and their tests
 
