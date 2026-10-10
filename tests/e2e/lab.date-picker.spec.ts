@@ -25,13 +25,15 @@ test('a pick is submitted by the form; the day buttons never submit it', async (
     await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 12, 2026');
 });
 
-test('a Turbo visit and Back show the picked date in the field, the calendar and the hidden input, closed', async ({ page }) => {
+// its form is a GET form: Back shows the URL's value (none here), not the pick made before leaving (lab.form-back)
+test('a Turbo visit and Back show the date of the URL in the field, the calendar and the hidden input, closed, not the pick made before', async ({ page }) => {
     await page.goto('/lab/date-picker-turbo');
     await pick(page, 'Due date', '2026-03-12');
     await visitAndBack(page);
 
-    await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 12, 2026');
-    await expect(page.locator('input[name="due"]')).toHaveValue('2026-03-12');
+    await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('');
+    await expect(page.locator('input[name="due"]')).toHaveValue('');
+    await expect(day(page.locator('#due-picker-content'), '2026-03-12')).toHaveAttribute('data-selected-single', 'false');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await countChanges(page);
     await pick(page, 'Due date', '2026-03-13');
@@ -97,7 +99,7 @@ test('in a Live form, a pick reaches the server and the end date follows the sta
     await expect(page.locator('[data-calendar-target="input"]')).toHaveCount(2);
 });
 
-test('a date picker open while the page code steps a frame promoted to history stays open on its day; Back shows it closed with the pick', async ({ page }) => {
+test('a date picker open while the page code steps a frame promoted to history stays open on its day; Back shows it closed with the date of the URL', async ({ page }) => {
     await page.goto('/lab/date-picker-turbo');
     const firstFrames = await recordFirstFrames(page, { calendar: '#due-picker-content' });
     await pick(page, 'Due date', '2026-03-12');
@@ -112,13 +114,14 @@ test('a date picker open while the page code steps a frame promoted to history s
     await expect(calendar).toBeHidden();
     await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 13, 2026');
 
-    // the copy was taken as the frame visit started: open, on the first pick
+    // the copy was taken as the frame visit started: open, on the first pick; its form is a GET form, so Back shows
+    // the URL's date (none), not the pick
     await back(page, { step: 0 });
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Due date: choose date' })).toHaveAttribute('aria-expanded', 'false');
     expect(await firstFrames(1)).toEqual([{ render: 1, url: '/lab/date-picker-turbo', visible: { calendar: false } }]);
-    await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 12, 2026');
-    await expect(page.locator('input[name="due"]')).toHaveValue('2026-03-12');
+    await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('');
+    await expect(page.locator('input[name="due"]')).toHaveValue('');
     await pick(page, 'Due date', '2026-03-05');
     await expect(page.getByLabel('Due date', { exact: true })).toHaveValue('Mar 5, 2026');
     await expect(page.getByRole('dialog')).toHaveCount(0);

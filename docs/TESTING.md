@@ -305,8 +305,13 @@ Here: [`lab.data-table-interrupt.spec.ts`](../tests/e2e/lab.data-table-interrupt
 
 ### Restored fields show the URL's state
 
-**Catches:** a form whose fields mirror the URL (a table's search, filters, page size) showing, after Back or
-Forward, a value the user entered before leaving: the state applied next, or an edit never applied. Turbo copies the
+The kit's rule: a GET form reflects the URL, so after Back and Forward it shows what the server rendered; a POST form
+holds the user's work, so it keeps what was typed and picked. Enhanced widgets (autocomplete, date picker) follow the
+form they are in.
+
+**Catches:** a GET form whose fields mirror the URL (a table's search, filters, page size, any search form) showing,
+after Back or Forward, a value the user entered before leaving: the state applied next, or an edit never applied; and
+the other way, a POST form losing what was typed. Turbo copies the
 page with its edited fields (`PageSnapshot.clone` keeps each select's choice, `cloneNode` an input's value), and a
 frame visit promoted to history takes its copy once the form is submitted, edits made.
 
@@ -330,14 +335,22 @@ await expect.soft(page.getByLabel('Rows per page')).toHaveValue('10');
 expect(await firstFrames()).toEqual([{ search: '', status: '', size: '10' }]);
 ```
 
-Leave with an edit not applied too (a link away, then Back). The fix is a controller that calls the form's `reset()`
-as the form connects (a target of the controller on the table's frame), unless the focus is inside it: a copy is a new
-element, and `reset()` puts back the `value` and `selected` attributes the server rendered. Call it as
-`HTMLFormElement.prototype.reset.call(form)`: a field named `reset` (a kept URL parameter) shadows the method. A Live
-Component needs none: its controller sets each `data-model` field from the component's state as it connects.
+Leave with an edit not applied too (a link away, then Back). The fix is one controller on `<body>`, which Turbo
+replaces on every visit: `form-reset` (the `layouts` recipe) calls `reset()` on each GET form of the body once the
+page's controllers have connected, unless the focus is inside the form or it sits in a `data-turbo-permanent` element:
+a copy is a new element, and `reset()` puts back the `value`, `selected` and `checked` attributes the server rendered.
+Call it as `HTMLFormElement.prototype.reset.call(form)`: a field named `reset` (a kept URL parameter) shadows the
+method. A widget whose state `reset()` cannot reach follows the form's `reset` event (the calendar: a hidden input's
+value is its attribute) or is synced after it (Tom Select's own display). Check what the user sees, not only the value
+sent: Tom Select's item, the date picker's field and selected day. A Live Component needs none: its controller sets
+each `data-model` field from the component's state as it connects.
 
-Here: [`lab.data-table-back.spec.ts`](../tests/e2e/lab.data-table-back.spec.ts),
-[`data_table_controller.js`](../data-table/assets/controllers/data_table_controller.js).
+Data-drive the check over the form's method and each widget kind: change one, visit, go Back, and expect it as
+rendered (GET) or as left (POST), the others as rendered.
+
+Here: [`lab.form-back.spec.ts`](../tests/e2e/lab.form-back.spec.ts),
+[`lab.data-table-back.spec.ts`](../tests/e2e/lab.data-table-back.spec.ts),
+[`form_reset_controller.js`](../layouts/assets/controllers/form_reset_controller.js).
 
 ### State saved after the snapshot
 
@@ -445,6 +458,78 @@ Here: [`lab.turbo-stream-toast.spec.ts`](../tests/e2e/lab.turbo-stream-toast.spe
 
 Counts give the same result on every run, so they fail like any other assertion; timings belong to separate,
 repeated runs ([`PLAN-test-tiers.md`](PLAN-test-tiers.md)).
+
+### Interaction counts
+
+**Catches:** a key interaction that costs more than it did: an extra or duplicated request, a controller connected
+again (a re-render that replaces what it should move, an element given a second controller), a listener added and
+never removed (on `document`, `window` or an element that stays), a response grown past its budget.
+
+Each key interaction is a few steps (open, close; sort, page, filter; a pick; typing), and each step is gated on what
+it counts from its start until the page is quiet again (no request in flight, two animation frames later):
+
+| Count | Read from | Expected |
+|---|---|---|
+| `requests`, by kind | Playwright's `request` events, by `resourceType()`: `document`, `fetch`, `xhr`, `script`, `stylesheet`, `image`… | exact |
+| `connected`, `disconnected`, by identifier | the Stimulus application's `logDebugActivity`, which Stimulus calls on every controller's connect and disconnect | exact |
+| `listeners`, by `<target> <type>[ capture]` | an init script wrapping `addEventListener` and `removeEventListener`: added minus removed, on `document`, `window` and the elements still in the document | exact |
+| bytes | the bodies of the step's `document`, `fetch` and `xhr` responses, decoded (the HTML received, not its compressed size) | at most a budget |
+
+```ts
+const counts = await trackCounts(page);            // before the first goto: installs the listener tracker
+await page.goto('/lab/dropdown-turbo');
+await counts.warmUp(openIt, closeIt);              // uncounted: Turbo adds listeners on the first click and submit
+await counts.expect('dropdown open', openIt, {
+    requests: {}, connected: {}, disconnected: {}, maxBytes: 0,
+    listeners: { 'document click capture': 1, 'window resize': 1, 'window scroll capture': 1 },
+});
+await counts.expect('dropdown close', closeIt, { /* … */ listeners: { 'document click capture': -1, /* … */ } });
+```
+
+A step that differs fails with its name and every count, the difference marked (here a `hide()` that no longer
+removes its `resize` listener):
+
+```text
+Error: dropdown close: requests by kind, Stimulus controllers connected and disconnected, listeners added minus removed
+    "listeners": Object {
+      "document click capture": -1,
+-     "window resize": -1,
+      "window scroll capture": -1,
+    },
+```
+
+What makes the numbers the same on every run:
+
+- **A warm-up round.** Each test runs its steps once uncounted, then counts them. Turbo's link and form observers add
+  their bubbling `click` and `submit` listeners on the first captured event of a document (`html click`, `window click`,
+  `document submit`), a frame's on its first click and submit, and a lazy controller loads on first use.
+- **Links from the keyboard.** A pointer over a link makes Turbo prefetch it, and the click then reuses that request,
+  or not, depending on timing: focus the link and press Enter. A Live Component's links (`href="#"`) are not
+  prefetched.
+- **Each step waits for its own completion** (a Turbo operation, Live's rendered result, the overlay shown), then for
+  quiet: a request that starts after that is not counted, so a step that waits too little passes, never flakes.
+- **Bodies decoded, under a budget.** The CSP nonce changes every response, so a compressed size varies; the decoded
+  length does not. It is still a budget, not an exact number: a frame visit's response is the whole page, whose layout
+  and import map grow with every recipe. The budget is the measured bytes plus a quarter, rounded up to the thousand.
+- **Not counted:** `{ once: true }` listeners (they remove themselves when they run), a listener removed by its
+  `AbortSignal` (taken off when the signal aborts), listeners on other targets (a media query, an `AbortSignal`),
+  observers and timers, and Playwright's own listeners (scripts without a URL).
+
+**Updating an expected number.** A change that makes a step cost more, or less, on purpose updates the step's numbers
+in the spec in the same pull request, and says why in its description: the failure prints each count as it is now.
+A budget is raised to the new bytes plus a quarter, rounded up to the thousand, only for a response that grew for a
+reason; one that grew unexpectedly is a regression to find. A new key interaction gets a test of its own: its steps,
+its warm-up, then `counts.expect` for each step with the numbers read from a first run (`counts.measure(step)` returns
+them).
+
+The counts run in the `smoke` project (Chromium) with the rest of the suite. Nothing they read is Chromium's own: run
+locally in Firefox and WebKit (October 2026, three times each), every step that ran gave Chromium's numbers; WebKit's date
+picker stayed open after a pick, a behavior to look at before WebKit joins CI. The request kinds are the likeliest to
+differ between browsers (Playwright reports each browser's own resource type).
+
+Here: [`tests/e2e/counts.ts`](../tests/e2e/counts.ts) (`trackCounts`), [`counts.spec.ts`](../tests/e2e/counts.spec.ts)
+(the dropdown, modal and drawer opening and closing; the data table's sort, page and filter in a Turbo Frame and in
+Live; a Live action re-sorting rows; a date pick; typing in the editor).
 
 ### No transition runs where the change should be instant
 
@@ -936,3 +1021,72 @@ key, a provider error or an answer that does not validate gives an *unavailable*
 The `TYPESAFE_API_KEY` secret is given to this step alone; without it (a fork's run, for instance) every attempt is
 *unavailable (missing_credential)*. Turn the step off with `"enabled": false` in the policy. Its cases run with the summarizer's, against a local stand-in for the provider:
 `node --test tools/tests/*.test.mjs`. They check what is sent and accepted, not how good the diagnosis is.
+
+## Monthly job
+
+**Catches:** code no test runs and tests that run code without checking it, which no pull request measures: a
+recipe's PHP line or method no PHPUnit test reaches, a mutant of it the tests let through, a controller method no
+browser test calls. Report-only: a low number fails nothing, it shows where a test is missing.
+
+[`.github/workflows/monthly.yml`](../.github/workflows/monthly.yml) runs on the 3rd of each month on `dev`, and by
+hand before a release. Nothing of it runs on a push or a pull request: CI's jobs and test list stay as they are.
+
+| Job | What it measures | Where it reads |
+|---|---|---|
+| *PHP coverage and mutants* | The demo's PHPUnit tests with PCOV: lines and methods of the recipes' `src/`, per file and class, and the methods no test runs. Then [Infection](https://infection.github.io/) on the same directories and tests: the MSI and every surviving mutant (escaped, or on a line no test runs) with its diff | job summary; `php-coverage` artifact: `php-coverage.md`, `clover.xml`, `html/`, `infection.md`, `survivors.md`, Infection's own logs |
+| *JS coverage (1/3–3/3)* | The whole browser suite in Chromium, sharded as in CI, with V8 coverage of the scripts under `/assets/controllers/` | each shard's Playwright summary; raw recordings, 7 days |
+| *Monthly report* | The shards merged and mapped to `<recipe>/assets/controllers/*.js`: lines and functions run per controller, and **every controller method runs once**, the named methods no test ran; then every number against the previous successful run | job summary; `js-coverage` and `monthly-trends` (`monthly.json`, `trends.md`) artifacts |
+
+Artifacts are kept 90 days, so each run finds last month's. A report that cannot be made fails its job, and the
+report says why, instead of showing 0%: PCOV not loaded, no `clover.xml` (the tests did not run) or one without a
+measured line, no Infection log or one without a mutant, no recorded JS coverage. A browser test that fails fails its
+shard as in CI; the coverage it recorded is still reported. Branches are not measured: PCOV measures lines.
+
+**Scope.** The demo's autoloader maps `App\FlowbiteXor\…` to the recipes' own `src/` (`demo/composer.json`), so the
+tests run the recipes' files, not the copies `tools/sync-demo` writes. [`tools/monthly/php-scope.php`](../tools/monthly/php-scope.php)
+writes a PHPUnit configuration (the demo's, with absolute paths and its `<source>` set to every recipe's `src/`) and
+Infection's: the demo's own code, its copies of the recipes and the tests' fixtures are outside both. On the JS side,
+[`tests/e2e/coverage.ts`](../tests/e2e/coverage.ts) records only the scripts served from `/assets/controllers/`, and
+[`tools/monthly/js-coverage.mjs`](../tools/monthly/js-coverage.mjs) keeps the recipes' controllers (not the demo's
+own); vendor and importmap packages are never recorded. A line counts as run when its first character outside a
+comment ran; a controller no test loaded lists every method it declares. A test's own extra pages
+(`context.newPage()`) are not recorded.
+
+**Reading the trends.** `trends.md` puts each number next to the previous successful monthly run on the same ref (its
+`monthly-trends` artifact, downloaded with the run's token), then lists what moved: files and controllers whose line
+coverage changed, files whose surviving mutants changed, and methods that never ran this time but ran, or did not
+exist, last time. The first run, or one whose predecessor's artifact expired, says *No previous run* and why. A run
+that failed is not compared with: the next one compares with the last green one.
+
+**Thresholds.** None yet. "Every controller method runs once" stays a report line; it moves to CI only if methods
+that never run keep slipping in. A surviving mutant is a question: a test to add, or a harmless mutant (an equivalent
+cast, a log message) to leave.
+
+**Not built yet.** Two jobs join this workflow later, marked where they go in `monthly.yml`: the full suite in Firefox
+and WebKit with a screenshot diff against last month's (behavior failures failing the run), and the timings,
+report-only.
+
+**By hand.** Actions › *Monthly* › *Run workflow*, from the branch to check ("Use workflow from"), or
+`gh workflow run monthly.yml --ref <branch>`. A run checks the branch it starts from, with that branch's copy of the
+workflow and its tools, so a change to them is tried by running it on its own branch. There is no input naming another
+ref: a run on one would execute that ref's code in the default branch's context, where it could poison the cache.
+
+**Locally**, from the repository root, with the demo installed (*PHP tests*); the reports go to `coverage/`
+(gitignored). PCOV or Xdebug (`XDEBUG_MODE=coverage`) can measure; Infection runs as its PHAR, outside the demo's
+dependencies:
+
+```sh
+php tools/monthly/php-scope.php coverage/php
+(cd demo && CREATE_SNAPSHOTS=false bin/phpunit --configuration ../coverage/php/phpunit.xml --coverage-clover ../coverage/php/clover.xml)
+node tools/monthly/php-coverage.mjs --out coverage/php coverage/php/clover.xml
+(cd demo && php /path/to/infection.phar --configuration=../coverage/php/infection.json5 --threads=max)
+node tools/monthly/infection.mjs --out coverage/php coverage/php/infection/infection.json
+JS_COVERAGE=$PWD/coverage/js/raw DEMO_URL=https://localhost npx playwright test   # Chromium projects; add --shard as in CI
+node tools/monthly/js-coverage.mjs --out coverage/js coverage/js/raw
+node tools/monthly/trends.mjs --out coverage/trends --php coverage/php/php-coverage.json \
+    --infection coverage/php/infection-summary.json --js coverage/js/js-coverage.json [--previous monthly.json]
+node --test 'tools/monthly/*.test.mjs'   # the report tools' cases
+```
+
+`JS_COVERAGE` is the only switch: unset, `startJsCoverage()` returns at once and the fixtures behave as before. Delete
+`coverage/js/raw/` between local runs, or the old recordings are merged in.

@@ -20,13 +20,14 @@ and pull request standard.
 | `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations, `failed-attempts.json` and `durations.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
 | `tools/ci/jev-diagnosis.mjs`, `tools/ci/jev-ci.json` | no | the advisory Jev diagnosis of each failed attempt in `failed-attempts.json`, and its policy ([`docs/TESTING.md`](docs/TESTING.md), *Jev diagnosis*) |
 | `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
+| `tools/monthly/` | no | the monthly job's scope and reports: PHP coverage of the recipes' `src/` and Infection's surviving mutants, the controllers' JS coverage, and the trends against the previous run ([`docs/TESTING.md`](docs/TESTING.md), *Monthly job*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
 | `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs`, `tools/ci/jev-diagnosis.mjs`, `tools/prepare-tests.mjs`, `tools/icon-lint.mjs`, `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `tools/build-static.sh` | no | builds and checks the gallery as a static site, for CI's *Static site* job and `pages.yml` (*Releases*) |
 | `tools/prepare-tests.mjs` | no | what the browser tests need, safe with several Playwright processes in one checkout: the recipe specs' runnable copies and the demo's CSS (*Checks*) |
 | `FOR-AGENTS.md`, `llms.txt` | no | the page for coding agents given the repository's URL, and the list of every page for them ([llms.txt](https://llmstxt.org/)) |
-| `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), the testing patterns ([`docs/TESTING.md`](docs/TESTING.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
+| `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), the testing patterns ([`docs/TESTING.md`](docs/TESTING.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, the monthly coverage and mutation reports (`monthly.yml`), Dependabot's update pull requests, the pull request template |
 
 `ux:install` downloads GitHub's archive of the whole repository; `export-ignore` in `.gitattributes` keeps
 everything else out of it (the demo, tests, tools, and repository files such as this one, `AGENTS.md`,
@@ -100,6 +101,7 @@ change to both paths.
 | `tools/build-static.sh` | *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
 | `tools/release-plan.sh`, `tools/tests/release-plan.sh` | *Workflows* |
+| `tools/monthly/` (the monthly job's tools and their cases) | nothing: only `monthly.yml` runs them; run it by hand on the branch (*Monthly job* in [`docs/TESTING.md`](docs/TESTING.md)) |
 | `tools/tests/fresh-install.sh`, `docker-install.sh`, their shared steps `install-scenario.sh`, `check-fresh-app.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
 | any other file in `tools/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
 | `demo/compose.yaml`, `demo/frankenphp/Caddyfile` | *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
@@ -108,6 +110,7 @@ change to both paths.
 | `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, `tools/build-static.sh`, without the upload) |
 | `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, *Workflows* runs its plan as a dry run |
 | `.github/workflows/audit.yml`, `.github/workflows/codeql.yml` | *Workflows*; each also runs itself on the pull request that changes it |
+| `.github/workflows/monthly.yml` | *Workflows*; it runs on its schedule and by hand, never on a push |
 | `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
 
 *Workflows* runs [actionlint](https://github.com/rhysd/actionlint) with ShellCheck on every workflow: YAML, expressions,
@@ -142,6 +145,12 @@ tools/tests/fresh-install.sh                        # a new Symfony app installs
 KIT_REF=<pushed commit SHA or tag> tools/tests/docker-install.sh   # the same in a new Symfony Docker project (Symfony 8.1), kit downloaded from GitHub
 npx playwright test                                 # every browser test, in Chromium, Firefox and WebKit: see below
 npx playwright test --project=smoke --project=examples   # Chromium only, the screenshots included: the quicker loop
+node --test 'tools/monthly/*.test.mjs'              # the cases of the monthly job's report tools (tools/monthly/)
+php tools/monthly/php-scope.php coverage/php        # the monthly job's PHP scope: coverage/php/phpunit.xml and infection.json5 (the recipes' src/)
+(cd demo && bin/phpunit -c ../coverage/php/phpunit.xml --coverage-clover ../coverage/php/clover.xml) && node tools/monthly/php-coverage.mjs --out coverage/php coverage/php/clover.xml   # PHP coverage per recipe class (needs PCOV, or Xdebug with XDEBUG_MODE=coverage)
+(cd demo && php infection.phar -c ../coverage/php/infection.json5) && node tools/monthly/infection.mjs --out coverage/php coverage/php/infection/infection.json   # Infection's MSI and surviving mutants (the PHAR CI pins in monthly.yml)
+JS_COVERAGE=$PWD/coverage/js/raw npx playwright test && node tools/monthly/js-coverage.mjs --out coverage/js coverage/js/raw   # the controllers' JS coverage and the methods no test runs (Chromium)
+node tools/monthly/trends.mjs --out coverage/trends --php coverage/php/php-coverage.json --infection coverage/php/infection-summary.json --js coverage/js/js-coverage.json   # the numbers in one monthly.json, against --previous <monthly.json>
 actionlint                                          # every workflow, with ShellCheck on its run steps (CI pins actionlint 1.7.12 and ShellCheck 0.11.0)
 ```
 
@@ -168,8 +177,10 @@ the same section.
 
 - `smoke` runs the specs in `tests/e2e/`: the demo pages, the forms, the `/lab` pages for Turbo and Live
   Components, the components given hostile prop values (`hostile-props.spec.ts`), the demo's security headers and
-  Content Security Policy (`csp.spec.ts`), and an axe accessibility scan of every demo page (no serious or critical
-  issue).
+  Content Security Policy (`csp.spec.ts`), an axe accessibility scan of every demo page (no serious or critical
+  issue), and the counts of the key interactions (`counts.spec.ts`: requests, Stimulus controllers connected and
+  disconnected, listeners left, response bytes under a budget; a change that moves one updates its number in the spec,
+  [`docs/TESTING.md`](docs/TESTING.md), *Interaction counts*).
 - `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
   runs the recipes' own specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`). It fails
   on a committed screenshot that no test compares (`baselines.spec.ts`).
