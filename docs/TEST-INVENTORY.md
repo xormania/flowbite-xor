@@ -257,7 +257,8 @@ drawer closed, open as a modal, open on load, static backdrop, drawer non-modal;
 | modal | Closed until opened; Escape; close buttons; backdrop; static backdrop; several openings; open on load | E2E demo | recipe:modal (8 tests) |
 | modal | Moved in the DOM, open and closed | screenshot | shot:modal "stays modal after being moved in the DOM", "stays closed after being moved in the DOM once closed" |
 | modal | Live re-render, open and closed | E2E lab | lab.live-modal "an open modal stays modal across a Live re-render, a closed one stays closed" |
-| drawer | Modal: trap, Live re-render, Escape; non-modal | E2E lab | lab.live-drawer (2 tests) |
+| modal | Live re-render replacing its container, open and closed: no error, the new one opens and closes | E2E lab | lab.live-modal "a modal whose container a Live re-render replaces is torn down cleanly…" |
+| drawer | Modal: trap, Live re-render, Escape; non-modal; a re-render replacing its container, open and closed: no error, the new one opens and closes | E2E lab | lab.live-drawer (3 tests) |
 | drawer | Backdrop click, open on load, moved in the DOM | | G8 (modal has them; an open drawer moved by Turbo in a `data-turbo-permanent` element: lab.overlays) |
 | all three | The copy Turbo renders on Back and Forward, and on Back after a visit started by the page with the next page waiting for a stylesheet: closed, trigger not `aria-expanded="true"` (recorded from `turbo:before-render`); closed and working once connected | E2E lab | lab.overlays "left open by Back, Forward or a visit from the page, every copy Turbo renders shows it closed" (3) |
 | all three | N visits from a link inside the open overlay: one Stimulus controller per element, no `document` or `window` listener left, one toggle per click | E2E lab | lab.overlays "repeated Turbo visits from inside the open overlay leave one controller per element…" (3) |

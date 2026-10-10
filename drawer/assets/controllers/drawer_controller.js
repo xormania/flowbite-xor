@@ -48,8 +48,9 @@ export default class extends Controller {
 
     disconnect() {
         document.removeEventListener('turbo:before-cache', this.#closeBeforeCache);
-        // a <dialog> taken out of the DOM loses its modality: close it now, reopen it on reconnect
-        this.#wasOpen = this.dialogTarget.open;
+        // a <dialog> taken out of the DOM loses its modality: close it now, reopen it on reconnect; a Live re-render that
+        // replaces the container may have moved the dialog to a new controller already: nothing to close
+        this.#wasOpen = this.hasDialogTarget && this.dialogTarget.open;
         if (this.#wasOpen) {
             this.#closeNow();
         }
