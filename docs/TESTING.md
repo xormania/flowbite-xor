@@ -938,6 +938,10 @@ What differs between the engines, met so far, and how the kit and the suite stay
 - **A ResizeObserver whose callback resizes what it observes** ends with *ResizeObserver loop completed with
   undelivered notifications*, which WebKit reports as a page error. `side-nav` handles a resize in the next frame
   (`requestAnimationFrame`, cancelled in `disconnect()`).
+- **A morph moving an open `<dialog>`:** Live's morph moves nodes with `moveBefore` where the engine has it (Chromium,
+  Firefox), which keeps a modal in the top layer; WebKit has none, so the moved dialog stays open but is no longer
+  modal. `modal` remembers the dialogs it showed (a `WeakSet`) and shows that same element as a modal again, while
+  Turbo's copy of a page, which holds clones, still connects closed (`lab.live-modal.spec.ts`).
 - **The scroll event of a Turbo visit** comes with the next frame; WebKit can dispatch it after a Back sent at once,
   and Turbo then records 0 as the restored page's position. A test that goes Back to check the restored scroll waits
   two frames after the visit first (`demo-app.spec.ts`).

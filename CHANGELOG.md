@@ -57,6 +57,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 - `side-nav`: a tree shown again (a `MobileNav` drawer opening, the screen growing to show the `Sidebar`) caused a
   *ResizeObserver loop completed with undelivered notifications* error, which WebKit reports as a page error: the
   tree restored its branches inside the observer's callback. It now handles a resize in the next frame.
+- `modal`: in WebKit, an open modal whose container a Live re-render replaced closed: without `moveBefore`, the morph
+  moves the `<dialog>` out of the top layer, open but no longer modal, which the new controller took for Turbo's copy
+  of the page. It now shows that same dialog as a modal again; a copy still connects closed.
 - `popover`, `dropdown`: one open inside a `data-turbo-permanent` element closed when a visit moved it into the next
   page; it now stays open, as the user left it (the modal and the drawer already did).
 - `dropzone`: in a POST form, a file picked was gone after Back and Forward (UX Dropzone clears the input of Turbo's
