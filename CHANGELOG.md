@@ -5,6 +5,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-10
+
 ### Added
 
 - `data-table`: a server-driven table (search, filters, sortable columns, page size, pages) in a Turbo Frame, with
@@ -178,5 +180,6 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 - `layouts`: base, app (sidebar, navbar, page header, toasts), auth, settings, error and blank.
 - Blocks: `dashboard-home`, `login`, `signup`, `forgot-password`, `settings-profile`, `not-found`.
 
-[Unreleased]: https://github.com/xormania/flowbite-xor/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/xormania/flowbite-xor/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/xormania/flowbite-xor/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/xormania/flowbite-xor/releases/tag/0.1.0
