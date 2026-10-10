@@ -224,8 +224,12 @@ await stepFromCode(page, 1);                          // Turbo.visit(url, { fram
 
 Here: [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts), [`lab.date-picker.spec.ts`](../tests/e2e/lab.date-picker.spec.ts),
 [`lab.turbo-restore.spec.ts`](../tests/e2e/lab.turbo-restore.spec.ts) (a dropdown, a toast),
-[`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts) (dropdown, modal, drawer);
-[`transitions.ts`](../tests/e2e/transitions.ts) (`stepFromCode`, `recordFirstFrames`).
+[`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts) (dropdown, modal, drawer), the values of
+[`lab.value-matrix.spec.ts`](../tests/e2e/lab.value-matrix.spec.ts) (`frame-advance`), a calendar, charts and zones
+([`lab.calendar.spec.ts`](../tests/e2e/lab.calendar.spec.ts), [`lab.chart.spec.ts`](../tests/e2e/lab.chart.spec.ts),
+[`lab.dropzone.spec.ts`](../tests/e2e/lab.dropzone.spec.ts));
+[`transitions.ts`](../tests/e2e/transitions.ts) (`stepFromCode`, `advanceFrame` for a lab frame showing its
+`frame-load`, `recordFirstFrames`).
 
 `recordFirstFrames` observes each render at the first animation frame with its body in place, which can come after
 the test's next line: `firstFrames(count)` waits until `count` renders are observed and returns each one's number and
@@ -365,14 +369,17 @@ again after leaving the page.
 
 [`lab.value-matrix.spec.ts`](../tests/e2e/lab.value-matrix.spec.ts) is data: `POLICY` maps each kind of state (a GET
 field, a POST field, an open overlay, a choice held in the page, a choice stored in the browser, a Live table's URL
-state and its selection) and each transition (Back, Forward, a frame reloaded around or beside the widget, a Stream
-replacing or updating its region or one beside it, a Live re-render, a `data-turbo-permanent` visit, a visit away
-and back) to what the user must see: `url`, `kept`, `fresh`, `server` or `reset`, or `{ na: reason }`. `COMPONENTS`
+state and its selection) and each transition (Back, Forward, a frame reloaded around or beside the widget, a frame
+beside it whose visit is promoted to history then Back and Forward, a Stream replacing or updating its region or one
+beside it, a Live re-render, a `data-turbo-permanent` visit, a visit away and back) to what the user must see: `url`, `kept`, `fresh`, `server` or `reset`, or `{ na: reason }`. `COMPONENTS`
 lists the widgets, each with its kind, how to change it from what the server rendered, and how to check each state
 it can show (`rendered`, `changed`, `server`); `cell()` reads the expectation from `POLICY` only. Every transition is
 started from the page's code (`Turbo.visit`, a frame visit, a Stream rendered with `Turbo.renderStreamMessage`, a
 Live action through `getComponent`), so no click closes what the test left open. The last test fails when a cell has
-neither an expectation its site can run nor an `n/a` with a reason.
+neither an expectation its site can run nor an `n/a` with a reason. The `frame-advance` cell runs three steps: once
+the frame has rendered it expects the `frame-outside` state, after Back its own (a Back's: Turbo shows the copy it
+took as the frame visit started), after Forward the `forward` state, and a widget then shown as rendered must take a
+change again.
 
 The widgets live on `/lab/value-matrix/{one,two}`, four times (rendered by the page, in a Turbo Frame, in a region
 Streams replace, inside a `data-turbo-permanent` element; `?only=<key>` renders one widget alone, as each test loads

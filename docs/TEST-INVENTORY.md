@@ -56,7 +56,10 @@ Columns are the plan's transitions. **Back** is a restoration visit from Turbo's
 same with page two's stylesheet held until Turbo has copied the page, so the copy comes before the controllers disconnect (the order
 production gives; `lab.turbo-restore`); **N visits** is "repeated visits leave one instance", today shown by its
 effect (one change per pick, one toggle per click) and element counts, a Stimulus instance count from tier 2 on. A `·` means
-the transition cannot change the recipe's state, not that it is untested.
+the transition cannot change the recipe's state, not that it is untested. **Frame, advance** is a frame beside the
+recipe whose visit is promoted to history, then Back and Forward (lab.value-matrix's `frame-advance` column for the
+widgets it holds). data-table-live's cell is n/a there: a frame beside it whose visits are promoted to history writes
+its own URL over the one the Live table wrote, two owners of one URL that no recipe documents.
 
 | Recipe | Back | Back, slow | Forward | N visits | Permanent | Frame reload | Frame, advance | Stream replace/update | Live re-render | Theme switch | System theme |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -69,22 +72,22 @@ the transition cannot change the recipe's state, not that it is untested.
 | toast | lab.turbo-restore, demo-app | · | G10 | · | lab.turbo-stream-toast, lab.turbo-restore | · | lab.turbo-restore | lab.turbo-stream-toast, lab.turbo-nav | · | css | · |
 | alert | G10 | · | · | · | · | · | · | G10 | G10 | css | · |
 | avatar | avatar | · | · | · | · | · | · | · | · | · | · |
-| tabs | lab.section-nav, lab.value-matrix | · | lab.section-nav, lab.value-matrix | lab.section-nav | lab.value-matrix | lab.value-matrix | · | lab.value-matrix (removing the selected tab: lab.section-nav) | lab.value-matrix | css | · |
+| tabs | lab.section-nav, lab.value-matrix | · | lab.section-nav, lab.value-matrix | lab.section-nav | lab.value-matrix | lab.value-matrix | lab.value-matrix | lab.value-matrix (removing the selected tab: lab.section-nav) | lab.value-matrix | css | · |
 | section-nav | lab.section-nav | · | lab.section-nav | lab.section-nav | lab.section-nav | · | · | · | · | css | · |
 | dropdown | lab.turbo-restore, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.overlays | lab.overlays, lab.value-matrix | lab.turbo-frame-detail, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.live-dropdown, lab.live-table | T3 | · |
 | modal | lab.turbo-restore, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.live-modal | T3 | · |
 | drawer | lab.turbo-restore, lab.overlays | lab.turbo-restore, lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.overlays | lab.live-drawer | T3 | · |
 | popover | lab.popover | · | lab.value-matrix | lab.popover | lab.popover, lab.value-matrix | lab.popover | lab.popover | lab.popover | lab.popover | T3 | · |
 | tooltip | lab.turbo-restore, lab.tooltip | lab.turbo-restore | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.tooltip | lab.live-table | T3 | lab.tooltip |
-| calendar | lab.calendar, lab.form-back | · | lab.value-matrix | lab.calendar | lab.calendar | lab.calendar | G12 | lab.calendar | lab.calendar | css | · |
-| date-picker | lab.date-picker, lab.form-back | · | lab.value-matrix | lab.date-picker | lab.date-picker | lab.date-picker | lab.date-picker | lab.date-picker | lab.date-picker (G12) | css | · |
-| chart | lab.chart | · | G10 | lab.chart | lab.chart | lab.chart | G12 | lab.chart | lab.chart | lab.chart | G10 |
-| dropzone | lab.dropzone, lab.value-matrix | · | lab.value-matrix | lab.dropzone | lab.dropzone | lab.dropzone | G12 | lab.dropzone | lab.dropzone | css | · |
+| calendar | lab.calendar, lab.form-back | · | lab.value-matrix | lab.calendar | lab.calendar | lab.calendar | lab.calendar, lab.value-matrix | lab.calendar | lab.calendar | css | · |
+| date-picker | lab.date-picker, lab.form-back | · | lab.value-matrix | lab.date-picker | lab.date-picker | lab.date-picker | lab.date-picker | lab.date-picker | lab.date-picker | css | · |
+| chart | lab.chart | · | G10 | lab.chart | lab.chart | lab.chart | lab.chart | lab.chart | lab.chart | lab.chart | G10 |
+| dropzone | lab.dropzone, lab.value-matrix | · | lab.value-matrix | lab.dropzone | lab.dropzone | lab.dropzone | lab.dropzone, lab.value-matrix | lab.dropzone | lab.dropzone | css | · |
 | editor | lab.editor | · | lab.value-matrix | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | lab.editor | css | · |
 | markdown-editor | lab.markdown-editor | · | lab.value-matrix | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | lab.markdown-editor | markdown-editor | css | · |
-| autocomplete | lab.autocomplete, lab.form-back | · | lab.value-matrix | lab.autocomplete | lab.value-matrix | lab.autocomplete | G12 | lab.autocomplete | lab.autocomplete, lab.value-matrix | T3 | · |
+| autocomplete | lab.autocomplete, lab.form-back | · | lab.value-matrix | lab.autocomplete | lab.value-matrix | lab.autocomplete | lab.value-matrix | lab.autocomplete | lab.autocomplete, lab.value-matrix | T3 | · |
 | data-table | lab.data-table-frame, lab.data-table-back, lab.data-table-interrupt | · | lab.data-table-frame, lab.data-table-back, lab.data-table-interrupt | lab.data-table-frame | · | lab.data-table-frame | lab.data-table-frame, lab.data-table-back, lab.data-table-interrupt | · | · | css | · |
-| data-table-live | lab.data-table-live, lab.data-table-back, lab.value-matrix | · | lab.value-matrix | lab.data-table-live | lab.data-table-live | lab.data-table-live | G12 | lab.data-table-live | lab.data-table-live | css | · |
+| data-table-live | lab.data-table-live, lab.data-table-back, lab.value-matrix | · | lab.value-matrix | lab.data-table-live | lab.data-table-live | lab.data-table-live | lab.value-matrix (n/a) | lab.data-table-live | lab.data-table-live | css | · |
 
 "Back, slow" is `·` for the recipes whose cached copy does not depend on the disconnect order: they save their state
 on `turbo:before-cache` (popover, date-picker, editor, markdown-editor; popover and date-picker also close a copy the
@@ -319,10 +322,10 @@ modifiers, locale; the picker closed or open, typed text valid or invalid.
 | date-picker | Trigger, pick, typed dates, invalid text, ArrowDown, range | E2E demo | date-picker (3 tests) |
 | date-picker | Form submit; Back in a GET form (the URL's date, closed, not the pick); N visits; permanent and frame ×3; Stream; Live form | E2E lab | lab.date-picker (6 tests) |
 | date-picker | Server refusal comes back as typed | E2E demo | forms "the date picker opt-in submits the pick; a date the server refuses comes back as typed, with its error" |
-| date-picker | Live re-render while the calendar is open | | G12 |
+| date-picker | Open during a real Live re-render that moves its bounds (the server's start moves the end's earliest day): the same dialog, open, the focus on the day it had, its date kept in the field, the hidden input and the calendar, the new bounds; keys and a pick still work, one change (failed with the documented rule broken, an `id` that changes per render: the dialog gone) | E2E lab | lab.date-picker "a date picker open during a Live re-render stays the same open dialog…" |
 | date-picker | Open beside a frame visit promoted to history (the page's code): stays open on its day; Back shows it closed with the URL's date (its GET form), not the pick of the copy; the frame's own link closes it first (failed before the fix like popover) | E2E lab | lab.date-picker "a date picker open while the page code steps a frame promoted to history…" |
 | date-picker | Counts (tier 2): opening and a pick make no request and connect no controller; opening adds the popover's outside click, scroll and resize listeners, the pick removes them | E2E lab | counts "date-picker: opening and picking a date…" |
-| calendar | Beside a frame visit promoted to history | | G12 |
+| calendar | Beside a frame visit promoted to history (GET form, the URL holding a date): the month and pick left stay; Back and Forward show the URL's month and date (6a), one controller each; arrows, Enter and a click pick once, the month buttons move one month (failed with `form-reset` broken: April shown) | E2E lab | lab.calendar "beside a frame visit promoted to history…"; lab.value-matrix (`frame-advance`) |
 
 ### chart
 
@@ -333,6 +336,7 @@ States: series colors per theme, server colors kept, data, the data table, reduc
 | Named image with its data table, roles per theme, `var(--color-…)`, reduced motion, doughnut, visible table | E2E demo | chart (5 tests) |
 | Back, N visits, theme switch redraws once, permanent follows the theme, server color through switches, frame ×3, Stream, Live data | E2E lab | lab.chart (7 tests) |
 | Value blocks, point data | E2E lab | lab.chart (2 tests) |
+| Beside a frame visit promoted to history, the theme switched on the new entry: Back and Forward draw one chart per canvas, none left, each with the data of its copy (the framed one its load's) in the current theme, the server's color kept; a switch then redraws each once (failed with the chart's `configure` broken: light colors) | E2E lab | lab.chart "beside a frame visit promoted to history…" |
 | System theme change with no choice saved | | G10 (same path as the class change, observed by the controller) |
 
 ### dropzone
@@ -345,6 +349,7 @@ States: empty, one or several files picked, dragging, invalid, disabled; focus a
 | Back (empty), N visits, permanent keeps the file, Back keeps every file of a POST form's single-file zones (11 zones, more than the copies Turbo keeps), frame multipart post 303 and 422, Stream, controllers passed in, Turbo form beside a Live re-render, Live files action | E2E lab | lab.dropzone (9 tests) |
 | Rendered through the form theme, server refusal, files sent back, a valid submit, size limit | E2E demo | forms (5 dropzone tests) |
 | One file in a POST form after Back and Forward: still picked, shown and in the input (failed before the fix: UX Dropzone clears the copy's input as it connects) | E2E lab | lab.value-matrix |
+| Beside a frame visit promoted to history (Turbo copies the page as the visit starts, before `turbo:before-cache`): Back and Forward keep the files of a POST form's single-file zones and the permanent zone's, the zone outside a form starts empty, the list of several files shows what its input holds; the zones still take a pick and a Remove (failed before the fix: the POST zones empty) | E2E lab | lab.dropzone "beside a frame visit promoted to history…"; lab.value-matrix (`frame-advance`) |
 
 ### editor, markdown-editor
 
@@ -380,7 +385,7 @@ States: chosen values (one, several, remote, created), the Tom Select instance, 
 | In a Live form, a reset shows the default in Tom Select, with no event and no Live request | E2E lab | lab.autocomplete "in a Live form, a reset shows…" (failed without `autocomplete-sync`'s reset listener: Tom Select kept Germany) |
 | Permanent: the choice kept across a visit and Back | E2E lab | lab.value-matrix |
 | A choice the server sets in a Live re-render shows in Tom Select (failed before the fix: the `<select>` held the server's value, Tom Select still showed the user's) | E2E lab | lab.value-matrix |
-| Frame advance | | G12 |
+| Beside a frame visit promoted to history, then Back and Forward: one Tom Select, on screen, with the URL's choice (GET) or the one left (POST) in the `<select>` and its item; a GET field takes a pick again (failed before the fix: the Tom Select of Turbo's copy, taken as the visit started, left beside a new one hidden like the `<select>`) | E2E lab | lab.value-matrix (`frame-advance`) |
 
 ### data-table, data-table-live
 
@@ -430,7 +435,7 @@ of the same rules for a project's `AGENTS.md`; these rows cover its wording too.
 | Form controllers answer 303 or 422 | `tests/e2e/forms.spec.ts`, `tests/e2e/demo-app.spec.ts`, lab.editor, `MarkdownTypeTest::testAFormRefusingMoreThanTheRendererReadsShowsItsError` | The demo's forms and the signup block through Turbo Drive: an invalid submit answers 422 (the one error status each test allows) with its errors shown, a valid one redirects and the next page shows. The 303 is not asserted as such: any redirect Turbo follows passes, a 200 does not |
 | Opt form fields in, with no template code | lab.autocomplete, `tests/e2e/forms.spec.ts`, lab.date-picker | Choice fields with `'autocomplete' => true` are enhanced and submit (lab.autocomplete "form fields: one choice…"); `DateType` fields with the `flowbite_date_picker` block prefix render a picker whose pick is submitted (forms "the date picker opt-in…", lab.date-picker "in a Live form…"); none of their templates has field code |
 | No colors in chart data | `tests/e2e/chart.spec.ts` | What the rule relies on: series given no color take the `chart-*` roles in both themes, and a role given as `'var(--color-…)'` resolves in each. Nothing fails a color written in chart data (lab.chart keeps one, as it should) |
-| Stable ids in re-rendered markup | lab.live-table, lab.popover, lab.chart | A `Tooltip` (lab.live-table "tooltips in rows re-sorted…"), a `Popover` (lab.popover "…while its Live Component re-renders") and a `Chart` (lab.chart "in a Live Component…") with an explicit `id` keep working across Live re-renders. Not covered: a `DatePicker` re-rendered while open (G12) |
+| Stable ids in re-rendered markup | lab.live-table, lab.popover, lab.chart, lab.date-picker | A `Tooltip` (lab.live-table "tooltips in rows re-sorted…"), a `Popover` (lab.popover "…while its Live Component re-renders") and a `Chart` (lab.chart "in a Live Component…") with an explicit `id` keep working across Live re-renders, as does a `DatePicker` open during one (lab.date-picker "a date picker open during a Live re-render…") |
 | Toasts go through Turbo Streams | lab.turbo-stream-toast, lab.turbo-nav, `tests/e2e/demo-app.spec.ts` | A toast in a Stream response shows and dismisses itself, also after a visit; a flash written as `<twig:Toast:Stream>` in the page shows once across visits (lab.turbo-nav) and after the signup redirect (demo-app). Not covered: that a toast rendered inside the permanent region on a later page is dropped |
 | Back shows a GET form as the URL says, a POST form as the user left it | lab.form-back, lab.data-table-back | The rule's mechanism: `form-reset` on the layouts' `<body>` (and the demo's), each method × widget kind (lab.form-back); the data table's search form resets itself as well (lab.data-table-back) |
 | One owner per region | advice | How a project divides its own page between Live and Turbo: the kit ships no region with two owners for a test to hold, and a test could only reproduce the conflict the rule warns of |
@@ -503,7 +508,7 @@ a browser, so E2E lab, on the existing scaffold. G11 comes from *Rules and their
 | G9 | **layouts** `data-turbo-track="reload"`: changed assets after a deploy force a full load | Fails only after a deploy; one test, low cost | E2E lab: change the tracked asset's URL between two visits | Navigation |
 | G10 | Low: alert dismissed then Back, Stream, Live; theme-toggle with storage blocked on Back and reload, two toggles in sync; Forward for the recipes covered on Back and not in lab.value-matrix (alert, chart, toast: each stateful row's Forward cell: Forward restores page two's cached copy and reconnects its controllers, with what was open there); chart and a system change; side-nav with `sessionStorage` blocked; mobile-nav in a permanent element, mobile-nav and nav-menu beside a frame visit promoted to history (each closes on every `turbo:before-cache`) | Same code path as a covered transition, or a small state | Fold into the groups above when a spec is open anyway | Any |
 | G11 | ~~**Icons from UX Icons' `flowbite` set** (*Rules and their tests*) has no check~~ **Closed:** `tools/icon-lint.mjs` (Contrast); `input/README.md`'s "With Button" example now uses `flowbite:search-outline`. Was: | A name `ux:icons:lock` misses is not in the project's `assets/icons/`; a name from another set teaches agents to use it. Today `input/README.md`'s "With Button" example uses `tabler:search` | A repository check (Contrast): every `ux:icon` and `ux_icon()` name in the recipes' templates and the markdown is a quoted `flowbite:` name | — (not tier 1) |
-| G12 | **Form widgets' values** beyond Back: autocomplete values with frame advance; calendar, chart and dropzone beside a promoted frame visit; date-picker re-rendered by Live while open. (Autocomplete in a permanent element and the data-table-live selection after a visit and Back are covered by lab.value-matrix.) | Values are what the user typed or chose; these paths are not covered by `form-reset` (no form, a Live re-render) | Extend the existing lab specs, or add the frame visit promoted to history as a transition of lab.value-matrix | Form widgets |
+| G12 | ~~**Form widgets' values** beyond Back: autocomplete values with frame advance; calendar, chart and dropzone beside a promoted frame visit; date-picker re-rendered by Live while open. (Autocomplete in a permanent element and the data-table-live selection after a visit and Back are covered by lab.value-matrix.)~~ **Closed:** lab.value-matrix's `frame-advance` column (every widget beside a frame visit promoted to history, then Back and Forward), lab.calendar, lab.chart and lab.dropzone beside one, lab.date-picker open during a Live re-render. It found two bugs, fixed: autocomplete showed a second, hidden Tom Select after Back, dropzone lost a POST form's file. data-table-live's cell is n/a (two owners of one URL). | — | — | Form widgets |
 
 Tier 2 (step 5) gates the key interactions on their counts (`counts`, [`TESTING.md`](TESTING.md), *Interaction
 counts*): the dropdown, modal and drawer opening and closing, the data table's sort, page and filter in a Turbo Frame

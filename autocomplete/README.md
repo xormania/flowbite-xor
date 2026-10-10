@@ -114,4 +114,6 @@ the form option (`'autocomplete' => true`): UX Autocomplete keeps the chosen val
 the server sets in a re-render (a reset, another record) shows in the field (the recipe's `autocomplete-sync`
 controller, which the `Autocomplete` component and the form theme put next to UX Autocomplete's). After Back, a
 field in a GET form shows the URL's choice, one in a POST form the choice left (the layouts'
-[`form-reset`](../layouts/README.md#back-and-forms)).
+[`form-reset`](../layouts/README.md#back-and-forms)), also Back from a frame visit promoted to history (a data
+table's pages), whose copy of the page Turbo takes with Tom Select on screen: `autocomplete-sync` removes the copied
+Tom Select, so the field shows one, in the Tab order as before.

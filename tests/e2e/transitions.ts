@@ -282,6 +282,26 @@ export async function stepFromCode(page: Page, step: number): Promise<void> {
     await shown(page, { step });
 }
 
+/**
+ * Visits the frame `id` with a visit promoted to history (`Turbo.visit` with `frame` and `action: 'advance'`, as a link
+ * with `data-turbo-action="advance"` does) from the page's code, so no click or focus change reaches what is open
+ * beside it, and waits for the page visit Turbo starts once the frame has rendered. The lab's reloading frames show
+ * their `?load=<n>` in `data-testid="frame-load"`: the visit goes to `url` (the page's URL by default) with the next
+ * load. Turbo copies the page as the frame visit starts; Back from the new history entry shows that copy.
+ */
+export async function advanceFrame(page: Page, id: string, url: string = page.url()): Promise<void> {
+    const frame = page.locator(`turbo-frame#${id}`);
+    const load = Number(await frame.getByTestId('frame-load').textContent()) + 1;
+    const target = new URL(url, page.url());
+    target.searchParams.set('load', String(load));
+    await turboOperation(page, { frame: id, url: target.href }, () =>
+        page.evaluate(({ id, href }) => (window as any).Turbo.visit(href, { frame: id, action: 'advance' }), { id, href: target.href }),
+    );
+    await expect(frame.getByTestId('frame-load')).toHaveText(String(load));
+    await expect(page).toHaveURL(target.href);
+    await turboVisitDone(page);
+}
+
 /** What the first animation frame of one render showed: `visible` is null for a body replaced before any frame. */
 export type FirstFrame = { render: number; url: string; visible: Record<string, boolean> | null };
 

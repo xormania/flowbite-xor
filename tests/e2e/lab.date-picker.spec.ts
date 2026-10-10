@@ -99,6 +99,66 @@ test('in a Live form, a pick reaches the server and the end date follows the sta
     await expect(page.locator('[data-calendar-target="input"]')).toHaveCount(2);
 });
 
+// an open overlay is kept through a Live re-render (6b), and the values follow the server's: the end's earliest day
+// moves with the start the server now holds, while the end picker stays open with the focus on its day
+test('a date picker open during a Live re-render stays the same open dialog with the focus on its day, keeps its date and takes the new bounds', async ({ page }) => {
+    await page.goto('/lab/live-date-picker');
+    const root = page.locator('[data-controller~="live"]');
+    const endField = page.getByRole('textbox', { name: 'End' });
+    const endInput = page.locator('input[name="stay[end]"]');
+    await page.getByRole('button', { name: 'Choose date' }).first().click();
+    await day(page.getByRole('dialog'), '2026-03-10').click();
+    await expect(page.getByTestId('start')).toHaveText('2026-03-10');
+    await page.getByRole('button', { name: 'Choose date' }).nth(1).click();
+    await day(page.getByRole('dialog'), '2026-03-16').click();
+    await expect(page.getByTestId('end')).toHaveText('2026-03-16');
+
+    // open the end picker again, the focus moved to another day
+    const trigger = page.getByRole('button', { name: 'Choose date' }).nth(1);
+    await trigger.click();
+    const dialog = page.getByRole('dialog', { name: 'Choose a date' });
+    await expect(day(dialog, '2026-03-16')).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    await expect(day(dialog, '2026-03-17')).toBeFocused();
+    await expect(day(dialog, '2026-03-13')).toBeEnabled();
+    await dialog.evaluate((element) => ((element as any).__before = true));
+
+    // the server's start moves the end's earliest day to the 14th: a real re-render, started from the page's code
+    await root.evaluate(async (element) => {
+        const { getComponent } = await import('@symfony/ux-live-component');
+        const component = await getComponent(element as HTMLElement);
+        component.set('stay.start', '2026-03-14');
+        await component.render();
+    });
+    await expect(page.getByTestId('start')).toHaveText('2026-03-14');
+    await expect(page.getByRole('textbox', { name: 'Start' })).toHaveValue('Mar 14, 2026');
+
+    // the same dialog, open, the focus on its day
+    await expect(page.getByRole('dialog')).toHaveCount(1);
+    expect(await dialog.evaluate((element) => (element as any).__before)).toBe(true);
+    await expect(dialog).toBeVisible();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await expect(day(dialog, '2026-03-17')).toBeFocused();
+    // its date kept, in the field, the hidden input and the calendar; the new bounds
+    await expect(page.getByTestId('end')).toHaveText('2026-03-16');
+    await expect(endField).toHaveValue('Mar 16, 2026');
+    await expect(endInput).toHaveValue('2026-03-16');
+    await expect(day(dialog, '2026-03-16')).toHaveAttribute('data-selected-single', 'true');
+    await expect(day(dialog, '2026-03-13')).toBeDisabled();
+    await expect(day(dialog, '2026-03-14')).toBeEnabled();
+    await expect(page.locator('[data-calendar-target="input"]')).toHaveCount(2);
+
+    // the keys and a pick still work: one change, sent to the server
+    await countChanges(page);
+    await page.keyboard.press('ArrowRight');
+    await expect(day(dialog, '2026-03-18')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(dialog).toBeHidden();
+    await expect(endField).toHaveValue('Mar 18, 2026');
+    await expect(page.getByTestId('end')).toHaveText('2026-03-18');
+    expect(await changes(page)).toBe(1);
+});
+
 test('a date picker open while the page code steps a frame promoted to history stays open on its day; Back shows it closed with the date of the URL', async ({ page }) => {
     await page.goto('/lab/date-picker-turbo');
     const firstFrames = await recordFirstFrames(page, { calendar: '#due-picker-content' });
