@@ -3,9 +3,10 @@
  * The monthly job's timings (docs/TESTING.md, *Monthly job*), report-only (owner decision 6d): reads the Playwright
  * JSON reports of the interaction-count specs run with PW_TIMINGS set and repeated, where each counted step left a
  * `timing` annotation ({ step, durationMs, inpMs, metrics? }, tests/e2e/counts.ts), and gives per step the median, the
- * spread (25th to 75th percentile), min and max over every passed run, the median INP, and for a step that recorded
- * them (the release checks' timings), the same for each of its `metrics` (tools/ci/release-timings.mjs). A failed run's timings are left
- * out: its step may not have completed. No threshold: they come later, from the measured spread.
+ * spread (25th to 75th percentile), min and max over every passed run, the median INP and its spread, and for a
+ * step that recorded them (the release checks' timings), the same for each of its `metrics`
+ * (tools/ci/release-timings.mjs). A failed run's timings are left out: its step may not have completed. No threshold:
+ * they come later, from the measured spread.
  *
  * Usage: node tools/monthly/timings.mjs --out <dir> <results.json>...
  * Writes <dir>/timings.json and <dir>/timings.md (also appended to $GITHUB_STEP_SUMMARY). Exit status 0; 1 when no
@@ -83,6 +84,8 @@ export function gather(reports) {
             minMs: sorted[0],
             maxMs: sorted[sorted.length - 1],
             inpMedianMs: inpSorted.length ? quantile(inpSorted, 0.5) : null,
+            // the INP samples' spread (25th to 75th percentile), as the duration's
+            inpSpreadMs: inpSorted.length ? Math.round((quantile(inpSorted, 0.75) - quantile(inpSorted, 0.25)) * 10) / 10 : null,
             inpRuns: inpSorted.length,
         };
         // the release checks' extra metrics (tests/e2e/counts.ts, `time`): total blocking time, the renderer's style,

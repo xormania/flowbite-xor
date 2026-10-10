@@ -542,6 +542,8 @@ Tier 2 (step 5) gates the key interactions on their counts (`counts`, [`TESTING.
 counts*): the dropdown, modal and drawer opening and closing, the data table's sort, page and filter in a Turbo Frame
 and in Live, a Live action re-sorting rows, a date pick and typing in the editor. The "N visits" cells shown by their
 effect (and the T2 cells) are still to become Stimulus instance counts. Tier 3 (step 7, [`TESTING.md`](TESTING.md),
-*Release checks*) runs the overlay and editor specs again in the dark theme (the `smoke-dark@release` project) and the
-heavy recipes' specs under harsh conditions (`harsh@release`); an overlay open while the theme switches, which this map
-marks T3, is not covered yet.
+*Release checks*) runs the overlay and editor specs again in the dark theme (the `smoke-dark@release` project), the
+heavy recipes' specs (data tables, editor, date picker, autocomplete, chart) under harsh conditions (`harsh@release`),
+and random clicks, keys, Back, Forward and theme switches on the lab pages (`tests/e2e/release.fuzz.spec.ts`: no error,
+one controller per element), which switch the theme at random moments but assert no overlay's state after it: an
+overlay open while the theme switches, which this map marks T3, is not covered yet.

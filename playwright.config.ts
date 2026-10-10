@@ -94,8 +94,8 @@ function browserProjects(browser: keyof typeof desktop) {
  * `npx playwright test --grep @release` runs the release checks, CI's `--grep-invert @release` leaves them out.
  * - `smoke-dark@release`: the overlay and editor specs in the dark theme (the system's, which the theme follows when
  *   nothing is chosen; `smoke` runs them in the light one);
- * - `harsh@release`: the heavy recipes' transitions (data tables, editor, date picker, autocomplete) with the CPU 4 times
- *   slower, a slow network (tests/e2e/fixtures.ts, `harshConditions`) and a phone's viewport: their behavior still holds.
+ * - `harsh@release`: the heavy recipes' transitions (data tables, editor, date picker, autocomplete, chart) with the CPU
+ *   4 times slower, a slow network (tests/e2e/fixtures.ts, `harshConditions`) and a phone's viewport: their behavior still holds.
  * Neither compares screenshots: the baselines are the light theme's, at desktop and example sizes.
  */
 const releaseSpecs = (names: string[]) => names.map((name) => `${name}.spec.ts`);
@@ -114,7 +114,7 @@ const releaseProjects = [
     {
         name: 'harsh@release',
         testDir: './tests/e2e',
-        testMatch: releaseSpecs(['lab.data-table-frame', 'lab.data-table-live', 'lab.editor', 'lab.date-picker', 'date-picker', 'lab.autocomplete']),
+        testMatch: releaseSpecs(['lab.data-table-frame', 'lab.data-table-live', 'lab.editor', 'lab.date-picker', 'date-picker', 'lab.autocomplete', 'chart', 'lab.chart']),
         fullyParallel: true,
         grepInvert: /@screenshot/,
         timeout: 120_000,

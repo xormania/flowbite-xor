@@ -202,7 +202,7 @@ test('timings: per step, the median, the spread (p25–p75), min and max over ev
     // a failed run's timings are left out: the step may not have completed
     runs.push(['smoke', 'tests/e2e/counts.spec.ts', 35, 'dropdown', [{ status: 'failed', annotations: [timing('dropdown open', 999, 999)] }]]);
     const { steps } = gatherTimings([pwReport(runs)]);
-    assert.deepEqual(steps['dropdown open'], { runs: 5, medianMs: 12, p25Ms: 11, p75Ms: 13, spreadMs: 2, minMs: 10, maxMs: 30, inpMedianMs: 41.5, inpRuns: 4 });
+    assert.deepEqual(steps['dropdown open'], { runs: 5, medianMs: 12, p25Ms: 11, p75Ms: 13, spreadMs: 2, minMs: 10, maxMs: 30, inpMedianMs: 41.5, inpSpreadMs: 1.5, inpRuns: 4 });
     assert.equal(steps['dropdown close'].inpMedianMs, null, 'no interaction recorded: null, not 0');
     const text = timingsMarkdown({ steps });
     assert.match(text, /\| dropdown open \| 5 \| 12 ms \| 11–13 ms \(2\) \| 10–30 ms \| 41\.5 ms \|/);

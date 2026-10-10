@@ -501,9 +501,9 @@ links at the bottom. It also runs `node tools/llms-txt.mjs`, which points `llms.
 version, *Removed* or anything that breaks an installed recipe a major version (a minor one while the version is
 `0.x`). CI runs on this pull request like on any other, and so do the release checks (`release-checks.yml`: timings, harsh
 conditions, long sessions, wide matrices, fuzzing and properties; [`docs/TESTING.md`](docs/TESTING.md), *Release
-checks*). Their timings are reported against the baseline and fail nothing until their tolerances are set; `main`'s
-ruleset requires the *Release checks* check from 0.3.0 (`docs/PLAN-test-tiers.md`, decision 4), until then only CI
-gates a release. Merging it is the release.
+checks*). Their timings are reported against the baseline and fail nothing until their tolerances are set; from 0.3.0,
+`main`'s ruleset is to require the *Release checks* check (`docs/PLAN-test-tiers.md`, decision 4: a settings change
+not made yet), until then only CI gates a release. Merging it is the release.
 
 A fix that cannot wait for the next release goes to `main` in its own pull request with its version heading (a
 patch), and `main` is then merged into `dev`.

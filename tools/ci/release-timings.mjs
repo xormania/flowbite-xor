@@ -28,7 +28,7 @@ export function metricsOf(step) {
         durationMs: { median: step.medianMs, spread: step.spreadMs, runs: step.runs },
     };
     if (null !== step.inpMedianMs && undefined !== step.inpMedianMs) {
-        out.inpMs = { median: step.inpMedianMs, spread: null, runs: step.inpRuns };
+        out.inpMs = { median: step.inpMedianMs, spread: step.inpSpreadMs ?? null, runs: step.inpRuns };
     }
     for (const [name, value] of Object.entries(step.metrics ?? {})) {
         out[name] = { median: value.median, spread: value.spread, runs: value.runs };

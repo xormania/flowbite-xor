@@ -128,8 +128,10 @@ One pull request each, in order:
 5. **Tier 2:** the count checks and the byte budgets, in the existing specs.
 6. **Tier 1 gaps:** the missing state × transition specs from the inventory, a recipe group per pull request.
 7. **Tier 3 and the release gate:** harsh conditions, long sessions, wide matrices, fuzz and property tests, the daily
-   schedule and its issue, the check on the release pull request. _Done, report only: `@release` specs and projects,
-   `demo/tests/Property/`; `main`'s ruleset requires the check from 0.3.0 ([`TESTING.md`](TESTING.md), *Release checks*)._
+   schedule and its issue, the check on the release pull request. _Done, report only: `@release` specs (timings, long
+   session, fuzzing of queries, Live props, form posts and UI runs) and projects (dark theme, harsh conditions with the
+   chart), `demo/tests/Property/` ([`TESTING.md`](TESTING.md), *Release checks*). Not yet: an overlay open while the
+   theme switches, and `main`'s ruleset requiring the check (a settings change, from 0.3.0)._
 8. **Gates on:** the tolerances the user picked after reviewing the reports.
 
 ## Open questions

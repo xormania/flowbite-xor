@@ -1,5 +1,5 @@
 import type { APIResponse, Page } from '@playwright/test';
-import { test, expect } from './fixtures';
+import { test, expect, controllersConnected, stimulusControllers } from './fixtures';
 
 /*
  * Release checks (docs/PLAN-test-tiers.md, tier 3), fuzzing: random requests against the data tables, seeded and under
@@ -13,11 +13,20 @@ import { test, expect } from './fixtures';
  *   controller sends them (the props and their checksum from `data-live-props-value`, the changed ones in `updated`):
  *   no 5xx, nothing injected; an accepted answer then replaces the component in the page, as the live controller's
  *   morph would, where the page's Content Security Policy and the same guard (console, failed requests) apply.
+ * - Form posts: the POST forms of /forms and the lab's form pages, each field given a random value (long strings,
+ *   unicode, markup, numbers) or the wrong type (an array, a nested key, left out), the CSRF field kept: no 5xx, no slow
+ *   answer, nothing injected; one post in three goes through the page's own form in the browser (its CSRF script runs),
+ *   where the CSP and the console are checked on what the server answers.
+ * - UI runs: on the lab pages, random clicks, keys, Back and Forward, the theme toggle and the system theme, each
+ *   followed by a wait for the page to settle: no console or page error, and one Stimulus controller per element and
+ *   identifier.
  */
 
 const BUDGET_MS = Number(process.env.FUZZ_BUDGET_MS ?? 30_000);
 const RESPONSE_BUDGET_MS = 3_000;
 const SEED = process.env.SEED ? Number(process.env.SEED) : Math.floor(Math.random() * 2 ** 31);
+// a server error page or a refused form logs its status in the console; the status itself is checked where it is known
+const HTTP_STATUS_LOG = /^Failed to load resource: the server responded with a status of 4\d\d/;
 
 /** mulberry32: a small seeded generator, the same sequence for the same seed. */
 function generator(seed: number) {
@@ -219,5 +228,231 @@ test.describe('release fuzz', { tag: '@release' }, () => {
         }
         console.log(`fuzz: ${requests} Live requests (${accepted} accepted and rendered in the page), SEED=${SEED}`);
         expect(requests).toBeGreaterThan(0);
+    });
+
+    test('random form posts on /forms and the lab forms: no 5xx, nothing injected, no CSP violation', async ({ page, allowHttpError }) => {
+        const pages = ['/forms', '/lab/form-back/post', '/lab/editor-turbo', '/lab/markdown-turbo', '/lab/autocomplete', '/lab/value-matrix'];
+        // a refused form answers 422 (its errors) or 400 (a malformed body): expected, a 5xx is not
+        for (const status of [400, 422]) {
+            allowHttpError(/\/(forms|lab\/[a-z\/-]+)(\?.*)?$/, status);
+        }
+        const random = generator(SEED + 2);
+        const errors: string[] = [];
+        page.on('console', (message) => 'error' === message.type() && !HTTP_STATUS_LOG.test(message.text()) && errors.push(message.text()));
+        page.on('pageerror', (error) => errors.push(error.message));
+
+        // a page fully loaded, its lazy modules too: leaving it earlier would cancel their requests
+        const open = async (path: string) => {
+            await page.goto(path);
+            await page.waitForLoadState('networkidle');
+            await controllersConnected(page);
+        };
+        type Form = { index: number; action: string; fields: { name: string; token: boolean; value: string }[] };
+        const formsOf = new Map<string, Form[]>();
+        const end = Date.now() + BUDGET_MS;
+        let posts = 0;
+        while (Date.now() < end) {
+            const path = random.pick(pages);
+            if (!formsOf.has(path)) {
+                await open(path);
+                formsOf.set(path, await page.evaluate(() =>
+                    // attributes, not properties: a field named `action` or `method` shadows the form's own
+                    [...document.forms].map((form, index) => ({ form, index })).filter(({ form }) => 'post' === (form.getAttribute('method') ?? '').toLowerCase()).map(({ form, index }) => ({
+                        index,
+                        action: new URL(form.getAttribute('action') || location.href, location.href).href,
+                        fields: [...form.elements]
+                            .filter((element): element is HTMLInputElement => 'name' in element && !!(element as HTMLInputElement).name && 'file' !== (element as HTMLInputElement).type)
+                            .map((element) => ({ name: element.name, token: /_token\]?$|csrf/i.test(element.name), value: element.value })),
+                    })),
+                ));
+            }
+            const forms = formsOf.get(path)!;
+            if (!forms.length) {
+                continue;
+            }
+            const form = random.pick(forms);
+            const data: Record<string, string> = {};
+            for (const field of form.fields) {
+                if (field.token) {
+                    data[field.name] = field.value;
+                    continue;
+                }
+                const base = field.name.replace(/\[\]$/, '');
+                switch (random.int(8)) {
+                    case 0: break; // left out
+                    case 1: data[`${base}[]`] = value(random); break; // an array where a scalar is expected
+                    case 2: data[`${base}[${random.pick(['x', '0', '_token'])}]`] = value(random); break;
+                    default: data[field.name] = value(random);
+                }
+            }
+            if (0 === random.int(4)) {
+                data[random.pick(['extra', 'demo[extra]', '_method', 'demo'])] = value(random);
+            }
+            posts++;
+            const replay = `SEED=${SEED}, post ${posts}: ${form.action} ${JSON.stringify(data).slice(0, 300)}`;
+            const { response, ms } = await timed(() =>
+                page.request.post(form.action, {
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    data: new URLSearchParams(data).toString(),
+                    maxRedirects: 0,
+                }),
+            );
+            expect(response.status(), `${replay}: status`).toBeLessThan(500);
+            expect(ms, `${replay}: answered in ${ms} ms`).toBeLessThanOrEqual(RESPONSE_BUDGET_MS);
+            // the app's own answers: a 2xx, a redirect, the form's errors (422). A 400 is Symfony's error page, whose
+            // inline styles the page's policy reports even when only parsed (DOMParser): not the app's markup
+            const rendered = [200, 302, 303, 422].includes(response.status());
+            if (rendered && /html/.test(response.headers()['content-type'] ?? '')) {
+                expect(await injected(page, await response.text()), `${replay}: injected markup`).toEqual([]);
+            }
+
+            // one post in three through the page's own form: its CSRF script runs, the browser renders the answer. Only
+            // for an answer the app renders (a 2xx, a redirect, the form's 422): a 400 is the framework's error page
+            if (0 === posts % 3 && rendered) {
+                await open(path);
+                errors.length = 0;
+                // A body the controller cannot read (an array where it reads a string) is a 400, rendered by Symfony's
+                // error page, whose inline styles the demo's policy blocks in the dev environment: not the app's markup.
+                // The browser gets the status with an empty page instead; every other answer as the server sent it.
+                const action = new URL(form.action);
+                const submitted = (url: URL) => url.origin === action.origin && url.pathname === action.pathname;
+                await page.route(submitted, async (route) => {
+                    const answer = await route.fetch({ maxRedirects: 0 });
+                    await (400 === answer.status()
+                        ? route.fulfill({ status: 400, contentType: 'text/html', body: '<!doctype html><title>Bad Request</title>' })
+                        : route.fulfill({ response: answer }));
+                });
+                const loaded = page.waitForEvent('load');
+                await page.evaluate(({ index, data }) => {
+                    const target = document.forms[index];
+                    target.setAttribute('data-turbo', 'false');
+                    target.setAttribute('novalidate', '');
+                    for (const element of [...target.elements] as HTMLInputElement[]) {
+                        if (element.name && !/_token\]?$|csrf/i.test(element.name)) {
+                            element.removeAttribute('name');
+                        }
+                    }
+                    for (const [name, value] of Object.entries(data)) {
+                        if (!/_token\]?$|csrf/i.test(name)) {
+                            const input = document.createElement('input');
+                            Object.assign(input, { type: 'hidden', name, value });
+                            target.append(input);
+                        }
+                    }
+                    target.requestSubmit();
+                }, { index: form.index, data });
+                await loaded;
+                await page.unroute(submitted);
+                await page.waitForLoadState('networkidle');
+                expect(await page.evaluate(() => (window as any).__fuzz ?? null), `${replay}: a script ran`).toBeNull();
+                expect(await page.locator('fuzz-x, [data-fuzz]').count(), `${replay}: injected element`).toBe(0);
+                expect(errors, `${replay}: console errors and CSP violations`).toEqual([]);
+                formsOf.delete(path); // the page now holds a new CSRF field value
+            }
+        }
+        console.log(`fuzz: ${posts} form posts, SEED=${SEED}`);
+        expect(posts).toBeGreaterThan(0);
+    });
+
+    test('random clicks, keys, Back, Forward and theme switches on the lab pages: no error, one controller per element', async ({ page, allowHttpError }) => {
+        test.setTimeout(BUDGET_MS * 3 + 60_000);
+        const pages = [
+            '/lab/dropdown-turbo', '/lab/modal-turbo', '/lab/drawer-turbo', '/lab/popover-turbo', '/lab/tooltip-turbo', '/lab/date-picker-turbo',
+            '/lab/calendar-turbo', '/lab/editor-turbo', '/lab/markdown-turbo', '/lab/data-table-frame', '/lab/data-table-live', '/lab/autocomplete',
+            '/lab/side-nav', '/lab/nav-menu', '/lab/section-nav', '/lab/mobile-nav', '/lab/turbo-nav', '/lab/chart-turbo', '/lab/live-table',
+        ];
+        // a form submitted empty by a random click is refused with its errors
+        allowHttpError(/\/lab\//, 422);
+        const random = generator(SEED + 3);
+        const errors: string[] = [];
+        page.on('console', (message) => 'error' === message.type() && !HTTP_STATUS_LOG.test(message.text()) && errors.push(message.text()));
+        page.on('pageerror', (error) => errors.push(error.message));
+        page.on('popup', (popup) => void popup.close());
+        const inFlight = new Set<object>();
+        page.on('request', (request) => void inFlight.add(request));
+        page.on('requestfinished', (request) => void inFlight.delete(request));
+        page.on('requestfailed', (request) => void inFlight.delete(request));
+        // nothing in flight, no visit or frame busy, then two frames: what the action started has landed
+        const settle = async () => {
+            for (let i = 0; i < 200 && inFlight.size; i++) {
+                await page.waitForTimeout(50);
+            }
+            await page
+                .waitForFunction(() => !document.documentElement.hasAttribute('aria-busy') && !document.querySelector('turbo-frame[busy]'), null, { timeout: 5_000 })
+                .catch(() => undefined);
+            await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))).catch(() => undefined);
+        };
+        // links that stay in the lab: a gallery page's preview frames would still be loading when the run leaves it
+        const CLICKABLE = 'main :is(a[href^="/lab/"], a[href^="?"], a[href="#"], button, [role="tab"], [role="menuitem"], [role="option"], [role="treeitem"], summary, input[type="checkbox"], input[type="radio"], label)';
+        const KEYS = ['Escape', 'Tab', 'Shift+Tab', 'Enter', 'Space', 'ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'a'];
+
+        const log: string[] = [];
+        let scheme: 'light' | 'dark' = 'light';
+        const end = Date.now() + BUDGET_MS;
+        let steps = 0;
+        while (Date.now() < end) {
+            const url = new URL(page.url() === 'about:blank' ? 'http://x/' : page.url());
+            if (!url.pathname.startsWith('/lab/') || 0 === random.int(40)) {
+                const target = random.pick(pages);
+                log.push(`goto ${target}`);
+                await page.goto(target);
+                await page.waitForLoadState('networkidle');
+                await controllersConnected(page);
+            }
+            const kind = random.int(20);
+            if (kind < 9) {
+                const candidates = page.locator(CLICKABLE).filter({ visible: true });
+                const count = await candidates.count();
+                if (count) {
+                    const index = random.int(count);
+                    const label = await candidates.nth(index).evaluate((element) => `${element.localName} "${(element.textContent ?? '').trim().slice(0, 30)}"`).catch(() => '?');
+                    log.push(`click ${label}`);
+                    await candidates.nth(index).click({ timeout: 2_000 }).catch(() => undefined); // covered or gone: not a failure
+                }
+            } else if (kind < 14) {
+                const key = random.pick(KEYS);
+                log.push(`key ${key}`);
+                await page.keyboard.press(key);
+            } else if (kind < 16) {
+                log.push('back');
+                await page.goBack({ timeout: 10_000 }).catch(() => undefined);
+            } else if (kind < 17) {
+                log.push('forward');
+                await page.goForward({ timeout: 10_000 }).catch(() => undefined);
+            } else if (kind < 19) {
+                log.push('theme toggle');
+                await page.getByRole('button', { name: 'Toggle dark mode' }).first().click({ timeout: 2_000 }).catch(() => undefined);
+            } else {
+                scheme = 'light' === scheme ? 'dark' : 'light';
+                log.push(`system ${scheme}`);
+                await page.emulateMedia({ colorScheme: scheme });
+            }
+            await settle();
+            steps++;
+            const replay = `SEED=${SEED}, step ${steps} on ${page.url()}, last actions: ${log.slice(-8).join(' > ')}`;
+            expect(errors, `${replay}: console and page errors`).toEqual([]);
+            // one controller per element and identifier (a controller connected twice on one element shows here)
+            const doubled = await page
+                .evaluate(() => {
+                    const seen = new Map<string, number>();
+                    const ids = new WeakMap<Element, number>();
+                    let next = 0;
+                    for (const { identifier, element } of (window as any).Stimulus?.controllers ?? []) {
+                        const id = ids.get(element) ?? (ids.set(element, ++next), next);
+                        const key = `${identifier}#${id}`;
+                        seen.set(key, (seen.get(key) ?? 0) + 1);
+                    }
+                    return [...seen].filter(([, count]) => count > 1).map(([key, count]) => `${key} ×${count}`);
+                })
+                .catch(() => []);
+            expect(doubled, `${replay}: controllers connected more than once on one element`).toEqual([]);
+        }
+        // and every identifier on the page settled to one controller per element
+        for (const identifier of await page.evaluate(() => [...new Set([...document.querySelectorAll('[data-controller]')].flatMap((element) => element.getAttribute('data-controller')!.split(/\s+/)))])) {
+            const { controllers, distinctElements } = await stimulusControllers(page, identifier);
+            expect(controllers, `SEED=${SEED}: ${identifier} controllers on distinct elements`).toBe(distinctElements);
+        }
+        console.log(`fuzz: ${steps} UI steps, SEED=${SEED}`);
+        expect(steps).toBeGreaterThan(0);
     });
 });

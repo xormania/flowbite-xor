@@ -1197,13 +1197,15 @@ node --test 'tools/monthly/*.test.mjs'   # the report tools' cases
 
 **Catches:** what one run of the tier 1 specs cannot show: a step that got slower, a controller that leaves its page
 alive after `disconnect()` (one visit hides it, fifty show it), a transition that only holds on a fast desktop, a
-query string or a Live prop value that makes the server fail or echo markup, a sanitizer whose output changes when
+query string, a Live prop value or a form post that makes the server fail or echo markup, a sequence of clicks, keys,
+Back, Forward and theme switches that throws or connects a controller twice, a sanitizer whose output changes when
 sanitized again, an overlay or an editor that breaks in the dark theme. Tier 3 of
 [`PLAN-test-tiers.md`](PLAN-test-tiers.md): Chromium only, and not on every push.
 
 [`.github/workflows/release-checks.yml`](../.github/workflows/release-checks.yml) runs on the release pull request
-(`dev` to `main`), once a day on `dev` when `dev` changed since the last successful daily run (it compares `dev`'s head
-with the commit that run recorded, and stops in seconds when nothing was merged), and by hand (Actions › *Release
+(`dev` to `main`), once a day on `dev` when `dev` changed since the last daily run that tested a commit (it compares
+`dev`'s head with the commit the latest successful daily run recorded, looking past the days that tested nothing, and
+stops in seconds when nothing was merged), and by hand (Actions › *Release
 checks* › *Run workflow*). It sets up the demo as CI's browser job does and runs `RELEASE_CHECKS=1 npx playwright test --grep @release` (the variable adds the `smoke-dark@release` and `harsh@release` projects),
 then the PHPUnit properties with a random seed. CI's browser job leaves the same tests out (`--grep-invert @release`).
 A daily run that fails opens one issue labeled `release-checks`, or comments on the open one; a green one closes it.
@@ -1212,9 +1214,9 @@ A daily run that fails opens one issue labeled `release-checks`, or comments on 
 |---|---|---|
 | Timings | [`release.timings.spec.ts`](../tests/e2e/release.timings.spec.ts) | The key transitions of the data table in a frame and in Live (sort, page, filter), the editor (typing, bold), the Markdown editor (typing, the preview), the forms page (an invalid submit) and the `/demo` dashboard (a Turbo visit and Back), each run 5 times on a fresh page, timed by the interaction-count harness (`trackCounts().time()`, [`counts.ts`](../tests/e2e/counts.ts)): the duration until the update it waits for has landed, the longest interaction (INP), the total blocking time, and Chromium's style, layout and script time over the step |
 | Long session | [`release.long-session.spec.ts`](../tests/e2e/release.long-session.spec.ts) | 50 Turbo visits and Backs across eight lab and form pages in one document; then, after the caches are dropped and a forced collection, `Memory.getDOMCounters` (documents, nodes, listeners) and the JS heap back at their level after two warm-up rounds, within the tolerance the spec states, the numbers in its `long-session` annotation |
-| Harsh conditions | the `harsh@release` project | The data tables, the editor, the date picker and the autocomplete specs again, with the CPU 4 times slower (`Emulation.setCPUThrottlingRate`), DevTools' "Slow 4G" network and a phone's viewport (`harshConditions`, [`fixtures.ts`](../tests/e2e/fixtures.ts)): their behavior holds |
+| Harsh conditions | the `harsh@release` project | The data tables, the editor, the date picker, the autocomplete and the chart specs again, with the CPU 4 times slower (`Emulation.setCPUThrottlingRate`), DevTools' "Slow 4G" network and a phone's viewport (`harshConditions`, [`fixtures.ts`](../tests/e2e/fixtures.ts)): their behavior holds |
 | Wide matrices | the `smoke-dark@release` project | The overlay specs (dropdown, modal, drawer, popover, tooltip, their Live labs) and the editor specs again in the dark theme; `smoke` runs them in the light one |
-| Fuzzing | [`release.fuzz.spec.ts`](../tests/e2e/release.fuzz.spec.ts) | Random query strings on the data table pages and random values for the Live data table's writable props, sent as the live controller sends them: no 5xx, no slow answer, no injected element or handler, no CSP violation or console error; seeded, 30 s per target |
+| Fuzzing | [`release.fuzz.spec.ts`](../tests/e2e/release.fuzz.spec.ts) | Seeded, 30 s per target (`FUZZ_BUDGET_MS`). Random query strings on the data table pages and random values for the Live data table's writable props, sent as the live controller sends them; random form posts on `/forms` and the lab's POST forms (long strings, unicode, markup, arrays where a value is expected, fields left out; the CSRF field kept, and one post in three through the page's own form in the browser): no 5xx, no slow answer, no injected element or handler, no CSP violation or console error. UI runs on the lab pages: random clicks (on controls and links that stay in the lab), keys, Back, Forward, the theme toggle and the system theme, each followed by a wait for the page to settle: no console or page error, and one Stimulus controller per element and identifier |
 | Properties | [`demo/tests/Property/`](../demo/tests/Property/) (`--group property`) | `TableQuery::fromValues()` on any values and any table: the offset stays below `maxRows()`; the editor's HTML policy and the Markdown renderer on random hostile markup: no `<script>`, `on*` attribute or unsafe link, and the output is stable when sanitized again. CI runs them with a fixed seed and 300 runs; the release checks with a random seed and 2000 |
 
 A project's name is part of its tests' titles, so `@release` in `harsh@release` and `smoke-dark@release` tags every
@@ -1228,6 +1230,11 @@ filter by tag, also runs the `smoke` project's `@release` specs.
 plan's step 8). A behavior assertion, a leak counter over its tolerance, a fuzzing or property failure fails the run
 as any test does. The gate on the release pull request applies from 0.3.0 (decision 4 of the plan), once `main`'s
 ruleset requires the *Release checks* check.
+
+A malformed form post (an array where the controller reads a string) is a 400, answered with Symfony's error page,
+whose inline styles the demo's policy blocks: the form fuzzing checks markup and the CSP on the answers the app renders
+(a 2xx, a redirect, the form's 422) and the status alone on the others; the browser gets a 400's status with an empty
+page.
 
 **Replaying.** Fuzzing and the properties print their seed: `SEED=<seed> npx playwright test tests/e2e/release.fuzz.spec.ts`
 or `SEED=<seed> PROPERTY_RUNS=2000 bin/phpunit --group property` (in `demo/`) runs the same values again. A failure
@@ -1254,8 +1261,8 @@ node tools/ci/release-timings.mjs --record tests/perf/baseline.json --commit "$(
 ```
 
 **Recording a baseline.** Run the workflow by hand on `dev` with `record` checked: the `release-baseline` artifact is
-the run's timings as a `baseline.json` (per step and metric, the median and the spread of the runs, with the commit and
-the date). It replaces `tests/perf/baseline.json` through a pull request that shows the old and new numbers (the
+the run's timings as a `baseline.json` (per step and metric, INP included, the median and the spread of the runs, with
+the commit and the date). It replaces `tests/perf/baseline.json` through a pull request that shows the old and new numbers (the
 report of that run, which compares them). The first file was recorded locally on `dev` (`3bd5b88`, 2026-10-10, the
 Docker demo on a development machine, one worker); CI's first `record` run replaces it, as its machine sets the numbers
 the tolerances will be read against.

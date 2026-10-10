@@ -40,8 +40,9 @@ concurrency:
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-    # What to check: dev's head for the schedule, unless the last successful scheduled run tested that commit already
-    # (its release-checks-commit artifact names it); the pull request's or the branch's own commit otherwise.
+    # What to check: dev's head for the schedule, unless the latest successful scheduled run that tested a commit (its
+    # release-checks-commit artifact names it; a skipped run has none) tested that one already; the pull request's or
+    # the branch's own commit otherwise.
     changed:
         name: What to check
         runs-on: ubuntu-latest
@@ -65,11 +66,17 @@ jobs:
                       exit 0
                   fi
                   head=$(gh api "repos/$REPO/commits/dev" --jq .sha)
+                  # the latest successful scheduled run that tested a commit: a run that skipped (nothing changed) or
+                  # whose artifact expired holds none, so look further back, newest first
                   last=
-                  id=$(gh api "repos/$REPO/actions/workflows/release-checks.yml/runs?event=schedule&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')
-                  if [ -n "$id" ] && gh run download "$id" --repo "$REPO" --name release-checks-commit --dir "$RUNNER_TEMP/last" 2>/dev/null; then
-                      last=$(cat "$RUNNER_TEMP/last/commit")
-                  fi
+                  ids=$(gh api "repos/$REPO/actions/workflows/release-checks.yml/runs?event=schedule&status=success&per_page=30" --jq '.workflow_runs[].id')
+                  for id in $ids; do
+                      if gh run download "$id" --repo "$REPO" --name release-checks-commit --dir "$RUNNER_TEMP/last-$id" 2>/dev/null; then
+                          last=$(cat "$RUNNER_TEMP/last-$id/commit")
+                          echo "run $id tested $last"
+                          break
+                      fi
+                  done
                   echo "dev is at $head; the last successful scheduled run tested ${last:-nothing it recorded}"
                   if [ "$head" = "$last" ]; then
                       echo "run=false" >> "$GITHUB_OUTPUT"

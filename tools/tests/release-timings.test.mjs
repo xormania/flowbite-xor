@@ -21,7 +21,8 @@ const report = (runs) => ({
     suites: [{ title: 'f', file: 'f', specs: [{ title: 't', file: 'f', line: 1, ok: true, tests: [{ projectName: 'smoke', status: 'expected', annotations: [], results: runs.map(([status, annotations]) => ({ status, annotations })) }] }] }],
 });
 const timing = (step, durationMs, inpMs, metrics) => ({ type: 'timing', description: JSON.stringify({ step, durationMs, inpMs, ...(metrics ? { metrics } : {}) }) });
-const fiveRuns = (ms) => report(ms.map((value) => ['passed', [timing('table sort', value, 24, { tbtMs: value / 10, layoutMs: 2 })]]));
+// INP: 16, 24, 24, 32, 40 over the five runs (a spread of 8 ms), whatever the durations
+const fiveRuns = (ms) => report(ms.map((value, i) => ['passed', [timing('table sort', value, [24, 16, 40, 24, 32][i % 5], { tbtMs: value / 10, layoutMs: 2 })]]));
 
 test('each metric\'s median over the runs: duration, INP and the extra metrics; a failed run is left out', () => {
     const withFailure = fiveRuns([100, 90, 300, 110, 120]);
@@ -29,7 +30,7 @@ test('each metric\'s median over the runs: duration, INP and the extra metrics; 
     const { steps } = gather([withFailure]);
     assert.deepEqual(metricsOf(steps['table sort']), {
         durationMs: { median: 110, spread: 20, runs: 5 },
-        inpMs: { median: 24, spread: null, runs: 5 },
+        inpMs: { median: 24, spread: 8, runs: 5 },
         layoutMs: { median: 2, spread: 0, runs: 5 },
         tbtMs: { median: 11, spread: 2, runs: 5 },
     });
@@ -72,6 +73,7 @@ test('--record writes the run as a baseline: per step and metric, the median and
     assert.equal(saved.commit, 'abc');
     assert.equal(saved.date, '2026-10-10');
     assert.deepEqual(saved.steps['table sort'].durationMs, { median: 110, spread: 20, runs: 5 });
+    assert.deepEqual(saved.steps['table sort'].inpMs, { median: 24, spread: 8, runs: 5 }, 'INP keeps its spread, as the other metrics');
 });
 
 test('no timed step fails (no report, never an empty one); bad usage and an unreadable baseline are 64', () => {
