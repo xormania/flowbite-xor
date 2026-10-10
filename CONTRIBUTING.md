@@ -449,7 +449,10 @@ a work order (below); a single change stays one branch and one pull request into
   through a job, `claude/wo-<name>--sync`, that merges it; once just before the final pull request, and earlier
   when a job needs something `dev` gained.
 - **Finishing:** the work order's pull request into `dev` is marked ready when every job has merged and CI has passed
-  on the work order with `dev` in it; its description then checks each completion criterion against that commit. It
+  on the work order with `dev` in it; its description then checks each completion criterion against that commit.
+  A push to the work order's own branch runs no CI (each job ran it on its own branch, and the next merge would cancel
+  the run): start that final run by hand, *Actions › CI › Run workflow* on `claude/wo-<name>`, or
+  `gh workflow run ci.yml --ref claude/wo-<name>`. It gives the pull request into `dev` the checks its ruleset requires. It
   merges like any pull request into `dev`. Each job ends merged, superseded (naming its successor) or abandoned
   (saying why); its branch is deleted once its work is in the work order or recorded as dropped.
 

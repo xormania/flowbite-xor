@@ -3,11 +3,18 @@ name: CI
 # Every push to a branch runs CI, so a branch is green before its PR opens; there is no pull_request trigger, whose
 # runs would duplicate every check (skipped) on the same commit, and a skipped CI result passes the rulesets before the
 # push's own run ends. A fork's pull request gets CI once its branch is pushed here. Tag pushes do not run it:
-# release.yml checks a release's install before tagging it. Actions are pinned by commit; Dependabot proposes their updates
-# (.github/dependabot.yml).
+# release.yml checks a release's install before tagging it. A work order's own branch (claude/wo-<name>) is the one
+# exception: each job merged into it ran CI on its own branch, and the next merge would cancel the run, so its pushes
+# run nothing; its final run, the check its pull request into dev needs, is started by hand (Run workflow on that
+# branch: CONTRIBUTING.md, *Work orders*). Its job branches (claude/wo-<name>--<job>) run as any branch. GitHub reads
+# the patterns in order and the last one that matches wins. Actions are pinned by commit; Dependabot proposes their
+# updates (.github/dependabot.yml).
 on:
     push:
-        branches: ['**']
+        branches:
+            - '**'
+            - '!claude/wo-*'
+            - 'claude/wo-*--*'
     workflow_dispatch:
 
 permissions:
