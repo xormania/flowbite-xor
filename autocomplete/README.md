@@ -100,6 +100,8 @@ the `<select>`. Give it an `id` and its label a matching `for`, and no `id` on t
 
 Fields keep working through Turbo visits and Back, inside a Turbo Frame and after a Turbo Stream replaces them: the
 controller sets Tom Select up when the `<select>` appears and removes it when it leaves. In a Live Component form, use
-the form option (`'autocomplete' => true`): UX Autocomplete keeps the chosen values across re-renders. After Back, a
+the form option (`'autocomplete' => true`): UX Autocomplete keeps the chosen values across re-renders, and a value
+the server sets in a re-render (a reset, another record) shows in the field (the recipe's `autocomplete-sync`
+controller, which the `Autocomplete` component and the form theme put next to UX Autocomplete's). After Back, a
 field in a GET form shows the URL's choice, one in a POST form the choice left (the layouts'
 [`form-reset`](../layouts/README.md#back-and-forms)).
