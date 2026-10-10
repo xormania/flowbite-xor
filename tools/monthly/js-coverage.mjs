@@ -190,14 +190,20 @@ export function report(root, recordings) {
         }
         const covered = [...lines.values()].filter((offset) => ran[offset]).length;
         const all = [...functions.values()];
-        const methods = all.filter((fn) => !INTERNAL.has(fn.name));
-        const neverRun = methods.filter((fn) => !fn.ran).sort((a, b) => a.line - b.line).map((fn) => fn.name);
+        // a callback's name V8 infers from where it is passed (`target.addEventListener.once`) is no method
+        const methods = all.filter((fn) => !INTERNAL.has(fn.name) && !fn.name.includes('.'));
+        // a name several functions share (an object's `run: () => …` per command) gets its line
+        const shared = new Set(methods.map((fn) => fn.name).filter((name, index, names) => names.indexOf(name) !== index));
+        const neverRun = methods
+            .filter((fn) => !fn.ran)
+            .sort((a, b) => a.line - b.line)
+            .map((fn) => (shared.has(fn.name) ? `${fn.name} (line ${fn.line})` : fn.name));
         result.controllers[file] = {
             loaded: matching.length > 0,
             lines: { covered: matching.length ? covered : 0, total: lines.size, pct: pct(matching.length ? covered : 0, lines.size) },
             functions: { run: all.filter((fn) => fn.ran).length, total: all.length },
             methods: { run: methods.length - neverRun.length, total: methods.length },
-            neverRun: matching.length ? [...new Set(neverRun)] : declaredMethods(source),
+            neverRun: matching.length ? neverRun : declaredMethods(source),
         };
     }
 

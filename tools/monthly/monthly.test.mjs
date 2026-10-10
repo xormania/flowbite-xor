@@ -60,6 +60,7 @@ test('report merges the tests per controller and lists the methods no test ran; 
             { functionName: '', ranges: [{ startOffset: 0, endOffset: source.length, count: 1 }] },
             { functionName: 'a', ranges: [{ startOffset: a, endOffset: b - 5, count: aCount }] },
             { functionName: 'b', ranges: [{ startOffset: b, endOffset: source.length - 2, count: bCount }] },
+            { functionName: 'this.element.addEventListener.once', ranges: [{ startOffset: b + 4, endOffset: b + 8, count: 0 }] },
         ],
     });
     const sha256 = createHash('sha256').update(source).digest('hex');
