@@ -28,6 +28,8 @@ Use the skeleton component to indicate a loading status with placeholder element
 <twig:Skeleton class="h-[20px] w-[100px]" />
 ```
 
+Under `prefers-reduced-motion`, the pulse runs three times slower (6 s instead of 2 s).
+
 ## Examples
 
 ### Card placeholder
