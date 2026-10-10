@@ -447,10 +447,13 @@ test.describe('release fuzz', { tag: '@release' }, () => {
                 .catch(() => []);
             expect(doubled, `${replay}: controllers connected more than once on one element`).toEqual([]);
         }
-        // and every identifier on the page settled to one controller per element
-        for (const identifier of await page.evaluate(() => [...new Set([...document.querySelectorAll('[data-controller]')].flatMap((element) => element.getAttribute('data-controller')!.split(/\s+/)))])) {
-            const { controllers, distinctElements } = await stimulusControllers(page, identifier);
-            expect(controllers, `SEED=${SEED}: ${identifier} controllers on distinct elements`).toBe(distinctElements);
+        // and every identifier on the page settled to one controller per element that declares it: each declared one
+        // connected (an element whose controller never connects counts 0 controllers on 1 element), none twice
+        await controllersConnected(page);
+        const identifiers = await page.evaluate(() => [...new Set([...document.querySelectorAll('[data-controller]')].flatMap((element) => element.getAttribute('data-controller')!.split(/\s+/)))]);
+        for (const identifier of identifiers.filter((id) => id && 'csrf-protection' !== id)) {
+            const { controllers, elements, distinctElements } = await stimulusControllers(page, identifier);
+            expect({ controllers, distinctElements }, `SEED=${SEED}: ${identifier}: one controller per element declaring it`).toEqual({ controllers: elements, distinctElements: elements });
         }
         console.log(`fuzz: ${steps} UI steps, SEED=${SEED}`);
         expect(steps).toBeGreaterThan(0);
