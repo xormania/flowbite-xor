@@ -28,7 +28,7 @@
         'data-action': 'turbo:before-cache@document->data-table#cancelLoading turbo:submit-start->data-table#submitStarted turbo:before-fetch-response->data-table#responseReceived turbo:submit-end->data-table#submitEnded',
     }) }}
 >
-    <form method="get" action="{{ view.path }}" class="mb-4 flex flex-wrap items-end gap-3" role="search" aria-label="{{ label ? label ~ ': search and filters' : 'Search and filters' }}">
+    <form method="get" action="{{ view.path }}" class="mb-4 flex flex-wrap items-end gap-3" data-data-table-target="form" role="search" aria-label="{{ label ? label ~ ': search and filters' : 'Search and filters' }}">
         {%- for name, value in view.hiddenFields %}
             <input type="hidden" name="{{ name }}" value="{{ value }}">
         {%- endfor %}

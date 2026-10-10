@@ -108,7 +108,7 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   stays.
 - `layouts`: Back and Forward show a GET form with the values of the URL, and a POST form as the user left it; the
   `form-reset` controller on `<body>` resets each GET form of a restored page, and autocomplete fields, calendars and
-  date pickers follow it. The `data-table` search form goes through it (its own reset is gone), and a `calendar`
+  date pickers follow it. The `data-table` search form keeps its own reset, so a table works without `layouts`; a `calendar`
   follows a reset of its form (a reset button too): a date picked in a GET form before leaving no longer shows after
   Back.
 - `llms.txt` links the files of the release it was written for (or `dev` before a release), not `main`, and

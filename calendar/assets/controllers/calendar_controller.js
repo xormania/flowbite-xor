@@ -105,8 +105,20 @@ export default class extends Controller {
         // the labels in the browser's own locale data, which can differ from the server's ICU (digits, names)
         this.#relabel();
         this.#render();
-        this.#form = this.inputTargets[0]?.form ?? this.element.closest('form');
+        this.#form = this.#owningForm();
         this.#form?.addEventListener('reset', this.#formReset);
+    }
+
+    // the form the hidden inputs belong to: an input's own, or, before a multiple calendar has any, the one its
+    // prototype names (`inputAttr: {form: …}`), else the form around the calendar
+    #owningForm() {
+        if (this.inputTargets[0]) {
+            return this.inputTargets[0].form;
+        }
+        const id = this.hasInputPrototypeTarget ? this.inputPrototypeTarget.content.firstElementChild?.getAttribute('form') : null;
+        const named = id ? document.getElementById(id) : null;
+
+        return named instanceof HTMLFormElement ? named : this.element.closest('form');
     }
 
     disconnect() {

@@ -58,7 +58,8 @@ page it cached, with the fields as the user left them. The controller applies th
 
 Autocomplete fields (Tom Select) and calendars and date pickers follow their form. A GET form is left alone while the
 focus is inside it (text typed before the page's scripts ran) and inside a `data-turbo-permanent` element. The
-`data-table` search form relies on it. In a layout of your own, put the same attribute on `<body>`.
+`data-table` search form resets itself as well, so a table works without this recipe. In a layout of your own, put
+the same attribute on `<body>`.
 
 ## Content Security Policy
 
