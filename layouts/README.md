@@ -61,6 +61,9 @@ focus is inside it (text typed before the page's scripts ran) and inside a `data
 `data-table` search form resets itself as well, so a table works without this recipe. In a layout of your own, put
 the same attribute on `<body>`.
 
+`form-reset` leaves a form inside a `data-turbo-permanent` element alone with the check of the `turbo` recipe's module
+(`assets/lib/flowbite-xor-turbo.js`), which `ux:install layouts` installs with it.
+
 ## Content Security Policy
 
 `base.html.twig` has one inline script, the theme snippet, and `importmap()` prints three more. Under a Content

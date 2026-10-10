@@ -12,18 +12,20 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   rows (`countRows()`), then loads one page once (`loadRows()`); no page starts past `maxRows()` rows (10,000), so a
   request never makes the database skip more. `Filter::choice()` takes `array<int|string, string>` choices. Back and
   Forward walk every state, and the `data-table` controller makes the form show the URL's state in every field; Back
-  pressed while a change is still loading cancels the change, so the URL and the table never disagree.
+  pressed while a change is still loading cancels the change, so the URL and the table never disagree. Its checks of
+  Turbo's cached copies are the `turbo` recipe's module, which it installs with it.
 - `data-table-live`: `data-table` as a Live Component (`AbstractLiveDataTable`), with row selection for bulk actions;
   its state is in the URL. The selection holds at most `maxSelection()` ids (1,000) of at most 128 characters,
   enforced on what the browser sends before anything uses it; leaving the page drops it, and Back and Forward do not
-  bring it back.
+  bring it back. Its checks of Turbo's cached copies are the `turbo` recipe's module, which it installs with it.
 - `autocomplete`: searchable selects with Symfony UX Autocomplete (Tom Select), styled with the theme, through the
   form theme (`'autocomplete' => true`) or the `Autocomplete` component. Its `autocomplete-sync` controller keeps Tom
   Select showing the `<select>`'s value after a Live re-render, a form reset and Back, and the hidden `<select>` keeps
   its label's name (`aria-labelledby`).
 - `popover`: free content anchored to a button, in a non-modal dialog; it closes on Escape, a click outside or when
   the focus leaves it, and before Turbo caches the page. Beside a frame visit promoted to history (a data table's
-  pages) it stays open, and Back shows it closed.
+  pages) it stays open, and Back shows it closed. Its checks of Turbo's cached copies are the `turbo` recipe's module,
+  which it installs with it.
 - `calendar`: pick a date, several dates or a range, with hidden inputs for forms (dispatching `input` and `change`)
   and a `model` prop for Live Components; invalid dates are ignored, and a range never spans a disabled day. It
   follows a reset of its form, unless a listener cancels the reset.
@@ -31,7 +33,8 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   `DateType` with `'block_prefix' => 'flowbite_date_picker'` renders as one through the form theme.
 - `dropzone`: file uploads with Symfony UX Dropzone, styled with the theme: drag and drop or browse, a preview of
   the picked image, several files that add up across picks; focus follows a pick or a removal, and a file dropped
-  outside the input is refused. In a POST form, the file picked shows again after Back and Forward.
+  outside the input is refused. In a POST form, the file picked shows again after Back and Forward. Its checks of
+  Turbo's cached copies are the `turbo` recipe's module, which it installs with it.
 - `chart`: charts drawn with Symfony UX Chart.js in the theme's colors, light and dark, each with its data as a table;
   from arrays or a `ChartBuilderInterface` chart, updated in place by Live Components.
 - `editor`: a rich text editor (Tiptap) storing restricted HTML, with a keyboard-friendly toolbar, a link dialog and
@@ -44,20 +47,31 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   stored Markdown the same way (CommonMark without raw HTML or images, then sanitized). Back keeps what was typed.
 - `side-nav`: a multi-level navigation tree (WAI-ARIA tree view): links in branches that open and close at any depth,
   arrow keys, Home, End and type-ahead, the branch of the current page open, and the open branches kept across Turbo
-  visits, Back and Forward in `sessionStorage` (two trees sharing a `storageKey` agree).
+  visits, Back and Forward in `sessionStorage` (two trees sharing a `storageKey` agree). Its current-link marking is
+  the `navigation` recipe's module, which it installs with it.
 - `mobile-nav`: the app's navigation on small screens, in a modal `Drawer` opened by a menu button in the `Navbar`
   (`menu` block); the focus goes to the current page, and the drawer closes on a link, Escape, the backdrop, before
-  Turbo caches the page and when the screen grows to the sidebar's width.
+  Turbo caches the page and when the screen grows to the sidebar's width. Its link-follow check and its closing when
+  the screen grows are the `navigation` recipe's module, which it installs with it.
 - `nav-menu`: the navbar's menu, a disclosure navigation: links and buttons opening submenus of links, nested at any
   depth; opening one closes the others, Escape closes the innermost and focuses its button, a click outside, the
   focus leaving and Turbo caching the page close them all; the current page and its submenus are marked, a submenu
-  near the edge opens towards the other side, and the same menu opens in place in a `MobileNav`.
+  near the edge opens towards the other side, and the same menu opens in place in a `MobileNav`. Its current-link
+  marking and its link-follow check are the `navigation` recipe's module, which it installs with it.
 - `section-nav`: vertical tabs that navigate between the pages of one area (settings): links with
   `aria-current="page"` marked by the server or from the URL, a column on large screens and a strip that scrolls
-  sideways, with the current section in view, on small ones.
+  sideways, with the current section in view, on small ones. Its current-link marking is the `navigation` recipe's
+  module, which it installs with it.
 - `floating`: the positioning that `dropdown`, `popover` (so `date-picker`) and `tooltip` share, one JavaScript
   module (`assets/lib/flowbite-xor-floating.js`) that those recipes install with them: placement, flip, shift into
   the viewport, following the trigger on scroll and resize.
+- `turbo`: what the recipes ask about Turbo's copies of a page, one JavaScript module
+  (`assets/lib/flowbite-xor-turbo.js`) that the recipes using it install with them: whether a `turbo:before-cache`
+  comes from a frame visit promoted to history, whether an element is `data-turbo-permanent`, and whether a controller
+  connects in a cached copy.
+- `navigation`: what the navigation recipes share, one JavaScript module (`assets/lib/flowbite-xor-navigation.js`):
+  marking the current page's link, giving the rendered `aria-current` back, whether a click on a link navigates this
+  tab, closing a navigation opened over the page when the screen grows.
 - `theme`: chart series roles `chart-1` to `chart-6` and `chart-other`, checked for contrast in both themes.
 - A gallery of every recipe and every example of its README, light and dark, with its code and install command, on
   GitHub Pages (<https://xormania.github.io/flowbite-xor/>), published with each release.
@@ -83,6 +97,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   the `spinner` and the `skeleton` pulse run three times slower.
 - `dropdown` and `tooltip` place their content with the `floating` recipe's module instead of a copy each, and depend
   on that recipe (`ux:install` adds `assets/lib/flowbite-xor-floating.js`). Where they place it does not change.
+- `dropdown`, `modal`, `drawer`, `toast` and `layouts` (`form-reset`) use the `turbo` recipe's module instead of a
+  copy of its checks each, and `sidebar` the `navigation` recipe's; each depends on that recipe (`ux:install` adds the
+  module). What they do does not change.
 - `tabs`: the keyboard of the WAI-ARIA tabs pattern: the selected tab is the list's one Tab stop, the arrow keys of
   the list's orientation (Up and Down in a vertical list, which now has `aria-orientation`) select the previous and
   next tab, Home and End the first and last, skipping disabled tabs; Tab moves on to the panel, a Tab stop of its own,

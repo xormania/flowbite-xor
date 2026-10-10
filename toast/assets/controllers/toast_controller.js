@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { isCachedCopy, isPermanent } from '../lib/flowbite-xor-turbo.js';
 
 /**
  * Dismisses a `Toast` after its timeout, pausing while it is hovered or focused, or when its close
@@ -24,11 +25,10 @@ export default class extends Controller {
         this.focused = false;
         // shown before, but not by this controller: a copy of the page Turbo cached, where a toast of the page is gone.
         // A reconnect of the same element (the permanent region kept by a visit, a toast moved) keeps the controller
-        if (!this.shown && this.element.hasAttribute('data-toast-shown') && !this.element.closest('[data-turbo-permanent]')) {
+        if (isCachedCopy(this, 'data-toast-shown') && !isPermanent(this.element)) {
             this.element.remove();
             return;
         }
-        this.shown = true;
         this.element.setAttribute('data-toast-shown', '');
         if (this.closing) {
             // moved in the DOM while fading out: finish the removal

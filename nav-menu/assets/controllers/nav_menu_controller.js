@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { followsInThisTab, markCurrentLinks, rememberCurrent } from '../lib/flowbite-xor-navigation.js';
 
 /**
  * A navigation menu, as the WAI-ARIA disclosure navigation pattern describes it: each submenu is a list of links
@@ -36,13 +37,13 @@ export default class extends Controller {
         // a copy of the page cached with a submenu open, or a data-turbo-permanent menu, comes back closed
         this.closeAll();
         // the links' current state as rendered, given back on disconnect
-        this.renderedCurrent = new Map(this.linkTargets.map((link) => [link, link.getAttribute('aria-current')]));
+        this.restoreCurrent = rememberCurrent(this.linkTargets);
         this.markCurrentLink();
     }
 
     disconnect() {
         this.closeAll();
-        this.renderedCurrent.forEach((value, link) => (null === value ? link.removeAttribute('aria-current') : link.setAttribute('aria-current', value)));
+        this.restoreCurrent();
     }
 
     toggle({ currentTarget }) {
@@ -78,10 +79,7 @@ export default class extends Controller {
             return;
         }
         // a link this tab does not follow (a modifier click, another tab or window, a download) leaves the menu open
-        const newTab = event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button > 0;
-        const target = (link.getAttribute('target') ?? '').trim().toLowerCase();
-        const otherContext = '' !== target && !['_self', '_top', '_parent'].includes(target);
-        if (!newTab && !otherContext && !link.hasAttribute('download')) {
+        if (followsInThisTab(event, link)) {
             this.closeAll();
         }
     }
@@ -176,12 +174,6 @@ export default class extends Controller {
         if (this.linkTargets.some((link) => link.hasAttribute('data-nav-menu-active-fixed'))) {
             return;
         }
-        const path = window.location.pathname;
-        this.linkTargets.forEach((link) => {
-            // a link to a fragment of the page ("#", what NavMenu:Link renders for a rejected URL) is not a page
-            const isFragment = (link.getAttribute('href') ?? '').trim().startsWith('#');
-            const isCurrent = !isFragment && new URL(link.href, window.location.href).pathname === path;
-            isCurrent ? link.setAttribute('aria-current', 'page') : link.removeAttribute('aria-current');
-        });
+        markCurrentLinks(this.linkTargets);
     }
 }

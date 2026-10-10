@@ -207,6 +207,10 @@ Dropzone's on the wrapper) or on an element around it:
 The markup has no `style` attribute and no inline handler. UX Dropzone shows and hides its parts through the CSSOM,
 which a policy allows, and shows an image preview as a `data:` URL: the policy's `img-src` needs `data:`.
 
+Whether a zone is inside a `data-turbo-permanent` element, and whether a `turbo:before-cache` comes from a frame visit
+promoted to history, are answered by the `turbo` recipe's module (`assets/lib/flowbite-xor-turbo.js`), which
+`ux:install dropzone` installs with it.
+
 ## Examples
 
 ### Hint and accepted types
