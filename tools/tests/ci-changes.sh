@@ -119,6 +119,8 @@ check 'php'                       tools/ci/junit-attempts.mjs
 check 'php demo'                  tools/ci/jev-diagnosis.mjs tools/ci/jev-ci.json
 # a failed step's log as Jev's attempts: the jobs run it only after a failure, so only its cases (Tool tests) check it
 check ''                          tools/ci/step-attempts.mjs
+# a failed step's log as Jev's attempts: the jobs run it only after a failure, so only its cases (Tool tests) check it
+check ''                          tools/ci/step-attempts.mjs
 # the Jev step's composite action: a passing job never runs it; actionlint (Workflows) checks every call's inputs
 check 'workflows'                 .github/actions/jev-diagnosis/action.yml
 # tools' cases and their fixtures run in Tool tests, on every run: no other job

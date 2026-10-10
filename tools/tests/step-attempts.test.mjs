@@ -161,3 +161,34 @@ test('missing arguments are a usage error', () => {
     assert.equal(run.status, 64);
     assert.match(run.stderr, /Usage/);
 });
+
+// Every step of the repository's workflows that captures its log for Jev does it the one way the tool reads: an id,
+// `set -o pipefail`, and a tee into $RUNNER_TEMP/jev-<id>.log; and the tool finds its name and its command
+test("every captured step in .github/workflows is one the tool reads", async () => {
+    const { stepIn } = await import(script);
+    const dir = join(root, '.github/workflows');
+    let captured = 0;
+    for (const file of readdirSync(dir).filter((name) => name.endsWith('.yml'))) {
+        const text = readFileSync(join(dir, file), 'utf8');
+        for (const [, id] of text.matchAll(/\| tee "\$RUNNER_TEMP\/jev-([a-z0-9-]+)\.log"/g)) {
+            captured++;
+            const job = jobOf(text, id);
+            assert.ok(job, `${file}: jev-${id}.log is written by no step with id: ${id}`);
+            const step = stepIn(text, job, id);
+            assert.ok(step?.name, `${file}: step ${id} has no name`);
+            assert.ok(step.command && !/tee|pipefail/.test(step.command), `${file}: step ${id}: ${step.command}`);
+            assert.match(step.run, /^set -o pipefail\n/, `${file}: step ${id} must set -o pipefail first`);
+        }
+    }
+    assert.ok(captured > 0, 'no captured step found');
+});
+
+function jobOf(text, id) {
+    let job = null;
+    for (const line of text.split('\n')) {
+        const head = /^ {4}([a-z0-9_-]+):\s*$/.exec(line);
+        if (head) job = head[1];
+        if (new RegExp(`^\\s+(- )?id: ${id}\\s*$`).test(line)) return job;
+    }
+    return null;
+}
