@@ -26,6 +26,8 @@ building **Turbo-driven apps** get rich UX from installed recipes with as little
   - Inside a Turbo Frame, inside `data-turbo-permanent`, and under a Stream `replace` and `update`.
   - Plus the CSP spec, a11y `labPages` and a Live re-render where relevant.
 - One owner per region: Live or Turbo Frame/Stream, never both. Turbo 8 refresh morph is not supported.
+- **Shared code:** logic two recipes need lives once, in an assets-only recipe whose module the others import
+  (`floating`, `navigation`, `turbo`); `tools/js-duplication.mjs` keeps new copies out (CONTRIBUTING, *Shared code*).
 
 ## Sequence (confirmed)
 

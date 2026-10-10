@@ -81,6 +81,8 @@ Every recipe, as `README.md` lists it:
 | Install | What it is |
 |---|---|
 | [`floating`](floating/README.md) | The positioning shared by `dropdown`, `popover` (so `date-picker`) and `tooltip`, one JavaScript module: a floating element placed next to the element it belongs to, flipped to the other side when it does not fit, kept in the viewport and following it on scroll and resize. |
+| [`navigation`](navigation/README.md) | What the navigation recipes (`nav-menu`, `sidebar`, `side-nav`, `section-nav`, `mobile-nav`) share, one JavaScript module: the current page's link marked `aria-current="page"`, whether a click on a link navigates this tab, a navigation opened over the page closed once the screen grows. |
+| [`turbo`](turbo/README.md) | What the recipes ask about Turbo's copies of a page, one JavaScript module: whether a `turbo:before-cache` leaves the page on screen (a frame visit promoted to history) or an element is moved into the next page (`data-turbo-permanent`), and whether a controller connects in a cached copy. |
 
 **Basic components**
 

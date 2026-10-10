@@ -240,10 +240,12 @@ render there. What it establishes is the DOM at the first observed animation fra
 presented.
 
 A reset on `turbo:before-cache` tells the two apart with Turbo's current visit, which renders nothing for a frame
-visit promoted to history (Turbo 8):
+visit promoted to history (Turbo 8). The `turbo` recipe's module holds that check, and the one for a
+`data-turbo-permanent` element, for every recipe:
 
 ```js
-const isPromotedFrameCache = () => false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
+import { isKeptOnCache, isPromotedFrameCache } from '../lib/flowbite-xor-turbo.js';
+// isPromotedFrameCache(): false === window.Turbo?.session?.navigator?.currentVisit?.willRender
 ```
 
 lab.popover "turbo:before-cache closes an open popover before a Turbo visit copies the page, and not when…" records
@@ -950,6 +952,22 @@ ours in it is news from upstream: read the versions it resolved before looking f
 
 The moving parts are on purpose: the install jobs are the kit as a user installs it, and the toolkit is pinned
 because it is experimental (`ci.yml`, `UX_TOOLKIT_VERSION`).
+
+## One place for shared code
+
+**Catches:** a recipe that copies logic another recipe already has (the Turbo checks, the current link, the positioning)
+instead of importing the shared module, so a fix lands in one copy and not the others.
+
+`tools/js-duplication.mjs` reads every recipe's JavaScript, comments and spacing left out, and counts the lines of each
+run of 40 tokens or more found in two places, in two recipes or twice in one. The total must stay within its `BUDGET`,
+the level the kit is at; the copies left are listed by `node tools/js-duplication.mjs`. A name a shared module exports
+(`isPromotedFrameCache`) declared in another file fails too: a helper that short is under 40 tokens. The cases, and the
+kit with a copy of `markCurrentLinks()` pasted into a controller (red), are in `tools/tests/js-duplication.test.mjs`, which
+*Tool tests* runs on every push. No behavior change comes with a move onto a shared module: the recipes' specs, the lab
+specs and the counts pass unchanged.
+
+Here: [`js-duplication.mjs`](../tools/js-duplication.mjs), [`js-duplication.test.mjs`](../tools/tests/js-duplication.test.mjs),
+with [`recipe-imports.mjs`](../tools/recipe-imports.mjs) checking that each recipe installs the module it imports.
 
 ## Browsers
 

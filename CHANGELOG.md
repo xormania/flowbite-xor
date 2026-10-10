@@ -7,6 +7,13 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Added
 
+- `turbo`: what the recipes ask about Turbo's copies of a page, one JavaScript module
+  (`assets/lib/flowbite-xor-turbo.js`) that the recipes using it install with them: whether a `turbo:before-cache`
+  comes from a frame visit promoted to history, whether an element is `data-turbo-permanent`, and whether a controller
+  connects in a cached copy.
+- `navigation`: what the navigation recipes share, one JavaScript module (`assets/lib/flowbite-xor-navigation.js`):
+  marking the current page's link, giving the rendered `aria-current` back, whether a click on a link navigates this
+  tab, closing a navigation opened over the page when the screen grows.
 - `floating`: the positioning that `dropdown`, `popover` (so `date-picker`) and `tooltip` share, one JavaScript
   module (`assets/lib/flowbite-xor-floating.js`) that those recipes install with them: placement, flip, shift into
   the viewport, following the trigger on scroll and resize.
@@ -144,6 +151,10 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- `popover`, `dropdown`, `modal`, `drawer`, `toast`, `data-table`, `data-table-live`, `dropzone` and `layouts` use the
+  `turbo` recipe's module instead of a copy of its checks each, and `nav-menu`, `sidebar`, `side-nav`, `section-nav`
+  and `mobile-nav` the `navigation` recipe's; each depends on that recipe (`ux:install` adds the module). What they do
+  does not change.
 - `dropdown`, `popover` and `tooltip` place their content with the `floating` recipe's module instead of a copy
   each, and depend on that recipe (`ux:install` adds `assets/lib/flowbite-xor-floating.js`). Where they place it
   does not change.
