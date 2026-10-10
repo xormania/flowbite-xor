@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
-import { back, forward, observeTurbo, shown, turboOperation } from './transitions';
+import { advanceFrame, back, forward, observeTurbo, shown, turboOperation } from './transitions';
 
 /*
  * The value matrix: what each widget holding a value or a state the user changes shows after each transition, as the
@@ -24,6 +24,7 @@ const TRANSITIONS = [
     'forward', // changed on the page Back left, then Forward to it: its cached copy
     'frame-inside', // the Turbo Frame holding the widget reloads
     'frame-outside', // a Turbo Frame beside the widget reloads
+    'frame-advance', // a Turbo Frame beside the widget makes a visit promoted to history, then Back and Forward
     'stream-replace', // a Turbo Stream replaces the region holding the widget
     'stream-update', // a Turbo Stream updates (replaces the content of) the region holding the widget
     'stream-rest', // a Turbo Stream replaces a region beside the widget
@@ -56,22 +57,28 @@ type Rule = 'url' | 'kept' | 'fresh' | 'server' | 'reset' | { na: string };
 
 const NEW_VISIT = { na: 'a visit (not Back) renders the page anew; the policy names this transition for the Live table selection only' };
 const BACK_UI = 'fresh'; // the overlays' READMEs: Back and Forward show them closed (6a is about forms)
+/*
+ * `frame-advance` is the state after Back from the frame's visit promoted to history: Turbo shows the copy of the page it
+ * took as the frame visit started, so Back is a Back (6a; the owner, 2026-10-10: "Back is an edge case — so as long as
+ * it doesn't destroy state that's important"). The cell also expects the `frame-outside` state once the frame has
+ * rendered (the page stays on screen) and the `forward` state after Forward.
+ */
 
 const POLICY: Record<Kind, Record<Transition, Rule>> = {
     // 6a: a GET form reflects the URL; Frame/Stream: the replaced part fresh, the rest untouched; Live: LiveProps from the server; permanent: all kept
-    'get-field': { back: 'url', forward: 'url', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'server', permanent: 'kept', 'leave-return': NEW_VISIT },
+    'get-field': { back: 'url', forward: 'url', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'frame-advance': 'url', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'server', permanent: 'kept', 'leave-return': NEW_VISIT },
     // 6a: a POST form keeps the user's work
-    'post-field': { back: 'kept', forward: 'kept', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'server', permanent: 'kept', 'leave-return': NEW_VISIT },
+    'post-field': { back: 'kept', forward: 'kept', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'frame-advance': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'server', permanent: 'kept', 'leave-return': NEW_VISIT },
     // Live: open UI kept
-    'open-ui': { back: BACK_UI, forward: BACK_UI, 'frame-inside': 'fresh', 'frame-outside': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'kept', permanent: 'kept', 'leave-return': NEW_VISIT },
+    'open-ui': { back: BACK_UI, forward: BACK_UI, 'frame-inside': 'fresh', 'frame-outside': 'kept', 'frame-advance': BACK_UI, 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'kept', permanent: 'kept', 'leave-return': NEW_VISIT },
     // the tabs' README: Back shows the tab that was selected
-    'chosen-ui': { back: 'kept', forward: 'kept', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'kept', permanent: 'kept', 'leave-return': NEW_VISIT },
+    'chosen-ui': { back: 'kept', forward: 'kept', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'frame-advance': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'kept', permanent: 'kept', 'leave-return': NEW_VISIT },
     // a choice the component stores holds wherever the component shows: a fresh render shows the stored choice
-    'stored': { back: 'kept', forward: 'kept', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'kept', permanent: 'kept', 'leave-return': NEW_VISIT },
+    'stored': { back: 'kept', forward: 'kept', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'frame-advance': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'kept', permanent: 'kept', 'leave-return': NEW_VISIT },
     // the Live table's state in the URL: Back and Forward show the URL's; Live: its properties from the server
-    'live-table-url': { back: 'url', forward: 'url', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'server', permanent: 'kept', 'leave-return': NEW_VISIT },
+    'live-table-url': { back: 'url', forward: 'url', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'frame-advance': 'url', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'server', permanent: 'kept', 'leave-return': NEW_VISIT },
     // the Live table selection resets on leaving
-    'live-table-selection': { back: 'reset', forward: 'reset', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'server', permanent: 'kept', 'leave-return': 'reset' },
+    'live-table-selection': { back: 'reset', forward: 'reset', 'frame-inside': 'fresh', 'frame-outside': 'kept', 'frame-advance': 'reset', 'stream-replace': 'fresh', 'stream-update': 'fresh', 'stream-rest': 'kept', live: 'server', permanent: 'kept', 'leave-return': 'reset' },
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -147,8 +154,10 @@ function autocomplete(method: 'get' | 'post'): Pick<Component, 'change' | 'shows
         shows: async (scope, state) => {
             const [value, label] = pick(state, { rendered: ['apple', 'Apple'], changed: ['banana', 'Banana'], server: ['cherry', 'Cherry'] });
             await expect(group(scope, method).locator('select:has(option[value="banana"])')).toHaveValue(value);
-            // Tom Select's own display of the choice, once
+            // Tom Select's own display of the choice, once, on screen
             await expect(group(scope, method).locator('.ts-wrapper')).toHaveCount(1);
+            // not hidden as the `<select>` is (a Tom Select set up on a copy of the page took the classes Tom Select gave it)
+            await expect.poll(() => group(scope, method).locator('.ts-wrapper').evaluate((wrapper) => wrapper.getBoundingClientRect().width)).toBeGreaterThan(100);
             await expect(group(scope, method).locator('.ts-wrapper .ts-control .item')).toHaveText([label]);
         },
     };
@@ -371,6 +380,7 @@ async function settled(page: Page) {
                 const selects = [...document.querySelectorAll<HTMLSelectElement>('select[data-controller~="symfony--ux-autocomplete--autocomplete"]')];
                 return selects.every((select) => (select as any).tomselect) && document.querySelectorAll('.ts-wrapper').length === selects.length && !document.querySelector('[data-editor-target="preview"]');
             }),
+            { message: 'the widgets are set up: one Tom Select per autocomplete field, the editors mounted' },
         )
         .toBe(true);
 }
@@ -425,6 +435,27 @@ const matrixSite: Site = {
         'frame-outside': async (page, component, expected) => {
             await openMatrix(page, component);
             await runCell(component, region(page, 'plain'), expected, () => reloadFrame(page, 'value-matrix-frame', matrixPage(component)));
+        },
+        'frame-advance': async (page, component, expected) => {
+            await openMatrix(page, component);
+            const scope = region(page, 'plain');
+            const before = page.url();
+            await runCell(component, scope, expectation(component, 'frame-outside'), () => advanceFrame(page, 'value-matrix-frame', matrixPage(component)));
+            const advanced = page.url();
+            await turboOperation(page, { url: before }, () => page.goBack());
+            await shown(page, 'Page one');
+            await settled(page);
+            await component.shows(scope, expected);
+            await turboOperation(page, { url: advanced }, () => page.goForward());
+            await shown(page, 'Page one');
+            await settled(page);
+            const afterForward = expectation(component, 'forward');
+            await component.shows(scope, afterForward);
+            // the restored widget still takes a change
+            if ('rendered' === afterForward) {
+                await component.change(scope);
+                await component.shows(scope, 'changed');
+            }
         },
         'stream-replace': async (page, component, expected) => {
             await openMatrix(page, component);
@@ -585,6 +616,8 @@ const dataTableLiveSite: Site = {
 const rowsShown = (scope: Locator) => scope.getByRole('status').filter({ hasText: /Showing|No rows/ });
 const selectedCount = (scope: Locator) => scope.getByRole('status').filter({ hasText: 'selected' });
 
+const LIVE_TABLE_ADVANCE = 'a frame beside it whose visits are promoted to history writes its own URL over the one the Live table wrote: two owners of one URL, which no recipe documents';
+
 const GET_IN_LIVE = 'a Live Component binds its fields to properties, whatever form holds them: the POST row\'s Live cell runs this widget';
 
 const COMPONENTS: Component[] = [
@@ -630,6 +663,7 @@ const COMPONENTS: Component[] = [
         shows: async (scope, state) => expect(scope.getByLabel('Search', { exact: true })).toHaveValue('changed' === state ? 'bonnie' : ''),
         na: {
             'frame-outside': 'the table is its Turbo Frame: no part of it sits outside',
+            'frame-advance': 'the table is its Turbo Frame, whose own visits are promoted to history: the frame-inside cell',
             'stream-replace': 'its region is its Turbo Frame, one owner per region: a Stream replaces the frame or the page, the frame-inside cell',
             'stream-update': 'its region is its Turbo Frame, one owner per region: a Stream replaces the frame or the page, the frame-inside cell',
             'stream-rest': 'its region is its Turbo Frame, one owner per region: a Stream beside it is a frame-outside cell, which has no part',
@@ -641,6 +675,7 @@ const COMPONENTS: Component[] = [
         row: 'a Live data table page (data-table-live, in the URL)',
         kind: 'live-table-url',
         site: dataTableLiveSite,
+        na: { 'frame-advance': LIVE_TABLE_ADVANCE },
         url: 'changed',
         change: async (scope) => {
             await scope.getByRole('link', { name: 'Page 2' }).click();
@@ -658,6 +693,7 @@ const COMPONENTS: Component[] = [
         row: 'a Live data table selection (data-table-live)',
         kind: 'live-table-selection',
         site: dataTableLiveSite,
+        na: { 'frame-advance': LIVE_TABLE_ADVANCE },
         change: async (scope) => {
             await scope.getByRole('checkbox', { name: 'Select row 57' }).check();
             await expect(selectedCount(scope)).toHaveText('1 selected');
@@ -702,6 +738,15 @@ function cell(component: Component, transition: Transition): State | { na: strin
         default:
             return rule;
     }
+}
+
+/** The state the cell of `component` × `transition` expects, for a cell that runs another transition's steps too. */
+function expectation(component: Component, transition: Transition): State {
+    const expected = cell(component, transition);
+    if ('object' === typeof expected) {
+        throw new Error(`${component.row} × ${transition} is n/a: ${expected.na}`);
+    }
+    return expected;
 }
 
 for (const component of COMPONENTS) {

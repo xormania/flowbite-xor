@@ -38,7 +38,8 @@ let lastCopy = 0;
  *   `change` event (not bubbling), which shows it again.
  * - In a form that is not a GET form (a POST form holds the user's work), one file picked stays picked after Back and
  *   Forward: before Turbo copies the page, the file is kept under a key the zone carries into the copy, and put back
- *   the same way when the copy connects. A GET form, which cannot send files, and a zone outside a form start empty.
+ *   the same way when the copy connects. A frame visit promoted to history copies the page as it starts, before its
+ *   `turbo:before-cache`: the zone carries a key from its connect on, and takes a new one after each copy. A GET form, which cannot send files, and a zone outside a form start empty.
  *
  * @target input       The file input.
  * @target placeholder The inside of the box shown before a pick.
@@ -70,7 +71,8 @@ export default class extends Controller {
         const key = this.element.getAttribute('data-dropzone-assist-copy');
         const copied = copies.get(key)?.transfer ?? null;
         copies.delete(key);
-        this.element.removeAttribute('data-dropzone-assist-copy');
+        // the key the next copy taken before its `turbo:before-cache` (a frame visit promoted to history) carries
+        this.element.setAttribute('data-dropzone-assist-copy', String(++lastKey));
         const kept = this.#kept ?? copied;
         this.#kept = null;
         if (!kept?.files.length || this.hasListTarget || !this.hasPreviewTarget) {
@@ -108,9 +110,8 @@ export default class extends Controller {
             lastCopy++;
         }
         const form = this.inputTarget.form;
-        // a frame visit promoted to history copied the page already; Turbo moves a permanent element into the next page
+        // Turbo moves a permanent element into the next page
         if (
-            isPromotedFrameCache() ||
             this.hasListTarget ||
             !this.hasPreviewTarget ||
             !this.inputTarget.files?.length ||
@@ -124,7 +125,13 @@ export default class extends Controller {
         for (const file of this.inputTarget.files) {
             files.items.add(file);
         }
-        const key = String(++lastKey);
+        // Turbo copies the page once this event's listeners have run, with a new key; a frame visit promoted to history
+        // copied it as it started, with the key the zone carried then, and the zone takes a new one for the next copy
+        const promoted = isPromotedFrameCache();
+        const key = promoted ? this.element.getAttribute('data-dropzone-assist-copy') : String(++lastKey);
+        if (!key) {
+            return;
+        }
         copies.set(key, { transfer: files, copy: lastCopy });
         // the copies Turbo no longer keeps: every zone of each, never one zone of a copy Turbo still holds
         for (const [old, { copy }] of copies) {
@@ -132,8 +139,7 @@ export default class extends Controller {
                 copies.delete(old);
             }
         }
-        // Turbo copies the page once this event's listeners have run: the copy carries the key
-        this.element.setAttribute('data-dropzone-assist-copy', key);
+        this.element.setAttribute('data-dropzone-assist-copy', promoted ? String(++lastKey) : key);
     }
 
     dragOver(event) {

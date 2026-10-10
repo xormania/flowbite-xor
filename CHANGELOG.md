@@ -51,6 +51,13 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `autocomplete`: Back from a frame visit promoted to history (`data-turbo-action="advance"`, a data table's pages)
+  showed each field twice, the Tom Select copied with the page beside a new one hidden like the `<select>` (Turbo
+  copies the page as such a visit starts, Tom Select still on screen); `autocomplete-sync` now removes the copied one,
+  and the field shows one Tom Select with the choice its form keeps.
+- `dropzone`: in a POST form, the file picked was gone after Back from a frame visit promoted to history, whose copy of
+  the page Turbo takes before `turbo:before-cache`; the zone now carries its key into that copy too, and shows the file
+  again, as after any Back.
 - `popover`, `dropdown`: one open inside a `data-turbo-permanent` element closed when a visit moved it into the next
   page; it now stays open, as the user left it (the modal and the drawer already did).
 - `dropzone`: in a POST form, a file picked was gone after Back and Forward (UX Dropzone clears the input of Turbo's

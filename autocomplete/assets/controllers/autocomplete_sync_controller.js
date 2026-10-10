@@ -17,6 +17,9 @@ import { Controller } from '@hotwired/stimulus';
  *   synced is the one on the select then (`select.tomselect`): UX Autocomplete builds a new one when the options
  *   change. Either way Tom Select is synced only when it shows other values than the select holds, so the reset the
  *   `form-reset` controller has already synced is not synced again.
+ * - A copy of the page Turbo took while Tom Select was on screen (a frame visit promoted to history copies the page as
+ *   it starts, before UX Autocomplete removes Tom Select) holds Tom Select's markup, which no Tom Select owns: as the
+ *   copy connects, that markup is removed, so the field shows the one Tom Select UX Autocomplete sets up.
  */
 export default class extends Controller {
     #observer = null;
@@ -25,6 +28,7 @@ export default class extends Controller {
     #resetTimeouts = new Set();
 
     connect() {
+        this.#removeCopiedTomSelect();
         this.#observer = new MutationObserver(() => this.#sync());
         this.#observer.observe(this.element, { childList: true });
         this.#form = this.element.form ?? null;
@@ -40,6 +44,41 @@ export default class extends Controller {
             clearTimeout(timeout);
         }
         this.#resetTimeouts.clear();
+    }
+
+    /**
+     * Tom Select puts its wrapper right after the `<select>`, its dropdown inside the wrapper or, with `dropdownParent`,
+     * elsewhere, its list named `<id>-ts-dropdown`: those a copy left are the ones that are not the current Tom Select's.
+     * The copied `<select>` also carries the classes Tom Select gave it, which a Tom Select set up on it copies to its
+     * wrapper (hiding it): removed from the `<select>` when UX Autocomplete's controller comes after this one, from the
+     * wrapper it built when it came first.
+     */
+    #removeCopiedTomSelect() {
+        const tomSelect = this.element.tomselect;
+        const copied = [];
+        for (let next = this.element.nextElementSibling; next?.classList.contains('ts-wrapper'); next = next.nextElementSibling) {
+            if (next !== tomSelect?.wrapper) {
+                copied.push(next);
+            }
+        }
+        if (this.element.id) {
+            // the id is its list's, inside the dropdown
+            for (const list of document.querySelectorAll(`[id="${CSS.escape(this.element.id)}-ts-dropdown"]`)) {
+                const dropdown = list.closest('.ts-dropdown') ?? list;
+                if (list !== tomSelect?.dropdown_content && !copied.some((wrapper) => wrapper.contains(dropdown))) {
+                    copied.push(dropdown);
+                }
+            }
+        }
+        if (!copied.length) {
+            return;
+        }
+        for (const element of copied) {
+            element.remove();
+        }
+        for (const element of tomSelect ? [tomSelect.wrapper, tomSelect.dropdown] : [this.element]) {
+            element.classList.remove('tomselected', 'ts-hidden-accessible');
+        }
     }
 
     #sync() {
