@@ -51,6 +51,10 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `modal`, `drawer`: a Live re-render that replaced the container of the component (a wrapper whose id changes)
+  logged "Missing target element" errors: the morph moves the `<dialog>` to the new controller before the old one
+  disconnects. The old controller now disconnects without it; the new one works as before (an open modal stays open,
+  a drawer starts as its `open` value says).
 - `editor`: a submit of more than `EditorHtmlPolicy::MAX_INPUT_BYTES` (1000000 bytes) was a 500: the form showing its
   error printed the refused value through `flowbite_editor_html`, which refuses it. It is now a 422 with the field's
   error, the editor and its textarea empty (the value is never cut); the same in a Live Component.
