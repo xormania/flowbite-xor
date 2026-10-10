@@ -147,3 +147,26 @@ test('in multiple mode, the inputs keep their attributes and order as dates come
     await expect(inputs).toHaveCount(1);
     expect(await counts(page)).toEqual({ input: 1, change: 1 });
 });
+
+test('a calendar whose inputs belong to a form outside it, with no date yet, follows that form\'s reset', async ({ page }) => {
+    await page.goto('/lab/calendar-turbo');
+    // the multiple calendar moved out of its form, its inputs tied to it by the form attribute (inputAttr: {form: …}):
+    // no input is rendered yet, only the prototype, and no form encloses the calendar
+    await page.evaluate(() => {
+        const calendar = document.getElementById('cal-dates')!;
+        const form = calendar.closest('form')!;
+        form.id = 'external-dates-form';
+        calendar.querySelector('template')!.content.querySelector('input')!.setAttribute('form', form.id);
+        document.querySelector('main')!.append(calendar);
+    });
+    const dates = page.getByRole('group', { name: 'Dates' });
+    const inputs = dates.locator('[data-slot="calendar-inputs"] input');
+    await expect(inputs).toHaveCount(0);
+    await day(dates, '2026-03-10').click();
+    await expect(inputs).toHaveCount(1);
+    expect(await inputs.evaluate((input) => (input as HTMLInputElement).form?.id)).toBe('external-dates-form');
+
+    await page.evaluate(() => (document.getElementById('external-dates-form') as HTMLFormElement).reset());
+    await expect(inputs).toHaveCount(0);
+    await expect(dates.locator('[data-slot="calendar-day"][data-day="2026-03-10"]')).toHaveAttribute('aria-selected', 'false');
+});

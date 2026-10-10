@@ -3,6 +3,7 @@
     "type": "component",
     "name": "Layouts",
     "copy-files": {
+        "assets/": "assets/",
         "templates/": "templates/"
     },
     "dependencies": {
