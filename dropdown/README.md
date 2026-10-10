@@ -77,6 +77,14 @@ The dropdown component can be used to show a list of menu items when clicking on
 </twig:Dropdown>
 ```
 
+### Positioning
+
+The menu opens on its `placement` side, `offsetDistance` pixels from the trigger, flips to the other side when it does
+not fit there, and shifts along the trigger to stay in the viewport; while open it follows the trigger on scroll and
+resize, and the final placement is in `data-popper-placement`, as with Flowbite's Popper. The placing is the
+`floating` recipe's module (`assets/lib/flowbite-xor-floating.js`), which `ux:install dropdown` installs with it:
+`popover` and `tooltip` place their content with the same module.
+
 ### Keyboard
 
 - On the trigger, ArrowDown, Enter and Space open the menu on its first item, ArrowUp on its last.

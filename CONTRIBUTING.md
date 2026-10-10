@@ -15,6 +15,7 @@ and pull request standard.
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
 | `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
 | `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
+| `tools/recipe-imports.mjs` | no | every relative import in a recipe's JavaScript names a file the recipe or its recipe dependencies install (*Checks*) |
 | `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` | no | each recipe README renders its manifest's dependencies (`::: installation`) and writes no version table, and changes with the recipe's code unless a commit waives it (*Docs*) |
 | `tools/icon-lint.mjs` | no | every icon in the recipes' templates and the markdown is a `flowbite:` name written in full (*Docs*) |
 | `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations, `failed-attempts.json` and `durations.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
@@ -23,7 +24,7 @@ and pull request standard.
 | `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
 | `tools/monthly/` | no | the monthly job's scope and reports: PHP coverage of the recipes' `src/` and Infection's surviving mutants, the controllers' JS coverage, the Firefox and WebKit screenshots against the Chromium baselines, the interaction timings, and the trends against the previous run ([`docs/TESTING.md`](docs/TESTING.md), *Monthly job*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
-| `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs`, `tools/ci/jev-diagnosis.mjs`, `tools/ci/release-timings.mjs`, `tools/prepare-tests.mjs`, `tools/icon-lint.mjs`, `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
+| `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs`, `tools/ci/jev-diagnosis.mjs`, `tools/ci/release-timings.mjs`, `tools/prepare-tests.mjs`, `tools/icon-lint.mjs`, `tools/readme-versions.mjs`, `tools/readme-pairing.mjs`, `tools/recipe-imports.mjs` (and the kit itself) and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `tests/perf/baseline.json` | no | the release checks' timing baseline: per step and metric, the median and spread, with the commit and date ([`docs/TESTING.md`](docs/TESTING.md), *Release checks*) |
 | `tools/build-static.sh` | no | builds and checks the gallery as a static site, for CI's *Static site* job and `pages.yml` (*Releases*) |
@@ -141,7 +142,8 @@ node tools/fence-coverage.mjs                       # every README example is on
 node tools/test-inventory.mjs                       # docs/TEST-INVENTORY.md has a matrix row per recipe with a controller, a row per rule of FOR-AGENTS.md's Working well, and names existing tests; a11y.spec.ts scans every lab page
 node tools/readme-versions.mjs                      # each recipe README renders its manifest.json with ::: installation and has no version table (see Docs)
 node tools/readme-pairing.mjs [--base <ref>]        # each recipe whose code your commits change has its README changed, or a Docs-waiver trailer; base: where HEAD left origin/dev (see Docs)
-node --test tools/tests/*.test.mjs                  # the cases of the CI tools (tools/ci/: results summary, Jev diagnosis, JUnit attempts), of tools/prepare-tests.mjs, of tools/icon-lint.mjs and of the README checks
+node tools/recipe-imports.mjs                       # every relative import in a recipe's JS names a file the recipe or its dependencies.recipe install (a shared module: floating)
+node --test tools/tests/*.test.mjs                  # the cases of the CI tools (tools/ci/: results summary, Jev diagnosis, JUnit attempts), of tools/prepare-tests.mjs, of tools/icon-lint.mjs, of the README checks and of tools/recipe-imports.mjs, which also runs it on the kit
 tools/tests/sync-demo.sh                            # tools/sync-demo copies what ux:install copies, on a test kit (needs demo/vendor)
 find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xargs -0 -n1 php -l   # the syntax of the recipes' PHP
 (cd demo && bin/phpunit)                            # the PHP tests (demo/tests/): the data tables' limits, Live and Twig components, snapshots, profiler counts

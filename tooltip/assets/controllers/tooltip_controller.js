@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { place, viewportSize } from '../lib/flowbite-xor-floating.js';
 
 /**
  * Shows a `Tooltip` while its trigger is hovered or focused, hides it on leave, blur or Escape,
@@ -64,33 +65,20 @@ export default class extends Controller {
         const tooltip = this.tooltipTarget;
         tooltip.hidden = false;
 
-        const gap = 8;
+        // the kit's shared placement and flip (`assets/lib/flowbite-xor-floating.js`, the `floating` recipe), 8px away
         const reference = this.element.getBoundingClientRect();
         const size = { width: tooltip.offsetWidth, height: tooltip.offsetHeight };
-        const viewport = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
-        const opposite = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
-        const place = (side) => ({
-            top: { x: reference.left + reference.width / 2 - size.width / 2, y: reference.top - size.height - gap },
-            bottom: { x: reference.left + reference.width / 2 - size.width / 2, y: reference.bottom + gap },
-            left: { x: reference.left - size.width - gap, y: reference.top + reference.height / 2 - size.height / 2 },
-            right: { x: reference.right + gap, y: reference.top + reference.height / 2 - size.height / 2 },
-        })[side];
-        const fits = (side, point) =>
-            ({ top: point.y >= 0, bottom: point.y + size.height <= viewport.height, left: point.x >= 0, right: point.x + size.width <= viewport.width })[side];
-
-        let side = this.placementValue in opposite ? this.placementValue : 'top';
-        let point = place(side);
-        if (!fits(side, point) && fits(opposite[side], place(opposite[side]))) {
-            side = opposite[side];
-            point = place(side);
-        }
+        const viewport = viewportSize();
+        const side = ['top', 'bottom', 'left', 'right'].includes(this.placementValue) ? this.placementValue : 'top';
+        const point = place(reference, size, { side, offset: 8, viewport });
+        // clamped into the viewport on both axes, unlike a menu shifted along its trigger
         point.x = Math.min(Math.max(point.x, 0), Math.max(0, viewport.width - size.width));
         point.y = Math.min(Math.max(point.y, 0), Math.max(0, viewport.height - size.height));
 
         // relative to the wrapper (position: relative)
         tooltip.style.left = `${Math.round(point.x - reference.left)}px`;
         tooltip.style.top = `${Math.round(point.y - reference.top)}px`;
-        tooltip.dataset.placement = side;
+        tooltip.dataset.placement = point.side;
     }
 
     hide(event) {
