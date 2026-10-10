@@ -433,7 +433,12 @@ export default class extends Controller {
             }
 
             const button = cell.querySelector('button');
-            button.textContent = this.#format('day', timestamp);
+            // only a new text replaces the old: a render on focus (trackFocus) runs between the mousedown and the
+            // mouseup of a click, and WebKit fires no click once the text node under the pointer is replaced
+            const text = this.#format('day', timestamp);
+            if (button.textContent !== text) {
+                button.textContent = text;
+            }
             button.dataset.day = date;
             button.dataset.calendarDateParam = date;
             button.dataset.selectedSingle = String('range' !== this.modeValue && selected);
