@@ -188,18 +188,22 @@ jobs:
               run: node tools/ci/playwright-summary.mjs playwright-results/results.json
 
             # Report only: each timed step's metrics against tests/perf/baseline.json, in the job summary; with
-            # `record`, the run's timings as a new baseline. A missing timing (the timed specs did not pass) is said
-            # here, never a pass
+            # `record`, the run's timings as a new baseline, only from a run where every test passed: a failed timed spec
+            # leaves its scenario out, and a partial baseline would replace the whole one. A missing timing (the timed
+            # specs did not pass) is said here, never a pass
             - name: Timings against the baseline (report only)
               id: timings
               if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
               continue-on-error: true
               env:
                   RECORD: ${{ github.event_name == 'workflow_dispatch' && inputs.record }}
+                  TESTS_OUTCOME: ${{ steps.tests.outcome }}
               run: |
                   args=(--baseline tests/perf/baseline.json --out release-timings)
-                  if [ "$RECORD" = true ]; then
+                  if [ "$RECORD" = true ] && [ "$TESTS_OUTCOME" = success ]; then
                       args+=(--record release-timings/baseline.json --commit "$(git rev-parse HEAD)" --date "$(date -u +%F)")
+                  elif [ "$RECORD" = true ]; then
+                      echo "::warning::No baseline recorded: the release checks did not all pass (tests: $TESTS_OUTCOME)"
                   fi
                   node tools/ci/release-timings.mjs "${args[@]}" playwright-results/results.json
 
@@ -213,7 +217,7 @@ jobs:
                   retention-days: 30
 
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.record && steps.timings.outcome == 'success' }}
+              if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.record && steps.tests.outcome == 'success' && steps.timings.outcome == 'success' }}
               with:
                   name: release-baseline
                   path: release-timings/baseline.json
