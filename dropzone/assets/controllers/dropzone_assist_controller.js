@@ -39,7 +39,8 @@ let lastCopy = 0;
  * - In a form that is not a GET form (a POST form holds the user's work), one file picked stays picked after Back and
  *   Forward: before Turbo copies the page, the file is kept under a key the zone carries into the copy, and put back
  *   the same way when the copy connects. A frame visit promoted to history copies the page as it starts, before its
- *   `turbo:before-cache`: the zone carries a key from its connect on, and takes a new one after each copy. A GET form, which cannot send files, and a zone outside a form start empty.
+ *   `turbo:before-cache`: the zone carries a key from its connect on, and takes a new one after each copy. A GET form,
+ *   which cannot send files, and a zone outside a form start empty.
  *
  * @target input       The file input.
  * @target placeholder The inside of the box shown before a pick.
