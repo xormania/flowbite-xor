@@ -1204,7 +1204,7 @@ sanitized again, an overlay or an editor that breaks in the dark theme. Tier 3 o
 [`.github/workflows/release-checks.yml`](../.github/workflows/release-checks.yml) runs on the release pull request
 (`dev` to `main`), once a day on `dev` when `dev` changed since the last successful daily run (it compares `dev`'s head
 with the commit that run recorded, and stops in seconds when nothing was merged), and by hand (Actions › *Release
-checks* › *Run workflow*). It sets up the demo as CI's browser job does and runs `npx playwright test --grep @release`,
+checks* › *Run workflow*). It sets up the demo as CI's browser job does and runs `RELEASE_CHECKS=1 npx playwright test --grep @release` (the variable adds the `smoke-dark@release` and `harsh@release` projects),
 then the PHPUnit properties with a random seed. CI's browser job leaves the same tests out (`--grep-invert @release`).
 A daily run that fails opens one issue labeled `release-checks`, or comments on the open one; a green one closes it.
 
@@ -1243,7 +1243,7 @@ page of its own and, where it fails, drops the same caches with `Memory.simulate
 **Locally**, with the demo up (`DEMO_URL=https://localhost` for the Docker demo):
 
 ```sh
-npx playwright test --grep @release --workers=1                      # every release check, Chromium, as CI runs them (one worker: the timings must not share the machine)
+RELEASE_CHECKS=1 npx playwright test --grep @release --workers=1     # every release check (RELEASE_CHECKS adds the dark and harsh projects), Chromium, as CI runs them (one worker: the timings must not share the machine)
 npx playwright test tests/e2e/release.long-session.spec.ts --project=smoke
 FUZZ_BUDGET_MS=60000 npx playwright test tests/e2e/release.fuzz.spec.ts --project=smoke
 (cd demo && SEED=$RANDOM PROPERTY_RUNS=2000 bin/phpunit --group property)

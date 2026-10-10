@@ -161,8 +161,9 @@ export default defineConfig({
         // Firefox and WebKit: every behavior test, no screenshot comparison
         ...browserProjects('firefox'),
         ...browserProjects('webkit'),
-        // the release checks' other conditions (above)
-        ...releaseProjects,
+        // the release checks' other conditions (above): only with RELEASE_CHECKS set, so a plain local run stays the
+        // behavior suite (release-checks.yml sets it)
+        ...(process.env.RELEASE_CHECKS ? releaseProjects : []),
     ],
 
     webServer: [

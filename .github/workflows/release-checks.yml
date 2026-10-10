@@ -147,6 +147,7 @@ jobs:
               id: tests
               env:
                   DEMO_URL: https://localhost
+                  RELEASE_CHECKS: '1' # adds the smoke-dark@release and harsh@release projects
               run: npx playwright test --grep @release --workers=1
 
             # The PHP properties (demo/tests/Property) with a random seed and more runs than CI's fixed one; the seed is

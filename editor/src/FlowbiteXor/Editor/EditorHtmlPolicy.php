@@ -27,6 +27,8 @@ final class EditorHtmlPolicy
 
     /** The most bytes of HTML the policy reads: longer input is refused, never cut. A field's `max_bytes` stays at or below it. */
     public const MAX_INPUT_BYTES = 1_000_000;
+    /** Sanitizer passes until the output no longer changes (one more than needed shows it is stable). */
+    private const MAX_PASSES = 4;
 
     private const ELEMENTS = ['p', 'br', 'strong', 'em', 'u', 's', 'code', 'h2', 'h3', 'ul', 'li', 'blockquote', 'hr'];
 
@@ -74,10 +76,18 @@ final class EditorHtmlPolicy
         if (!self::isReadable($html)) {
             throw new \LengthException(\sprintf('The HTML holds %d bytes, more than the %d the editor policy reads.', \strlen($html), self::MAX_INPUT_BYTES));
         }
-        // twice: a block unwrapped from between two others can leave one inside the other (`<h2><div><h2>` gives
-        // `<h2><h2>`), which the next parse, a browser's or this policy's, splits; the second pass gives what it splits
-        // to, so the output is its own output
-        $clean = trim(self::asTheEditorReadsIt($this->sanitizer->sanitize($this->sanitizer->sanitize($html))));
+        // until it no longer changes: a block unwrapped from between two others can leave one inside the other
+        // (`<h2><div><h2>` gives `<h2><h2>`), which the next parse, a browser's or this policy's, splits; another pass
+        // gives what it splits to, so the output is its own output
+        $clean = $this->sanitizer->sanitize($html);
+        for ($pass = 1; $pass < self::MAX_PASSES; ++$pass) {
+            $again = $this->sanitizer->sanitize($clean);
+            if ($again === $clean) {
+                break;
+            }
+            $clean = $again;
+        }
+        $clean = trim(self::asTheEditorReadsIt($clean));
 
         return self::isEmpty($clean) ? '' : $clean;
     }

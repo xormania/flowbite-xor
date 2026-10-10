@@ -150,7 +150,7 @@ tools/tests/fresh-install.sh                        # a new Symfony app installs
 KIT_REF=<pushed commit SHA or tag> tools/tests/docker-install.sh   # the same in a new Symfony Docker project (Symfony 8.1), kit downloaded from GitHub
 npx playwright test                                 # every browser test, in Chromium, Firefox and WebKit: see below
 npx playwright test --project=smoke --project=examples   # Chromium only, the screenshots included: the quicker loop
-npx playwright test --grep-invert @release                # what CI's browser job runs; --grep @release runs the release checks (docs/TESTING.md, Release checks)
+npx playwright test --grep-invert @release                # what CI's browser job runs; RELEASE_CHECKS=1 … --grep @release runs the release checks (docs/TESTING.md, Release checks)
 node --test 'tools/monthly/*.test.mjs'              # the cases of the monthly job's report tools (tools/monthly/)
 php tools/monthly/php-scope.php coverage/php        # the monthly job's PHP scope: coverage/php/phpunit.xml and infection.json5 (the recipes' src/)
 (cd demo && bin/phpunit -c ../coverage/php/phpunit.xml --coverage-clover ../coverage/php/clover.xml) && node tools/monthly/php-coverage.mjs --out coverage/php coverage/php/clover.xml   # PHP coverage per recipe class (needs PCOV, or Xdebug with XDEBUG_MODE=coverage)
