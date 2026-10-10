@@ -87,6 +87,12 @@ test('no timed step fails (no report, never an empty one); bad usage and an unre
     writeFileSync(join(dir, 'bad.json'), '{');
     writeFileSync(join(dir, 'ok.json'), JSON.stringify(fiveRuns([1, 1, 1, 1, 1])));
     assert.equal(run(['--baseline', join(dir, 'bad.json'), join(dir, 'ok.json')]).status, 64);
+    // --min-runs is a positive whole number, or the partial-run guard would pass anything
+    for (const value of ['nope', '0', '-1', '2.5', 'Infinity', '']) {
+        const bad = run(['--record', join(dir, 'never.json'), '--min-runs', value, join(dir, 'ok.json')]);
+        assert.equal(bad.status, 64, `--min-runs ${JSON.stringify(value)}: ${bad.stdout}${bad.stderr}`);
+        assert.throws(() => readFileSync(join(dir, 'never.json')));
+    }
 });
 
 test('a baseline recorded with another timing harness is not compared with: the report says to re-record it', () => {

@@ -116,6 +116,10 @@ function parseArgs(argv) {
         }
     }
 
+    if (undefined !== options['min-runs'] && !/^[1-9]\d*$/.test(options['min-runs'])) {
+        return null;
+    }
+
     return options.files.length ? options : null;
 }
 
@@ -156,7 +160,7 @@ function main(argv) {
     if (options.record) {
         // a baseline replaces the whole file: never from a partial run (a step with fewer runs than asked, or one the
         // comparable baseline has and this run did not time)
-        const minRuns = Number(options['min-runs'] ?? 5);
+        const minRuns = Number(options['min-runs'] ?? 5); // a positive whole number: parseArgs refuses anything else
         const gaps = [
             ...Object.entries(current.steps).filter(([, step]) => metricsOf(step).durationMs.runs < minRuns)
                 .map(([name, step]) => `${name}: ${metricsOf(step).durationMs.runs} runs of durationMs, ${minRuns} needed`),
