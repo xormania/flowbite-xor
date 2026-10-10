@@ -39,6 +39,7 @@ building **Turbo-driven apps** get rich UX from installed recipes with as little
 | 4 | **E1. Charts** | **UX Chart.js** plus a theme bridge | `chart` | shipped |
 | 5 | **E2. Files** | **UX Dropzone** styled, wired into the form theme | `dropzone` | shipped |
 | 6 | **F. Rich editor** | **Tiptap** | `editor`, `markdown-editor` | shipped |
+| — | Navigation | Added after this sequence, outside the roadmap's packages: a tree, the mobile drawer, the navbar's menus and section tabs, and the positioning `dropdown`, `popover` and `tooltip` share. Each recipe's README holds its decisions | `side-nav`, `mobile-nav`, `nav-menu`, `section-nav`, `floating` | shipped |
 | — | A. Conventions | Grows inside D and B. One CONTRIBUTING section after the second package | — | shipped |
 | — | Deferred | Cropper, Map, sortable lists, virtual grid, Uppy, FullCalendar, "select all matching" | — | open |
 | — | Docs pairing | A deterministic script replaces the `Docs-waiver:` trailers of `tools/readme-pairing.mjs`: it decides from the change itself whether a recipe's README must change. Not started | — | open |
@@ -129,4 +130,5 @@ D and C can run in parallel because they touch different recipes.
 
 ## Next step after approval
 
-Write the detailed implementation plan for D (data table).
+Write the detailed implementation plan for D (data table). (Done since: every package of the *Sequence* shipped
+in 0.2.0, each from its `docs/PLAN-*.md`.)
