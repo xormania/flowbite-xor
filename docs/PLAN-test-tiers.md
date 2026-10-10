@@ -134,8 +134,9 @@ One pull request each, in order:
 ## Open questions
 
 1. Tolerances per timing metric: decided after the report-only runs (step 8).
-2. How many runs per scenario: 5 is the starting point; more if the spread is wide.
-3. Firefox and WebKit: Chromium only for now (the metrics above are Chromium's); revisit after the release.
+2. ~~How many runs per scenario?~~ **Decided 2026-10-10:** 5 (`TIMING_RUNS` in `release.timings.spec.ts`, 5 by
+   default).
+3. ~~Firefox and WebKit?~~ **Decided 2026-10-10:** Chromium only for now: the metrics above are Chromium's.
 4. ~~The work lands before 0.2.0 (decision 7): does the release gate then already apply to 0.2.0, or still from 0.3.0?~~
    **Decided 2026-10-10:** from 0.3.0. Steps 1–7 land before 0.2.0; step 8 follows the release, once the user has
    reviewed the first reports.

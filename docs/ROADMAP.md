@@ -17,7 +17,9 @@ building **Turbo-driven apps** get rich UX from installed recipes with as little
 
 - **Third-party JS:** avoid it and prefer porting, case by case. Libraries that official Symfony UX packages
   already wrap are acceptable.
-- **Shadcn sources:** we build our own recipes from them. They are not byte-identical copies. Proposed, not yet confirmed: credit the source in the README or NOTICE.
+- **Shadcn sources:** we build our own recipes from them. They are not byte-identical copies. **Decided 2026-10-10:**
+  they are credited: `NOTICE` names shadcn/ui and the Symfony UX Toolkit shadcn kit, and each derived recipe's README
+  and controller name the recipe it was built from.
 - **Kit PHP:** recipes may copy PHP into `src/` under `App\FlowbiteXor\…`. The research tested this at runtime on
   7.4.20 and 8.1.8 with Toolkit 3.5.1, and it passes lint and debug.
 - **Turbo gate (required for every package with behavior):**
