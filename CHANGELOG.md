@@ -51,10 +51,20 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `popover`, `dropdown`: one open inside a `data-turbo-permanent` element closed when a visit moved it into the next
+  page; it now stays open, as the user left it (the modal and the drawer already did).
+- `dropzone`: in a POST form, a file picked was gone after Back and Forward (UX Dropzone clears the input of Turbo's
+  copy as it connects); the zone now keeps it for the copy and shows it again. A zone outside such a form still starts
+  empty.
+- `autocomplete`: in a Live Component form, a value the server set in a re-render (a reset, another record) reached the
+  `<select>` but Tom Select still showed the one before; the new `autocomplete-sync` controller, put next to UX
+  Autocomplete's by the `Autocomplete` component and the form theme, makes Tom Select show it.
+- `data-table-live`: the row selection, which leaving the page drops, came back with Back and Forward when Turbo
+  showed its copy of the page; the new `data-table-live` controller clears it as such a copy connects.
 - `modal`, `drawer`: a Live re-render that replaced the container of the component (a wrapper whose id changes)
   logged "Missing target element" errors: the morph moves the `<dialog>` to the new controller before the old one
   disconnects. The old controller now disconnects without it; the new one works as before (an open modal stays open,
-  a drawer starts as its `open` value says).
+  its new trigger expanded; a drawer starts as its `open` value says).
 - `editor`: a submit of more than `EditorHtmlPolicy::MAX_INPUT_BYTES` (1000000 bytes) was a 500: the form showing its
   error printed the refused value through `flowbite_editor_html`, which refuses it. It is now a 422 with the field's
   error, the editor and its textarea empty (the value is never cut); the same in a Live Component.

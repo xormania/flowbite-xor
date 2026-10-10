@@ -16,8 +16,9 @@ function isPromotedFrameCache() {
  * closes it. Opening moves the focus into the content, places the content next to the trigger (flipping
  * and shifting like `Dropdown`) and keeps it there on scroll and resize. Popovers sharing a `name` close
  * each other. The open state is the `open` value, an attribute, so Live Components keep it across
- * re-renders. Before Turbo caches the page, an open popover closes, so Back never restores it open. A
- * frame visit promoted to history (`data-turbo-action="advance"`, a data table's pages) dispatches
+ * re-renders. Before Turbo caches the page, an open popover closes, so Back never restores it open; one inside a
+ * `data-turbo-permanent` element stays open, as Turbo moves it into the next page (a copy of it shown later is
+ * closed as it connects). A frame visit promoted to history (`data-turbo-action="advance"`, a data table's pages) dispatches
  * `turbo:before-cache` too, but keeps the page on screen and caches a copy taken when it started: the
  * popover then stays open, with the focus, and the copy is closed as it connects (while it is open on
  * screen, rendered open or opened since, the element carries `data-popover-opened`; a new controller on
@@ -38,7 +39,7 @@ function isPromotedFrameCache() {
  * @action closeIfGrouped Closes the popover when another popover of its group opens.
  * @action escape         Closes the popover and focuses the trigger.
  * @action closeOnFocusOut Closes the popover when the focus moves to an element outside it.
- * @action closeSilently  Closes the popover without moving the focus or dispatching events; on `turbo:before-cache`, only when the page is about to be replaced.
+ * @action closeSilently  Closes the popover without moving the focus or dispatching events; on `turbo:before-cache`, only when the page is about to be replaced and the popover is not inside a `data-turbo-permanent` element.
  */
 export default class extends Controller {
     static targets = ['trigger', 'content'];
@@ -132,7 +133,8 @@ export default class extends Controller {
     }
 
     closeSilently(event) {
-        if ('turbo:before-cache' === event?.type && isPromotedFrameCache()) {
+        // the page stays on screen; or Turbo moves the popover into the next page, open, as the user left it
+        if ('turbo:before-cache' === event?.type && (isPromotedFrameCache() || this.element.closest('[data-turbo-permanent]'))) {
             return;
         }
         this.openValue = false;
