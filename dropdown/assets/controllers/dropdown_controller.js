@@ -230,18 +230,16 @@ export default class extends Controller {
             case 'Tab':
                 this.hide({ restoreFocus: true });
                 break;
-            case 'ArrowRight':
+            case 'ArrowRight': {
                 if ('menu' === document.activeElement.getAttribute('aria-haspopup')) {
                     event.preventDefault();
-                    document.activeElement.click();
-                    requestAnimationFrame(() => {
-                        document.activeElement
-                            ?.closest('[data-controller="dropdown"]')
-                            ?.querySelector('[data-dropdown-target="content"] [role="menuitem"]')
-                            ?.focus();
-                    });
+                    // the item is the trigger of a submenu's own controller: open it (already open, a click would
+                    // close it) and focus its first item
+                    const submenu = document.activeElement.closest('[data-controller~="dropdown"]');
+                    this.application.getControllerForElementAndIdentifier(submenu, 'dropdown')?.open(0);
                 }
                 break;
+            }
             case 'ArrowLeft': {
                 const parentMenu = this.element.closest('li[role="none"]')?.closest('[data-controller="dropdown"]');
                 if (parentMenu && parentMenu !== this.element) {
