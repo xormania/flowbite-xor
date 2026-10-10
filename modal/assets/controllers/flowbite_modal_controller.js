@@ -1,14 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-
-/**
- * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
- * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
- * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
- * The same helper as in the popover controller: the kit copies it into each controller that needs it.
- */
-function isPromotedFrameCache() {
-    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
-}
+import { isKeptOnCache } from '../lib/flowbite-xor-turbo.js';
 
 /**
  * The mark a controller leaves on the dialog it showed as a modal, removed when it closes it: state of the dialog
@@ -59,22 +50,7 @@ export default class extends Controller {
     open() {
         this.modalTarget.showModal();
         this.modalTarget[SHOWN_AS_MODAL] = true;
-
-        if (this.hasTriggerTarget) {
-            if (this.modalTarget.getAnimations().length > 0) {
-                this.modalTarget.addEventListener(
-                    'transitionend',
-                    () => {
-                        this.triggerTarget.setAttribute('aria-expanded', 'true');
-                        this.modalTarget.setAttribute('aria-hidden', 'false');
-                    },
-                    { once: true }
-                );
-            } else {
-                this.triggerTarget.setAttribute('aria-expanded', 'true');
-                this.modalTarget.setAttribute('aria-hidden', 'false');
-            }
-        }
+        this.#syncAfterTransition(true);
     }
 
     closeOnClickOutside({ target }) {
@@ -86,22 +62,7 @@ export default class extends Controller {
     close() {
         this.modalTarget.close();
         delete this.modalTarget[SHOWN_AS_MODAL];
-
-        if (this.hasTriggerTarget) {
-            if (this.modalTarget.getAnimations().length > 0) {
-                this.modalTarget.addEventListener(
-                    'transitionend',
-                    () => {
-                        this.triggerTarget.setAttribute('aria-expanded', 'false');
-                        this.modalTarget.setAttribute('aria-hidden', 'true');
-                    },
-                    { once: true }
-                );
-            } else {
-                this.triggerTarget.setAttribute('aria-expanded', 'false');
-                this.modalTarget.setAttribute('aria-hidden', 'true');
-            }
-        }
+        this.#syncAfterTransition(false);
     }
 
     // Closes the modal before Turbo caches the page, so the copy shown on Back and Forward has it closed and its
@@ -109,10 +70,26 @@ export default class extends Controller {
     // promoted to history keeps the page on screen and took its copy when it started (closed as it connects): the
     // modal stays open.
     #closeBeforeCache = () => {
-        if (this.modalTarget.open && !this.element.closest('[data-turbo-permanent]') && !isPromotedFrameCache()) {
+        if (this.modalTarget.open && !isKeptOnCache(this.element)) {
             this.#closeNow();
         }
     };
+
+    // Updates the trigger and the dialog's attributes once the dialog's transition ends, or at once without one.
+    #syncAfterTransition(open) {
+        if (!this.hasTriggerTarget) {
+            return;
+        }
+        const sync = () => {
+            this.triggerTarget.setAttribute('aria-expanded', String(open));
+            this.modalTarget.setAttribute('aria-hidden', String(!open));
+        };
+        if (this.modalTarget.getAnimations().length > 0) {
+            this.modalTarget.addEventListener('transitionend', sync, { once: true });
+        } else {
+            sync();
+        }
+    }
 
     #markOpen() {
         if (this.hasTriggerTarget) {

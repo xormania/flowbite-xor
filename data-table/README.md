@@ -159,3 +159,6 @@ Back pressed while a change is still loading drops the change: the URL, the rows
 entry Back went to.
 
 Changing the search, a filter, the sort or the page size goes back to the first page.
+
+Whether a `turbo:before-cache` comes from a frame visit promoted to history (nothing is cancelled then) is answered by
+the `turbo` recipe's module (`assets/lib/flowbite-xor-turbo.js`), which `ux:install data-table` installs with it.

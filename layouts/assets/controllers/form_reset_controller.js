@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { isPermanent } from '../lib/flowbite-xor-turbo.js';
 
 // through the prototypes: a field named `method`, `elements`, `reset`, `closest` or `contains` (a URL parameter kept as
 // a hidden field) shadows the form's own
@@ -39,7 +40,7 @@ export default class extends Controller {
         for (const form of this.element.querySelectorAll('form')) {
             if (
                 'get' !== methodOf.call(form) ||
-                null !== Element.prototype.closest.call(form, '[data-turbo-permanent]') ||
+                isPermanent(form) ||
                 Node.prototype.contains.call(form, document.activeElement)
             ) {
                 continue;

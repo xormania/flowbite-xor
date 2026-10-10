@@ -9,7 +9,8 @@
     },
     "dependencies": {
         "recipe": [
-            "data-table"
+            "data-table",
+            "turbo"
         ],
         "composer": [
             "symfony/ux-live-component:^3.5",

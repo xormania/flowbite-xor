@@ -1,15 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { follow, position } from '../lib/flowbite-xor-floating.js';
-
-/**
- * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
- * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
- * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
- * Copy it into a controller that needs it.
- */
-function isPromotedFrameCache() {
-    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
-}
+import { isKeptOnCache } from '../lib/flowbite-xor-turbo.js';
 
 /**
  * Opens a `Dropdown` menu on click or hover, places it next to its trigger and handles the keyboard.
@@ -73,7 +64,7 @@ export default class extends Controller {
         // closed in the copy of the page Turbo shows on Back and Forward, not only once that copy connects; a frame
         // visit promoted to history took its copy already and keeps the page on screen, so the menu stays open; Turbo
         // moves a permanent element into the next page, the menu as the user left it
-        on(document, 'turbo:before-cache', () => isPromotedFrameCache() || this.element.closest('[data-turbo-permanent]') || this.hide());
+        on(document, 'turbo:before-cache', () => isKeptOnCache(this.element) || this.hide());
 
         if (this.openValue || reopen) {
             this.show();

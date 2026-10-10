@@ -100,6 +100,10 @@ resize, and the final placement is in `data-popper-placement`, as with Flowbite'
   whose visits are promoted to history (a data table's pages), an open menu stays open when the frame changes.
 - A Live Component re-render keeps an open menu open. Pass a stable `id` inside Live Components and Turbo Frames.
 
+Whether a `turbo:before-cache` leaves the menu as it is (a frame visit promoted to history, a `data-turbo-permanent`
+element) is answered by the `turbo` recipe's module (`assets/lib/flowbite-xor-turbo.js`), which `ux:install dropdown`
+installs with it.
+
 ## Examples
 
 ### Dropdown hover
