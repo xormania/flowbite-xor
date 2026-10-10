@@ -103,4 +103,23 @@ final class OrdersTableTest extends KernelTestCase
         self::assertCount(1_000, $table->selectedIds);
         self::assertSame(['57', '56', '55', '54', '53'], \array_slice($table->selectedIds, 995), 'the first rows of the page, in its order');
     }
+
+    public function testAFullSelectionTakesNoMoreRowsUntilCleared(): void
+    {
+        $component = $this->table()
+            ->set('selectedIds', array_map('strval', range(1_001, 1_999)))
+            ->call('selectPage');
+
+        $crawler = $component->render()->crawler();
+        self::assertStringContainsString('1000 selected, the most this table selects', $crawler->filter('[role="status"]')->text());
+        self::assertCount(0, $crawler->filter('button:contains("Select this page")'), 'full: nothing to add');
+        self::assertNull($crawler->filter('input[aria-label="Select row 57"]')->attr('disabled'), 'a selected row can still be unselected');
+        self::assertNotNull($crawler->filter('input[aria-label="Select row 57"]')->attr('checked'));
+        self::assertNotNull($crawler->filter('input[aria-label="Select row 56"]')->attr('disabled'), 'an unselected row cannot be added');
+
+        $crawler = $component->call('clearSelection')->render()->crawler();
+        self::assertStringContainsString('0 selected', $crawler->filter('[role="status"]')->text());
+        self::assertCount(1, $crawler->filter('button:contains("Select this page")'));
+        self::assertNull($crawler->filter('input[aria-label="Select row 56"]')->attr('disabled'));
+    }
 }

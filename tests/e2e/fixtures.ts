@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Page, type Request } from '@playwright/test';
 import { startJsCoverage } from './coverage';
 
 const PLACEHOLDER_IMAGE = fileURLToPath(new URL('./examples/placeholder.png', import.meta.url));
@@ -17,7 +17,9 @@ const CANCELLED = ['net::ERR_ABORTED', 'NS_BINDING_ABORTED', 'Load request cance
 
 /**
  * WebKit's rejection of a fetch the document still runs when a full load replaces it (a reload, a `goto`): Turbo's
- * prefetch of a link under the pointer rethrows it, unhandled. The other engines drop the document without rejecting.
+ * prefetch of a link under the pointer rethrows it, unhandled. Dropped in WebKit only, from the full load's request
+ * until its document replaces the one on screen; a navigation that fails or leaves the document in place (a 204) ends
+ * that window. Calibrated in smoke.spec.ts ("the page guard").
  */
 // "Fetch API cannot load <url> due to access control checks.", which Playwright cuts at the URL's "://"
 const FETCH_CANCELLED_BY_UNLOAD = [/TypeError: Load failed$/, / due to access control checks\.$/];
@@ -64,7 +66,9 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
     const allowed: { url: RegExp | 'document'; status: number }[] = [];
     const cancellable: CancelledRequest[] = [];
     const documents = new Set<string>(); // the URLs the main frame navigated to
-    let unloading = false; // from a full load's request until its document replaces the one on screen
+    // a full load's request, from its start until its document replaces the one on screen (or it fails: no document)
+    let pendingDocument: Request | null = null;
+    const webkit = 'webkit' === page.context().browser()?.browserType().name();
     const isLocal = (url: string) => url.startsWith(`${baseURL}/`);
     const cspViolations = await recordCspViolations(page);
 
@@ -76,12 +80,12 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
     page.on('request', (request) => {
         if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
             documents.add(request.url());
-            unloading = true;
+            pendingDocument = request;
         }
     });
     page.on('framenavigated', (frame) => {
         if (frame === page.mainFrame()) {
-            unloading = false;
+            pendingDocument = null;
         }
     });
     page.on('console', (message) => {
@@ -99,7 +103,7 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
     });
     page.on('pageerror', (error) => {
         // the document being replaced: what it still had running is cancelled, which nobody sees
-        if (unloading && FETCH_CANCELLED_BY_UNLOAD.some((pattern) => pattern.test(error.message))) {
+        if (webkit && pendingDocument && FETCH_CANCELLED_BY_UNLOAD.some((pattern) => pattern.test(error.message))) {
             return;
         }
         errors.push({ message: `pageerror: ${error.message}` });
@@ -110,6 +114,9 @@ export async function guardPage(page: Page, baseURL: string | undefined) {
         }
     });
     page.on('requestfailed', (request) => {
+        if (request === pendingDocument) {
+            pendingDocument = null; // the document on screen stays (a 204 answer, a download)
+        }
         const aborted = CANCELLED.includes(request.failure()?.errorText ?? '');
         // Turbo 8 prefetches a link on hover and cancels the request when the pointer leaves it
         const cancelledPrefetch = 'prefetch' === request.headers()['x-sec-purpose'] && aborted;
@@ -204,6 +211,42 @@ export async function stimulusControllers(page: Page, identifier: string): Promi
             distinctElements: new Set(controllers.map((controller) => controller.element)).size,
         };
     }, identifier);
+}
+
+/**
+ * Waits until every element of the page naming a controller in `data-controller` has that controller connected
+ * (lazy ones loaded): the widgets are mounted, so a scan or a check reads what they render, not the server's markup
+ * before them. Fails naming the elements and identifiers still waiting. Reads the demo's application
+ * (`window.Stimulus`); a controller's own asynchronous work after `connect()` (an editor's mount) is the spec's to await.
+ * `csrf-protection` is left out: Symfony's csrf_protection_controller.js is a module of document listeners whose
+ * default export is a string, so no controller ever connects for it.
+ */
+export async function controllersConnected(page: Page): Promise<void> {
+    await expect
+        .poll(
+            () =>
+                page.evaluate(() => {
+                    const app = (window as any).Stimulus;
+                    if (!app) {
+                        return ['no Stimulus application on window.Stimulus'];
+                    }
+                    const connected = new Map<Element, Set<string>>();
+                    for (const { element, identifier } of app.controllers as { element: Element; identifier: string }[]) {
+                        (connected.get(element) ?? connected.set(element, new Set()).get(element)!).add(identifier);
+                    }
+                    const waiting: string[] = [];
+                    for (const element of document.querySelectorAll('[data-controller]')) {
+                        for (const identifier of element.getAttribute('data-controller')!.split(/\s+/).filter((id) => id && 'csrf-protection' !== id)) {
+                            if (!connected.get(element)?.has(identifier)) {
+                                waiting.push(`${element.localName}${element.id ? `#${element.id}` : ''}: ${identifier}`);
+                            }
+                        }
+                    }
+                    return waiting;
+                }),
+            { message: 'controllers named in data-controller and not connected' },
+        )
+        .toEqual([]);
 }
 
 /**

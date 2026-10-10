@@ -194,7 +194,13 @@ test('a reset another listener cancels leaves the selection; the next one brings
         form.append(button);
     });
     const sources = () => page.evaluate(() => (window as any).__sources as string[]);
-    const settle = () => page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    // the calendar acts on the window's `reset`, then a task later (undone if a later listener cancelled): armed before a
+    // reset, resolves once that task has run, from a listener after the calendar's and a task queued after its own
+    const armReset = () =>
+        page.evaluate(() => {
+            (window as any).__resetOver = new Promise((resolve) => window.addEventListener('reset', () => setTimeout(resolve), { once: true }));
+        });
+    const resetOver = () => page.evaluate(() => (window as any).__resetOver);
     const expectSelected = async (date: string, other: string) => {
         await expect(input).toHaveValue(date);
         await expect(calendar.locator(`[data-slot="calendar-day"][data-day="${date}"]`)).toHaveAttribute('aria-selected', 'true');
@@ -202,14 +208,18 @@ test('a reset another listener cancels leaves the selection; the next one brings
     };
 
     // cancelled in a capture listener, from form.reset() and from the reset button
+    await armReset();
     await page.evaluate(() => document.getElementById('cal-day')!.closest('form')!.reset());
+    await resetOver();
+    await armReset();
     await page.getByRole('button', { name: 'Reset the calendars' }).click();
-    await settle();
+    await resetOver();
     await expectSelected('2026-03-12', '2026-03-10');
     // cancelled by a listener after the calendar's, on a click of the reset button (microtasks run between listeners)
     await page.evaluate(() => ((window as any).__cancel = 'later'));
+    await armReset();
     await page.getByRole('button', { name: 'Reset the calendars' }).click();
-    await settle();
+    await resetOver();
     await expectSelected('2026-03-12', '2026-03-10');
     expect(await sources()).toEqual([]);
 
@@ -234,12 +244,13 @@ test('a reset another listener cancels leaves the selection; the next one brings
     // cancelled by a window listener added after the calendar's: once the event is over, the calendar shows its dates again
     await day(calendar, '2026-03-12').click();
     await expect(input).toHaveValue('2026-03-12');
+    await armReset();
     await page.evaluate(() => {
         (window as any).__sources = [];
         window.addEventListener('reset', (event) => event.preventDefault());
         document.getElementById('cal-day')!.closest('form')!.reset();
     });
-    await settle();
+    await resetOver();
     await expectSelected('2026-03-12', '2026-03-10');
     expect(await sources()).toEqual(['reset', 'reset']);
 });

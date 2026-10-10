@@ -766,6 +766,8 @@ for (const component of COMPONENTS) {
 }
 
 test('every cell of the matrix is an expectation the site runs, or n/a with a reason', () => {
+    // a check of the definitions above, the same in every engine: it runs once, in the Chromium project
+    test.skip('smoke' !== test.info().project.name, 'checks no browser: run in the smoke project only');
     const problems: string[] = [];
     for (const component of COMPONENTS) {
         for (const transition of TRANSITIONS) {

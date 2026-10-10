@@ -1,4 +1,4 @@
-import { test, expect, expectA11y } from './fixtures';
+import { test, expect, expectA11y, controllersConnected } from './fixtures';
 import { examples, recipes } from './inventory';
 
 // Every page of the demo: the shell pages, every lab scenario, and every README example in both themes.
@@ -35,6 +35,9 @@ for (const path of pages) {
         if (!path.startsWith('/preview/')) {
             await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
         }
+        // the widgets mounted: the scan reads what their controllers render (a dropzone's preview list, a picker's
+        // input), not the server's markup before them
+        await controllersConnected(page);
         // the /r/ pages embed the previews, scanned on their own
         await expectA11y(page, { impact: 'serious', exclude: 'iframe' });
     });

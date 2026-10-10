@@ -83,26 +83,8 @@ test('search, filter, sort, page and page size each add a history entry that Bac
     expect(await page.evaluate(() => (window as any).__sameDocument)).toBe(true);
 });
 
-test('a URL with values the table does not accept renders a valid table', async ({ page }) => {
-    await page.goto('/lab/data-table-frame?sort=bogus&dir=up&page=999&size=7&f%5Bstatus%5D=nope&q%5B%5D=1');
-    // unknown sort and filter value ignored, page size back to 10, page 999 shows the last page
-    await expect(status(page)).toHaveText('Showing 51–57 of 57');
-    await expect(page.getByRole('columnheader', { name: 'Order' })).toHaveAttribute('aria-sort', 'descending');
-    await expect(page.getByLabel('Rows per page')).toHaveValue('10');
-    await expect(page.getByLabel('Status')).toHaveValue('');
-    await expect(page.getByRole('link', { name: 'Page 6' })).toHaveAttribute('aria-current', 'page');
-});
-
-test('a page number too large for an offset shows the last page', async ({ page }) => {
-    await page.goto('/lab/data-table-frame?page=9223372036854775807');
-    await expect(status(page)).toHaveText('Showing 51–57 of 57');
-});
-
-test('a search matching nothing shows the empty state', async ({ page }) => {
-    await page.goto('/lab/data-table-frame?q=nobody');
-    await expect(page.getByRole('heading', { name: 'No matching rows' })).toBeVisible();
-    await expect(page.getByRole('table')).toHaveCount(0);
-});
+// what the server renders for a URL the table does not accept, a page number too large for an offset and a search
+// matching nothing: DataTableRequestsTest (PHPUnit); lab.data-table-live keeps the journey using such a page
 
 test('rows have stable ids and render the page cell blocks', async ({ page }) => {
     await page.goto('/lab/data-table-frame?sort=total&dir=asc');
