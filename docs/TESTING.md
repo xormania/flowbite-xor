@@ -898,3 +898,71 @@ key, a provider error or an answer that does not validate gives an *unavailable*
 The `TYPESAFE_API_KEY` secret is given to this step alone; without it (a fork's run, for instance) every attempt is
 *unavailable (missing_credential)*. Turn the step off with `"enabled": false` in the policy. Its cases run with the summarizer's, against a local stand-in for the provider:
 `node --test tools/tests/*.test.mjs`. They check what is sent and accepted, not how good the diagnosis is.
+
+## Monthly job
+
+**Catches:** code no test runs and tests that run code without checking it, which no pull request measures: a
+recipe's PHP line or method no PHPUnit test reaches, a mutant of it the tests let through, a controller method no
+browser test calls. Report-only: a low number fails nothing, it shows where a test is missing.
+
+[`.github/workflows/monthly.yml`](../.github/workflows/monthly.yml) runs on the 3rd of each month on `dev`, and by
+hand before a release. Nothing of it runs on a push or a pull request: CI's jobs and test list stay as they are.
+
+| Job | What it measures | Where it reads |
+|---|---|---|
+| *PHP coverage and mutants* | The demo's PHPUnit tests with PCOV: lines and methods of the recipes' `src/`, per file and class, and the methods no test runs. Then [Infection](https://infection.github.io/) on the same directories and tests: the MSI and every surviving mutant (escaped, or on a line no test runs) with its diff | job summary; `php-coverage` artifact: `php-coverage.md`, `clover.xml`, `html/`, `infection.md`, `survivors.md`, Infection's own logs |
+| *JS coverage (1/3–3/3)* | The whole browser suite in Chromium, sharded as in CI, with V8 coverage of the scripts under `/assets/controllers/` | each shard's Playwright summary; raw recordings, 7 days |
+| *Monthly report* | The shards merged and mapped to `<recipe>/assets/controllers/*.js`: lines and functions run per controller, and **every controller method runs once**, the named methods no test ran; then every number against the previous successful run | job summary; `js-coverage` and `monthly-trends` (`monthly.json`, `trends.md`) artifacts |
+
+Artifacts are kept 90 days, so each run finds last month's. A report that cannot be made fails its job, and the
+report says why, instead of showing 0%: PCOV not loaded, no `clover.xml` (the tests did not run) or one without a
+measured line, no Infection log or one without a mutant, no recorded JS coverage. A browser test that fails fails its
+shard as in CI; the coverage it recorded is still reported. Branches are not measured: PCOV measures lines.
+
+**Scope.** The demo's autoloader maps `App\FlowbiteXor\…` to the recipes' own `src/` (`demo/composer.json`), so the
+tests run the recipes' files, not the copies `tools/sync-demo` writes. [`tools/monthly/php-scope.php`](../tools/monthly/php-scope.php)
+writes a PHPUnit configuration (the demo's, with absolute paths and its `<source>` set to every recipe's `src/`) and
+Infection's: the demo's own code, its copies of the recipes and the tests' fixtures are outside both. On the JS side,
+[`tests/e2e/coverage.ts`](../tests/e2e/coverage.ts) records only the scripts served from `/assets/controllers/`, and
+[`tools/monthly/js-coverage.mjs`](../tools/monthly/js-coverage.mjs) keeps the recipes' controllers (not the demo's
+own); vendor and importmap packages are never recorded. A line counts as run when its first character outside a
+comment ran; a controller no test loaded lists every method it declares. A test's own extra pages
+(`context.newPage()`) are not recorded.
+
+**Reading the trends.** `trends.md` puts each number next to the previous successful monthly run on the same ref (its
+`monthly-trends` artifact, downloaded with the run's token), then lists what moved: files and controllers whose line
+coverage changed, files whose surviving mutants changed, and methods that never ran this time but ran, or did not
+exist, last time. The first run, or one whose predecessor's artifact expired, says *No previous run* and why. A run
+that failed is not compared with: the next one compares with the last green one.
+
+**Thresholds.** None yet. "Every controller method runs once" stays a report line; it moves to CI only if methods
+that never run keep slipping in. A surviving mutant is a question: a test to add, or a harmless mutant (an equivalent
+cast, a log message) to leave.
+
+**Not built yet.** Two jobs join this workflow later, marked where they go in `monthly.yml`: the full suite in Firefox
+and WebKit with a screenshot diff against last month's (behavior failures failing the run), and the timings,
+report-only.
+
+**By hand.** Actions › *Monthly* › *Run workflow*, with `ref` (default `dev`) naming what to check, or
+`gh workflow run monthly.yml -f ref=<branch>`. To try a change to the workflow or its tools on a branch, run the
+branch's copy on the branch: `gh workflow run monthly.yml --ref <branch> -f ref=<branch>`.
+
+**Locally**, from the repository root, with the demo installed (*PHP tests*); the reports go to `coverage/`
+(gitignored). PCOV or Xdebug (`XDEBUG_MODE=coverage`) can measure; Infection runs as its PHAR, outside the demo's
+dependencies:
+
+```sh
+php tools/monthly/php-scope.php coverage/php
+(cd demo && CREATE_SNAPSHOTS=false bin/phpunit --configuration ../coverage/php/phpunit.xml --coverage-clover ../coverage/php/clover.xml)
+node tools/monthly/php-coverage.mjs --out coverage/php coverage/php/clover.xml
+(cd demo && php /path/to/infection.phar --configuration=../coverage/php/infection.json5 --threads=max)
+node tools/monthly/infection.mjs --out coverage/php coverage/php/infection/infection.json
+JS_COVERAGE=$PWD/coverage/js/raw DEMO_URL=https://localhost npx playwright test   # Chromium projects; add --shard as in CI
+node tools/monthly/js-coverage.mjs --out coverage/js coverage/js/raw
+node tools/monthly/trends.mjs --out coverage/trends --php coverage/php/php-coverage.json \
+    --infection coverage/php/infection-summary.json --js coverage/js/js-coverage.json [--previous monthly.json]
+node --test 'tools/monthly/*.test.mjs'   # the report tools' cases
+```
+
+`JS_COVERAGE` is the only switch: unset, `startJsCoverage()` returns at once and the fixtures behave as before. Delete
+`coverage/js/raw/` between local runs, or the old recordings are merged in.

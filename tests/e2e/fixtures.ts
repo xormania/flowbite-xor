@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { test as base, expect, type Page } from '@playwright/test';
+import { startJsCoverage } from './coverage';
 
 const PLACEHOLDER_IMAGE = fileURLToPath(new URL('./examples/placeholder.png', import.meta.url));
 
@@ -139,9 +140,11 @@ export const test = base.extend<{
     allowCancelledRequest: (allowance: CancelledRequest) => void;
 }>({
     pageGuard: [
-        async ({ page, baseURL }, use) => {
+        async ({ page, baseURL }, use, testInfo) => {
             const guard = await guardPage(page, baseURL);
+            const stopCoverage = await startJsCoverage(page, testInfo); // JS_COVERAGE only (monthly job)
             await use(guard);
+            await stopCoverage();
             guard.check();
         },
         { auto: true },
