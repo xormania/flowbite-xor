@@ -512,7 +512,8 @@ Here: [`lab.turbo-stream-toast.spec.ts`](../tests/e2e/lab.turbo-stream-toast.spe
 Counts give the same result on every run, so they fail like any other assertion; timings belong to separate,
 repeated runs ([`PLAN-test-tiers.md`](PLAN-test-tiers.md)). The monthly job times the same steps, report only
 (*Monthly job*, *Timings*): with `PW_TIMINGS` set, `measure()` records each counted step's time and its longest
-interaction as a `timing` annotation of the test, and never fails a test on them.
+interaction as a `timing` annotation of the test, and never fails a test on them. The release checks time their own
+steps with the same harness (`time()`), against a baseline (*Release checks*).
 
 ### Interaction counts
 
@@ -1191,3 +1192,70 @@ node --test 'tools/monthly/*.test.mjs'   # the report tools' cases
 
 `JS_COVERAGE` is the only switch: unset, `startJsCoverage()` returns at once and the fixtures behave as before. Delete
 `coverage/js/raw/` between local runs, or the old recordings are merged in.
+
+## Release checks
+
+**Catches:** what one run of the tier 1 specs cannot show: a step that got slower, a controller that leaves its page
+alive after `disconnect()` (one visit hides it, fifty show it), a transition that only holds on a fast desktop, a
+query string or a Live prop value that makes the server fail or echo markup, a sanitizer whose output changes when
+sanitized again, an overlay or an editor that breaks in the dark theme. Tier 3 of
+[`PLAN-test-tiers.md`](PLAN-test-tiers.md): Chromium only, and not on every push.
+
+[`.github/workflows/release-checks.yml`](../.github/workflows/release-checks.yml) runs on the release pull request
+(`dev` to `main`), once a day on `dev` when `dev` changed since the last successful daily run (it compares `dev`'s head
+with the commit that run recorded, and stops in seconds when nothing was merged), and by hand (Actions › *Release
+checks* › *Run workflow*). It sets up the demo as CI's browser job does and runs `npx playwright test --grep @release`,
+then the PHPUnit properties with a random seed. CI's browser job leaves the same tests out (`--grep-invert @release`).
+A daily run that fails opens one issue labeled `release-checks`, or comments on the open one; a green one closes it.
+
+| Group | Where | What it checks |
+|---|---|---|
+| Timings | [`release.timings.spec.ts`](../tests/e2e/release.timings.spec.ts) | The key transitions of the data table in a frame and in Live (sort, page, filter), the editor (typing, bold), the Markdown editor (typing, the preview), the forms page (an invalid submit) and the `/demo` dashboard (a Turbo visit and Back), each run 5 times on a fresh page, timed by the interaction-count harness (`trackCounts().time()`, [`counts.ts`](../tests/e2e/counts.ts)): the duration until the update it waits for has landed, the longest interaction (INP), the total blocking time, and Chromium's style, layout and script time over the step |
+| Long session | [`release.long-session.spec.ts`](../tests/e2e/release.long-session.spec.ts) | 50 Turbo visits and Backs across eight lab and form pages in one document; then, after the caches are dropped and a forced collection, `Memory.getDOMCounters` (documents, nodes, listeners) and the JS heap back at their level after two warm-up rounds, within the tolerance the spec states, the numbers in its `long-session` annotation |
+| Harsh conditions | the `harsh@release` project | The data tables, the editor, the date picker and the autocomplete specs again, with the CPU 4 times slower (`Emulation.setCPUThrottlingRate`), DevTools' "Slow 4G" network and a phone's viewport (`harshConditions`, [`fixtures.ts`](../tests/e2e/fixtures.ts)): their behavior holds |
+| Wide matrices | the `smoke-dark@release` project | The overlay specs (dropdown, modal, drawer, popover, tooltip, their Live labs) and the editor specs again in the dark theme; `smoke` runs them in the light one |
+| Fuzzing | [`release.fuzz.spec.ts`](../tests/e2e/release.fuzz.spec.ts) | Random query strings on the data table pages and random values for the Live data table's writable props, sent as the live controller sends them: no 5xx, no slow answer, no injected element or handler, no CSP violation or console error; seeded, 30 s per target |
+| Properties | [`demo/tests/Property/`](../demo/tests/Property/) (`--group property`) | `TableQuery::fromValues()` on any values and any table: the offset stays below `maxRows()`; the editor's HTML policy and the Markdown renderer on random hostile markup: no `<script>`, `on*` attribute or unsafe link, and the output is stable when sanitized again. CI runs them with a fixed seed and 300 runs; the release checks with a random seed and 2000 |
+
+A project's name is part of its tests' titles, so `@release` in `harsh@release` and `smoke-dark@release` tags every
+test they run; Firefox's and WebKit's projects leave `@release` out. Neither project compares screenshots: the
+baselines are the light theme's, at desktop and example sizes. The monthly job's Chromium coverage run, which does not
+filter by tag, also runs the `smoke` project's `@release` specs.
+
+**Report only, for now.** The timings never fail a run: each timed step's metrics are printed against
+[`tests/perf/baseline.json`](../tests/perf/baseline.json) in the job summary
+([`tools/ci/release-timings.mjs`](../tools/ci/release-timings.mjs)), until the owner sets a tolerance per metric (the
+plan's step 8). A behavior assertion, a leak counter over its tolerance, a fuzzing or property failure fails the run
+as any test does. The gate on the release pull request applies from 0.3.0 (decision 4 of the plan), once `main`'s
+ruleset requires the *Release checks* check.
+
+**Replaying.** Fuzzing and the properties print their seed: `SEED=<seed> npx playwright test tests/e2e/release.fuzz.spec.ts`
+or `SEED=<seed> PROPERTY_RUNS=2000 bin/phpunit --group property` (in `demo/`) runs the same values again. A failure
+found becomes a tier 1 test once fixed (the first: `EditorHtmlPolicyTest`'s "a heading in an unwrapped block in a
+heading", from `MarkupPropertyTest`).
+
+**The long session in this demo.** The demo runs Symfony's dev environment, where Stimulus logs every connect with its
+element; with the console recorded, as Playwright records it, each logged element keeps its detached page alive. The
+spec turns Stimulus' debug log off and discards the console's messages before each reading, so it measures what the
+page keeps. `Memory.prepareForLeakDetection` crashes Chromium 145's renderer (Playwright 1.58): the spec tries it in a
+page of its own and, where it fails, drops the same caches with `Memory.simulatePressureNotification`.
+
+**Locally**, with the demo up (`DEMO_URL=https://localhost` for the Docker demo):
+
+```sh
+npx playwright test --grep @release --workers=1                      # every release check, Chromium, as CI runs them (one worker: the timings must not share the machine)
+npx playwright test tests/e2e/release.long-session.spec.ts --project=smoke
+FUZZ_BUDGET_MS=60000 npx playwright test tests/e2e/release.fuzz.spec.ts --project=smoke
+(cd demo && SEED=$RANDOM PROPERTY_RUNS=2000 bin/phpunit --group property)
+# the timings against the baseline, and a baseline recorded from them (one worker: the timings are the point)
+PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/timings.json npx playwright test tests/e2e/release.timings.spec.ts --project=smoke --workers=1 --reporter=json
+node tools/ci/release-timings.mjs --baseline tests/perf/baseline.json test-results/timings.json
+node tools/ci/release-timings.mjs --record tests/perf/baseline.json --commit "$(git rev-parse HEAD)" test-results/timings.json
+```
+
+**Recording a baseline.** Run the workflow by hand on `dev` with `record` checked: the `release-baseline` artifact is
+the run's timings as a `baseline.json` (per step and metric, the median and the spread of the runs, with the commit and
+the date). It replaces `tests/perf/baseline.json` through a pull request that shows the old and new numbers (the
+report of that run, which compares them). The first file was recorded locally on `dev` (`3bd5b88`, 2026-10-10, the
+Docker demo on a development machine, one worker); CI's first `record` run replaces it, as its machine sets the numbers
+the tolerances will be read against.

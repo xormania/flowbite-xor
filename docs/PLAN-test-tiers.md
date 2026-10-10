@@ -123,11 +123,13 @@ One pull request each, in order:
    coverage updates its rows, while this plan stays the record of what was decided. Its ranked gaps are step 6's
    input.
 4. **Baseline:** the timing harness, `release-checks.yml` with `workflow_dispatch` and `record`, report only, and the
-   first `tests/perf/baseline.json`.
+   first `tests/perf/baseline.json`. _Done: `trackCounts().time()` and `tools/ci/release-timings.mjs`; the first
+   baseline recorded locally on `dev`, replaced by CI's first `record` run ([`TESTING.md`](TESTING.md), *Release checks*)._
 5. **Tier 2:** the count checks and the byte budgets, in the existing specs.
 6. **Tier 1 gaps:** the missing state × transition specs from the inventory, a recipe group per pull request.
 7. **Tier 3 and the release gate:** harsh conditions, long sessions, wide matrices, fuzz and property tests, the daily
-   schedule and its issue, the check on the release pull request.
+   schedule and its issue, the check on the release pull request. _Done, report only: `@release` specs and projects,
+   `demo/tests/Property/`; `main`'s ruleset requires the check from 0.3.0 ([`TESTING.md`](TESTING.md), *Release checks*)._
 8. **Gates on:** the tolerances the user picked after reviewing the reports.
 
 ## Open questions

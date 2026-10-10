@@ -1,4 +1,4 @@
-import type { Page, Request } from '@playwright/test';
+import type { CDPSession, Page, Request } from '@playwright/test';
 import { expect, test } from './fixtures';
 
 /*
@@ -45,7 +45,17 @@ export type Expected = Counts & {
  * (Chromium and Firefox; `null` where the engine has none or the step had no interaction): one synthetic step's
  * longest entry, not the real-user INP of Core Web Vitals.
  */
-export type Measured = { counts: Counts; bytes: number; durationMs: number; inpMs: number | null };
+export type Measured = { counts: Counts; bytes: number; durationMs: number; inpMs: number | null; tbtMs: number | null };
+
+/**
+ * What a timed step (`time`) adds, in Chromium only (`null` elsewhere): the change in Chromium's own counters over the
+ * step (`Performance.getMetrics`: the time the renderer spent recalculating styles, in layout and running script),
+ * read before the action and once the page is quiet again. A full page load resets them: such a step reports 0.
+ */
+export type RendererMetrics = { recalcStyleMs: number; layoutMs: number; scriptMs: number };
+
+/** One timed step as the `timing` annotation records it (tools/monthly/timings.mjs, tools/ci/release-timings.mjs read it). */
+export type Timing = { step: string; durationMs: number; inpMs: number | null; metrics?: Partial<Record<'tbtMs' | keyof RendererMetrics, number>> };
 
 /*
  * The listeners every script of the page adds and removes, on document, window and every element, kept per target.
@@ -99,6 +109,25 @@ function installListenerTracker() {
     } else {
         w.__readInp = () => null;
     }
+    // total blocking time since the step was armed: each long task's time over 50 ms (Long Tasks API, Chromium);
+    // where the engine has none, null
+    if (PerformanceObserver.supportedEntryTypes?.includes('longtask')) {
+        const observer = new PerformanceObserver((list) => record(list.getEntries()));
+        const record = (entries: PerformanceEntryList) => {
+            for (const entry of entries) {
+                if (entry.startTime >= w.__stepArmedAt) {
+                    w.__stepTbt = (w.__stepTbt ?? 0) + Math.max(0, entry.duration - 50);
+                }
+            }
+        };
+        observer.observe({ type: 'longtask', buffered: true });
+        w.__readTbt = () => {
+            record(observer.takeRecords());
+            return w.__stepTbt ?? 0;
+        };
+    } else {
+        w.__readTbt = () => null;
+    }
     w.__countListeners = () => {
         const counts: Record<string, number> = {};
         for (const [target, keys] of byTarget) {
@@ -142,6 +171,7 @@ function armStep() {
     w.__countsListenersBefore = w.__countListeners();
     w.__stepArmedAt = performance.now();
     w.__stepInp = null;
+    w.__stepTbt = 0;
 }
 
 /** What the step did in the page: the controllers connected and disconnected, the change in listeners. */
@@ -167,7 +197,7 @@ function readStep() {
             listeners[key] = change;
         }
     }
-    return { connected: tally('connect '), disconnected: tally('disconnect '), listeners, inpMs: w.__readInp() };
+    return { connected: tally('connect '), disconnected: tally('disconnect '), listeners, inpMs: w.__readInp(), tbtMs: w.__readTbt() };
 }
 
 const sorted = (counts: Record<string, number>) => Object.fromEntries(Object.entries(counts).sort(([a], [b]) => (a < b ? -1 : 1)));
@@ -247,7 +277,25 @@ export async function trackCounts(page: Page) {
             bytes,
             durationMs,
             inpMs: stimulus.inpMs,
+            tbtMs: stimulus.tbtMs,
         };
+    };
+
+    const round = (ms: number) => Math.round(ms * 10) / 10;
+    const annotate = (timing: Timing) => test.info().annotations.push({ type: 'timing', description: JSON.stringify(timing) });
+
+    // Chromium's renderer counters, in seconds, through a CDP session opened on the first timed step
+    let cdp: CDPSession | null | undefined;
+    const rendererCounters = async (): Promise<Record<string, number> | null> => {
+        if (undefined === cdp) {
+            cdp = 'chromium' === page.context().browser()?.browserType().name() ? await page.context().newCDPSession(page) : null;
+            await cdp?.send('Performance.enable');
+        }
+        if (!cdp) {
+            return null;
+        }
+        const { metrics } = await cdp.send('Performance.getMetrics');
+        return Object.fromEntries(metrics.map(({ name, value }) => [name, value]));
     };
 
     return {
@@ -271,11 +319,30 @@ export async function trackCounts(page: Page) {
             });
             expect(measured.bytes, `${name}: bytes of the responses, bodies decoded, at most ${maxBytes}`).toBeLessThanOrEqual(maxBytes);
             if (process.env.PW_TIMINGS) {
-                const timing = { step: name, durationMs: Math.round(measured.durationMs * 10) / 10, inpMs: measured.inpMs };
-                test.info().annotations.push({ type: 'timing', description: JSON.stringify(timing) });
+                annotate({ step: name, durationMs: round(measured.durationMs), inpMs: measured.inpMs });
             }
 
             return measured;
+        },
+        /**
+         * Measures the step and records its timings as a `timing` annotation, always, gating nothing: the release
+         * checks' timings (tests/e2e/release.timings.spec.ts). Besides `measure`'s duration and INP, the step's total
+         * blocking time (long tasks) and, in Chromium, the renderer's style, layout and script time (RendererMetrics).
+         */
+        time: async (name: string, action: () => Promise<unknown>): Promise<Measured & { metrics: RendererMetrics | null }> => {
+            const before = await rendererCounters();
+            const measured = await measure(action);
+            const after = await rendererCounters();
+            const delta = (key: string) => (before && after ? round(Math.max(0, (after[key] ?? 0) - (before[key] ?? 0)) * 1000) : 0);
+            const metrics = before && after ? { recalcStyleMs: delta('RecalcStyleDuration'), layoutMs: delta('LayoutDuration'), scriptMs: delta('ScriptDuration') } : null;
+            annotate({
+                step: name,
+                durationMs: round(measured.durationMs),
+                inpMs: measured.inpMs,
+                metrics: { ...(null === measured.tbtMs ? {} : { tbtMs: round(measured.tbtMs) }), ...(metrics ?? {}) },
+            });
+
+            return { ...measured, metrics };
         },
     };
 }

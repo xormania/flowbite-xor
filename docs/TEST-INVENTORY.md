@@ -541,5 +541,7 @@ a browser, so E2E lab, on the existing scaffold. G11 comes from *Rules and their
 Tier 2 (step 5) gates the key interactions on their counts (`counts`, [`TESTING.md`](TESTING.md), *Interaction
 counts*): the dropdown, modal and drawer opening and closing, the data table's sort, page and filter in a Turbo Frame
 and in Live, a Live action re-sorting rows, a date pick and typing in the editor. The "N visits" cells shown by their
-effect (and the T2 cells) are still to become Stimulus instance counts. Tier 3 (step 7) takes the
-overlays and editors × both themes (wide matrices), which this map marks T3.
+effect (and the T2 cells) are still to become Stimulus instance counts. Tier 3 (step 7, [`TESTING.md`](TESTING.md),
+*Release checks*) runs the overlay and editor specs again in the dark theme (the `smoke-dark@release` project) and the
+heavy recipes' specs under harsh conditions (`harsh@release`); an overlay open while the theme switches, which this map
+marks T3, is not covered yet.

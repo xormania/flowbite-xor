@@ -76,6 +76,13 @@ check 'workflows'                 .github/actionlint.yaml
 # in Tool tests, on every run, so they select no job; the browser tests' opt-in coverage (tests/e2e/coverage.ts) is part
 # of the browser tests
 check 'workflows'                 .github/workflows/monthly.yml
+# release-checks.yml runs on the release pull request, daily and by hand, never on a push: the browser job runs its
+# setup; its report tool (tools/ci/release-timings.mjs) is the browser job's, its cases are Tool tests', the baseline
+# is read by the release checks only, with the browser tests
+check 'demo workflows'            .github/workflows/release-checks.yml
+check 'demo'                      tools/ci/release-timings.mjs tests/perf/baseline.json
+check ''                          tools/tests/release-timings.test.mjs
+check 'contrast demo'             tests/e2e/release.fuzz.spec.ts
 check ''                          tools/monthly/js-coverage.mjs tools/monthly/php-scope.php tools/monthly/monthly.test.mjs
 check 'demo'                      tests/e2e/coverage.ts
 check "$all"                      .github/workflows/ci.yml
@@ -84,6 +91,7 @@ check "$all"                      .github/actions/setup/action.yml
 check_git 'static-site workflows' 'git rm -q .github/workflows/pages.yml'
 check_git 'workflows'             'git rm -q .github/workflows/codeql.yml'
 check_git 'workflows'             'git rm -q .github/workflows/monthly.yml'
+check_git 'demo workflows'        'git rm -q .github/workflows/release-checks.yml'
 check_git "$all"                  'git mv .github/workflows/pages.yml .github/workflows/site.yml'
 check_git "$all"                  'git mv .github/workflows/ci.yml .github/workflows/checks.yml'
 

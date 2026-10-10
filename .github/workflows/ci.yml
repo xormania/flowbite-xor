@@ -587,12 +587,13 @@ jobs:
               run: node tools/prepare-tests.mjs
 
             # Two workers per shard, stated rather than left to Playwright's default (half the runner's 4 vCPUs, also
-            # 2): the measured choice in docs/TESTING.md (*Worker budget*)
+            # 2): the measured choice in docs/TESTING.md (*Worker budget*). The release checks (@release) run in
+            # release-checks.yml, not here
             - name: Playwright (smoke + every README example + upstream recipe specs)
               id: tests
               env:
                   DEMO_URL: https://localhost
-              run: npx playwright test ${{ matrix.projects }} --shard=${{ matrix.shard }}/3 --workers=2
+              run: npx playwright test ${{ matrix.projects }} --shard=${{ matrix.shard }}/3 --workers=2 --grep-invert @release
 
             # What the shard's tests did, read from playwright-results/results.json (tools/ci/playwright-summary.mjs): the
             # counts, each failed and flaky (passed on retry) test with its error, the tested commit and versions, and
