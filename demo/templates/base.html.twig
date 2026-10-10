@@ -25,7 +25,7 @@
             {% block importmap %}{{ importmap('app', {nonce: csp_script_nonce ~ ''}) }}{% endblock %}
         {% endblock %}
     </head>
-    <body class="flex min-h-screen flex-col bg-neutral-primary text-body antialiased">
+    <body data-controller="form-reset" class="flex min-h-screen flex-col bg-neutral-primary text-body antialiased">
         <header class="border-b border-default bg-neutral-primary">
             <nav class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3" aria-label="Main">
                 <a href="{{ path('app_index') }}" class="flex items-center gap-2 font-semibold text-heading">

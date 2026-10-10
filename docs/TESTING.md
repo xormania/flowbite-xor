@@ -304,8 +304,13 @@ Here: [`lab.data-table-interrupt.spec.ts`](../tests/e2e/lab.data-table-interrupt
 
 ### Restored fields show the URL's state
 
-**Catches:** a form whose fields mirror the URL (a table's search, filters, page size) showing, after Back or
-Forward, a value the user entered before leaving: the state applied next, or an edit never applied. Turbo copies the
+The kit's rule: a GET form reflects the URL, so after Back and Forward it shows what the server rendered; a POST form
+holds the user's work, so it keeps what was typed and picked. Enhanced widgets (autocomplete, date picker) follow the
+form they are in.
+
+**Catches:** a GET form whose fields mirror the URL (a table's search, filters, page size, any search form) showing,
+after Back or Forward, a value the user entered before leaving: the state applied next, or an edit never applied; and
+the other way, a POST form losing what was typed. Turbo copies the
 page with its edited fields (`PageSnapshot.clone` keeps each select's choice, `cloneNode` an input's value), and a
 frame visit promoted to history takes its copy once the form is submitted, edits made.
 
@@ -329,14 +334,22 @@ await expect.soft(page.getByLabel('Rows per page')).toHaveValue('10');
 expect(await firstFrames()).toEqual([{ search: '', status: '', size: '10' }]);
 ```
 
-Leave with an edit not applied too (a link away, then Back). The fix is a controller that calls the form's `reset()`
-as the form connects (a target of the controller on the table's frame), unless the focus is inside it: a copy is a new
-element, and `reset()` puts back the `value` and `selected` attributes the server rendered. Call it as
-`HTMLFormElement.prototype.reset.call(form)`: a field named `reset` (a kept URL parameter) shadows the method. A Live
-Component needs none: its controller sets each `data-model` field from the component's state as it connects.
+Leave with an edit not applied too (a link away, then Back). The fix is one controller on `<body>`, which Turbo
+replaces on every visit: `form-reset` (the `layouts` recipe) calls `reset()` on each GET form of the body once the
+page's controllers have connected, unless the focus is inside the form or it sits in a `data-turbo-permanent` element:
+a copy is a new element, and `reset()` puts back the `value`, `selected` and `checked` attributes the server rendered.
+Call it as `HTMLFormElement.prototype.reset.call(form)`: a field named `reset` (a kept URL parameter) shadows the
+method. A widget whose state `reset()` cannot reach follows the form's `reset` event (the calendar: a hidden input's
+value is its attribute) or is synced after it (Tom Select's own display). Check what the user sees, not only the value
+sent: Tom Select's item, the date picker's field and selected day. A Live Component needs none: its controller sets
+each `data-model` field from the component's state as it connects.
 
-Here: [`lab.data-table-back.spec.ts`](../tests/e2e/lab.data-table-back.spec.ts),
-[`data_table_controller.js`](../data-table/assets/controllers/data_table_controller.js).
+Data-drive the check over the form's method and each widget kind: change one, visit, go Back, and expect it as
+rendered (GET) or as left (POST), the others as rendered.
+
+Here: [`lab.form-back.spec.ts`](../tests/e2e/lab.form-back.spec.ts),
+[`lab.data-table-back.spec.ts`](../tests/e2e/lab.data-table-back.spec.ts),
+[`form_reset_controller.js`](../layouts/assets/controllers/form_reset_controller.js).
 
 ### State saved after the snapshot
 

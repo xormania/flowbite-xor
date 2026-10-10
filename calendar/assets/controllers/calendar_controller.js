@@ -14,7 +14,7 @@ const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
  * Each pick writes the hidden inputs (`name`, `name[]`, `name[from]`/`name[to]`) and dispatches `input`
  * and `change` on them, so forms, Live Components (`data-model`) and other controllers see it; a change
  * coming from the server (a Live re-render) that the inputs already hold dispatches nothing. It also
- * dispatches `calendar:select` (detail: `selected`, `mode`, `source`: `click`, `key` or `api`) and, on
+ * dispatches `calendar:select` (detail: `selected`, `mode`, `source`: `click`, `key`, `api` or `reset`) and, on
  * navigation, `calendar:month-change`. Changing the bounds, the disabled dates, the modifiers, today or
  * the locale re-renders the grid.
  *
@@ -23,6 +23,11 @@ const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
  * browser (Live keeps attributes changed by JavaScript). On connect, the selection is read back from the
  * hidden inputs, or the day cells, which a Turbo snapshot keeps. Other controllers check and set the selection with `canSelect(date)`
  * and `select(dates, source)`, which refuse disabled dates and, in range mode, ranges over one.
+ *
+ * A reset of the form holding the hidden inputs (a reset button, or the `form-reset` controller of the `layouts` recipe
+ * after Back to a GET form) brings back the month and the selection the server rendered, as a native field takes back
+ * its `value` attribute: with no `input` or `change` event, and `calendar:select` with the source `reset`. The browser
+ * cannot reset a hidden input itself, its value being its attribute.
  *
  * Adapted from the `calendar` recipe of the Symfony UX Toolkit shadcn kit (3.5.1, MIT).
  *
@@ -89,6 +94,7 @@ export default class extends Controller {
     #month = '';
     // every modifier name rendered so far: a name gone from `modifiers` loses its attribute
     #modifierNames = new Set();
+    #form = null;
 
     connect() {
         this.#month = this.monthTargets[0]?.dataset.month || this.monthValue;
@@ -99,6 +105,25 @@ export default class extends Controller {
         // the labels in the browser's own locale data, which can differ from the server's ICU (digits, names)
         this.#relabel();
         this.#render();
+        this.#form = this.#owningForm();
+        this.#form?.addEventListener('reset', this.#formReset);
+    }
+
+    // the form the hidden inputs belong to: an input's own, or, before a multiple calendar has any, the one its
+    // prototype names (`inputAttr: {form: …}`), else the form around the calendar
+    #owningForm() {
+        if (this.inputTargets[0]) {
+            return this.inputTargets[0].form;
+        }
+        const id = this.hasInputPrototypeTarget ? this.inputPrototypeTarget.content.firstElementChild?.getAttribute('form') : null;
+        const named = id ? document.getElementById(id) : null;
+
+        return named instanceof HTMLFormElement ? named : this.element.closest('form');
+    }
+
+    disconnect() {
+        this.#form?.removeEventListener('reset', this.#formReset);
+        this.#form = null;
     }
 
     /** The selected dates, as `Y-m-d` strings. */
@@ -267,16 +292,27 @@ export default class extends Controller {
         }
     }
 
+    // the form is being reset: back to what the server rendered (the `month` and `selected` attributes)
+    #formReset = () => {
+        if (this.monthValue && this.monthValue !== this.#month) {
+            this.#setMonth(this.monthValue);
+        }
+        const selected = this.selectedValue.filter((date) => this.#isRealDate(date));
+        this.#preview = null;
+        this.#focusDate = selected[0] ?? (this.todayValue && this.#isDisplayed(this.todayValue) ? this.todayValue : this.#month);
+        this.#setSelected(selected, 'reset', false);
+    };
+
     #setMonth(month) {
         this.#month = month;
         this.#render();
         this.dispatch('month-change', { detail: { month } });
     }
 
-    #setSelected(dates, source) {
+    #setSelected(dates, source, events = true) {
         this.#selected = dates;
         this.#render();
-        this.#syncInputs();
+        this.#syncInputs(events);
         this.dispatch('select', { detail: { selected: [...dates], mode: this.modeValue, source } });
     }
 
@@ -494,9 +530,9 @@ export default class extends Controller {
     /**
      * Writes the selection into the hidden inputs and dispatches `input` and `change` when one changed. In
      * multiple mode, the inputs are reused in order and cloned from the prototype when more are needed, so
-     * their attributes (`form`, `disabled`, `data-model`…) and their place stay.
+     * their attributes (`form`, `disabled`, `data-model`…) and their place stay. Without `events`, nothing is dispatched.
      */
-    #syncInputs() {
+    #syncInputs(events = true) {
         const inputs = this.inputTargets;
         let changed = [];
         if ('multiple' === this.modeValue) {
@@ -519,7 +555,7 @@ export default class extends Controller {
                 }
             });
             const surplus = inputs.slice(this.#selected.length);
-            if (surplus.length > 0 && 0 === changed.length) {
+            if (events && surplus.length > 0 && 0 === changed.length) {
                 // a deselected date with no other input changing: the events come from the removed input, emptied,
                 // while it is still in place
                 surplus[0].value = '';
@@ -537,7 +573,7 @@ export default class extends Controller {
                 }
             }
         }
-        for (const element of changed) {
+        for (const element of events ? changed : []) {
             element.dispatchEvent(new Event('input', { bubbles: true }));
             element.dispatchEvent(new Event('change', { bubbles: true }));
         }

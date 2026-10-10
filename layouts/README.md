@@ -48,6 +48,19 @@ Fill `settings_nav` with one `SectionNav:Item` per settings page (the `section-n
 
 Flash messages added with `$this->addFlash('success', '…')` (also `warning`, `danger`, anything else as `info`) appear as toasts on the next page, whatever its layout, Turbo visit or not.
 
+## Back and forms
+
+`base.html.twig` puts `data-controller="form-reset"` on `<body>`. After Back and Forward, Turbo shows the copy of the
+page it cached, with the fields as the user left them. The controller applies the kit's rule to every form of the page:
+
+- a GET form reflects the URL, so it goes back to the values the server rendered (`form.reset()`);
+- a POST form (any method but GET) holds the user's work, so it keeps what was typed and picked.
+
+Autocomplete fields (Tom Select) and calendars and date pickers follow their form. A GET form is left alone while the
+focus is inside it (text typed before the page's scripts ran) and inside a `data-turbo-permanent` element. The
+`data-table` search form resets itself as well, so a table works without this recipe. In a layout of your own, put
+the same attribute on `<body>`.
+
 ## Content Security Policy
 
 `base.html.twig` has one inline script, the theme snippet, and `importmap()` prints three more. Under a Content

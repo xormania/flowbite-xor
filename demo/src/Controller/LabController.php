@@ -77,6 +77,7 @@ final class LabController extends AbstractController
         'turbo-restore' => 'Overlays left open when a link inside them visits another page, and a tooltip shown on such a link: Back shows them closed and working, also when the next page waits for a new stylesheet (Turbo then caches the page before the controllers disconnect). A toast outside the permanent region is not shown again on Back. Beside a frame whose visits are promoted to history, an open menu and the toast stay on screen; Back shows the menu closed and the toast gone.',
         'markdown-turbo' => 'Markdown editors across Turbo visits and Back: a Symfony form posted through Turbo (303, or 422 with the errors), one inside a data-turbo-permanent element, one inside a Turbo Frame that reloads.',
         'markdown-stream' => 'A MarkdownEditor replaced and updated by Turbo Streams.',
+        'form-back' => 'What Back shows in a form, a GET one (/lab/form-back/get) and a POST one (/lab/form-back/post), each with a text field, an Autocomplete and a DatePicker rendered with the values of the URL: after a Turbo visit and Back, the GET form shows the values of the URL, the POST form what was typed and picked.',
         'data-table-frame' => 'A DataTable in its Turbo Frame: search, filter, sort, page and page size each add a history entry that Back and Forward walk through, in the same document.',
         'side-nav' => 'A multi-level SideNav across Turbo visits, Back and reloads: the open branches hold, the branch of the current page opens, and the keyboard moves through the tree.',
         'section-nav' => 'A SectionNav (one page per section) across Turbo visits, Back, Forward and reloads, rendered by each page and inside a data-turbo-permanent element; next to vertical Tabs that switch panels in place, with the keyboard of the tabs pattern.',
@@ -181,6 +182,25 @@ final class LabController extends AbstractController
     public function permanentPlusLive(string $page): Response
     {
         return $this->render('lab/permanent_plus_live.html.twig', ['page' => $page, 'description' => self::SCENARIOS['permanent-plus-live']]);
+    }
+
+    #[Route('/form-back/{method}', name: 'app_lab_form_back', requirements: ['method' => 'get|post'], defaults: ['method' => 'get'], methods: ['GET', 'POST'])]
+    public function formBack(Request $request, string $method): Response
+    {
+        $fields = ['name', 'fruit', 'due'];
+        // the POST form's submit: back to the page, rendered with the values sent
+        if ($request->isMethod('POST')) {
+            $sent = array_map(static fn (string $field): string => $request->request->getString($field), array_combine($fields, $fields));
+
+            return $this->redirectToRoute('app_lab_form_back', ['method' => $method, ...array_filter($sent)], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('lab/form_back.html.twig', [
+            'method' => $method,
+            'page' => 'two' === $request->query->getString('page') ? 'two' : 'one',
+            'values' => array_map(static fn (string $field): string => $request->query->getString($field), array_combine($fields, $fields)),
+            'description' => self::SCENARIOS['form-back'],
+        ]);
     }
 
     #[Route('/data-table-frame', name: 'app_lab_data_table_frame')]
