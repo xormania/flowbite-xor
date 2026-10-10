@@ -127,6 +127,8 @@ test('a read-only editor has no toolbar, and its preview works', async ({ page }
 });
 
 test('the markdown editor has no serious accessibility issue, invalid or not, in either tab', async ({ page }) => {
+    // four axe scans of the page and two loads: 2-5 s each scan in Firefox, more on a loaded runner, past the 30 s budget
+    test.slow(true, 'four axe scans in one test');
     for (const id of ['default', 'invalid']) {
         await open(page, id);
         for (const name of ['Write', 'Preview']) {

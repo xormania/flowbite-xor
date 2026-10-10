@@ -968,6 +968,11 @@ What differs between the engines, met so far, and how the kit and the suite stay
   the page loads first (`demo-app.spec.ts`, the flash messages test: the login form's `csrf-protection` module, read
   from Resource Timing).
 
+- **An axe scan takes longer in Firefox and WebKit** (2-5 s for a recipe's page, 13-18 s for `/lab/value-matrix` in
+  every engine, several times that on a loaded machine). A test that scans a heavy page, or scans several times, says
+  so with `test.slow()` and the reason (`a11y.spec.ts` for the value matrix, `markdown-editor.spec.ts`' four scans)
+  rather than running out of its 30 s budget mid-step.
+
 Run one browser with its projects: `npx playwright test --project=smoke-firefox --project=examples-firefox`.
 
 ## Reading CI results

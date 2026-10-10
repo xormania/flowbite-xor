@@ -27,6 +27,9 @@ test.describe.configure({ mode: 'parallel' });
 
 for (const path of pages) {
     test(`a11y ${path}`, async ({ page }) => {
+        // every widget in every state on one page: axe alone takes 13-18 s on it in each engine, too close to the 30 s
+        // budget on a loaded runner
+        test.slow('/lab/value-matrix' === path, 'the value matrix holds every widget: axe scans it for 13-18 s');
         const response = await page.goto(path);
         expect(response?.status()).toBe(200);
         if (!path.startsWith('/preview/')) {
