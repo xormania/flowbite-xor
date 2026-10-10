@@ -170,6 +170,12 @@ browser. Each shard retries a failed test once and ends with its summary: the co
 flaky one (passed only on its retry) with its error, on the run's *Summary* page, as annotations at the failing lines
 and as the last step of the job log; a shard whose tests did not run says which step failed. A flaky test keeps the run
 green but is reported as flaky, never as a clean pass. See [`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*.
+
+The demo's importmap packages are downloaded once per run, by the *Importmap packages* job (three attempts against
+the CDN), and shared as the `importmap-packages` artifact with every job that installs the demo: the nine shards,
+*Kit PHP* and *Static site*. AssetMapper skips a package that is already there, so their installs download nothing;
+each shard checks that its install left the packages as downloaded. The *Fresh install* jobs still download for
+themselves: that is part of what they check.
 A shard with a failed or flaky test then asks Jev (TypeSafe) for a likely cause of each failed attempt, at most 10 per
 shard: a warning per attempt and the `jev-<browser>-<shard>-<run>-<attempt>` artifact, kept 30 days. It is advisory: it cannot
 fail the job, and the attempt's sanitized error and server log excerpts are sent to TypeSafe. See *Jev diagnosis* in
