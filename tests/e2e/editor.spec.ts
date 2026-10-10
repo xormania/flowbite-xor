@@ -15,13 +15,18 @@ async function open(page: Page, id: string) {
 }
 const value = (page: Page, name: string) => page.locator(`textarea[name="${name}"]`).inputValue();
 
-/** Pastes `html` into the focused editor, as a browser clipboard paste. */
+/**
+ * Pastes `html` into the focused editor, as a browser clipboard paste. The data is set on the event as its own
+ * property: Firefox gives a constructed ClipboardEvent an empty clipboardData of its own, whatever the init passes.
+ */
 const paste = (page: Page, html: string) =>
     page.evaluate((html) => {
         const data = new DataTransfer();
         data.setData('text/html', html);
         data.setData('text/plain', 'pasted');
-        document.activeElement!.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+        const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'clipboardData', { value: data });
+        document.activeElement!.dispatchEvent(event);
     }, html);
 
 test('the editor replaces the server-rendered content, named by its label, with no style element added', async ({ page }) => {

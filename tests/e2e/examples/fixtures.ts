@@ -34,7 +34,9 @@ type StateOptions = {
     act: (page: Page) => Promise<void>;
 };
 
+/** A screenshot test's details: its baseline, and the @screenshot tag that keeps it out of Firefox and WebKit (playwright.config.ts). */
 export const screenshotAnnotation = (name: string[]) => ({
+    tag: '@screenshot',
     annotation: { type: 'screenshot', description: name.join('/') },
 });
 

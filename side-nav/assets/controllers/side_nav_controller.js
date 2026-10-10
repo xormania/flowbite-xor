@@ -35,13 +35,19 @@ export default class extends Controller {
         const stop = [current, this.treeitems().find((item) => '0' === item.getAttribute('tabindex'))].find((item) => item && visible.includes(item));
         this.setTabStop(stop ?? visible[0]);
         // a Sidebar collapsing around the tree hides the nested treeitems without telling the tree: its width changes
-        this.resizeObserver = new ResizeObserver(() => this.shownOrResized());
+        // in the next frame: what it changes (a restore opening branches) resizes the tree again, which inside the
+        // observer's callback is a ResizeObserver loop error (WebKit reports it as a page error)
+        this.resizeObserver = new ResizeObserver(() => {
+            cancelAnimationFrame(this.resizeFrame);
+            this.resizeFrame = requestAnimationFrame(() => this.shownOrResized());
+        });
         this.resizeObserver.observe(this.element);
     }
 
     disconnect() {
         clearTimeout(this.typeTimer);
         this.resizeObserver?.disconnect();
+        cancelAnimationFrame(this.resizeFrame);
     }
 
     keydown(event) {

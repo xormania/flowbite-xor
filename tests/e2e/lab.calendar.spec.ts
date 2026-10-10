@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { test, expect, turboVisitDone } from './fixtures';
-import { visit, visitAndBack } from './transitions';
+import { advanceFrame, turboOperation, visit, visitAndBack } from './transitions';
 
 const day = (calendar: Locator, date: string) => calendar.locator(`[data-slot="calendar-day"][data-day="${date}"] button`);
 const grid = (calendar: Locator) => calendar.getByRole('grid');
@@ -29,6 +29,47 @@ test('a Turbo visit and Back show the month and selection of the URL, and the ca
     await day(calendar(), '2026-04-09').click();
     await expect(calendar().locator('input[name="day"]')).toHaveValue('2026-04-09');
     expect(await changes(page)).toBe(1);
+});
+
+// the frame's visit adds a history entry, the calendars beside it stay; Back shows the copy Turbo took as the visit
+// started, and the GET form shows the URL's month and selection (6a): the date in the URL, not the pick
+test('beside a frame visit promoted to history, the calendar keeps the pick; Back and Forward show the URL\'s date, and keys and picks still work', async ({ page }) => {
+    await page.goto('/lab/calendar-turbo?day=2026-03-12');
+    const calendar = page.getByRole('group', { name: 'Day' });
+    const input = calendar.locator('input[name="day"]');
+    await expect(input).toHaveValue('2026-03-12');
+    await calendar.getByRole('button', { name: 'Next month' }).click();
+    await day(calendar, '2026-04-08').click();
+    await expect(input).toHaveValue('2026-04-08');
+    const before = page.url();
+
+    await advanceFrame(page, 'calendar-frame');
+    const advanced = page.url();
+    await expect(grid(calendar)).toHaveAccessibleName('April 2026');
+    await expect(input).toHaveValue('2026-04-08');
+    await expect(day(calendar, '2026-04-08')).toHaveAttribute('data-selected-single', 'true');
+
+    for (const [action, url] of [[() => page.goBack(), before], [() => page.goForward(), advanced]] as const) {
+        await turboOperation(page, { url }, action);
+        await turboVisitDone(page);
+        await expect(grid(calendar), url).toHaveAccessibleName('March 2026');
+        await expect(input).toHaveValue('2026-03-12');
+        await expect(day(calendar, '2026-03-12')).toHaveAttribute('data-selected-single', 'true');
+        await expect(page.locator('[data-controller~="calendar"]')).toHaveCount(5);
+    }
+
+    // the selected day takes the focus in the grid; the arrows move it, Enter picks: one change, one controller
+    await countChanges(page);
+    await day(calendar, '2026-03-12').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(day(calendar, '2026-03-13')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(input).toHaveValue('2026-03-13');
+    await day(calendar, '2026-03-16').click();
+    await expect(input).toHaveValue('2026-03-16');
+    expect(await changes(page)).toBe(2);
+    await calendar.getByRole('button', { name: 'Next month' }).click();
+    await expect(grid(calendar)).toHaveAccessibleName('April 2026');
 });
 
 test('repeated Turbo visits leave one controller per calendar and one change per pick', async ({ page }) => {

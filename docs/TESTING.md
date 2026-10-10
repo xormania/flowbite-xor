@@ -224,8 +224,12 @@ await stepFromCode(page, 1);                          // Turbo.visit(url, { fram
 
 Here: [`lab.popover.spec.ts`](../tests/e2e/lab.popover.spec.ts), [`lab.date-picker.spec.ts`](../tests/e2e/lab.date-picker.spec.ts),
 [`lab.turbo-restore.spec.ts`](../tests/e2e/lab.turbo-restore.spec.ts) (a dropdown, a toast),
-[`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts) (dropdown, modal, drawer);
-[`transitions.ts`](../tests/e2e/transitions.ts) (`stepFromCode`, `recordFirstFrames`).
+[`lab.overlays.spec.ts`](../tests/e2e/lab.overlays.spec.ts) (dropdown, modal, drawer), the values of
+[`lab.value-matrix.spec.ts`](../tests/e2e/lab.value-matrix.spec.ts) (`frame-advance`), a calendar, charts and zones
+([`lab.calendar.spec.ts`](../tests/e2e/lab.calendar.spec.ts), [`lab.chart.spec.ts`](../tests/e2e/lab.chart.spec.ts),
+[`lab.dropzone.spec.ts`](../tests/e2e/lab.dropzone.spec.ts));
+[`transitions.ts`](../tests/e2e/transitions.ts) (`stepFromCode`, `advanceFrame` for a lab frame showing its
+`frame-load`, `recordFirstFrames`).
 
 `recordFirstFrames` observes each render at the first animation frame with its body in place, which can come after
 the test's next line: `firstFrames(count)` waits until `count` renders are observed and returns each one's number and
@@ -283,8 +287,9 @@ covers every way the URL and the table can disagree. Do it again after Forward a
 check the table takes the next change.
 
 Back can cancel the frame's request on purpose (Back disconnects the frame, which aborts its `src` load). Allow
-exactly that request, never every `ERR_ABORTED`: `allowCancelledRequest({ url, method: 'GET', frame: 'orders',
-count: 1 })` drops at most `count` failures that are exactly `net::ERR_ABORTED`, of that exact URL, method and
+exactly that request, never every cancelled one: `allowCancelledRequest({ url, method: 'GET', frame: 'orders',
+count: 1 })` drops at most `count` failures that are exactly the engine's cancellation (`net::ERR_ABORTED` in
+Chromium, `NS_BINDING_ABORTED` in Firefox, `Load request cancelled` in WebKit), of that exact URL, method and
 `Turbo-Frame` header; any other failed request still fails the test.
 
 A phase that ends inconsistent is a defect of Turbo or the kit: keep the test, marked `test.fail(condition, '<the
@@ -339,8 +344,11 @@ replaces on every visit: `form-reset` (the `layouts` recipe) calls `reset()` on 
 page's controllers have connected, unless the focus is inside the form or it sits in a `data-turbo-permanent` element:
 a copy is a new element, and `reset()` puts back the `value`, `selected` and `checked` attributes the server rendered.
 Call it as `HTMLFormElement.prototype.reset.call(form)`: a field named `reset` (a kept URL parameter) shadows the
-method. A widget whose state `reset()` cannot reach follows the form's `reset` event (the calendar: a hidden input's
-value is its attribute) or is synced after it (Tom Select's own display). Check what the user sees, not only the value
+method. A widget whose state `reset()` cannot reach follows the form's `reset` event itself (the calendar: a hidden
+input's value is its attribute; the autocomplete's `autocomplete-sync`: Tom Select's own display), so it holds
+without `layouts` too. That event comes before the fields are reset and can be cancelled by any listener: act a task
+later (a click on a reset button runs microtasks between listeners), and only if `defaultPrevented` is false; test a
+cancelled reset, and a reset with the body's controller removed. Check what the user sees, not only the value
 sent: Tom Select's item, the date picker's field and selected day. A Live Component needs none: its controller sets
 each `data-model` field from the component's state as it connects.
 
@@ -350,6 +358,41 @@ rendered (GET) or as left (POST), the others as rendered.
 Here: [`lab.form-back.spec.ts`](../tests/e2e/lab.form-back.spec.ts),
 [`lab.data-table-back.spec.ts`](../tests/e2e/lab.data-table-back.spec.ts),
 [`form_reset_controller.js`](../layouts/assets/controllers/form_reset_controller.js).
+
+### The value matrix: one policy table
+
+**Catches:** a widget whose value or state does not follow the owner's policy after a transition: a GET form field
+keeping what was typed after Back, a POST form's file gone, a Turbo Stream or a frame reload leaving an old value in
+the part it replaced (or touching the part beside it), a Live re-render showing the user's value over the one the
+server set, an open overlay closed by a visit of its `data-turbo-permanent` element, a Live table's selection shown
+again after leaving the page.
+
+[`lab.value-matrix.spec.ts`](../tests/e2e/lab.value-matrix.spec.ts) is data: `POLICY` maps each kind of state (a GET
+field, a POST field, an open overlay, a choice held in the page, a choice stored in the browser, a Live table's URL
+state and its selection) and each transition (Back, Forward, a frame reloaded around or beside the widget, a frame
+beside it whose visit is promoted to history then Back and Forward, a Stream replacing or updating its region or one
+beside it, a Live re-render, a `data-turbo-permanent` visit, a visit away and back) to what the user must see: `url`, `kept`, `fresh`, `server` or `reset`, or `{ na: reason }`. `COMPONENTS`
+lists the widgets, each with its kind, how to change it from what the server rendered, and how to check each state
+it can show (`rendered`, `changed`, `server`); `cell()` reads the expectation from `POLICY` only. Every transition is
+started from the page's code (`Turbo.visit`, a frame visit, a Stream rendered with `Turbo.renderStreamMessage`, a
+Live action through `getComponent`), so no click closes what the test left open. The last test fails when a cell has
+neither an expectation its site can run nor an `n/a` with a reason. The `frame-advance` cell runs three steps: once
+the frame has rendered it expects the `frame-outside` state, after Back its own (a Back's: Turbo shows the copy it
+took as the frame visit started), after Forward the `forward` state, and a widget then shown as rendered must take a
+change again.
+
+The widgets live on `/lab/value-matrix/{one,two}`, four times (rendered by the page, in a Turbo Frame, in a region
+Streams replace, inside a `data-turbo-permanent` element; `?only=<key>` renders one widget alone, as each test loads
+it), and on `/lab/live-values`, bound to a Live Component whose `serverValues` action sets every property; the data
+tables run on their own lab pages.
+
+To add a row: render the widget in `demo/templates/lab/_value_matrix_widgets.html.twig` (or `_value_matrix_ui`)
+under its own `only` key, and bound to a property in `LiveValues`; add a component to `COMPONENTS` with its kind (a
+new kind needs a row of `POLICY`, from the owner's decision), its `change` and `shows`, and an `na` reason for each
+cell that cannot apply to it. A cell that fails is a kit bug, or the test's: never an expectation to relax. A
+policy that seems wrong for a cell is a question for the owner.
+
+Here: [`lab.value-matrix.spec.ts`](../tests/e2e/lab.value-matrix.spec.ts).
 
 ### State saved after the snapshot
 
@@ -456,7 +499,9 @@ Here: [`lab.turbo-stream-toast.spec.ts`](../tests/e2e/lab.turbo-stream-toast.spe
 ## Basic performance: counts, not timings
 
 Counts give the same result on every run, so they fail like any other assertion; timings belong to separate,
-repeated runs ([`PLAN-test-tiers.md`](PLAN-test-tiers.md)).
+repeated runs ([`PLAN-test-tiers.md`](PLAN-test-tiers.md)). The monthly job times the same steps, report only
+(*Monthly job*, *Timings*): with `PW_TIMINGS` set, `measure()` records each counted step's time and its longest
+interaction as a `timing` annotation of the test, and never fails a test on them.
 
 ### Interaction counts
 
@@ -863,6 +908,7 @@ ours in it is news from upstream: read the versions it resolved before looking f
 
 | Job | Fixed | Resolved at each run | Where the versions are |
 |---|---|---|---|
+| *Importmap packages* | `importmap.php`; the demo's `composer.lock` for the command | the CDN's answer (three attempts); the files are shared with the jobs below | the download step's log |
 | *Kit PHP*, *Static site* | the demo's `composer.lock`; PHP 8.4 (`PHP_VERSION`); PHPStan and its extensions by version | the PHP patch release; PHPStan's own dependencies | the composer and PHPStan steps' logs |
 | *Demo + Playwright* | `composer.lock`, `importmap.php`, `package-lock.json`, Playwright and its image by version | the FrankenPHP base image (`dunglas/frankenphp:1-php8.5`, a moving tag pulled at build) | the job summary: PHP, Symfony, Turbo, Node, Playwright |
 | *Lint kit* | `symfony/ux-toolkit` by version (`UX_TOOLKIT_VERSION`) | its dependencies, in a scratch project | the install step's log |
@@ -873,16 +919,77 @@ ours in it is news from upstream: read the versions it resolved before looking f
 The moving parts are on purpose: the install jobs are the kit as a user installs it, and the toolkit is pinned
 because it is experimental (`ci.yml`, `UX_TOOLKIT_VERSION`).
 
+## Browsers
+
+**Catches:** a controller that works only in Chromium (an event order, a focus rule, an API another engine lacks or
+implements differently), and a test that passes only there.
+
+Chromium runs every test; Firefox and WebKit run every behavior test, without the screenshot comparisons. Each
+browser has two projects in `playwright.config.ts` (`browserProjects()`): `smoke` and `examples` for Chromium,
+`smoke-firefox` and `examples-firefox`, `smoke-webkit` and `examples-webkit` for the others. A test that compares
+pixels, with a baseline or two screenshots with each other, is tagged `@screenshot` (`screenshotAnnotation()` in
+`tests/e2e/examples/fixtures.ts` tags every baseline test, `testState()` included; `forms.spec.ts`' parity test and
+`baselines.spec.ts` carry the tag themselves), and the Firefox and WebKit projects leave it out (`grepInvert`): the
+baselines are Chromium's, rendered in upstream's Playwright image. A new screenshot test takes the tag: without it,
+the other engines compare it with a baseline that is not theirs (`examples-*`) or that does not exist (`smoke-*`), and
+fail.
+
+In CI, *Demo + Playwright* is one job per browser and shard: three shards for each browser, side by side, so the
+other engines add jobs, not time. `PW_SCREENSHOTS=all` turns the Firefox and WebKit projects around: they run the
+tagged tests only, compared with the Chromium baselines, to report how far the other engines render from them. Any
+difference fails that run, so its exit status is no verdict: run it apart from the behavior tests and report it,
+never gate on it. It never writes a baseline (`updateSnapshots: 'none'`).
+
+What differs between the engines, met so far, and how the kit and the suite stay portable:
+
+- **A click whose target changes under the pointer:** WebKit fires no `click` when the text node under the pointer is
+  replaced between `mousedown` and `mouseup`. The calendar re-rendered every day's number on focus (`trackFocus`), so
+  a click on a day without the focus selected nothing; it now writes a number only when it changes. A controller that
+  re-renders on `focusin` or `mousedown` leaves the clicked element's content alone.
+- **A ResizeObserver whose callback resizes what it observes** ends with *ResizeObserver loop completed with
+  undelivered notifications*, which WebKit reports as a page error. `side-nav` handles a resize in the next frame
+  (`requestAnimationFrame`, cancelled in `disconnect()`).
+- **A morph moving an open `<dialog>`:** Live's morph moves nodes with `moveBefore` where the engine has it (Chromium,
+  Firefox), which keeps a modal in the top layer; WebKit has none, so the moved dialog stays open but is no longer
+  modal. `modal` marks the dialog it showed with a property of the dialog itself (no module state) and shows that
+  same element as a modal again, while Turbo's copy of a page, whose clones copy attributes but not properties, still
+  connects closed (`lab.live-modal.spec.ts`).
+- **The scroll event of a Turbo visit** comes with the next frame; WebKit can dispatch it after a Back sent at once,
+  and Turbo then records 0 as the restored page's position. A test that goes Back to check the restored scroll waits
+  two frames after the visit first (`demo-app.spec.ts`).
+- **A full load (reload, `goto`) while the document still runs a fetch:** WebKit rejects the fetch (`TypeError: Load
+  failed`, *due to access control checks*); Turbo's prefetch of a link under the pointer rethrows it, unhandled. The
+  other engines drop the document without rejecting. `guardPage()` drops exactly those two messages, and only from a
+  full load's request until its document replaces the old one (`FETCH_CANCELLED_BY_UNLOAD`); anywhere else they fail
+  the test.
+
+- **A cancelled request** fails with `net::ERR_ABORTED` in Chromium, `NS_BINDING_ABORTED` in Firefox, `Load request
+  cancelled` in WebKit: `allowCancelledRequest` accepts each engine's own text (`CANCELLED` in `tests/e2e/fixtures.ts`),
+  still for that exact request only.
+- **A constructed `ClipboardEvent`** gets an empty `clipboardData` of Firefox's own, whatever its init passes: a paste
+  sets the data as the event's own property (`editor.spec.ts`, `paste()`).
+- **Leaving a page while it loads a lazy controller** cancels the module's request; Firefox also rejects the import,
+  which the Stimulus loader logs as a console error. A test that leaves a page right after an assertion waits for what
+  the page loads first (`demo-app.spec.ts`, the flash messages test: the login form's `csrf-protection` module, read
+  from Resource Timing).
+
+- **An axe scan takes longer in Firefox and WebKit** (2-5 s for a recipe's page, 13-18 s for `/lab/value-matrix` in
+  every engine, several times that on a loaded machine). A test that scans a heavy page, or scans several times, says
+  so with `test.slow()` and the reason (`a11y.spec.ts` for the value matrix, `markdown-editor.spec.ts`' four scans)
+  rather than running out of its 30 s budget mid-step.
+
+Run one browser with its projects: `npx playwright test --project=smoke-firefox --project=examples-firefox`.
+
 ## Reading CI results
 
 **Catches:** a red shard whose failing test is lost in the log, a test that passed only on its retry and went
 unnoticed, a setup failure or a missing report read as "no tests failed".
 
-CI runs the browser tests in three shards, with one retry (`retries: 1` in `playwright.config.ts`). After the tests,
+CI runs the browser tests in three shards per browser (*Browsers*), with one retry (`retries: 1` in `playwright.config.ts`). After the tests,
 each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summary.mjs) on its
 `playwright-results/results.json`. It does not decide pass or fail: Playwright's exit status does.
 
-- **The job summary** (the run's *Summary* page, one section per shard) gives the counts, then each failed and each
+- **The job summary** (the run's *Summary* page, one section per shard, under its job's name: `Demo + Playwright (firefox 2/3)`) gives the counts, then each failed and each
   flaky test as `[project] file:line › title` with the first lines of each failed attempt's error, the tested commit,
   the shard, the projects and the runtime versions (Node, Playwright, and PHP, Symfony and Turbo from the demo's
   container). The same text is the last step of the job log (*Playwright summary*), after the demo's logs.
@@ -891,12 +998,12 @@ each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summa
   recipe's own spec runs as a copy `tools/prepare-tests.mjs` generates in `tests/e2e/examples/recipes/`: its annotation points at the committed
   `<recipe>/tests/*.spec.ts` instead.
 - **Flaky** means failed, then passed on its retry. The run stays green, but the summary says *flaky (passed on retry)*
-  instead of *all N passed*, and the shard keeps the traces (`playwright-report-<shard>`, 7 days). A flaky test is a
+  instead of *all N passed*, and the shard keeps the traces (`playwright-report-<browser>-<shard>`, 7 days). A flaky test is a
   test to fix or a bug to find (see *Wait for the operation to complete*), not noise.
 - **No evidence** is said as such, and fails the step: *tests not reached: setup failed at &lt;step&gt;* (the image,
-  the demo's start, a check on shard 1, the Playwright install or the tests' preparation failed, so no test ran), *no test evidence: tests not
+  the demo's start, a check on Chromium's shard 1, the Playwright install or the tests' preparation failed, so no test ran), *no test evidence: tests not
   reached or report not written* (Playwright ran but left no report), *report invalid* (it does not parse).
-- **Kept 30 days** in `playwright-results-<shard>`: `results.json` (every test's attempts), `summary.md`, and
+- **Kept 30 days** in `playwright-results-<browser>-<shard>`: `results.json` (every test's attempts), `summary.md`, and
   `failed-attempts.json`, one entry per failed attempt, retry-recovered ones included (test id, file, line, title,
   project, shard, retry, status, error, duration, error location), for tools that read them one by one, and
   `durations.json` (below).
@@ -950,7 +1057,7 @@ key, a provider error or an answer that does not validate gives an *unavailable*
 
 - **Where:** a warning per assessed attempt at the line that failed (the category, its confidence, and where the
   selected excerpt comes from: `test error lines a-b` or `server log lines a-b`, with its text); a *Jev diagnosis*
-  section on the run's *Summary* page; and the `jev-<shard>-<run>-<attempt>` artifact, kept 30 days, with one
+  section on the run's *Summary* page; and the `jev-<browser>-<shard>-<run>-<attempt>` artifact, kept 30 days, with one
   `attempts/<NN>-<test>/assessment.json` per failed attempt (the request sent, the validated answer with its
   probabilities, the policy, the model, the elapsed time) and `summary.md`.
 - **Confidence:** each answer comes with Jev's confidence. Below 0.65 (the policy's `min_confidence`) the category is
@@ -984,7 +1091,9 @@ hand before a release. Nothing of it runs on a push or a pull request: CI's jobs
 |---|---|---|
 | *PHP coverage and mutants* | The demo's PHPUnit tests with PCOV: lines and methods of the recipes' `src/`, per file and class, and the methods no test runs. Then [Infection](https://infection.github.io/) on the same directories and tests: the MSI and every surviving mutant (escaped, or on a line no test runs) with its diff | job summary; `php-coverage` artifact: `php-coverage.md`, `clover.xml`, `html/`, `infection.md`, `survivors.md`, Infection's own logs |
 | *JS coverage (1/3–3/3)* | The whole browser suite in Chromium, sharded as in CI, with V8 coverage of the scripts under `/assets/controllers/` | each shard's Playwright summary; raw recordings, 7 days |
-| *Monthly report* | The shards merged and mapped to `<recipe>/assets/controllers/*.js`: lines and functions run per controller, and **every controller method runs once**, the named methods no test ran; then every number against the previous successful run | job summary; `js-coverage` and `monthly-trends` (`monthly.json`, `trends.md`) artifacts |
+| *Firefox and WebKit (firefox 1/3–webkit 3/3)* | The whole suite in each engine, sharded as in CI: the behavior tests (a failure fails the shard), then every `@screenshot` test against the Chromium baselines (`PW_SCREENSHOTS=all`, no retries): each one matches, differs (with the ratio of different pixels Playwright gives) or fails another way | each shard's Playwright summary; `screenshots-<browser>-<shard>` (`tools/monthly/screenshots.mjs`) and, where some differ, `screenshot-diffs-<browser>-<shard>` (the expected, actual and diff images), 30 days |
+| *Timings (Chromium)* | The interaction-count specs (`counts.spec.ts`), 5 runs one after another with `PW_TIMINGS` set: per counted step, the median, the spread (25th to 75th percentile), min and max of its time, from its action until the update it waits for has landed, Playwright's round trips included, and the median of its longest interaction (INP, Event Timing). A count that differs fails the job as in CI | job summary; `timings` artifact (`timings.json`, `timings.md`, `tools/monthly/timings.mjs`), 90 days |
+| *Monthly report* | The shards merged and mapped to `<recipe>/assets/controllers/*.js`: lines and functions run per controller, and **every controller method runs once**, the named methods no test ran; the screenshot shards merged per engine; then every number, the timings and the screenshots included, against the previous successful run | job summary; `js-coverage`, `screenshots` (`screenshots.json`, `screenshots.md`) and `monthly-trends` (`monthly.json`, `trends.md`) artifacts |
 
 Artifacts are kept 90 days, so each run finds last month's. A report that cannot be made fails its job, and the
 report says why, instead of showing 0%: PCOV not loaded, no `clover.xml` (the tests did not run) or one without a
@@ -1004,16 +1113,19 @@ comment ran; a controller no test loaded lists every method it declares. A test'
 **Reading the trends.** `trends.md` puts each number next to the previous successful monthly run on the same ref (its
 `monthly-trends` artifact, downloaded with the run's token), then lists what moved: files and controllers whose line
 coverage changed, files whose surviving mutants changed, and methods that never ran this time but ran, or did not
-exist, last time. The first run, or one whose predecessor's artifact expired, says *No previous run* and why. A run
-that failed is not compared with: the next one compares with the last green one.
+exist, last time. For each engine, the screenshots that differ now and matched last time, those that match now and
+differed, and those whose ratio changed: a difference from Chromium is expected, a change since last month is the
+news. A test is the same test from month to month by its project, file and titles, not its line. The screenshots
+are reported only when every shard of both engines made its report: a missing shard leaves them *not reported*,
+never partial totals. Each timed step's median and INP stand next to last time's. The first run, or one whose predecessor's artifact
+expired, says *No previous run* and why; a section last month's `monthly.json` did not have yet reads *not
+reported*. A run that failed is not compared with: the next one compares with the last green one.
 
 **Thresholds.** None yet. "Every controller method runs once" stays a report line; it moves to CI only if methods
 that never run keep slipping in. A surviving mutant is a question: a test to add, or a harmless mutant (an equivalent
-cast, a log message) to leave.
-
-**Not built yet.** Two jobs join this workflow later, marked where they go in `monthly.yml`: the full suite in Firefox
-and WebKit with a screenshot diff against last month's (behavior failures failing the run), and the timings,
-report-only.
+cast, a log message) to leave. Timings get thresholds later, from the spread the monthly runs measure; a screenshot
+newly differing in another engine is a question too: a kit change that renders differently there, or the engine's
+own update.
 
 **By hand.** Actions › *Monthly* › *Run workflow*, from the branch to check ("Use workflow from"), or
 `gh workflow run monthly.yml --ref <branch>`. A run checks the branch it starts from, with that branch's copy of the
@@ -1030,7 +1142,7 @@ php tools/monthly/php-scope.php coverage/php
 node tools/monthly/php-coverage.mjs --out coverage/php coverage/php/clover.xml
 (cd demo && php /path/to/infection.phar --configuration=../coverage/php/infection.json5 --threads=max)
 node tools/monthly/infection.mjs --out coverage/php coverage/php/infection/infection.json
-JS_COVERAGE=$PWD/coverage/js/raw DEMO_URL=https://localhost npx playwright test   # Chromium projects; add --shard as in CI
+JS_COVERAGE=$PWD/coverage/js/raw DEMO_URL=https://localhost npx playwright test --project=smoke --project=examples   # Chromium projects; add --shard as in CI
 node tools/monthly/js-coverage.mjs --out coverage/js coverage/js/raw
 node tools/monthly/trends.mjs --out coverage/trends --php coverage/php/php-coverage.json \
     --infection coverage/php/infection-summary.json --js coverage/js/js-coverage.json [--previous monthly.json]

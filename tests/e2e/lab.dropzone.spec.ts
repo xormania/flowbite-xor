@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
-import { test, expect } from './fixtures';
-import { back, visit } from './transitions';
+import { test, expect, turboVisitDone } from './fixtures';
+import { advanceFrame, back, turboOperation, visit } from './transitions';
 
 /*
  * Dropzones under Turbo: a zone that Turbo shows again (Back, a Stream) works, with one controller, and shows what its
@@ -59,6 +59,70 @@ test('after a Turbo visit and Back, the zones are empty, have one controller eac
     await expect(page.locator('.dropzone-preview-list-item')).toHaveCount(kept + 1);
     expect(await fileCount(page.locator('#attachments'))).toBe(kept + 1);
     expect(await events(page, 'change')).toBe(2);
+});
+
+test('after a visit and Back, every file of a POST form comes back, also with more zones than Turbo keeps copies', async ({ page }) => {
+    // 11 single-file zones in one copy of the page: the files are kept per copy, not per zone (Turbo keeps 10 copies)
+    await page.goto('/lab/dropzone-turbo?zones=11');
+    for (let i = 1; i <= 11; i++) {
+        await page.locator(`#many-${i}`).setInputFiles(png(`f${i}.png`));
+        await expect(page.getByRole('button', { name: `Remove f${i}.png` })).toBeVisible();
+    }
+
+    await visit(page, 'Go to page two', 'Page two');
+    await back(page, 'Page one');
+
+    for (let i = 1; i <= 11; i++) {
+        await expect(page.getByRole('button', { name: `Remove f${i}.png` })).toBeVisible();
+        expect(await fileCount(page.locator(`#many-${i}`)), `#many-${i}`).toBe(1);
+    }
+});
+
+// Turbo copies the page as the frame visit starts, before its turbo:before-cache: Back and Forward follow the contract of
+// any Back (the zones of one file in a POST form keep it, the others start empty, the permanent one keeps its file)
+test('beside a frame visit promoted to history, Back and Forward keep the files of a POST form\'s zones and the permanent one; the others start empty', async ({ page }) => {
+    await page.goto('/lab/dropzone-turbo?zones=2');
+    await page.locator('#photo').setInputFiles(png('photo.png'));
+    await page.locator('#attachments').setInputFiles([text('a.txt'), text('b.txt')]);
+    await page.locator('#many-1').setInputFiles(png('f1.png'));
+    await page.locator('#many-2').setInputFiles(png('f2.png'));
+    await page.locator('#kept').setInputFiles(png('kept.png'));
+    for (const name of ['photo.png', 'f1.png', 'f2.png', 'kept.png']) {
+        await expect(page.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
+    }
+    const before = page.url();
+
+    await advanceFrame(page, 'dropzone-frame');
+    const advanced = page.url();
+    // beside the frame, every zone is left alone
+    for (const [id, name] of [['photo', 'photo.png'], ['many-1', 'f1.png'], ['many-2', 'f2.png'], ['kept', 'kept.png']]) {
+        await expect(page.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
+        expect(await fileCount(page.locator(`#${id}`)), id).toBe(1);
+    }
+    await expect(page.locator('.dropzone-preview-list-item')).toHaveCount(2);
+
+    for (const [action, url] of [[() => page.goBack(), before], [() => page.goForward(), advanced]] as const) {
+        await turboOperation(page, { url }, action);
+        await turboVisitDone(page);
+        for (const [id, name] of [['many-1', 'f1.png'], ['many-2', 'f2.png'], ['kept', 'kept.png']]) {
+            await expect(page.getByRole('button', { name: `Remove ${name}` }), `${url}: #${id}`).toBeVisible();
+            expect(await fileCount(page.locator(`#${id}`)), `${url}: #${id}`).toBe(1);
+        }
+        await expectEmptySingle(page, 'photo');
+        // the list shows what the input holds (Chromium's copy of an input keeps its files)
+        const kept = await fileCount(page.locator('#attachments'));
+        await expect(page.locator('.dropzone-preview-list-item')).toHaveCount(kept);
+        await expect(page.locator('[data-controller~="dropzone-assist"]')).toHaveCount(6);
+    }
+
+    // the zones still take a pick: one change each
+    await countEvents(page);
+    await page.locator('#photo').setInputFiles(png('again.png'));
+    await expect(page.getByRole('button', { name: 'Remove again.png' })).toBeVisible();
+    await page.getByRole('button', { name: 'Remove f1.png' }).click();
+    await expectEmptySingle(page, 'many-1');
+    expect(await events(page, 'change')).toBe(1);
+    expect(await events(page, 'clear')).toBe(1);
 });
 
 test('repeated Turbo visits leave one controller per zone and one change per pick', async ({ page }) => {

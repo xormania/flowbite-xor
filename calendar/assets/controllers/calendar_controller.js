@@ -27,7 +27,9 @@ const ISO_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
  * A reset of the form holding the hidden inputs (a reset button, or the `form-reset` controller of the `layouts` recipe
  * after Back to a GET form) brings back the month and the selection the server rendered, as a native field takes back
  * its `value` attribute: with no `input` or `change` event, and `calendar:select` with the source `reset`. The browser
- * cannot reset a hidden input itself, its value being its attribute.
+ * cannot reset a hidden input itself, its value being its attribute. The `reset` event comes before the fields are
+ * reset, and any listener can cancel it: the calendar acts once the event is over (a task later), only when nothing
+ * cancelled it.
  *
  * Adapted from the `calendar` recipe of the Symfony UX Toolkit shadcn kit (3.5.1, MIT).
  *
@@ -95,6 +97,8 @@ export default class extends Controller {
     // every modifier name rendered so far: a name gone from `modifiers` loses its attribute
     #modifierNames = new Set();
     #form = null;
+    // the resets waiting for their event to be over
+    #resetTimeouts = new Set();
 
     connect() {
         this.#month = this.monthTargets[0]?.dataset.month || this.monthValue;
@@ -106,7 +110,8 @@ export default class extends Controller {
         this.#relabel();
         this.#render();
         this.#form = this.#owningForm();
-        this.#form?.addEventListener('reset', this.#formReset);
+        // on the window, as the event bubbles: after the form's and the document's own listeners
+        window.addEventListener('reset', this.#formReset);
     }
 
     // the form the hidden inputs belong to: an input's own, or, before a multiple calendar has any, the one its
@@ -122,8 +127,12 @@ export default class extends Controller {
     }
 
     disconnect() {
-        this.#form?.removeEventListener('reset', this.#formReset);
+        window.removeEventListener('reset', this.#formReset);
         this.#form = null;
+        for (const timeout of this.#resetTimeouts) {
+            clearTimeout(timeout);
+        }
+        this.#resetTimeouts.clear();
     }
 
     /** The selected dates, as `Y-m-d` strings. */
@@ -292,8 +301,31 @@ export default class extends Controller {
         }
     }
 
-    // the form is being reset: back to what the server rendered (the `month` and `selected` attributes)
-    #formReset = () => {
+    // the form is being reset: the event comes before the fields are reset, and the browser leaves hidden inputs alone,
+    // so the calendar puts back the dates it rendered now, in the same task (`form.reset(); new FormData(form)` sends
+    // them). It listens on the window, once the form's and the document's listeners have had their say: a reset one of
+    // them cancelled changes nothing. A window listener after this one may still cancel it: after a task, the calendar
+    // puts back what it showed before.
+    #formReset = (event) => {
+        if (event.target !== this.#form || event.defaultPrevented) {
+            return;
+        }
+        const month = this.#month;
+        const selected = [...this.#selected];
+        this.#reset();
+        const timeout = setTimeout(() => {
+            this.#resetTimeouts.delete(timeout);
+            if (event.defaultPrevented) {
+                if (month !== this.#month) {
+                    this.#setMonth(month);
+                }
+                this.#setSelected(selected, 'reset', false);
+            }
+        });
+        this.#resetTimeouts.add(timeout);
+    };
+
+    #reset() {
         if (this.monthValue && this.monthValue !== this.#month) {
             this.#setMonth(this.monthValue);
         }
@@ -301,7 +333,7 @@ export default class extends Controller {
         this.#preview = null;
         this.#focusDate = selected[0] ?? (this.todayValue && this.#isDisplayed(this.todayValue) ? this.todayValue : this.#month);
         this.#setSelected(selected, 'reset', false);
-    };
+    }
 
     #setMonth(month) {
         this.#month = month;
@@ -469,7 +501,12 @@ export default class extends Controller {
             }
 
             const button = cell.querySelector('button');
-            button.textContent = this.#format('day', timestamp);
+            // only a new text replaces the old: a render on focus (trackFocus) runs between the mousedown and the
+            // mouseup of a click, and WebKit fires no click once the text node under the pointer is replaced
+            const text = this.#format('day', timestamp);
+            if (button.textContent !== text) {
+                button.textContent = text;
+            }
             button.dataset.day = date;
             button.dataset.calendarDateParam = date;
             button.dataset.selectedSingle = String('range' !== this.modeValue && selected);

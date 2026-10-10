@@ -51,6 +51,43 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `calendar` (and `date-picker`): in WebKit a click on a day that did not have the focus selected nothing: the render
+  that follows the focus rewrote every day's number between the mousedown and the mouseup, which cancels the click
+  there. A day's number is now written only when it changes.
+- `side-nav`: a tree shown again (a `MobileNav` drawer opening, the screen growing to show the `Sidebar`) caused a
+  *ResizeObserver loop completed with undelivered notifications* error, which WebKit reports as a page error: the
+  tree restored its branches inside the observer's callback. It now handles a resize in the next frame.
+- `modal`: in WebKit, an open modal whose container a Live re-render replaced closed: without `moveBefore`, the morph
+  moves the `<dialog>` out of the top layer, open but no longer modal, which the new controller took for Turbo's copy
+  of the page. It now shows that same dialog as a modal again; a copy still connects closed.
+- `autocomplete`: Back from a frame visit promoted to history (`data-turbo-action="advance"`, a data table's pages)
+  showed each field twice, the Tom Select copied with the page beside a new one hidden like the `<select>` (Turbo
+  copies the page as such a visit starts, Tom Select still on screen); `autocomplete-sync` now removes the copied one,
+  and the field shows one Tom Select with the choice its form keeps.
+- `dropzone`: in a POST form, the file picked was gone after Back from a frame visit promoted to history, whose copy of
+  the page Turbo takes before `turbo:before-cache`; the zone now carries its key into that copy too, and shows the file
+  again, as after any Back.
+- `popover`, `dropdown`: one open inside a `data-turbo-permanent` element closed when a visit moved it into the next
+  page; it now stays open, as the user left it (the modal and the drawer already did).
+- `dropzone`: in a POST form, a file picked was gone after Back and Forward (UX Dropzone clears the input of Turbo's
+  copy as it connects); the zone now keeps it for the copy and shows it again. A zone outside such a form still starts
+  empty.
+- `autocomplete`: in a Live Component form, a value the server set in a re-render (a reset, another record) reached the
+  `<select>` but Tom Select still showed the one before; the new `autocomplete-sync` controller, put next to UX
+  Autocomplete's by the `Autocomplete` component and the form theme, makes Tom Select show it.
+- `autocomplete`: after a reset of its form (a reset button, `form.reset()`), Tom Select showed the choice made before,
+  the `<select>` holding the one rendered; it showed it right only after Back through the layouts' `form-reset`.
+  `autocomplete-sync` now also syncs Tom Select once the reset is done, without `layouts`, for a field tied to its
+  form by `form` too, with no `input` or `change` event (no Live request).
+- `data-table-live`: the row selection, which leaving the page drops, came back with Back and Forward when Turbo
+  showed its copy of the page; the new `data-table-live` controller clears it as such a copy connects.
+- `modal`, `drawer`: a Live re-render that replaced the container of the component (a wrapper whose id changes)
+  logged "Missing target element" errors: the morph moves the `<dialog>` to the new controller before the old one
+  disconnects. The old controller now disconnects without it; the new one works as before (an open modal stays open,
+  its new trigger expanded; a drawer starts as its `open` value says).
+- `calendar`: a form reset cancelled by another listener (`preventDefault()` on `reset`) still brought back the dates
+  rendered; the calendar now resets its hidden inputs in the same task, after the form's own listeners, and only when
+  the reset was not cancelled (one cancelled later is put back). Its README lists the `reset` source of `calendar:select`.
 - `editor`: a submit of more than `EditorHtmlPolicy::MAX_INPUT_BYTES` (1000000 bytes) was a 500: the form showing its
   error printed the refused value through `flowbite_editor_html`, which refuses it. It is now a 422 with the field's
   error, the editor and its textarea empty (the value is never cut); the same in a Live Component.

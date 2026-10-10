@@ -15,7 +15,9 @@
  *   - status, passed, failed, flaky and skipped to $GITHUB_OUTPUT.
  *
  * Usage: node tools/ci/playwright-summary.mjs [playwright-results/results.json]
- * Environment (all optional): SHARD ("2/3", when the report cannot say), SETUP_STEPS and RUNTIME (lines of
+ * Environment (all optional): SHARD ("2/3", when the report cannot say), BROWSER (the engine, named with the shard:
+ * "firefox 2/3"), RESULTS_ARTIFACT and REPORT_ARTIFACT (the names of the artifacts the workflow uploads this
+ * directory and the HTML report as, quoted where the summary points at them), SETUP_STEPS and RUNTIME (lines of
  * "<name>=<value>": the outcome of each step before the tests, the versions the job found), TESTS_OUTCOME (the
  * Playwright step's outcome), GITHUB_SHA, GITHUB_REF_NAME, GITHUB_SERVER_URL, GITHUB_REPOSITORY, GITHUB_RUN_ID,
  * GITHUB_RUN_ATTEMPT.
@@ -25,7 +27,7 @@
  * Test: node --test tools/tests/*.test.mjs
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
 const EXIT = { valid: 0, missing: 2, invalid: 3, notReached: 4 };
 const ERROR_LINES = 6;
@@ -48,9 +50,19 @@ const runtime = { Node: process.version, ...pairs(env.RUNTIME) };
 
 const verdict = read();
 if (verdict.status !== 'valid') {
-    finish(verdict.status, verdict.reason, env.SHARD ?? null, null);
+    finish(verdict.status, verdict.reason, label(env.SHARD ?? null), null);
 } else {
     finish('valid', null, verdict.shard, verdict);
+}
+
+/** The shard as the summaries name it: with the engine when BROWSER says it ("firefox 2/3"). */
+function label(shard) {
+    return shard && env.BROWSER ? `${env.BROWSER} ${shard}` : shard;
+}
+
+/** Where a file of this directory is kept: the artifact the workflow names, or the directory itself. */
+function keptIn(file) {
+    return env.RESULTS_ARTIFACT ? `\`${file}\` in the \`${env.RESULTS_ARTIFACT}\` artifact` : `\`${file}\` next to the report (\`${basename(outDir)}/\`)`;
 }
 
 /** What there is to read: the steps before the tests, then the report itself. */
@@ -82,7 +94,7 @@ function read() {
 function collect(report) {
     const root = report.config.rootDir ?? process.cwd();
     const shardInfo = report.config.shard;
-    const shard = shardInfo ? `${shardInfo.current}/${shardInfo.total}` : (env.SHARD ?? null);
+    const shard = label(shardInfo ? `${shardInfo.current}/${shardInfo.total}` : (env.SHARD ?? null));
     const tests = [];
     const walk = (suite, titles) => {
         for (const spec of suite.specs ?? []) {
@@ -305,7 +317,7 @@ function durationsSection(timing) {
         }
         lines.push('');
     }
-    lines.push('The same numbers, each test included: `durations.json` in the shard\'s `playwright-results-<shard>` artifact.', '');
+    lines.push(`The same numbers, each test included: ${keptIn('durations.json')}.`, '');
     return lines.join('\n');
 }
 
@@ -379,7 +391,8 @@ function summary(data) {
     section('failed', 'Failed');
     section('flaky', 'Flaky: failed, then passed on retry');
     if (data.tests.some((test) => test.outcome === 'failed' || test.outcome === 'flaky')) {
-        lines.push('Every failed attempt, retry-recovered ones included: `failed-attempts.json` in the shard\'s `playwright-results-<shard>` artifact; traces and the HTML report in `playwright-report-<shard>`.', '');
+        const report = env.REPORT_ARTIFACT ? `; traces and the HTML report in \`${env.REPORT_ARTIFACT}\`` : '';
+        lines.push(`Every failed attempt, retry-recovered ones included: ${keptIn('failed-attempts.json')}${report}.`, '');
     }
     return lines.join('\n');
 }

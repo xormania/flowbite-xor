@@ -123,3 +123,36 @@ for (const focused of [true, false]) {
         await expect(name).toHaveValue(focused ? 'Grace' : 'Ada');
     });
 }
+
+// the layouts' form-reset syncs Tom Select after its reset, and the autocomplete's own controller syncs it too
+test('a GET form after Back: the two syncs of Tom Select leave one item and no event; a later reset still syncs it', async ({ page }) => {
+    await page.goto(rendered.replace('%s', 'get'));
+    const autocomplete = widgets.find((widget) => 'an autocomplete' === widget.kind)!;
+    await autocomplete.change(page);
+    await autocomplete.shows(page, 'changed');
+    // on the document, which Turbo keeps across visits
+    await page.evaluate(() => {
+        const counts = { input: 0, change: 0 };
+        for (const type of ['input', 'change'] as const) {
+            document.addEventListener(type, (event) => (event.target as Element).matches('select') && counts[type]++, true);
+        }
+        (window as any).__selectEvents = counts;
+    });
+
+    await visit(page, 'Go to page two', 'Page two');
+    await back(page, 'Page one');
+    await autocomplete.shows(page, 'rendered');
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    await autocomplete.shows(page, 'rendered');
+    expect(await page.evaluate(() => (window as any).__selectEvents)).toEqual({ input: 0, change: 0 });
+
+    await autocomplete.change(page);
+    await autocomplete.shows(page, 'changed');
+    await page.evaluate(() => {
+        (window as any).__selectEvents.input = 0;
+        (window as any).__selectEvents.change = 0;
+        (document.getElementById('fruit') as HTMLSelectElement).form!.reset();
+    });
+    await autocomplete.shows(page, 'rendered');
+    expect(await page.evaluate(() => (window as any).__selectEvents)).toEqual({ input: 0, change: 0 });
+});

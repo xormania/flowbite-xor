@@ -281,3 +281,35 @@ test('a report whose times cannot be read is still read: the durations say so, t
     assert.match(run.summary, /- Summed test time: 0\.0 s over 1 attempt \(1 without a time\)/);
     assert.equal(run.durations.wallMs, null);
 });
+
+test('BROWSER names the engine with the report\'s shard: summary, failed attempts and durations tell the nine jobs apart', () => {
+    const run = summarize('failed.json', { BROWSER: 'firefox' });
+    assert.equal(run.code, EXIT.valid, run.stderr);
+    assert.match(run.summary, /Playwright, shard firefox 1\/3: 2 failed/);
+    assert.equal(run.attempts.shard, 'firefox 1/3');
+    assert.deepEqual([...new Set(run.attempts.attempts.map((a) => a.shard))], ['firefox 1/3']);
+    assert.equal(run.durations.shard, 'firefox 1/3');
+    assert.match(annotations(run.stdout, 'error')[0], /title=\[smoke\] closes on Back/);
+
+    // without a report, the engine joins SHARD
+    const missing = summarize(null, { BROWSER: 'webkit', SHARD: '2/3' });
+    assert.equal(missing.code, EXIT.missing);
+    assert.match(missing.summary, /Playwright, shard webkit 2\/3: /);
+});
+
+test('the artifacts named are the workflow\'s own (RESULTS_ARTIFACT, REPORT_ARTIFACT), never a pattern of one workflow', () => {
+    const ci = summarize('failed.json', { RESULTS_ARTIFACT: 'playwright-results-webkit-1', REPORT_ARTIFACT: 'playwright-report-webkit-1' });
+    assert.ok(ci.summary.includes('`failed-attempts.json` in the `playwright-results-webkit-1` artifact; traces and the HTML report in `playwright-report-webkit-1`.'));
+    assert.ok(ci.summary.includes('`durations.json` in the `playwright-results-webkit-1` artifact.'));
+
+    // the monthly run keeps no report artifact: the results one alone is named
+    const monthly = summarize('failed.json', { RESULTS_ARTIFACT: 'monthly-playwright-results-1' });
+    assert.ok(monthly.summary.includes('`failed-attempts.json` in the `monthly-playwright-results-1` artifact.'));
+    assert.doesNotMatch(monthly.summary, /playwright-report|<browser>|<shard>/);
+
+    // neither named: no artifact name invented
+    const plain = summarize('failed.json');
+    assert.ok(plain.summary.includes('`failed-attempts.json` next to the report (`playwright-results/`).'));
+    assert.ok(plain.summary.includes('`durations.json` next to the report (`playwright-results/`).'));
+    assert.doesNotMatch(plain.summary, /<browser>|<shard>/);
+});
