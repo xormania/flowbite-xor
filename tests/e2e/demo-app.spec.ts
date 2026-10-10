@@ -46,32 +46,6 @@ test('the settings layout marks the current section and the profile block saves'
     await expect(page.getByRole('region', { name: 'Notifications' }).getByText('Profile saved.')).toBeVisible();
 });
 
-test('on a phone the app layout shows its navigation in a drawer, opened by the navbar menu button', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/demo/settings/profile');
-    await expect(page.locator('#sidebar')).toBeHidden();
-    const menu = page.getByRole('button', { name: 'Open menu' });
-    await menu.click();
-    const drawer = page.getByRole('dialog', { name: 'Main' });
-    await expect(drawer).toBeVisible();
-    await expect(menu).toHaveAttribute('aria-expanded', 'true');
-    // the sidebar's navigation, the same tree and brand, focused on the current page
-    await expect(drawer.getByRole('link', { name: 'Acme' })).toBeVisible();
-    const nav = drawer.getByRole('navigation', { name: 'Main' }).getByRole('tree', { name: 'Acme' });
-    await expect(nav.getByRole('treeitem', { name: 'Profile' })).toBeFocused();
-    await expect(nav.getByRole('treeitem', { name: 'Settings' })).toHaveAttribute('aria-expanded', 'true');
-    await page.keyboard.press('Escape');
-    await expect(drawer).toBeHidden();
-    await expect(menu).toBeFocused();
-
-    await menu.click();
-    await nav.getByRole('treeitem', { name: 'Dashboard' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
-    await turboVisitDone(page);
-    await expect(drawer).toBeHidden();
-    await expect(menu).toHaveAttribute('aria-expanded', 'false');
-});
-
 test('on a desktop the app layout hides the menu button, and its pages use no id twice', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     for (const path of ['/demo', '/demo/settings/profile']) {
@@ -107,12 +81,19 @@ test('on a desktop the navbar menu marks the current page, opens its submenus an
     await expect(page).toHaveURL(/\/lab\/nav-menu$/);
 });
 
-test('on a phone the drawer holds the navbar menu after the sidebar navigation', async ({ page }) => {
+// the drawer's own behavior (Escape, the backdrop, the focus given back, a link closing it, Back): lab.mobile-nav
+test('on a phone the drawer holds the sidebar navigation, then the navbar menu', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/demo/settings/profile');
+    await expect(page.locator('#sidebar')).toBeHidden();
     await expect(page.getByRole('navigation', { name: 'Site' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Open menu' }).click();
     const drawer = page.getByRole('dialog', { name: 'Main' });
+    // the sidebar's navigation, the same tree and brand, focused on the current page
+    await expect(drawer.getByRole('link', { name: 'Acme' })).toBeVisible();
+    const nav = drawer.getByRole('navigation', { name: 'Main' }).getByRole('tree', { name: 'Acme' });
+    await expect(nav.getByRole('treeitem', { name: 'Profile' })).toBeFocused();
+    await expect(nav.getByRole('treeitem', { name: 'Settings' })).toHaveAttribute('aria-expanded', 'true');
     const account = drawer.getByRole('button', { name: 'Account' });
     await account.click();
     await expect(account).toHaveAttribute('aria-expanded', 'true');

@@ -27,11 +27,21 @@ jobs:
     # passes the branch rulesets. Pushes to main and dev, a run by hand and a change to this workflow run everything. A
     # branch is compared with where it left dev, so each push checks the whole pull request, not only its last commit
     # (the rulesets require a branch to be up to date with its base before it merges, so that is the code that lands).
+    #
+    # A work order's own branch (claude/wo-<name>, not its jobs' claude/wo-<name>--<job>) runs nothing else while its pull
+    # request into dev is a draft or not open: each job ran CI on its own branch before it merged. CI result then fails,
+    # saying so, so a draft never shows a pass that tested nothing. Once the pull request is ready, re-run the work
+    # order's latest run (Re-run all jobs): a re-run keeps its push event, which the rulesets count, and reads the pull
+    # request's state again (CONTRIBUTING.md, *Work orders*).
     changes:
         name: Changes
         runs-on: ubuntu-latest
         timeout-minutes: 5
+        permissions:
+            contents: read
+            pull-requests: read # whether a work order's pull request into dev is a draft
         outputs:
+            wo-draft: ${{ steps.jobs.outputs.wo-draft }}
             lint-kit: ${{ steps.jobs.outputs.lint-kit }}
             php: ${{ steps.jobs.outputs.php }}
             static-site: ${{ steps.jobs.outputs.static-site }}
@@ -52,7 +62,23 @@ jobs:
               env:
                   EVENT: ${{ github.event_name }}
                   REF: ${{ github.ref }}
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
               run: |
+                  # A work order's own branch while its pull request into dev is a draft or not open: nothing else runs
+                  branch=${REF#refs/heads/}
+                  if [ "$EVENT" = push ] && [[ "$branch" == claude/wo-* ]] && [[ "$branch" != claude/wo-*--* ]]; then
+                      state=$(gh api "repos/$REPO/pulls?head=${REPO%%/*}:$branch&base=dev&state=open" \
+                          --jq 'if length == 0 then "not open" elif .[0].draft then "draft" else "ready" end')
+                      echo "Work order $branch: its pull request into dev is $state"
+                      if [ "$state" != ready ]; then
+                          echo "wo-draft=true" >> "$GITHUB_OUTPUT"
+                          for job in lint-kit php static-site fresh-install contrast demo workflows; do
+                              echo "$job=false" | tee -a "$GITHUB_OUTPUT"
+                          done
+                          exit 0
+                      fi
+                  fi
                   # Where the branch left dev; none for main, dev or a run by hand. Computed here, in the workflow, not by a
                   # script in the tree: a branch cannot choose the range it is checked against. Contrast reads the same
                   # range (tools/readme-pairing.mjs --base).
@@ -167,6 +193,23 @@ jobs:
     # skips a package whose file and installed.php entry are already there, so their own install downloads nothing.
     # A CDN error is retried here, twice, before the run fails: one bad connection no longer fails a shard before any
     # test runs. The fresh-install jobs still download for themselves: that is what they check.
+    # Every tool's own cases, once per run, on every run: tools/tests/*.test.mjs (the CI results summarizer, the Jev
+    # diagnosis, prepare-tests, icon-lint, the README checks) and tools/monthly/*.test.mjs (the monthly reports). Node
+    # built-ins only, no install, a few seconds; no browser job or Contrast runs them again.
+    tools:
+        name: Tool tests
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: 22
+
+            - name: The tools' own cases
+              run: node --test 'tools/tests/*.test.mjs' 'tools/monthly/*.test.mjs'
+
     importmap:
         name: Importmap packages
         needs: changes
@@ -258,10 +301,37 @@ jobs:
             # the extension contracts of the data table and the editors' form types.
             # A missing snapshot fails here instead of being written.
             - name: PHPUnit
+              id: phpunit
               working-directory: demo
               env:
                   CREATE_SNAPSHOTS: 'false'
-              run: bin/phpunit
+              run: bin/phpunit --log-junit "$RUNNER_TEMP/phpunit.xml"
+
+            # Advisory diagnosis of each failed PHPUnit test by Jev (TypeSafe), as for the browser tests: the JUnit report
+            # becomes the same failed-attempts.json (tools/ci/junit-attempts.mjs), with the test log as the server log. It
+            # never changes the verdict (continue-on-error, and it exits 0 without the key or when the provider fails).
+            - name: Jev diagnosis (advisory)
+              id: jev
+              if: ${{ failure() && steps.phpunit.outcome == 'failure' }}
+              continue-on-error: true
+              timeout-minutes: 2
+              env:
+                  TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+                  JEV_DIR: ${{ runner.temp }}/jev-phpunit
+              run: |
+                  mkdir -p "$JEV_DIR"
+                  node tools/ci/junit-attempts.mjs "$RUNNER_TEMP/phpunit.xml" "$JEV_DIR/failed-attempts.json"
+                  node tools/ci/jev-diagnosis.mjs --attempts "$JEV_DIR/failed-attempts.json" \
+                      --server-log demo/var/log/test.log --output "$JEV_DIR/assessment" --job "Kit PHP"
+
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              if: ${{ always() && steps.jev.outcome != 'skipped' }}
+              continue-on-error: true
+              with:
+                  name: jev-phpunit-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: ${{ runner.temp }}/jev-phpunit/assessment/
+                  if-no-files-found: warn
+                  retention-days: 30
 
             # PHPStan reads the classes the kit's PHP uses (Symfony) from the demo's dependencies, and also checks the
             # demo's tables and tests; it is installed in a scratch directory with its Symfony and PHPUnit extensions
@@ -385,9 +455,6 @@ jobs:
             - name: The test inventory has a row per recipe with a controller and names existing tests; a11y scans every lab page
               run: node tools/test-inventory.mjs
 
-            - name: The README checks' own cases
-              run: node --test tools/tests/readme-versions.test.mjs tools/tests/readme-pairing.test.mjs
-
             - name: Each recipe README renders its manifest's dependencies and writes no version table
               run: node tools/readme-versions.mjs
 
@@ -431,13 +498,6 @@ jobs:
               with:
                   node-version: 22
                   cache: npm
-
-            # The tools that read the results below, on their own cases: the summarizer (its fixtures are in
-            # tools/tests/fixtures/playwright-results/) and the Jev diagnosis (against a local stand-in for the provider)
-            - name: The CI tools' own cases
-              id: summarizer-cases
-              if: matrix.browser == 'chromium' && matrix.shard == 1
-              run: node --test 'tools/tests/*.test.mjs'
 
             # The demo runs in Symfony Docker (demo/compose.yaml): FrankenPHP in worker mode, PHP 8.5
             - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -551,7 +611,6 @@ jobs:
                   DEMO_STARTED: ${{ steps.start.outcome }}
                   TESTS_OUTCOME: ${{ steps.tests.outcome }}
                   SETUP_STEPS: |
-                      The CI tools' own cases=${{ steps.summarizer-cases.outcome }}
                       Build the demo image=${{ steps.image.outcome }}
                       Start the demo=${{ steps.start.outcome }}
                       Sync recipes into the demo=${{ steps.sync.outcome }}
@@ -638,7 +697,7 @@ jobs:
     result:
         name: CI result
         if: always()
-        needs: [changes, importmap, lint-kit, php, static-site, fresh-install, docker-install, contrast, workflows, demo]
+        needs: [changes, tools, importmap, lint-kit, php, static-site, fresh-install, docker-install, contrast, workflows, demo]
         runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
@@ -646,7 +705,12 @@ jobs:
             # checked nothing
             - env:
                   NEEDS: ${{ toJSON(needs) }}
+                  WO_DRAFT: ${{ needs.changes.outputs.wo-draft }}
               run: |
+                  if [ "$WO_DRAFT" = true ]; then
+                      echo "::error::work order draft: CI ran no tests. Mark its pull request into dev ready, then re-run this run (Re-run all jobs)"
+                      exit 1
+                  fi
                   echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
                   failed=$(echo "$NEEDS" | jq -r 'to_entries[] | select(.value.result != "success" and .value.result != "skipped")
                       | "\(.key) ended with \(.value.result)" + (if .value.result == "cancelled" then " (a cancelled job is not a pass)" else "" end)')

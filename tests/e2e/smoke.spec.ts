@@ -1,4 +1,5 @@
-import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
+import { test, expect, guardPage } from './fixtures';
 import { recipes } from './inventory';
 
 // Every page answering 200 with its heading: a11y.spec.ts, which opens each of them. The theme toggle: theme-toggle.spec.ts.
@@ -26,4 +27,89 @@ test('unknown recipes are 404', async ({ page, allowHttpError }) => {
     allowHttpError(/\/r\/does-not-exist$/, 404); // the 404 document itself, nothing else
     const response = await page.goto('/r/does-not-exist');
     expect(response?.status()).toBe(404);
+});
+
+/*
+ * The guard's one exception for page errors (guardPage, FETCH_CANCELLED_BY_UNLOAD): WebKit's rejection of a fetch the
+ * document still runs when a full load replaces it. Calibrated with planted errors carrying those exact messages, on
+ * a page of its own with a guard of its own (the test's own page keeps the usual guard): dropped in WebKit while a
+ * full load replaces the document, reported anywhere else and in the other engines, which never throw them.
+ */
+test.describe('the page guard', () => {
+    const MESSAGES = ['TypeError: Load failed', 'Fetch API cannot load https://localhost/lab due to access control checks.'];
+    /** Throws `message` from a task of the page, uncaught, and waits until Playwright has reported it. */
+    const plant = async (page: Page, message: string) => {
+        const reported = page.waitForEvent('pageerror', { predicate: (error) => error.message.endsWith(message) });
+        await page.evaluate((message) => void setTimeout(() => { throw new Error(message); }), message);
+        await reported;
+    };
+    const errorsOf = (guard: Awaited<ReturnType<typeof guardPage>>) => {
+        try {
+            guard.check();
+            return '';
+        } catch (error) {
+            return String(error);
+        }
+    };
+    const expectReported = (errors: string) => {
+        for (const message of MESSAGES) {
+            expect(errors).toContain(`pageerror: ${message}`);
+        }
+    };
+
+    test('a fetch cancelled while a full load replaces the document: dropped in WebKit only', async ({ page: helper, context, baseURL, browserName }) => {
+        const page = await context.newPage();
+        const guard = await guardPage(page, baseURL);
+        await page.goto('/lab');
+        await page.evaluate((messages) => {
+            const channel = ((window as any).__guardCalibration = new BroadcastChannel('guard-calibration'));
+            channel.onmessage = () => messages.forEach((message) => setTimeout(() => { throw new Error(message); }));
+        }, MESSAGES);
+        // the next document's request is held until the one on screen has thrown what WebKit throws, told to by
+        // another page (Playwright cannot evaluate in a page whose navigation is pending, in Chromium)
+        await helper.goto('/lab');
+        await page.route('**/lab/turbo-nav', async (route) => {
+            const reported = Promise.all(MESSAGES.map((message) => page.waitForEvent('pageerror', { predicate: (error) => error.message.endsWith(message) })));
+            await helper.evaluate(() => new BroadcastChannel('guard-calibration').postMessage('throw'));
+            await reported;
+            await route.fallback();
+        });
+        await page.goto('/lab/turbo-nav');
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+        if ('webkit' === browserName) {
+            expect(errorsOf(guard)).toBe('');
+        } else {
+            expectReported(errorsOf(guard));
+        }
+        await page.close();
+    });
+
+    test('the same messages outside a full load: reported', async ({ context, baseURL }) => {
+        const page = await context.newPage();
+        const guard = await guardPage(page, baseURL);
+        await page.goto('/lab');
+        for (const message of MESSAGES) {
+            await plant(page, message);
+        }
+        expectReported(errorsOf(guard));
+        await page.close();
+    });
+
+    test('the same messages after a navigation that left the document in place: reported', async ({ context, baseURL, browserName }) => {
+        const page = await context.newPage();
+        const guard = await guardPage(page, baseURL);
+        await page.goto('/lab');
+        // a 204 answer: the browser keeps the document on screen; Chromium and WebKit report the request failed (the
+        // guard's end of the full load), Playwright reports no end of it in Firefox
+        await page.route('**/lab/no-content', (route) => route.fulfill({ status: 204 }));
+        const failed = 'firefox' === browserName ? null : page.waitForEvent('requestfailed', (request) => request.url().endsWith('/lab/no-content'));
+        await page.evaluate(() => location.assign('/lab/no-content'));
+        await failed;
+        await expect(page.getByRole('heading', { level: 1, name: 'Lab' })).toBeVisible();
+        for (const message of MESSAGES) {
+            await plant(page, message);
+        }
+        expectReported(errorsOf(guard));
+        await page.close();
+    });
 });
