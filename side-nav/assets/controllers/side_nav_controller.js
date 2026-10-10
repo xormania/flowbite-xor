@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { markCurrentLinks } from '../lib/flowbite-xor-navigation.js';
 
 /**
  * A navigation tree, as the WAI-ARIA tree view pattern describes it: branches open and close (`aria-expanded`), one
@@ -285,12 +286,6 @@ export default class extends Controller {
         if (this.itemTargets.some((item) => item.hasAttribute('data-side-nav-active-fixed'))) {
             return;
         }
-        const path = window.location.pathname;
-        this.itemTargets.forEach((item) => {
-            // a link to a fragment of the page ("#", what SideNav:Item renders for a rejected URL) is not a page
-            const isFragment = (item.getAttribute('href') ?? '').trim().startsWith('#');
-            const isCurrent = !isFragment && new URL(item.href, window.location.href).pathname === path;
-            isCurrent ? item.setAttribute('aria-current', 'page') : item.removeAttribute('aria-current');
-        });
+        markCurrentLinks(this.itemTargets);
     }
 }

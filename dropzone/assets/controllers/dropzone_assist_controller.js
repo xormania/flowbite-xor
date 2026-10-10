@@ -1,12 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-
-/**
- * Whether the current `turbo:before-cache` comes from a frame visit promoted to history, which keeps the page on screen
- * and caches a copy taken earlier (Turbo 8: its visit renders nothing). Copied from `popover_controller.js`.
- */
-function isPromotedFrameCache() {
-    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
-}
+import { isPermanent, isPromotedFrameCache } from '../lib/flowbite-xor-turbo.js';
 
 // through the prototype: a field named `method` shadows the form's own
 const methodOf = Object.getOwnPropertyDescriptor(HTMLFormElement.prototype, 'method').get;
@@ -118,7 +111,7 @@ export default class extends Controller {
             !this.inputTarget.files?.length ||
             !form ||
             'get' === methodOf.call(form) ||
-            this.element.closest('[data-turbo-permanent]')
+            isPermanent(this.element)
         ) {
             return;
         }

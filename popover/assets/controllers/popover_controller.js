@@ -1,15 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { follow, position } from '../lib/flowbite-xor-floating.js';
-
-/**
- * Whether the current `turbo:before-cache` comes from a frame visit promoted to history: Turbo keeps the page on
- * screen and caches the copy it took when the frame visit started, so a reset now only changes what the user sees.
- * Turbo 8 runs that visit with `willRender: false`, a full visit or a restoration with `true`; without Turbo, false.
- * Copy it into a controller that needs it.
- */
-function isPromotedFrameCache() {
-    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
-}
+import { isCachedCopy, isKeptOnCache } from '../lib/flowbite-xor-turbo.js';
 
 /**
  * Opens a `Popover`, a non-modal dialog anchored to its trigger: a click on the trigger toggles it,
@@ -52,17 +43,15 @@ export default class extends Controller {
     };
 
     #connected = false;
-    #connectedBefore = false;
     #listening = false;
 
     connect() {
         this.#connected = true;
         // open in this browser before, but not by this controller: a copy of the page Turbo cached, shown closed. A
         // reconnect of the same element (moved in the DOM, a morph) keeps its controller, and stays open
-        if (!this.#connectedBefore && this.element.hasAttribute('data-popover-opened')) {
+        if (isCachedCopy(this, 'data-popover-opened')) {
             this.openValue = false;
         }
-        this.#connectedBefore = true;
         this.#render();
     }
 
@@ -135,7 +124,7 @@ export default class extends Controller {
 
     closeSilently(event) {
         // the page stays on screen; or Turbo moves the popover into the next page, open, as the user left it
-        if ('turbo:before-cache' === event?.type && (isPromotedFrameCache() || this.element.closest('[data-turbo-permanent]'))) {
+        if ('turbo:before-cache' === event?.type && isKeptOnCache(this.element)) {
             return;
         }
         this.openValue = false;

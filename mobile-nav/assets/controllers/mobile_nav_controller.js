@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { followsInThisTab, whenMediaMatches } from '../lib/flowbite-xor-navigation.js';
 
 /**
  * The `MobileNav`: the app's navigation in a `Drawer` on small screens, opened by a menu button. The drawer controller
@@ -20,13 +21,11 @@ export default class extends Controller {
     static values = { media: { type: String, default: '(min-width: 48rem)' } };
 
     connect() {
-        this.wide = window.matchMedia(this.mediaValue);
-        this.closeWhenWide = () => this.wide.matches && this.close();
-        this.wide.addEventListener('change', this.closeWhenWide);
+        this.stopClosingWhenWide = whenMediaMatches(this.mediaValue, () => this.close());
     }
 
     disconnect() {
-        this.wide.removeEventListener('change', this.closeWhenWide);
+        this.stopClosingWhenWide();
     }
 
     focusTrigger({ currentTarget }) {
@@ -51,10 +50,7 @@ export default class extends Controller {
         }
         // a modifier click or another button opens a new tab; a target other than this tab, or a download, does not
         // navigate this one either: the drawer stays open
-        const newTab = event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button > 0;
-        const target = (link.getAttribute('target') ?? '').trim().toLowerCase();
-        const otherContext = '' !== target && !['_self', '_top', '_parent'].includes(target);
-        if (!newTab && !otherContext && !link.hasAttribute('download')) {
+        if (followsInThisTab(event, link)) {
             this.close();
         }
     }

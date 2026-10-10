@@ -1,13 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { getComponent } from '@symfony/ux-live-component';
-
-/**
- * Whether the current `turbo:before-cache` comes from a frame visit promoted to history, which keeps the page on screen
- * and caches a copy taken earlier (Turbo 8: its visit renders nothing). Copied from `popover_controller.js`.
- */
-function isPromotedFrameCache() {
-    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
-}
+import { isKeptOnCache } from '../lib/flowbite-xor-turbo.js';
 
 /**
  * The row selection of a `DataTableLive` belongs to the visit, not to the URL: leaving the page drops it. Back and
@@ -33,7 +26,7 @@ export default class extends Controller {
     }
 
     cache() {
-        if (isPromotedFrameCache() || this.element.closest('[data-turbo-permanent]')) {
+        if (isKeptOnCache(this.element)) {
             return;
         }
         // Turbo copies the page once this event's listeners have run, also after the table disconnected: the mark stays
