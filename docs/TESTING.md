@@ -351,6 +351,38 @@ Here: [`lab.form-back.spec.ts`](../tests/e2e/lab.form-back.spec.ts),
 [`lab.data-table-back.spec.ts`](../tests/e2e/lab.data-table-back.spec.ts),
 [`form_reset_controller.js`](../layouts/assets/controllers/form_reset_controller.js).
 
+### The value matrix: one policy table
+
+**Catches:** a widget whose value or state does not follow the owner's policy after a transition: a GET form field
+keeping what was typed after Back, a POST form's file gone, a Turbo Stream or a frame reload leaving an old value in
+the part it replaced (or touching the part beside it), a Live re-render showing the user's value over the one the
+server set, an open overlay closed by a visit of its `data-turbo-permanent` element, a Live table's selection shown
+again after leaving the page.
+
+[`lab.value-matrix.spec.ts`](../tests/e2e/lab.value-matrix.spec.ts) is data: `POLICY` maps each kind of state (a GET
+field, a POST field, an open overlay, a choice held in the page, a choice stored in the browser, a Live table's URL
+state and its selection) and each transition (Back, Forward, a frame reloaded around or beside the widget, a Stream
+replacing or updating its region or one beside it, a Live re-render, a `data-turbo-permanent` visit, a visit away
+and back) to what the user must see: `url`, `kept`, `fresh`, `server` or `reset`, or `{ na: reason }`. `COMPONENTS`
+lists the widgets, each with its kind, how to change it from what the server rendered, and how to check each state
+it can show (`rendered`, `changed`, `server`); `cell()` reads the expectation from `POLICY` only. Every transition is
+started from the page's code (`Turbo.visit`, a frame visit, a Stream rendered with `Turbo.renderStreamMessage`, a
+Live action through `getComponent`), so no click closes what the test left open. The last test fails when a cell has
+neither an expectation its site can run nor an `n/a` with a reason.
+
+The widgets live on `/lab/value-matrix/{one,two}`, four times (rendered by the page, in a Turbo Frame, in a region
+Streams replace, inside a `data-turbo-permanent` element; `?only=<key>` renders one widget alone, as each test loads
+it), and on `/lab/live-values`, bound to a Live Component whose `serverValues` action sets every property; the data
+tables run on their own lab pages.
+
+To add a row: render the widget in `demo/templates/lab/_value_matrix_widgets.html.twig` (or `_value_matrix_ui`)
+under its own `only` key, and bound to a property in `LiveValues`; add a component to `COMPONENTS` with its kind (a
+new kind needs a row of `POLICY`, from the owner's decision), its `change` and `shows`, and an `na` reason for each
+cell that cannot apply to it. A cell that fails is a kit bug, or the test's: never an expectation to relax. A
+policy that seems wrong for a cell is a question for the owner.
+
+Here: [`lab.value-matrix.spec.ts`](../tests/e2e/lab.value-matrix.spec.ts).
+
 ### State saved after the snapshot
 
 **Catches:** a component that shows the state of Turbo's cached copy after Back, when the user changed it on the next
