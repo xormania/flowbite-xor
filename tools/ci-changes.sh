@@ -67,7 +67,7 @@ while IFS= read -r path; do
         tools/ci/jev-diagnosis.mjs | tools/ci/jev-ci.json) on php demo ;;
         tools/ci/*) on demo ;;
         # Tools' cases and their fixtures, and the monthly report tools: Tool tests runs them on every run
-        tools/tests/*.test.mjs | tools/tests/fixtures/playwright-results/* | tools/monthly/*) ;;
+        tools/tests/*.test.mjs | tools/tests/fixtures/playwright-results/* | tools/tests/fixtures/junit/* | tools/monthly/*) ;;
         # release.yml's plan: Workflows runs its cases and its dry run
         tools/release-plan.sh | tools/tests/release-plan.sh) on workflows ;;
         tools/*) on php static-site demo ;;

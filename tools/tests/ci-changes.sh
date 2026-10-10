@@ -119,6 +119,7 @@ check 'php'                       tools/ci/junit-attempts.mjs
 check 'php demo'                  tools/ci/jev-diagnosis.mjs tools/ci/jev-ci.json
 # tools' cases and their fixtures run in Tool tests, on every run: no other job
 check ''                          tools/tests/playwright-summary.test.mjs tools/tests/fixtures/playwright-results/timed.json
+check ''                          tools/tests/fixtures/junit/phpunit.xml
 check 'php static-site demo'      tools/sync-demo
 check 'php static-site fresh-install demo' demo/compose.yaml
 check 'php static-site fresh-install demo' demo/frankenphp/Caddyfile

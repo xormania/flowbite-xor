@@ -94,7 +94,7 @@ change to both paths.
 | `tools/ci/junit-attempts.mjs` | *Kit PHP* |
 | `tools/ci/jev-diagnosis.mjs`, `tools/ci/jev-ci.json` | *Kit PHP*, *Demo + Playwright* |
 | any other file in `tools/ci/` (the browser job's results summary) | *Demo + Playwright* |
-| `tools/tests/*.test.mjs`, `tools/tests/fixtures/playwright-results/`, `tools/monthly/` (every tool's cases, and the monthly report tools) | nothing else: *Tool tests* runs all the tools' cases on every run, in seconds, with no install |
+| `tools/tests/*.test.mjs`, `tools/tests/fixtures/playwright-results/`, `tools/tests/fixtures/junit/`, `tools/monthly/` (every tool's cases, and the monthly report tools) | nothing else: *Tool tests* runs all the tools' cases on every run, in seconds, with no install |
 | `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
 | any other markdown file outside `demo/` | *Contrast* (`tools/docs-lint.mjs`, `tools/icon-lint.mjs`), and the jobs its path runs |
 | `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `tools/test-inventory.mjs`, `llms.txt` | *Contrast* |
