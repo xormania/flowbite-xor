@@ -24,7 +24,7 @@
             :channels="[
                 {label: 'Online store', value: 64},
                 {label: 'Marketplaces', value: 23},
-                {label: 'A guy named Steve', value: 13},
+                {label: 'A guy named Elon', value: 13},
             ]"
             :activity="[
                 {text: 'Order #1,000,042 shipped to the Moon', time: '2 min ago'},
@@ -102,9 +102,9 @@
                     id="chart-revenue-channels"
                     type="doughnut"
                     title="Revenue by channel"
-                    description="Steve sells 13% of everything, nobody knows how."
+                    description="Elon sells 13% of everything, nobody knows how."
                     labelsHeader="Channel"
-                    :labels="['Online store', 'Marketplaces', 'A guy named Steve', 'The Moon']"
+                    :labels="['Online store', 'Marketplaces', 'A guy named Elon', 'The Moon']"
                     :datasets="[{label: 'Share of revenue (%)', data: [60, 23, 13, 4]}]"
                 />
             </twig:Card>
@@ -122,7 +122,7 @@
                     hideTitle
                     labelsHeader="Destination"
                     size="lg"
-                    :labels="['Earth', 'Low Earth orbit', 'The Moon', 'Mars', 'Steve\'s garage']"
+                    :labels="['Earth', 'Low Earth orbit', 'The Moon', 'Mars', 'Elon\'s garage']"
                     :datasets="[{label: 'This year', data: [1120000, 98000, 42000, 17000, 7000]}, {label: 'Last year', data: [12000, 400, 3, 0, 1]}]"
                     :options="{indexAxis: 'y'}"
                 />
