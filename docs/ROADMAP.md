@@ -39,6 +39,7 @@ building **Turbo-driven apps** get rich UX from installed recipes with as little
 | 6 | **F. Rich editor** | **Tiptap** | `editor`, `markdown-editor` | shipped |
 | — | A. Conventions | Grows inside D and B. One CONTRIBUTING section after the second package | — | shipped |
 | — | Deferred | Cropper, Map, sortable lists, virtual grid, Uppy, FullCalendar, "select all matching" | — | open |
+| — | Docs pairing | A deterministic script replaces the `Docs-waiver:` trailers of `tools/readme-pairing.mjs`: it decides from the change itself whether a recipe's README must change. Not started | — | open |
 
 D and C can run in parallel because they touch different recipes.
 

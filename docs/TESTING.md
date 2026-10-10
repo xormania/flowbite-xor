@@ -754,7 +754,9 @@ markup.
 
 One helper owns the scan, the policy and the report; the spec drives the state and keeps its own expectations of it.
 The policy is explicit at each call: `serious` fails on serious and critical violations, `all` on any, and `include`
-or `exclude` scope the scan. Each violation is reported as `<rule> (<impact>): <targets>`.
+or `exclude` scope the scan. Each violation is reported as `<rule> (<impact>): <targets>`. The scan waits for the
+page's running animations to finish first, so a color transition the spec started (a tab's fill on selection) is
+read at its end, not half-way; endless and paused ones are not awaited.
 
 ```ts
 await expectA11y(page, { impact: 'serious', exclude: 'iframe' });                 // a whole page, its previews scanned on their own

@@ -3,8 +3,9 @@
 # Which CI jobs a change could affect. Reads the changed paths, one per line, on stdin and prints one
 # `<job>=true|false` line per job of .github/workflows/ci.yml, for $GITHUB_OUTPUT. A job is skipped only when none of
 # the paths could change what it checks. A path not listed counts as part of the kit, which runs every job but
-# Contrast and Workflows. A workflow runs Workflows (actionlint) and the jobs that run the same commands it runs; a
-# workflow or a file under .github/ that is not listed runs everything.
+# Contrast and Workflows (a recipe's templates and markdown run Contrast too). A workflow runs Workflows (actionlint)
+# and the jobs that run the same commands it runs; a workflow or a file under .github/ that is not listed runs
+# everything.
 #
 # Usage: git diff --name-only --no-renames <base> HEAD | tools/ci-changes.sh
 # Test:  tools/tests/ci-changes.sh
@@ -46,7 +47,11 @@ while IFS= read -r path; do
 
         # Repository tools, each with the jobs that run it
         tools/contrast/* | tools/llms-txt.mjs | tools/docs-lint.mjs | tools/test-inventory.mjs | llms.txt) on contrast ;;
+        # icon-lint runs in Contrast; its cases (tools/tests/*.test.mjs) in the browser job
+        tools/icon-lint.mjs | tools/tests/icon-lint.test.mjs) on contrast demo ;;
         tools/fence-coverage.mjs) on contrast static-site ;;
+        # The README checks: Contrast runs them and their cases, the browser job's node --test runs the cases too
+        tools/readme-versions.mjs | tools/readme-pairing.mjs | tools/tests/readme-*.test.mjs) on contrast demo ;;
         tools/build-static.sh) on static-site ;;
         tools/tests/fresh-install.sh | tools/tests/check-fresh-app.sh | tools/tests/docker-install.sh) on fresh-install ;;
         tools/tests/install-scenario.sh) on fresh-install ;;
@@ -71,15 +76,21 @@ while IFS= read -r path; do
         */tests/*) on demo ;;
 
         # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...).
-        # Contrast checks the theme's roles, what the markdown teaches and the palette
-        # colors of the recipes' templates (tools/docs-lint.mjs), the README tables and the controllers' rows
+        # Contrast checks the theme's roles, what the markdown teaches and the palette colors of the recipes' templates
+        # (tools/docs-lint.mjs), the README tables and the controllers' rows; it reads every file in a directory (a
+        # recipe: tools/readme-pairing.mjs pairs its code with its README, tools/readme-versions.mjs its README with its
+        # manifest) and the root files below
         *)
             on lint-kit php static-site fresh-install demo
             case "$path" in
-                kit.css | theme/* | README.md | */README.md | INSTALL.md | */templates/* | */assets/controllers/* | */manifest.json) on contrast ;;
+                */* | kit.css | README.md | INSTALL.md) on contrast ;;
             esac
             ;;
     esac
+
+    # What Contrast's lints read wherever it lies: any markdown outside demo/ (tools/docs-lint.mjs, tools/icon-lint.mjs)
+    # and a recipe's templates (tools/docs-lint.mjs, tools/icon-lint.mjs). The demo's copies of the recipes are not read.
+    if [[ $path != demo/* && ( $path == *.md || $path =~ ^[^/]+/templates/ ) ]]; then on contrast; fi
 done
 
 for job in "${jobs[@]}"; do echo "$job=${run[$job]}"; done
