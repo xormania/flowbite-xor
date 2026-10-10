@@ -1,7 +1,7 @@
 name: Monthly
 
 # The periodic checks no pull request runs (docs/TESTING.md, *Monthly job*): once a month on `dev`, and by hand before a
-# release (Actions › Monthly › Run workflow; the `ref` input checks out another branch or tag). Coverage, report-only:
+# release (Actions › Monthly › Run workflow, from the branch to check). Coverage, report-only:
 # PHP line coverage of the recipes' src/ (PCOV) and Infection's surviving mutants, V8 coverage of the kit's Stimulus
 # controllers in Chromium with the methods no test runs, and each number against the previous successful run. A report
 # that cannot be made (no coverage driver, no recorded coverage, Infection not run) fails its job instead of reporting 0;
@@ -10,18 +10,16 @@ name: Monthly
 on:
     schedule:
         - cron: '37 4 3 * *' # the 3rd of each month, 04:37 UTC
+    # by hand, a run checks the branch it is started from ("Use workflow from"), with that branch's copy of this file:
+    # no input chooses another ref, so no run executes a ref it was handed in the default branch's context (CodeQL:
+    # cache poisoning)
     workflow_dispatch:
-        inputs:
-            ref:
-                description: The branch, tag or commit to check (dev unless said otherwise)
-                type: string
-                default: dev
 
 permissions:
     contents: read
 
 concurrency:
-    group: monthly-${{ inputs.ref || 'dev' }}
+    group: monthly-${{ github.event_name == 'schedule' && 'dev' || github.ref_name }}
     cancel-in-progress: false
 
 env:
@@ -39,7 +37,7 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  ref: ${{ inputs.ref || 'dev' }}
+                  ref: ${{ github.event_name == 'schedule' && 'dev' || '' }} # empty: the branch the run was started from
 
             - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
               with:
@@ -133,10 +131,10 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  ref: ${{ inputs.ref || 'dev' }}
+                  ref: ${{ github.event_name == 'schedule' && 'dev' || '' }} # empty: the branch the run was started from
 
-            # no npm cache: this workflow runs in the default branch's context on any `ref`, so a cache it saved could carry
-            # that ref's packages into other runs (cache poisoning); once a month, the install costs little
+            # no npm cache: the scheduled run executes dev's code in the default branch's context, so a cache it saved would
+            # come from code main has not taken yet; once a month, the install costs little
             - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
                   node-version: 22
@@ -243,7 +241,7 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  ref: ${{ inputs.ref || 'dev' }}
+                  ref: ${{ github.event_name == 'schedule' && 'dev' || '' }} # empty: the branch the run was started from
 
             - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
@@ -275,7 +273,7 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
                   REPO: ${{ github.repository }}
                   RUN_ID: ${{ github.run_id }}
-                  REF: ${{ inputs.ref || 'dev' }}
+                  REF: ${{ github.event_name == 'schedule' && 'dev' || github.ref_name }}
               run: |
                   note="no earlier successful run of this workflow on $REF"
                   file=
@@ -304,7 +302,7 @@ jobs:
               env:
                   PREVIOUS: ${{ steps.previous.outputs.file }}
                   NOTE: ${{ steps.previous.outputs.note }}
-                  REF: ${{ inputs.ref || 'dev' }}
+                  REF: ${{ github.event_name == 'schedule' && 'dev' || github.ref_name }}
                   RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
               run: |
                   args=(--out coverage/trends --ref "$REF" --commit "$(git rev-parse HEAD)" --run "$RUN_URL" --previous-note "$NOTE")

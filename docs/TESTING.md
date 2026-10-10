@@ -1015,9 +1015,10 @@ cast, a log message) to leave.
 and WebKit with a screenshot diff against last month's (behavior failures failing the run), and the timings,
 report-only.
 
-**By hand.** Actions › *Monthly* › *Run workflow*, with `ref` (default `dev`) naming what to check, or
-`gh workflow run monthly.yml -f ref=<branch>`. To try a change to the workflow or its tools on a branch, run the
-branch's copy on the branch: `gh workflow run monthly.yml --ref <branch> -f ref=<branch>`.
+**By hand.** Actions › *Monthly* › *Run workflow*, from the branch to check ("Use workflow from"), or
+`gh workflow run monthly.yml --ref <branch>`. A run checks the branch it starts from, with that branch's copy of the
+workflow and its tools, so a change to them is tried by running it on its own branch. There is no input naming another
+ref: a run on one would execute that ref's code in the default branch's context, where it could poison the cache.
 
 **Locally**, from the repository root, with the demo installed (*PHP tests*); the reports go to `coverage/`
 (gitignored). PCOV or Xdebug (`XDEBUG_MODE=coverage`) can measure; Infection runs as its PHAR, outside the demo's
