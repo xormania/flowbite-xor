@@ -159,6 +159,8 @@ function autocomplete(method: 'get' | 'post'): Pick<Component, 'change' | 'shows
             // not hidden as the `<select>` is (a Tom Select set up on a copy of the page took the classes Tom Select gave it)
             await expect.poll(() => group(scope, method).locator('.ts-wrapper').evaluate((wrapper) => wrapper.getBoundingClientRect().width)).toBeGreaterThan(100);
             await expect(group(scope, method).locator('.ts-wrapper .ts-control .item')).toHaveText([label]);
+            // in the Tab order (a copy's `<select>` carries the tabindex="-1" Tom Select gave it)
+            expect(await control(scope).evaluate((element) => (element as HTMLElement).tabIndex)).toBeGreaterThanOrEqual(0);
         },
     };
 }

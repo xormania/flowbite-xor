@@ -73,11 +73,23 @@ export default class extends Controller {
         if (!copied.length) {
             return;
         }
+        // the copied `<select>` also carries the tabindex="-1" Tom Select gave it, which a Tom Select set up on it takes
+        // as its own: the field's own tab index is the copied combobox's, the one Tom Select gave its focus node
+        const focus = copied.map((element) => element.querySelector('[role="combobox"]')).find(Boolean);
+        const tabIndex = focus ? focus.tabIndex : 0;
         for (const element of copied) {
             element.remove();
         }
         for (const element of tomSelect ? [tomSelect.wrapper, tomSelect.dropdown] : [this.element]) {
             element.classList.remove('tomselected', 'ts-hidden-accessible');
+        }
+        if (tomSelect) {
+            tomSelect.tabIndex = tabIndex;
+            if (!tomSelect.isDisabled) {
+                tomSelect.focus_node.tabIndex = tabIndex;
+            }
+        } else {
+            this.element.tabIndex = tabIndex;
         }
     }
 

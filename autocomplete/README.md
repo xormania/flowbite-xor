@@ -116,4 +116,4 @@ controller, which the `Autocomplete` component and the form theme put next to UX
 field in a GET form shows the URL's choice, one in a POST form the choice left (the layouts'
 [`form-reset`](../layouts/README.md#back-and-forms)), also Back from a frame visit promoted to history (a data
 table's pages), whose copy of the page Turbo takes with Tom Select on screen: `autocomplete-sync` removes the copied
-Tom Select, so the field shows one.
+Tom Select, so the field shows one, in the Tab order as before.
