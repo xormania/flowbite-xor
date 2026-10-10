@@ -24,11 +24,11 @@
         <span class="min-w-0 flex-1">{{ label }}</span>
         {%- if _vertical %}
             {#- as a SideNav branch: a drawer often holds both -#}
-            <twig:ux:icon name="flowbite:chevron-right-outline" class="size-4 shrink-0 transition-transform rtl:rotate-180 [[aria-expanded=true]>&]:rotate-90" aria-hidden="true" />
+            <twig:ux:icon name="flowbite:chevron-right-outline" class="size-4 shrink-0 transition-transform motion-reduce:transition-none! rtl:rotate-180 [[aria-expanded=true]>&]:rotate-90" aria-hidden="true" />
         {%- elseif _level > 0 %}
             <twig:ux:icon name="flowbite:chevron-right-outline" class="size-4 shrink-0 rtl:rotate-180" aria-hidden="true" />
         {%- else %}
-            <twig:ux:icon name="flowbite:chevron-down-outline" class="size-4 shrink-0 transition-transform [[aria-expanded=true]>&]:rotate-180" aria-hidden="true" />
+            <twig:ux:icon name="flowbite:chevron-down-outline" class="size-4 shrink-0 transition-transform motion-reduce:transition-none! [[aria-expanded=true]>&]:rotate-180" aria-hidden="true" />
         {%- endif %}
     </button>
     {#- shown while the button is expanded: its aria-expanded is the only state -#}

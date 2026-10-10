@@ -53,6 +53,8 @@ Use the modal component to show interactive dialogs and notifications to your we
 </twig:Modal>
 ```
 
+The backdrop fades its color (`transition-colors`); under `prefers-reduced-motion` it changes at once.
+
 ## Examples
 
 ### Static modal
