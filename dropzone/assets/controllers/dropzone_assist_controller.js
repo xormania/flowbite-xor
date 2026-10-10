@@ -11,10 +11,16 @@ function isPromotedFrameCache() {
 // through the prototype: a field named `method` shadows the form's own
 const methodOf = Object.getOwnPropertyDescriptor(HTMLFormElement.prototype, 'method').get;
 
-/** The files of the zones Turbo copied, by the key each copy carries; the latest ones, as many copies as Turbo keeps. */
+/**
+ * The files of the zones Turbo copied, by the key each zone carries into its copy of the page, with the copy they belong
+ * to: kept for the latest copies, as many as Turbo keeps (its snapshot cache holds 10), every zone of a copy included.
+ */
 const copies = new Map();
 const COPIES_KEPT = 10;
 let lastKey = 0;
+// one `turbo:before-cache` event is one copy of the page: every zone's cache action receives the same event
+let lastCacheEvent = null;
+let lastCopy = 0;
 
 /**
  * Works next to Symfony UX Dropzone's controller (`symfony--ux-dropzone--dropzone`) on a `Dropzone`, which it never
@@ -62,7 +68,7 @@ export default class extends Controller {
     connect() {
         // a copy of the page Turbo cached: the file the zone held then
         const key = this.element.getAttribute('data-dropzone-assist-copy');
-        const copied = copies.get(key) ?? null;
+        const copied = copies.get(key)?.transfer ?? null;
         copies.delete(key);
         this.element.removeAttribute('data-dropzone-assist-copy');
         const kept = this.#kept ?? copied;
@@ -96,7 +102,11 @@ export default class extends Controller {
         this.#removedIndex = null;
     }
 
-    cache() {
+    cache(event) {
+        if (event !== lastCacheEvent) {
+            lastCacheEvent = event;
+            lastCopy++;
+        }
         const form = this.inputTarget.form;
         // a frame visit promoted to history copied the page already; Turbo moves a permanent element into the next page
         if (
@@ -115,9 +125,12 @@ export default class extends Controller {
             files.items.add(file);
         }
         const key = String(++lastKey);
-        copies.set(key, files);
-        for (const old of [...copies.keys()].slice(0, -COPIES_KEPT)) {
-            copies.delete(old);
+        copies.set(key, { transfer: files, copy: lastCopy });
+        // the copies Turbo no longer keeps: every zone of each, never one zone of a copy Turbo still holds
+        for (const [old, { copy }] of copies) {
+            if (copy <= lastCopy - COPIES_KEPT) {
+                copies.delete(old);
+            }
         }
         // Turbo copies the page once this event's listeners have run: the copy carries the key
         this.element.setAttribute('data-dropzone-assist-copy', key);
