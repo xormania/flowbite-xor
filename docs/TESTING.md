@@ -1252,8 +1252,8 @@ filter by tag, also runs the `smoke` project's `@release` specs.
 [`tests/perf/baseline.json`](../tests/perf/baseline.json) in the job summary
 ([`tools/ci/release-timings.mjs`](../tools/ci/release-timings.mjs)), until the owner sets a tolerance per metric (the
 plan's step 8). A behavior assertion, a leak counter over its tolerance, a fuzzing or property failure fails the run
-as any test does. The gate on the release pull request applies from 0.3.0 (decision 4 of the plan), once `main`'s
-ruleset requires the *Release checks* check.
+as any test does. `main`'s ruleset requires the *Release checks* check on the release pull request from 0.2.0 (decision 4
+of the plan): every failure above blocks the release; the timings do not until step 8.
 
 A malformed form post (an array where the controller reads a string) is a 400, answered with Symfony's error page,
 whose inline styles the demo's policy blocks: the form fuzzing checks markup and the CSP on the answers the app renders

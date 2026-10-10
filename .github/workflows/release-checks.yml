@@ -6,8 +6,8 @@ name: Release checks
 # the overlay and editor specs in the dark theme, the heavy recipes under harsh conditions) and the PHPUnit property
 # tests with a random seed and more runs. CI (ci.yml) leaves the @release tests out.
 #
-# - On the release pull request (dev to main): main's ruleset requires this check once the gate applies (0.3.0,
-#   decision 4 of the plan).
+# - On the release pull request (dev to main): main's ruleset requires this check from 0.2.0 (decision 4 of the plan;
+#   its timings report and fail nothing until their tolerances are set, step 8).
 # - Once a day on dev, when dev changed since the last successful scheduled run: it first compares dev's head with the
 #   commit that run tested (GitHub API) and stops in seconds when nothing was merged. A failure opens one issue labeled
 #   `release-checks`, or comments on the open one, instead of failing anyone's pull request after the fact; a green run
