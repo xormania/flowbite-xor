@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { attemptsOf } from '../ci/junit-attempts.mjs';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const script = join(root, 'tools/ci/junit-attempts.mjs');
@@ -80,4 +81,15 @@ test("Node's JUnit: each failed test becomes one attempt, its file and line from
     // the runner's prefix and the file:// scheme removed, so the frames name the repository's paths
     for (const attempt of data.attempts) assert.doesNotMatch(attempt.error, /file:\/\/|\/home\/runner/);
     assert.match(data.attempts[1].error, /\(tools\/tests\/release-notes\.test\.mjs:5:62\)/);
+});
+
+test("a raw '>' inside a failure's message attribute does not cut the failure's text", () => {
+    const xml = `<testsuites><testsuite name="s"><testcase name="compares markup" classname="test" file="tools/tests/x.test.mjs">
+<failure message="Expected values to be strictly equal: '<section>' !== '<div>'" type="testCodeFailure">AssertionError: the real error
+    at TestContext.&lt;anonymous&gt; (tools/tests/x.test.mjs:12:5)</failure>
+</testcase></testsuite></testsuites>`;
+    const { attempts } = attemptsOf(xml, '', 'node');
+    assert.equal(attempts.length, 1);
+    assert.match(attempts[0].error, /^AssertionError: the real error/);
+    assert.doesNotMatch(attempts[0].error, /!==/);
 });

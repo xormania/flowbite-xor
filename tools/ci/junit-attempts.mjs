@@ -25,6 +25,8 @@ const attribute = (tag, name) => {
 
 // One element's attributes, which may hold a raw '>' (Node writes `&lt;section>`)
 const ATTRIBUTES = '((?:[^>"]|"[^"]*")*?)';
+// A failure or an error and its text; its message attribute may hold a raw '>' too
+const PROBLEM = new RegExp(`<(failure|error)\\b${ATTRIBUTES}>([\\s\\S]*?)</\\1>`);
 const TOKENS = new RegExp(`<testsuite\\b${ATTRIBUTES}(/?)>|</testsuite>|<testcase\\b${ATTRIBUTES}(?:/>|>([\\s\\S]*?)</testcase>)`, 'g');
 
 /** A JavaScript stack frame inside the repository, as `path:line:column` once the workspace prefix is removed. */
@@ -56,7 +58,7 @@ export function attemptsOf(xml, workspace = '', project = 'phpunit') {
             if (!selfClosed) suites.push(attribute(suiteOpen, 'name') ?? '');
             continue;
         }
-        const problem = body.match(/<(failure|error)\b[^>]*>([\s\S]*?)<\/\1>/);
+        const problem = body.match(PROBLEM);
         if (!problem) {
             if (/<skipped\b/.test(body)) {
                 skipped++;
@@ -70,7 +72,7 @@ export function attemptsOf(xml, workspace = '', project = 'phpunit') {
         const time = Math.round(Number(attribute(open, 'time') ?? 0) * 1000);
         if (className !== null) {
             // PHPUnit: the test's class, file and line are attributes; the message starts with the test's name
-            const error = decode(problem[2]).replaceAll(prefix, '').replace(/^.*::.*\n/, '').trim();
+            const error = decode(problem[3]).replaceAll(prefix, '').replace(/^.*::.*\n/, '').trim();
             const frame = error.match(/^([^\s:][^:\n]*\.php):(\d+)$/m);
             attempts.push({
                 testId: `${className}::${name}`,
@@ -90,7 +92,7 @@ export function attemptsOf(xml, workspace = '', project = 'phpunit') {
             continue;
         }
         // Node: no file or line; the name is escaped twice (`&amp;quot;`); a file that failed to load is its own test
-        const error = decode(problem[2]).replaceAll(`file://${prefix}`, '').replaceAll(prefix, '').trim();
+        const error = decode(problem[3]).replaceAll(`file://${prefix}`, '').replaceAll(prefix, '').trim();
         const frame = nodeFrame(error);
         const title = [...suites, decode(name)].join(' › ');
         const file = frame?.file ?? (/^[^/\s][^\s]*\.[cm]?[jt]s$/.test(name) ? name : null);
