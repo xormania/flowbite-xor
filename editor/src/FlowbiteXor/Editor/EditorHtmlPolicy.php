@@ -40,11 +40,12 @@ final class EditorHtmlPolicy
 
     private readonly HtmlSanitizer $sanitizer;
 
+    /** The same policy without a length limit, for the passes over its own output, which may be longer than the input. */
+    private readonly HtmlSanitizer $again;
+
     public function __construct()
     {
         $config = (new HtmlSanitizerConfig())
-            // the sanitizer cuts longer input: sanitize() refuses it first
-            ->withMaxInputLength(self::MAX_INPUT_BYTES)
             ->allowLinkSchemes(['https', 'http', 'mailto'])
             ->allowRelativeLinks(true)
             ->allowElement('ol', ['start'])
@@ -56,7 +57,10 @@ final class EditorHtmlPolicy
         foreach (self::UNWRAPPED as $element) {
             $config = $config->blockElement($element);
         }
-        $this->sanitizer = new HtmlSanitizer($config);
+        // the sanitizer cuts longer input: sanitize() refuses it first
+        $this->sanitizer = new HtmlSanitizer($config->withMaxInputLength(self::MAX_INPUT_BYTES));
+        // its own output is never cut: escaping makes it longer than the input it came from (each `&` is `&amp;`)
+        $this->again = new HtmlSanitizer($config->withMaxInputLength(-1));
     }
 
     /** Whether the policy reads the HTML whole: at most MAX_INPUT_BYTES bytes. */
@@ -81,7 +85,7 @@ final class EditorHtmlPolicy
         // gives what it splits to, so the output is its own output
         $clean = $this->sanitizer->sanitize($html);
         for ($pass = 1; $pass < self::MAX_PASSES; ++$pass) {
-            $again = $this->sanitizer->sanitize($clean);
+            $again = $this->again->sanitize($clean);
             if ($again === $clean) {
                 break;
             }

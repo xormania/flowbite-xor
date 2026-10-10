@@ -149,4 +149,18 @@ final class EditorHtmlPolicyTest extends TestCase
         self::assertSame(3, EditorHtmlPolicy::textLength('<p>a<br/>b</p>'));
         self::assertSame(5, EditorHtmlPolicy::textLength('<p>a<BR>b<br>c</p>'));
     }
+
+    /**
+     * Only an original input over MAX_INPUT_BYTES is refused: HTML under the limit whose sanitized form grows past it
+     * (each `&` written `&amp;`) comes back whole, never cut by a later pass.
+     */
+    public function testHtmlUnderTheLimitThatGrowsWhenEscapedComesBackWhole(): void
+    {
+        $count = EditorHtmlPolicy::MAX_INPUT_BYTES - 7;
+        $clean = (new EditorHtmlPolicy())->sanitize('<p>'.str_repeat('&', $count).'</p>');
+
+        self::assertGreaterThan(EditorHtmlPolicy::MAX_INPUT_BYTES, \strlen($clean), 'the output is longer than the limit');
+        self::assertSame($count, EditorHtmlPolicy::textLength($clean), 'every character of the text is kept');
+        self::assertStringEndsWith('</p>', $clean);
+    }
 }
