@@ -1,6 +1,22 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
+ * Whether the current `turbo:before-cache` comes from a frame visit promoted to history, which keeps the page on screen
+ * and caches a copy taken earlier (Turbo 8: its visit renders nothing). Copied from `popover_controller.js`.
+ */
+function isPromotedFrameCache() {
+    return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
+}
+
+// through the prototype: a field named `method` shadows the form's own
+const methodOf = Object.getOwnPropertyDescriptor(HTMLFormElement.prototype, 'method').get;
+
+/** The files of the zones Turbo copied, by the key each copy carries; the latest ones, as many copies as Turbo keeps. */
+const copies = new Map();
+const COPIES_KEPT = 10;
+let lastKey = 0;
+
+/**
  * Works next to Symfony UX Dropzone's controller (`symfony--ux-dropzone--dropzone`) on a `Dropzone`, which it never
  * changes: it reads its targets and listens to its `dropzone:*` events.
  *
@@ -14,6 +30,9 @@ import { Controller } from '@hotwired/stimulus';
  * - One file stays picked when the element is moved and its controllers reconnect (a `data-turbo-permanent` element
  *   across Turbo visits): UX Dropzone clears the input on every connect, so the file is put back and the input gets a
  *   `change` event (not bubbling), which shows it again.
+ * - In a form that is not a GET form (a POST form holds the user's work), one file picked stays picked after Back and
+ *   Forward: before Turbo copies the page, the file is kept under a key the zone carries into the copy, and put back
+ *   the same way when the copy connects. A GET form, which cannot send files, and a zone outside a form start empty.
  *
  * @target input       The file input.
  * @target placeholder The inside of the box shown before a pick.
@@ -29,6 +48,7 @@ import { Controller } from '@hotwired/stimulus';
  * @action cleared     Focuses the input after the Remove button cleared the pick (`dropzone:clear`).
  * @action removing    Records which file's Remove button was clicked (in the capture phase).
  * @action removed     Focuses the Remove button now at that place, else the last one, else the input (`dropzone:remove`).
+ * @action cache       On `turbo:before-cache`: keeps the file of a zone in a form that is not a GET form for the copy.
  */
 export default class extends Controller {
     static targets = ['input', 'placeholder', 'preview', 'clearButton', 'list'];
@@ -40,7 +60,12 @@ export default class extends Controller {
     #kept = null;
 
     connect() {
-        const kept = this.#kept;
+        // a copy of the page Turbo cached: the file the zone held then
+        const key = this.element.getAttribute('data-dropzone-assist-copy');
+        const copied = copies.get(key) ?? null;
+        copies.delete(key);
+        this.element.removeAttribute('data-dropzone-assist-copy');
+        const kept = this.#kept ?? copied;
         this.#kept = null;
         if (!kept?.files.length || this.hasListTarget || !this.hasPreviewTarget) {
             return;
@@ -55,6 +80,7 @@ export default class extends Controller {
     }
 
     disconnect() {
+        // the key stays: Turbo may copy the page after its controllers disconnected
         // the same element may connect again (moved); a new element (Back, a Turbo Stream) gets a new controller
         if (!this.hasListTarget && this.inputTarget.files?.length) {
             this.#kept = new DataTransfer();
@@ -68,6 +94,33 @@ export default class extends Controller {
         this.#inputFocused = false;
         this.#clearing = false;
         this.#removedIndex = null;
+    }
+
+    cache() {
+        const form = this.inputTarget.form;
+        // a frame visit promoted to history copied the page already; Turbo moves a permanent element into the next page
+        if (
+            isPromotedFrameCache() ||
+            this.hasListTarget ||
+            !this.hasPreviewTarget ||
+            !this.inputTarget.files?.length ||
+            !form ||
+            'get' === methodOf.call(form) ||
+            this.element.closest('[data-turbo-permanent]')
+        ) {
+            return;
+        }
+        const files = new DataTransfer();
+        for (const file of this.inputTarget.files) {
+            files.items.add(file);
+        }
+        const key = String(++lastKey);
+        copies.set(key, files);
+        for (const old of [...copies.keys()].slice(0, -COPIES_KEPT)) {
+            copies.delete(old);
+        }
+        // Turbo copies the page once this event's listeners have run: the copy carries the key
+        this.element.setAttribute('data-dropzone-assist-copy', key);
     }
 
     dragOver(event) {

@@ -51,11 +51,20 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `popover`, `dropdown`: one open inside a `data-turbo-permanent` element closed when a visit moved it into the next
+  page; it now stays open, as the user left it (the modal and the drawer already did).
+- `dropzone`: in a POST form, a file picked was gone after Back and Forward (UX Dropzone clears the input of Turbo's
+  copy as it connects); the zone now keeps it for the copy and shows it again. A zone outside such a form still starts
+  empty.
+- `autocomplete`: in a Live Component form, a value the server set in a re-render (a reset, another record) reached the
+  `<select>` but Tom Select still showed the one before; the new `autocomplete-sync` controller, put next to UX
+  Autocomplete's by the `Autocomplete` component and the form theme, makes Tom Select show it.
 - `autocomplete`: after a reset of its form (a reset button, `form.reset()`), Tom Select showed the choice made before,
-  the `<select>` holding the one rendered; it showed it right only after Back through the layouts' `form-reset`. The
-  new `autocomplete-assist` controller, next to UX Autocomplete's in `Autocomplete` and in the form theme's choice
-  fields, syncs Tom Select once the reset is done, without `layouts`, for a field tied to its form by `form` too, with
-  no `input` or `change` event (no Live request).
+  the `<select>` holding the one rendered; it showed it right only after Back through the layouts' `form-reset`.
+  `autocomplete-sync` now also syncs Tom Select once the reset is done, without `layouts`, for a field tied to its
+  form by `form` too, with no `input` or `change` event (no Live request).
+- `data-table-live`: the row selection, which leaving the page drops, came back with Back and Forward when Turbo
+  showed its copy of the page; the new `data-table-live` controller clears it as such a copy connects.
 - `calendar`: a form reset cancelled by another listener (`preventDefault()` on `reset`) still brought back the dates
   rendered; the calendar now acts once the `reset` event is over, and only when it was not cancelled. Its README lists
   the `reset` source of `calendar:select`.

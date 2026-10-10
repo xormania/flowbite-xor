@@ -3,6 +3,7 @@
     "type": "component",
     "name": "DataTableLive",
     "copy-files": {
+        "assets/": "assets/",
         "src/": "src/",
         "templates/": "templates/"
     },

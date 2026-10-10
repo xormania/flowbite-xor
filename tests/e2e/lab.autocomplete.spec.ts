@@ -117,7 +117,7 @@ test('in a Live form, a re-render keeps the chosen values and one Tom Select per
 
 /*
  * A reset of the field's form (a reset button, form.reset()): the <select> takes back its selected options, and Tom
- * Select shows them, through the kit's autocomplete-assist controller, with or without the layouts' form-reset
+ * Select shows them, through the recipe's autocomplete-sync controller, with or without the layouts' form-reset
  * controller on <body> (?bare=1), silently (no input or change event).
  */
 
@@ -266,9 +266,9 @@ test('a reset syncs the current Tom Select once, after the controller reconnects
     expect(await syncs()).toBe(0);
 
     // connected again, twice: one listener
-    await setControllers('symfony--ux-autocomplete--autocomplete autocomplete-assist');
+    await setControllers('symfony--ux-autocomplete--autocomplete autocomplete-sync');
     await setControllers('symfony--ux-autocomplete--autocomplete');
-    await setControllers('symfony--ux-autocomplete--autocomplete autocomplete-assist');
+    await setControllers('symfony--ux-autocomplete--autocomplete autocomplete-sync');
     await pick(page, control(page, 'Pet'), 'fis', 'Fish');
     await spySync();
     await resetPets();

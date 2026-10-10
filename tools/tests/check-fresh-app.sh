@@ -70,15 +70,23 @@ grep -qE 'Showing <span[^>]*>11–20</span> of <span[^>]*>25</span>' "$work/acti
 echo "ok: the live orders DataTableLive renders and answers a Live action (HTTP 200)"
 
 # the autocomplete recipe: a form field with `'autocomplete' => true` renders through the form theme with UX
-# Autocomplete's controller, the kit's autocomplete-assist and the label reference for Tom Select, the Autocomplete
+# Autocomplete's controller, the recipe's autocomplete-sync and the label reference for Tom Select, the Autocomplete
 # component renders a Select with both controllers, and the remote field's search URL answers with its JSON results
 page="$(fetch /pick "$@")"
+# the select's controllers: UX Autocomplete's, and the recipe's autocomplete-sync beside it (one list, any order)
+controllers() { grep -oE 'data-controller="[^"]*"' <<< "$1" | cut -d'"' -f2 | tr ' ' '\n'; }
 select="$(grep -oE '<select[^>]*id="form_country"[^>]*>' <<< "$page")"
-for expected in 'data-controller="symfony--ux-autocomplete--autocomplete autocomplete-assist"' 'aria-labelledby="form_country-ts-label"' 'rounded-base'; do
+for expected in symfony--ux-autocomplete--autocomplete autocomplete-sync; do
+    controllers "$select" | grep -qx -- "$expected" || { echo "FAIL: the autocomplete form field lacks the $expected controller" >&2; exit 1; }
+done
+for expected in 'aria-labelledby="form_country-ts-label"' 'rounded-base'; do
     grep -q -- "$expected" <<< "$select" || { echo "FAIL: the autocomplete form field lacks $expected" >&2; exit 1; }
 done
 select="$(grep -oE '<select[^>]*id="fruit"[^>]*>' <<< "$page")"
-for expected in 'data-controller="symfony--ux-autocomplete--autocomplete autocomplete-assist"' 'aria-labelledby="fruit-ts-label"' 'tom-select-options-value="{&quot;create&quot;:true}"' 'rounded-base'; do
+for expected in symfony--ux-autocomplete--autocomplete autocomplete-sync; do
+    controllers "$select" | grep -qx -- "$expected" || { echo "FAIL: the Autocomplete component lacks the $expected controller" >&2; exit 1; }
+done
+for expected in 'aria-labelledby="fruit-ts-label"' 'tom-select-options-value="{&quot;create&quot;:true}"' 'rounded-base'; do
     grep -q -- "$expected" <<< "$select" || { echo "FAIL: the Autocomplete component lacks $expected" >&2; exit 1; }
 done
 url="$(grep -oE '<select[^>]*id="form_customer"[^>]*>' <<< "$page" | grep -oE 'autocomplete-url-value="[^"]*"' | cut -d'"' -f2)"

@@ -37,6 +37,9 @@ while IFS= read -r path; do
         .github/workflows/pages.yml) on static-site workflows ;;
         .github/workflows/release.yml) on static-site fresh-install workflows ;;
         .github/workflows/audit.yml | .github/workflows/codeql.yml | .github/actionlint.yaml) on workflows ;;
+        # monthly.yml runs on its schedule and by hand on dev, never on a push, and no job here runs what it runs (the
+        # browser tests' opt-in coverage, tests/e2e/coverage.ts, is part of the browser tests below)
+        .github/workflows/monthly.yml) on workflows ;;
         .github/*) all ;;
 
         # The browser tests and their tools. tools/test-inventory.mjs (Contrast) reads which specs exist, the accessibility
@@ -60,6 +63,8 @@ while IFS= read -r path; do
         tools/phpstan.neon) on php ;;
         # The browser job's own tools (its results summary, the Jev diagnosis) and their cases: only that job runs them
         tools/ci/* | tools/tests/*.test.mjs | tools/tests/fixtures/playwright-results/*) on demo ;;
+        # The monthly job's report tools and their cases: only monthly.yml runs them (run it by hand on the branch)
+        tools/monthly/*) ;;
         # release.yml's plan: Workflows runs its cases and its dry run
         tools/release-plan.sh | tools/tests/release-plan.sh) on workflows ;;
         tools/*) on php static-site demo ;;

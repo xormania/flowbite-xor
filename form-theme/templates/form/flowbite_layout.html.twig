@@ -170,9 +170,9 @@
     {%- set _control_attr = {multiple: multiple} -%}
     {%- set _controllers = (attr['data-controller'] ?? '')|split(' ') -%}
     {%- if 'symfony--ux-autocomplete--autocomplete' in _controllers -%}
-        {#- the autocomplete recipe's autocomplete-assist controller next to UX Autocomplete's: syncs Tom Select after a reset of the select's form -#}
-        {%- if 'autocomplete-assist' not in _controllers -%}
-            {%- set _control_attr = _control_attr|merge({'data-controller': attr['data-controller'] ~ ' autocomplete-assist'}) -%}
+        {#- the autocomplete recipe's autocomplete-sync: Tom Select shows the choice a Live Component's re-render sets, and the one a reset of the select's form puts back -#}
+        {%- if 'autocomplete-sync' not in _controllers -%}
+            {%- set _control_attr = _control_attr|merge({'data-controller': attr['data-controller'] ~ ' autocomplete-sync'}) -%}
         {%- endif -%}
         {%- if attr['aria-labelledby'] is not defined and label is not same as(false) -%}
             {#- Tom Select (the autocomplete recipe) points the label at its own input and names it "<id>-ts-label" unless it has an id: the hidden select keeps the label's name through it -#}
