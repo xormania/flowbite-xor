@@ -76,9 +76,9 @@ controllers. Previewing untrusted code would need a separate origin and containe
 CI runs them on every push, each job only when the change could affect what it checks
 ([`tools/ci-changes.sh`](tools/ci-changes.sh)); pushes to `main` and `dev`, and a run by hand, run everything. A
 branch is compared with where it left `dev`, so each push checks the whole pull request. The rulesets require the one
-*CI result* check, which passes when every job passed or was skipped, and require a branch to be up to date with its
-base before it merges: merge the base in and push, so that CI has run on the code that lands (there is no merge
-queue). CI runs the script as the base branch has it, so a branch cannot change its own checks; a job the base's
+*CI result* check, which passes when every job passed or was skipped, and `dev`'s requires a branch to be up to date
+with it before it merges: merge `dev` in and push, so that CI has run on the code that lands (there is no merge
+queue; a work order's jobs need not be up to date with it, *Work orders* below). CI runs the script as the base branch has it, so a branch cannot change its own checks; a job the base's
 script does not know yet runs. A path no row below names counts as part of the kit until `tools/ci-changes.sh` and its
 test (`tools/tests/ci-changes.sh`) say otherwise. A deleted file counts as a change to its path, a renamed one as a
 change to both paths.
@@ -416,7 +416,29 @@ side effect. A visual change is a commit of its own:
 Examples: `feat(stat-card): show the trend as text`, `fix(layouts): every layout shows flash messages`.
 
 **Branches:** `main` holds released code only. Work branches start from `dev` and their pull requests target `dev`;
-a release is a pull request from `dev` to `main` (*Releases* below).
+a release is a pull request from `dev` to `main` (*Releases* below). Work made of several pull requests goes through
+a work order (below); a single change stays one branch and one pull request into `dev`.
+
+**Work orders:** one objective delivered in several reviewable parts, without each part merging into `dev` on its own.
+
+- **Branches:** the work order is `claude/wo-<name>`, made from `dev`; each part (a job) is
+  `claude/wo-<name>--<job>`, made from the work order and merged back into it by its pull request. The names are
+  siblings, not `<name>/<job>`, which Git cannot hold beside `<name>`. The work order's ruleset (`claude/wo-*`,
+  leaving out `claude/wo-*--*`) requires *CI result* and *CodeQL*, merge commits and resolved conversations, but not
+  being up to date, so jobs merge as they are ready. Job branches take ordinary pushes, review fixes included.
+- **The record:** the work order's pull request into `dev`, opened as a draft once its first job has merged, holds the
+  objective, what is in and out, the completion criteria, each revision of them and why, a row per job (outcome,
+  branch, pull request, merged head, disposition) and what is still open.
+- **A job's pull request** follows the standard here, Codex review included, and carries its own `CHANGELOG.md`
+  entries and `docs/TEST-INVENTORY.md` rows. A conflict with a job merged before it is resolved in the job's branch,
+  by merging the work order in.
+- **Bringing `dev` in:** the work order takes no direct push (a new commit has no checks yet), so `dev` comes in
+  through a job, `claude/wo-<name>--sync`, that merges it; once just before the final pull request, and earlier
+  when a job needs something `dev` gained.
+- **Finishing:** the work order's pull request into `dev` is marked ready when every job has merged and CI has passed
+  on the work order with `dev` in it; its description then checks each completion criterion against that commit. It
+  merges like any pull request into `dev`. Each job ends merged, superseded (naming its successor) or abandoned
+  (saying why); its branch is deleted once its work is in the work order or recorded as dropped.
 
 **Pull request:** one topic, with a title in the commit subject format. The description follows
 [the template](.github/pull_request_template.md):
