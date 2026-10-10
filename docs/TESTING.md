@@ -924,7 +924,9 @@ because it is experimental (`ci.yml`, `UX_TOOLKIT_VERSION`).
 **Catches:** a controller that works only in Chromium (an event order, a focus rule, an API another engine lacks or
 implements differently), and a test that passes only there.
 
-Chromium runs every test; Firefox and WebKit run every behavior test, without the screenshot comparisons. Each
+Chromium runs every test; Firefox and WebKit run every behavior test, without the screenshot comparisons and without
+the broad axe scans of `a11y.spec.ts` (443 per engine, a third of the run's test time; a component's own scan in its
+spec still runs in every engine). Each
 browser has two projects in `playwright.config.ts` (`browserProjects()`): `smoke` and `examples` for Chromium,
 `smoke-firefox` and `examples-firefox`, `smoke-webkit` and `examples-webkit` for the others. A test that compares
 pixels, with a baseline or two screenshots with each other, is tagged `@screenshot` (`screenshotAnnotation()` in

@@ -51,8 +51,8 @@ check 'contrast'                  docs/TESTING.md CHANGELOG.md FOR-AGENTS.md .gi
 check 'contrast'                  docs/ROADMAP.md CONTRIBUTING.md AGENTS.md
 check 'contrast'                  tools/docs-lint.mjs tools/llms-txt.mjs llms.txt
 check 'contrast'                  tools/test-inventory.mjs
-check 'contrast demo'             tools/icon-lint.mjs
-check 'contrast demo'             tools/tests/icon-lint.test.mjs
+check 'contrast'                  tools/icon-lint.mjs
+check ''                          tools/tests/icon-lint.test.mjs
 # What the lints read wherever it lies: a recipe's templates (icon-lint) and any markdown outside demo/ (docs-lint,
 # icon-lint); the demo's copies of the recipes are not read
 check "$kit_contrast"             input/templates/components/Input.html.twig
@@ -72,8 +72,9 @@ check 'static-site fresh-install workflows' .github/workflows/release.yml
 check 'workflows'                 .github/workflows/audit.yml
 check 'workflows'                 .github/workflows/codeql.yml
 check 'workflows'                 .github/actionlint.yaml
-# monthly.yml runs on its schedule and by hand, never on a push: actionlint only. Its tools (tools/monthly/) and their
-# cases run in it alone; the browser tests' opt-in coverage (tests/e2e/coverage.ts) is part of the browser tests
+# monthly.yml runs on its schedule and by hand, never on a push: actionlint only. Its tools' cases (tools/monthly/) run
+# in Tool tests, on every run, so they select no job; the browser tests' opt-in coverage (tests/e2e/coverage.ts) is part
+# of the browser tests
 check 'workflows'                 .github/workflows/monthly.yml
 check ''                          tools/monthly/js-coverage.mjs tools/monthly/php-scope.php tools/monthly/monthly.test.mjs
 check 'demo'                      tests/e2e/coverage.ts
@@ -114,8 +115,8 @@ check 'fresh-install'             tools/tests/live-action.php
 check 'fresh-install'             tools/tests/fixtures/fresh-app/templates/home.html.twig
 check 'demo'                      tools/tests/fixtures/sync-kit/manifest.json
 check 'demo'                      tools/ci/playwright-summary.mjs
-check 'demo'                      tools/tests/playwright-summary.test.mjs
-check 'demo'                      tools/tests/fixtures/playwright-results/timed.json
+# tools' cases and their fixtures run in Tool tests, on every run: no other job
+check ''                          tools/tests/playwright-summary.test.mjs tools/tests/fixtures/playwright-results/timed.json
 check 'php static-site demo'      tools/sync-demo
 check 'php static-site fresh-install demo' demo/compose.yaml
 check 'php static-site fresh-install demo' demo/frankenphp/Caddyfile
@@ -134,9 +135,9 @@ check "$kit_contrast"             data-table/src/Table/DataTable.php
 check "$kit_contrast"             alert/README.md
 check "$kit_contrast"             alert/manifest.json
 check_git "$kit_contrast"         'mkdir -p alert/templates && echo a > alert/templates/x.html.twig && git add alert'
-check 'contrast demo'             tools/readme-pairing.mjs tools/readme-versions.mjs
-check 'contrast demo'             tools/tests/readme-pairing.test.mjs
-check 'demo'                      tools/tests/jev-diagnosis.test.mjs
+check 'contrast'                  tools/readme-pairing.mjs tools/readme-versions.mjs
+check ''                          tools/tests/readme-pairing.test.mjs
+check ''                          tools/tests/jev-diagnosis.test.mjs
 check "$kit_contrast"             docs/NOTES.md kit.css
 
 if [ "$failures" -gt 0 ]; then

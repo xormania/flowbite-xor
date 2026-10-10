@@ -91,17 +91,17 @@ change to both paths.
 | a recipe (any of its files but `tests/`: Contrast pairs its code with its `README.md`, and its `README.md` with its `manifest.json`), `kit.css`, `README.md`, `INSTALL.md`, any file in a directory no other row names | the same and *Contrast* |
 | a spec: `tests/e2e/*.spec.ts`, a recipe's `tests/*.spec.ts` | *Contrast* (`tools/test-inventory.mjs`), *Demo + Playwright* |
 | any other file in `tests/` or a recipe's `tests/`, `playwright.config.ts`, `tools/prepare-tests.mjs`, `tools/tests/prepare-tests.test.mjs`, `tools/tests/sync-demo.sh`, `tools/tests/fixtures/sync-kit/` | *Demo + Playwright* |
-| `tools/ci/`, the other `tools/tests/*.test.mjs`, `tools/tests/fixtures/playwright-results/` (the browser job's own tools and their cases) | *Demo + Playwright* |
+| `tools/ci/` (the browser job's own tools: its results summary, the Jev diagnosis) | *Demo + Playwright* |
+| `tools/tests/*.test.mjs`, `tools/tests/fixtures/playwright-results/`, `tools/monthly/` (every tool's cases, and the monthly report tools) | nothing else: *Tool tests* runs all the tools' cases on every run, in seconds, with no install |
 | `package.json`, `package-lock.json` | *Contrast*, *Demo + Playwright* |
 | any other markdown file outside `demo/` | *Contrast* (`tools/docs-lint.mjs`, `tools/icon-lint.mjs`), and the jobs its path runs |
 | `tools/contrast/`, `tools/llms-txt.mjs`, `tools/docs-lint.mjs`, `tools/test-inventory.mjs`, `llms.txt` | *Contrast* |
-| `tools/icon-lint.mjs`, `tools/tests/icon-lint.test.mjs` | *Contrast*, *Demo + Playwright* (its cases) |
-| `tools/readme-versions.mjs`, `tools/readme-pairing.mjs`, `tools/tests/readme-*.test.mjs` | *Contrast*, *Demo + Playwright* (its `node --test` runs every `*.test.mjs`) |
+| `tools/icon-lint.mjs` | *Contrast* |
+| `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` | *Contrast* |
 | `tools/fence-coverage.mjs` | *Contrast*, *Static site* |
 | `tools/build-static.sh` | *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
 | `tools/release-plan.sh`, `tools/tests/release-plan.sh` | *Workflows* |
-| `tools/monthly/` (the monthly job's tools and their cases) | nothing: only `monthly.yml` runs them; run it by hand on the branch (*Monthly job* in [`docs/TESTING.md`](docs/TESTING.md)) |
 | `tools/tests/fresh-install.sh`, `docker-install.sh`, their shared steps `install-scenario.sh`, `check-fresh-app.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
 | any other file in `tools/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
 | `demo/compose.yaml`, `demo/frankenphp/Caddyfile` | *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
@@ -164,7 +164,8 @@ runs them with `CREATE_SNAPSHOTS=false`, so a missing snapshot fails there. The 
 
 `npx playwright test` runs six projects, two per browser: `smoke` and `examples` in Chromium, `smoke-firefox` and
 `examples-firefox`, `smoke-webkit` and `examples-webkit`. Firefox and WebKit run every behavior test and no screenshot
-comparison: a test that compares pixels is tagged `@screenshot` and runs in Chromium only. Pick projects with
+comparison: a test that compares pixels is tagged `@screenshot` and runs in Chromium only, and so do the broad axe
+scans of `a11y.spec.ts`. Pick projects with
 `--project` (several allowed). See [`docs/TESTING.md`](docs/TESTING.md), *Browsers*.
 
 CI runs *Demo + Playwright* as three shards per browser, nine jobs side by side, each with its own demo and

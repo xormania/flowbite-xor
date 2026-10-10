@@ -167,6 +167,23 @@ jobs:
     # skips a package whose file and installed.php entry are already there, so their own install downloads nothing.
     # A CDN error is retried here, twice, before the run fails: one bad connection no longer fails a shard before any
     # test runs. The fresh-install jobs still download for themselves: that is what they check.
+    # Every tool's own cases, once per run, on every run: tools/tests/*.test.mjs (the CI results summarizer, the Jev
+    # diagnosis, prepare-tests, icon-lint, the README checks) and tools/monthly/*.test.mjs (the monthly reports). Node
+    # built-ins only, no install, a few seconds; no browser job or Contrast runs them again.
+    tools:
+        name: Tool tests
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: 22
+
+            - name: The tools' own cases
+              run: node --test 'tools/tests/*.test.mjs' 'tools/monthly/*.test.mjs'
+
     importmap:
         name: Importmap packages
         needs: changes
@@ -385,9 +402,6 @@ jobs:
             - name: The test inventory has a row per recipe with a controller and names existing tests; a11y scans every lab page
               run: node tools/test-inventory.mjs
 
-            - name: The README checks' own cases
-              run: node --test tools/tests/readme-versions.test.mjs tools/tests/readme-pairing.test.mjs
-
             - name: Each recipe README renders its manifest's dependencies and writes no version table
               run: node tools/readme-versions.mjs
 
@@ -431,13 +445,6 @@ jobs:
               with:
                   node-version: 22
                   cache: npm
-
-            # The tools that read the results below, on their own cases: the summarizer (its fixtures are in
-            # tools/tests/fixtures/playwright-results/) and the Jev diagnosis (against a local stand-in for the provider)
-            - name: The CI tools' own cases
-              id: summarizer-cases
-              if: matrix.browser == 'chromium' && matrix.shard == 1
-              run: node --test 'tools/tests/*.test.mjs'
 
             # The demo runs in Symfony Docker (demo/compose.yaml): FrankenPHP in worker mode, PHP 8.5
             - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -551,7 +558,6 @@ jobs:
                   DEMO_STARTED: ${{ steps.start.outcome }}
                   TESTS_OUTCOME: ${{ steps.tests.outcome }}
                   SETUP_STEPS: |
-                      The CI tools' own cases=${{ steps.summarizer-cases.outcome }}
                       Build the demo image=${{ steps.image.outcome }}
                       Start the demo=${{ steps.start.outcome }}
                       Sync recipes into the demo=${{ steps.sync.outcome }}
@@ -638,7 +644,7 @@ jobs:
     result:
         name: CI result
         if: always()
-        needs: [changes, importmap, lint-kit, php, static-site, fresh-install, docker-install, contrast, workflows, demo]
+        needs: [changes, tools, importmap, lint-kit, php, static-site, fresh-install, docker-install, contrast, workflows, demo]
         runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:

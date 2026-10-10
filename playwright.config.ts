@@ -68,7 +68,8 @@ function browserProjects(browser: keyof typeof desktop) {
         {
             name: `smoke${suffix}`,
             testDir: './tests/e2e',
-            testIgnore: 'examples/**',
+            // the broad axe scans (a11y.spec.ts) run in Chromium only: Firefox and WebKit run the behavior
+            testIgnore: other ? ['examples/**', 'a11y.spec.ts'] : 'examples/**',
             ...select,
             use: { ...devices[desktop[browser]] },
         },
