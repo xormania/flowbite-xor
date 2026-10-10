@@ -227,7 +227,7 @@ test('timings.mjs fails, not reports nothing, when no step was timed', () => {
     assert.equal(JSON.parse(readFileSync(join(ok, 'timings.json'), 'utf8')).steps['modal open'].runs, 1);
 });
 
-test('screenshots: each test matches, differs (with the ratio Playwright gives) or errs, keyed apart from the engine', () => {
+test('screenshots: each test matches, differs (with the ratio Playwright gives) or errs, keyed apart from the engine and the line', () => {
     const differs = { status: 'failed', errors: [{ message: 'Error: expect(page).toHaveScreenshot(expected) failed\n\n  1203 pixels (ratio 0.01 of all image pixels) are different.' }] };
     const size = { status: 'failed', errors: [{ message: 'Error: expect(page).toHaveScreenshot(expected) failed\n\n  Expected an image 800px by 600px, received 800px by 610px.' }] };
     const other = { status: 'timedOut', errors: [{ message: 'Test timeout of 30000ms exceeded.' }] };
@@ -236,26 +236,42 @@ test('screenshots: each test matches, differs (with the ratio Playwright gives) 
         ['examples-firefox', 'badge/tests/badge.spec.ts', 5, 'pill', [differs]],
         ['examples-firefox', 'card/tests/card.spec.ts', 3, 'image', [size]],
         ['smoke-firefox', 'tests/e2e/forms.spec.ts', 40, 'parity', [{ status: 'failed', errors: [] }, other]],
-    ]), 'firefox');
+    ]), 'firefox', '2/3');
+    // a line added above a test does not make it another test next month: the key is the project, file and titles
     assert.deepEqual(result, {
         browser: 'firefox',
+        shard: '2/3',
         tests: {
-            'examples alert/tests/alert.spec.ts:8 › default': { status: 'matches', ratio: null },
-            'examples badge/tests/badge.spec.ts:5 › pill': { status: 'differs', ratio: 0.01 },
-            'examples card/tests/card.spec.ts:3 › image': { status: 'differs', ratio: null },
-            'smoke tests/e2e/forms.spec.ts:40 › parity': { status: 'error', ratio: null },
+            'examples alert/tests/alert.spec.ts › default': { status: 'matches', ratio: null },
+            'examples badge/tests/badge.spec.ts › pill': { status: 'differs', ratio: 0.01 },
+            'examples card/tests/card.spec.ts › image': { status: 'differs', ratio: null },
+            'smoke tests/e2e/forms.spec.ts › parity': { status: 'error', ratio: null },
         },
     });
 });
 
-test('screenshots: the shards merge per engine', () => {
-    const a = { browser: 'webkit', tests: { 'examples a:1 › x': { status: 'matches', ratio: null } } };
-    const b = { browser: 'webkit', tests: { 'examples b:1 › y': { status: 'differs', ratio: 0.2 } } };
-    const c = { browser: 'firefox', tests: { 'examples a:1 › x': { status: 'differs', ratio: 0.05 } } };
-    assert.deepEqual(mergeScreenshots([a, b, c]), {
-        firefox: { 'examples a:1 › x': { status: 'differs', ratio: 0.05 } },
-        webkit: { 'examples a:1 › x': { status: 'matches', ratio: null }, 'examples b:1 › y': { status: 'differs', ratio: 0.2 } },
+test('screenshots: the shards merge per engine, only when every shard of every engine is there', () => {
+    const shard = (browser, n, tests) => ({ browser, shard: `${n}/2`, tests });
+    const a = shard('webkit', 1, { 'examples a › x': { status: 'matches', ratio: null } });
+    const b = shard('webkit', 2, { 'examples b › y': { status: 'differs', ratio: 0.2 } });
+    const c = shard('firefox', 1, { 'examples a › x': { status: 'differs', ratio: 0.05 } });
+    const d = shard('firefox', 2, {});
+    assert.deepEqual(mergeScreenshots([a, b, c, d], ['firefox', 'webkit']), {
+        firefox: { 'examples a › x': { status: 'differs', ratio: 0.05 } },
+        webkit: { 'examples a › x': { status: 'matches', ratio: null }, 'examples b › y': { status: 'differs', ratio: 0.2 } },
     });
+    // a shard that made no report: no partial totals, the merge refuses and names what is missing
+    assert.throws(() => mergeScreenshots([a, b, c], ['firefox', 'webkit']), /firefox: shard 2\/2 missing/);
+    assert.throws(() => mergeScreenshots([a, b], ['firefox', 'webkit']), /firefox: no shard/);
+});
+
+test('screenshots.mjs --merge fails without writing a report when a shard is missing', () => {
+    const dir = scratch();
+    writeFileSync(join(dir, 'a.json'), JSON.stringify({ browser: 'webkit', shard: '1/2', tests: {} }));
+    const result = run('screenshots.mjs', ['--merge', '--browsers', 'webkit', '--out', dir, join(dir, 'a.json')]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /webkit: shard 2\/2 missing/);
+    assert.throws(() => readFileSync(join(dir, 'screenshots.json')));
 });
 
 test('trends: timings and screenshots next to last month\'s, report only', () => {

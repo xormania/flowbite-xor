@@ -1114,7 +1114,9 @@ comment ran; a controller no test loaded lists every method it declares. A test'
 coverage changed, files whose surviving mutants changed, and methods that never ran this time but ran, or did not
 exist, last time. For each engine, the screenshots that differ now and matched last time, those that match now and
 differed, and those whose ratio changed: a difference from Chromium is expected, a change since last month is the
-news. Each timed step's median and INP stand next to last time's. The first run, or one whose predecessor's artifact
+news. A test is the same test from month to month by its project, file and titles, not its line. The screenshots
+are reported only when every shard of both engines made its report: a missing shard leaves them *not reported*,
+never partial totals. Each timed step's median and INP stand next to last time's. The first run, or one whose predecessor's artifact
 expired, says *No previous run* and why; a section last month's `monthly.json` did not have yet reads *not
 reported*. A run that failed is not compared with: the next one compares with the last green one.
 

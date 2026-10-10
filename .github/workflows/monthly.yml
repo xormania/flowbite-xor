@@ -331,7 +331,7 @@ jobs:
 
             - name: Read the screenshots
               if: ${{ !cancelled() && steps.screenshots.outcome != 'skipped' }}
-              run: node tools/monthly/screenshots.mjs --browser ${{ matrix.browser }} --out screenshots playwright-results/results.json
+              run: node tools/monthly/screenshots.mjs --browser ${{ matrix.browser }} --shard ${{ matrix.shard }}/3 --out screenshots playwright-results/results.json
 
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               if: ${{ !cancelled() && steps.screenshots.outcome != 'skipped' }}
@@ -521,7 +521,8 @@ jobs:
                       echo "::warning::no screenshot report: the Firefox and WebKit jobs made none"
                       exit 0
                   fi
-                  node tools/monthly/screenshots.mjs --merge --out coverage/screenshots "${files[@]}"
+                  # every shard of both engines, or no report: a missing shard never leaves partial totals
+                  node tools/monthly/screenshots.mjs --merge --browsers firefox,webkit --out coverage/screenshots "${files[@]}"
 
             # The latest successful run of this workflow, other than this one, whose monthly-trends artifact exists and
             # was made on the same ref; none on the first run, or once the artifact expired

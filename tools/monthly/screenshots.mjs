@@ -4,13 +4,16 @@
  * reads the Playwright JSON report of a Firefox or WebKit run with PW_SCREENSHOTS=all, which compares every
  * @screenshot test with the Chromium baselines, and says of each test whether it matches, differs (with the ratio of
  * different pixels Playwright gives, when it gives one) or failed another way. The trends (trends.mjs) compare that
- * with last month's. Tests are keyed without the engine's project suffix: `examples <file>:<line> › <title>`.
+ * with last month's. Tests are keyed by project (without the engine's suffix), file and titles, not by line, so a
+ * line added above a test keeps it the same test next month: `examples <file> › <title>`.
  *
- * Usage: node tools/monthly/screenshots.mjs --browser <firefox|webkit> --out <dir> <results.json>
- *        node tools/monthly/screenshots.mjs --merge --out <dir> <screenshots-*.json>...
- * The first writes <dir>/screenshots-<browser>.json; the second merges the shards into <dir>/screenshots.json
- * ({ <browser>: { <test>: { status, ratio } } }) and <dir>/screenshots.md (also appended to $GITHUB_STEP_SUMMARY).
- * Exit status 0; 1 when the report holds no test (nothing was compared); 64 on bad usage or an unreadable input.
+ * Usage: node tools/monthly/screenshots.mjs --browser <firefox|webkit> --shard <n>/<total> --out <dir> <results.json>
+ *        node tools/monthly/screenshots.mjs --merge --browsers firefox,webkit --out <dir> <screenshots-*.json>...
+ * The first writes <dir>/screenshots-<browser>-<n>.json; the second merges the shards into <dir>/screenshots.json
+ * ({ <browser>: { <test>: { status, ratio } } }) and <dir>/screenshots.md (also appended to $GITHUB_STEP_SUMMARY),
+ * only when every shard of every engine named is there: a missing one makes no report, never partial totals.
+ * Exit status 0; 1 when the report holds no test (nothing was compared) or a shard is missing; 64 on bad usage or an
+ * unreadable input.
  */
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,14 +29,14 @@ function* testsOf(suites = [], titles = []) {
         for (const spec of suite.specs ?? []) {
             for (const test of spec.tests ?? []) {
                 const project = (test.projectName ?? '').replace(/-(firefox|webkit)$/, '');
-                yield [`${project} ${spec.file}:${spec.line} › ${[...path, spec.title].join(' › ')}`, test];
+                yield [`${project} ${spec.file} › ${[...path, spec.title].join(' › ')}`, test];
             }
         }
         yield* testsOf(suite.suites, path);
     }
 }
 
-export function screenshotResults(report, browser) {
+export function screenshotResults(report, browser, shard = null) {
     const tests = {};
     for (const [key, test] of testsOf(report.suites)) {
         const last = test.results?.at(-1);
@@ -51,10 +54,23 @@ export function screenshotResults(report, browser) {
         }
     }
 
-    return { browser, tests };
+    return { browser, shard, tests };
 }
 
-export function merge(shards) {
+/** The shards merged per engine; throws, naming it, when an engine has no shard or misses one of its total. */
+export function merge(shards, browsers) {
+    for (const browser of browsers) {
+        const mine = shards.filter((s) => s.browser === browser);
+        if (!mine.length) {
+            throw new Error(`${browser}: no shard reported`);
+        }
+        const total = Number(String(mine[0].shard).split('/')[1]);
+        for (let n = 1; n <= total; n++) {
+            if (!mine.some((s) => s.shard === `${n}/${total}`)) {
+                throw new Error(`${browser}: shard ${n}/${total} missing`);
+            }
+        }
+    }
     const merged = {};
     for (const { browser, tests } of shards) {
         merged[browser] = { ...merged[browser], ...tests };
@@ -87,10 +103,12 @@ function main(argv) {
     const value = (name) => (argv.includes(name) ? argv[argv.indexOf(name) + 1] : undefined);
     const out = value('--out');
     const browser = value('--browser');
+    const shard = value('--shard');
+    const browsers = value('--browsers')?.split(',');
     const isMerge = argv.includes('--merge');
-    const files = argv.filter((arg, i) => !arg.startsWith('--') && !['--out', '--browser'].includes(argv[i - 1]));
-    if (!out || !files.length || (!isMerge && !browser)) {
-        console.error('Usage: screenshots.mjs --browser <name> --out <dir> <results.json> | --merge --out <dir> <screenshots-*.json>...');
+    const files = argv.filter((arg, i) => !arg.startsWith('--') && !['--out', '--browser', '--shard', '--browsers'].includes(argv[i - 1]));
+    if (!out || !files.length || (isMerge ? !browsers : !browser || !/^\d+\/\d+$/.test(shard ?? ''))) {
+        console.error('Usage: screenshots.mjs --browser <name> --shard <n>/<total> --out <dir> <results.json> | --merge --browsers <a,b> --out <dir> <screenshots-*.json>...');
         return 64;
     }
     let inputs;
@@ -102,15 +120,21 @@ function main(argv) {
     }
     mkdirSync(out, { recursive: true });
     if (!isMerge) {
-        const result = screenshotResults(inputs[0], browser);
+        const result = screenshotResults(inputs[0], browser, shard);
         if (!Object.keys(result.tests).length) {
             console.error(`screenshots: no test in ${files[0]}: nothing was compared`);
             return 1;
         }
-        writeFileSync(join(out, `screenshots-${browser}.json`), `${JSON.stringify(result, null, 2)}\n`);
+        writeFileSync(join(out, `screenshots-${browser}-${shard.split('/')[0]}.json`), `${JSON.stringify(result, null, 2)}\n`);
         return 0;
     }
-    const merged = merge(inputs);
+    let merged;
+    try {
+        merged = merge(inputs, browsers);
+    } catch (error) {
+        console.error(`screenshots: no report: ${error.message}`);
+        return 1;
+    }
     writeFileSync(join(out, 'screenshots.json'), `${JSON.stringify(merged, null, 2)}\n`);
     const text = markdown(merged);
     writeFileSync(join(out, 'screenshots.md'), text);
