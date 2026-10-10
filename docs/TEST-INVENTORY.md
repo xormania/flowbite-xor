@@ -17,6 +17,9 @@ moves or removes coverage updates the rows it touches, and its own coverage map 
   affect the recipe (no state it would lose, or the recipe never sits where it happens); `css` means the theme changes
   only CSS variables, so the screenshots of both themes cover the end states and nothing runs in between; **T2**,
   **T3** mean the check belongs to tier 2 (counts) or tier 3 (release checks) of the plan, not to tier 1.
+- **Code coverage** is not tracked here: the monthly job reports the recipes' PHP lines and surviving mutants, and
+  the controllers' JS lines with the methods no test runs ([`TESTING.md`](TESTING.md), *Monthly job*). A method it
+  lists as never run is a candidate gap for this file, checked against the behavior before a row changes.
 
 ## Which recipes are here
 

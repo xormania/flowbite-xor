@@ -72,11 +72,17 @@ check 'static-site fresh-install workflows' .github/workflows/release.yml
 check 'workflows'                 .github/workflows/audit.yml
 check 'workflows'                 .github/workflows/codeql.yml
 check 'workflows'                 .github/actionlint.yaml
+# monthly.yml runs on its schedule and by hand, never on a push: actionlint only. Its tools (tools/monthly/) and their
+# cases run in it alone; the browser tests' opt-in coverage (tests/e2e/coverage.ts) is part of the browser tests
+check 'workflows'                 .github/workflows/monthly.yml
+check ''                          tools/monthly/js-coverage.mjs tools/monthly/php-scope.php tools/monthly/monthly.test.mjs
+check 'demo'                      tests/e2e/coverage.ts
 check "$all"                      .github/workflows/ci.yml
 check "$all"                      .github/workflows/nightly.yml
 check "$all"                      .github/actions/setup/action.yml
 check_git 'static-site workflows' 'git rm -q .github/workflows/pages.yml'
 check_git 'workflows'             'git rm -q .github/workflows/codeql.yml'
+check_git 'workflows'             'git rm -q .github/workflows/monthly.yml'
 check_git "$all"                  'git mv .github/workflows/pages.yml .github/workflows/site.yml'
 check_git "$all"                  'git mv .github/workflows/ci.yml .github/workflows/checks.yml'
 
