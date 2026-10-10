@@ -171,7 +171,8 @@ test('a calendar whose inputs belong to a form outside it, with no date yet, fol
     await expect(dates.locator('[data-slot="calendar-day"][data-day="2026-03-10"]')).toHaveAttribute('aria-selected', 'false');
 });
 
-// the `reset` event is cancelable and comes before the fields are reset: the calendar acts once it is over, if not cancelled
+// the `reset` event is cancelable and comes before the fields are reset: the calendar acts on the window, after the
+// form's listeners, in the same task (hidden inputs are not reset by the browser), and undoes it if a later one cancels
 test('a reset another listener cancels leaves the selection; the next one brings back the date rendered, with the source reset', async ({ page }) => {
     await page.goto('/lab/calendar-turbo?day=2026-03-10');
     const calendar = page.getByRole('group', { name: 'Day' });
@@ -218,16 +219,27 @@ test('a reset another listener cancels leaves the selection; the next one brings
     await expectSelected('2026-03-10', '2026-03-12');
     expect(await sources()).toEqual(['reset']);
 
-    // disconnected while its reset waits for the event to end: nothing more happens
+    // form.reset() resets the hidden inputs in the same task: a FormData taken right after it holds the date rendered
+    await day(calendar, '2026-03-12').click();
+    await expect(input).toHaveValue('2026-03-12');
+    expect(
+        await page.evaluate(() => {
+            const form = document.getElementById('cal-day')!.closest('form')!;
+            form.reset();
+            return new FormData(form).getAll('day');
+        })
+    ).toEqual(['2026-03-10']);
+    await expectSelected('2026-03-10', '2026-03-12');
+
+    // cancelled by a window listener added after the calendar's: once the event is over, the calendar shows its dates again
     await day(calendar, '2026-03-12').click();
     await expect(input).toHaveValue('2026-03-12');
     await page.evaluate(() => {
         (window as any).__sources = [];
-        const element = document.getElementById('cal-day')!;
-        element.closest('form')!.reset();
-        element.removeAttribute('data-controller');
+        window.addEventListener('reset', (event) => event.preventDefault());
+        document.getElementById('cal-day')!.closest('form')!.reset();
     });
     await settle();
-    await expect(input).toHaveValue('2026-03-12');
-    expect(await sources()).toEqual([]);
+    await expectSelected('2026-03-12', '2026-03-10');
+    expect(await sources()).toEqual(['reset', 'reset']);
 });

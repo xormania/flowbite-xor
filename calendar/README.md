@@ -41,8 +41,9 @@ With `name`, the calendar renders hidden inputs that the form submits:
 dispatches `input` and `change` on the inputs, as a typed field would. The day and navigation buttons are
 `type="button"`: they never submit the form. A reset of the form (a reset button, or Back to a GET form through
 the layouts' [`form-reset`](../layouts/README.md#back-and-forms)) brings back the month and dates the server rendered,
-with no `input` or `change`, once the reset is done: a reset another listener cancels (`preventDefault()` on the
-`reset` event) changes nothing, as for the native fields. That holds for inputs tied to a form outside the calendar (`inputAttr: {form: …}`), even
+with no `input` or `change`, in the same task (a `FormData` taken right after `form.reset()` holds them): a reset
+another listener cancels (`preventDefault()` on the `reset` event) changes nothing, as for the native fields; one
+cancelled by a window listener added after the calendar's is put back as soon as the event is over. That holds for inputs tied to a form outside the calendar (`inputAttr: {form: …}`), even
 before a multiple calendar has any.
 
 `minDate`, `maxDate` and `disabled` only guide the user: check the submitted dates on the server (Symfony's `Range`,

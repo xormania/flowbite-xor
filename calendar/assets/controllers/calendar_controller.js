@@ -110,7 +110,8 @@ export default class extends Controller {
         this.#relabel();
         this.#render();
         this.#form = this.#owningForm();
-        this.#form?.addEventListener('reset', this.#formReset);
+        // on the window, as the event bubbles: after the form's and the document's own listeners
+        window.addEventListener('reset', this.#formReset);
     }
 
     // the form the hidden inputs belong to: an input's own, or, before a multiple calendar has any, the one its
@@ -126,7 +127,7 @@ export default class extends Controller {
     }
 
     disconnect() {
-        this.#form?.removeEventListener('reset', this.#formReset);
+        window.removeEventListener('reset', this.#formReset);
         this.#form = null;
         for (const timeout of this.#resetTimeouts) {
             clearTimeout(timeout);
@@ -300,19 +301,30 @@ export default class extends Controller {
         }
     }
 
-    // the form is about to be reset: the event comes first, and a listener after this one may cancel it (a click on a
-    // reset button checks for microtasks between listeners, so a task is the first point after all of them)
+    // the form is being reset: the event comes before the fields are reset, and the browser leaves hidden inputs alone,
+    // so the calendar puts back the dates it rendered now, in the same task (`form.reset(); new FormData(form)` sends
+    // them). It listens on the window, once the form's and the document's listeners have had their say: a reset one of
+    // them cancelled changes nothing. A window listener after this one may still cancel it: after a task, the calendar
+    // puts back what it showed before.
     #formReset = (event) => {
+        if (event.target !== this.#form || event.defaultPrevented) {
+            return;
+        }
+        const month = this.#month;
+        const selected = [...this.#selected];
+        this.#reset();
         const timeout = setTimeout(() => {
             this.#resetTimeouts.delete(timeout);
-            if (!event.defaultPrevented) {
-                this.#reset();
+            if (event.defaultPrevented) {
+                if (month !== this.#month) {
+                    this.#setMonth(month);
+                }
+                this.#setSelected(selected, 'reset', false);
             }
         });
         this.#resetTimeouts.add(timeout);
     };
 
-    // the form was reset: back to what the server rendered (the `month` and `selected` attributes)
     #reset() {
         if (this.monthValue && this.monthValue !== this.#month) {
             this.#setMonth(this.monthValue);
