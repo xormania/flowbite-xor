@@ -17,6 +17,9 @@ moves or removes coverage updates the rows it touches, and its own coverage map 
   affect the recipe (no state it would lose, or the recipe never sits where it happens); `css` means the theme changes
   only CSS variables, so the screenshots of both themes cover the end states and nothing runs in between; **T2**,
   **T3** mean the check belongs to tier 2 (counts) or tier 3 (release checks) of the plan, not to tier 1.
+- **Code coverage** is not tracked here: the monthly job reports the recipes' PHP lines and surviving mutants, and
+  the controllers' JS lines with the methods no test runs ([`TESTING.md`](TESTING.md), *Monthly job*). A method it
+  lists as never run is a candidate gap for this file, checked against the behavior before a row changes.
 
 ## Which recipes are here
 
@@ -260,6 +263,8 @@ drawer closed, open as a modal, open on load, static backdrop, drawer non-modal;
 | all three | Inside a `data-turbo-permanent` element, open during a visit: it comes back open (owner decision 6b: permanent, all kept), a dialog modal, its trigger expanded; it works on both pages. The menu came back closed before (it closed on `turbo:before-cache` and as it reconnected); a visit started by the page keeps it open now, also in lab.value-matrix | E2E lab | lab.overlays "inside a data-turbo-permanent element, it keeps working across visits" (3), lab.value-matrix |
 | all three | Frame reloaded three times from a link inside the open overlay: the new one closed, nothing left modal, one controller per element, no listener left | E2E lab | lab.overlays "inside a Turbo Frame reloaded three times…" (3) |
 | all three | Stream replace and update, twice each, while open: the new one closed and working, nothing left modal, one controller, no listener left | E2E lab | lab.overlays "replaced or updated by a Turbo Stream while open…" (3) |
+| all three | Counts (tier 2): opening and closing make no request and connect no controller; an open dropdown adds the outside click and the scroll and resize listeners and closing removes them, a dialog adds none | E2E lab | counts "<recipe>: opening and closing make no request and leave no listener" (3) |
+| dropdown, tooltip | Counts (tier 2): a Live action re-sorting rows makes one request and disconnects and connects each moved row's dropdown and tooltip once, leaving no listener | E2E lab | counts "a Live action re-sorting rows makes one request…" |
 | all three | Open beside a frame visit promoted to history, started from a link inside it or from the page's code: stays open (a dialog still modal), its trigger expanded, the focus where it was; Back and Forward show it closed from the first frame, and it works (failed before the fix: each closed on `turbo:before-cache`) | E2E lab | lab.overlays "open while a link inside it / the page's code steps a frame promoted to history…" (6) |
 | all three | Open while the theme switches | | T3 (wide matrices) |
 
@@ -309,6 +314,7 @@ modifiers, locale; the picker closed or open, typed text valid or invalid.
 | date-picker | Server refusal comes back as typed | E2E demo | forms "the date picker opt-in submits the pick; a date the server refuses comes back as typed, with its error" |
 | date-picker | Live re-render while the calendar is open | | G12 |
 | date-picker | Open beside a frame visit promoted to history (the page's code): stays open on its day; Back shows it closed with the URL's date (its GET form), not the pick of the copy; the frame's own link closes it first (failed before the fix like popover) | E2E lab | lab.date-picker "a date picker open while the page code steps a frame promoted to history…" |
+| date-picker | Counts (tier 2): opening and a pick make no request and connect no controller; opening adds the popover's outside click, scroll and resize listeners, the pick removes them | E2E lab | counts "date-picker: opening and picking a date…" |
 | calendar | Beside a frame visit promoted to history | | G12 |
 
 ### chart
@@ -341,6 +347,7 @@ States: content, selection, toolbar states, counter, read-only; markdown's Write
 |---|---|---|---|
 | editor | Mount, toolbar keys and states, commands, links, paste, counter, read-only, axe | E2E demo | editor (8 tests) |
 | editor | Form post 422; Back (content and selection); N visits; permanent; frame ×3; Stream; Live (typing kept, focused re-render); frame advance | E2E lab | lab.editor (9 tests) |
+| editor | Counts (tier 2): typing makes no request, connects no controller and adds no listener | E2E lab | counts "editor: typing makes no request…" |
 | markdown-editor | Preview through Live, unsafe Markdown, toolbar, tab keys, counter, read-only, axe | E2E demo | markdown-editor (7 tests) |
 | markdown-editor | Form post 422; Back; N visits; permanent; frame ×3; Stream; frame advance | E2E lab | lab.markdown-editor (7 tests) |
 | editor | Server policy (`EditorHtmlPolicy`): the preset kept, everything else removed, white space alone next to a block's tag removed (space between inline tags kept), the same output twice; its text counted as the editor's counter does (a line break one, lines between blocks none) | unit | `EditorHtmlPolicyTest` (moved from hostile-props "the editor's policy keeps the preset…"); the Editor given a hostile value, parsed by the browser: hostile-props |
@@ -389,6 +396,7 @@ States: search, filter, sort and direction, page, page size (in the URL); data-t
 | A page past the end shows the last page, loaded once | unit; functional; Live component; E2E lab | `FetchTest::testAPagePastTheEndLoadsTheLastPageOnce`; `DataTableRequestsTest::testAPagePastTheEndLoadsOnlyTheLastPage`; `OrdersTableTest::testAPagePastTheEndShowsTheLastPage`; lab.data-table-frame "a page number too large for an offset shows the last page" (R3) |
 | No matching row: no load, empty state | unit; E2E lab | `FetchTest::testNoMatchingRowLoadsNoRows`; lab.data-table-frame "a search matching nothing shows the empty state" (R3) |
 | One count, one load per request; a Live action's page not read again | functional | `DataTableRequestsTest` (4 tests) |
+| Counts (tier 2): sort, page and filter each make one request (the frame's, or the Live action's), connect no controller and leave no listener, their responses under a budget | E2E lab | counts "data-table in a Turbo Frame: …", "data-table-live: …" |
 | Selection cut to `maxSelection`, ids cleaned, "Select this page" bounded | unit; Live component; E2E lab | `SelectionTest` (5 tests); `OrdersTableTest` (3 tests); lab.data-table-live "a selection the browser sends is cut to the table's limit before the server uses it" (R2) |
 | Stable row ids, cell blocks | E2E lab | lab.data-table-frame "rows have stable ids and render the page cell blocks" |
 
@@ -459,7 +467,9 @@ where the guarantee stays.
 | `PNG`, `png()`, `text()` | dropzone, forms, lab.dropzone | `tests/e2e/files.ts` |
 | `/preview/<recipe>/<id>?theme=light` builders | dropzone, editor, popover, markdown-editor; `gotoExample` | `inventory.ts` |
 | `dialogState` / `:modal` checks | lab.turbo-restore, lab.live-modal, lab.live-drawer | `fixtures.ts` |
-| `status`, `params` | lab.data-table-frame, lab.data-table-live | a data table helper module |
+| `status`, `params` | lab.data-table-frame, lab.data-table-live, counts (`tableStatus`) | a data table helper module |
+| Listener counting: `trackGlobalListeners` (`document` and `window`, from `fixtures.ts`) and `trackCounts` (every target still in the document, from `counts.ts`) | lab.popover, lab.tooltip, lab.overlays; counts | one tracker in `fixtures.ts`, the global reader a view of it |
+| `follow(page, name)`: a link followed from the keyboard, so Turbo does not prefetch it | lab.data-table-interrupt, counts | `transitions.ts` |
 | ~~Reading a shard's results with an inline `node -e` (stats only; a JSON error when setup had failed)~~ **Done:** `tools/ci/playwright-summary.mjs`: counts, failed and flaky tests with their errors, annotations, the tested commit and versions, `failed-attempts.json`, report-only durations (`durations.json`); tells setup failure, missing and invalid reports apart | `.github/workflows/ci.yml` (*Demo + Playwright*, *Read the results*) | `tools/ci/playwright-summary.mjs`, its cases in `tools/tests/playwright-summary.test.mjs` ([`TESTING.md`](TESTING.md), *Reading CI results*) |
 | ~~Release tags accepted after an install check whatever commit they point at; notes from the checked-out `CHANGELOG.md`~~ **Done:** `tools/release-plan.sh`: each version's expected commit (the first one of main's first-parent history adding its heading), the tag's state (lightweight or annotated, peeled), the notes at that commit; refuses a tag on another commit | `.github/workflows/release.yml` (*Plan the tags and notes*), `ci.yml` (*Workflows*: its cases and a dry run on main) | `tools/release-plan.sh`, its cases in `tools/tests/release-plan.sh` (scratch repositories) ([`CONTRIBUTING.md`](../CONTRIBUTING.md), *Releases*) |
 
@@ -484,5 +494,8 @@ a browser, so E2E lab, on the existing scaffold. G11 comes from *Rules and their
 | G11 | ~~**Icons from UX Icons' `flowbite` set** (*Rules and their tests*) has no check~~ **Closed:** `tools/icon-lint.mjs` (Contrast); `input/README.md`'s "With Button" example now uses `flowbite:search-outline`. Was: | A name `ux:icons:lock` misses is not in the project's `assets/icons/`; a name from another set teaches agents to use it. Today `input/README.md`'s "With Button" example uses `tabler:search` | A repository check (Contrast): every `ux:icon` and `ux_icon()` name in the recipes' templates and the markdown is a quoted `flowbite:` name | — (not tier 1) |
 | G12 | **Form widgets' values** beyond Back: autocomplete values with frame advance; calendar, chart and dropzone beside a promoted frame visit; date-picker re-rendered by Live while open. (Autocomplete in a permanent element and the data-table-live selection after a visit and Back are covered by lab.value-matrix.) | Values are what the user typed or chose; these paths are not covered by `form-reset` (no form, a Live re-render) | Extend the existing lab specs, or add the frame visit promoted to history as a transition of lab.value-matrix | Form widgets |
 
-Tier 2 (step 5) turns every "N visits" cell above into a Stimulus instance count, and tier 3 (step 7) takes the
+Tier 2 (step 5) gates the key interactions on their counts (`counts`, [`TESTING.md`](TESTING.md), *Interaction
+counts*): the dropdown, modal and drawer opening and closing, the data table's sort, page and filter in a Turbo Frame
+and in Live, a Live action re-sorting rows, a date pick and typing in the editor. The "N visits" cells shown by their
+effect (and the T2 cells) are still to become Stimulus instance counts. Tier 3 (step 7) takes the
 overlays and editors × both themes (wide matrices), which this map marks T3.

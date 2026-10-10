@@ -20,13 +20,14 @@ and pull request standard.
 | `tools/ci/playwright-summary.mjs` | no | reads a CI shard's Playwright report: the job summary, annotations, `failed-attempts.json` and `durations.json` ([`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*) |
 | `tools/ci/jev-diagnosis.mjs`, `tools/ci/jev-ci.json` | no | the advisory Jev diagnosis of each failed attempt in `failed-attempts.json`, and its policy ([`docs/TESTING.md`](docs/TESTING.md), *Jev diagnosis*) |
 | `tools/release-plan.sh` | no | what `release.yml` tags and publishes for each version: the commit, the tag's state, the notes; refuses a tag on another commit (*Releases*) |
+| `tools/monthly/` | no | the monthly job's scope and reports: PHP coverage of the recipes' `src/` and Infection's surviving mutants, the controllers' JS coverage, and the trends against the previous run ([`docs/TESTING.md`](docs/TESTING.md), *Monthly job*) |
 | `tools/phpstan.neon` | no | PHPStan's level and extensions (Symfony, PHPUnit) for the recipes' PHP and the demo's tables and tests |
 | `tools/tests/` | no | the cases of `tools/ci-changes.sh`, `tools/ci/playwright-summary.mjs`, `tools/ci/jev-diagnosis.mjs`, `tools/prepare-tests.mjs`, `tools/icon-lint.mjs`, `tools/readme-versions.mjs`, `tools/readme-pairing.mjs` and `tools/release-plan.sh`; `sync-demo` parity with `ux:install`; install of the kit on a fresh Symfony skeleton (exported kit, Symfony 7.4) and in a fresh Symfony Docker project (GitHub's archive, Symfony 8.1) |
 | `tests/e2e/`, `playwright.config.ts`, `<recipe>/tests/` | no | Playwright tests against the demo; screenshot baselines |
 | `tools/build-static.sh` | no | builds and checks the gallery as a static site, for CI's *Static site* job and `pages.yml` (*Releases*) |
 | `tools/prepare-tests.mjs` | no | what the browser tests need, safe with several Playwright processes in one checkout: the recipe specs' runnable copies and the demo's CSS (*Checks*) |
 | `FOR-AGENTS.md`, `llms.txt` | no | the page for coding agents given the repository's URL, and the list of every page for them ([llms.txt](https://llmstxt.org/)) |
-| `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), the testing patterns ([`docs/TESTING.md`](docs/TESTING.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, Dependabot's update pull requests, the pull request template |
+| `docs/`, `.github/` | no | notes on the toolkit and platform behavior this repository works around ([`docs/NOTES.md`](docs/NOTES.md)), a snippet that projects using the kit paste into their own `AGENTS.md` ([`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md)), the testing patterns ([`docs/TESTING.md`](docs/TESTING.md)), CI, the gallery on GitHub Pages (`pages.yml`), CodeQL code scanning, the weekly `npm audit`, the monthly coverage and mutation reports (`monthly.yml`), Dependabot's update pull requests, the pull request template |
 
 `ux:install` downloads GitHub's archive of the whole repository; `export-ignore` in `.gitattributes` keeps
 everything else out of it (the demo, tests, tools, and repository files such as this one, `AGENTS.md`,
@@ -75,9 +76,9 @@ controllers. Previewing untrusted code would need a separate origin and containe
 CI runs them on every push, each job only when the change could affect what it checks
 ([`tools/ci-changes.sh`](tools/ci-changes.sh)); pushes to `main` and `dev`, and a run by hand, run everything. A
 branch is compared with where it left `dev`, so each push checks the whole pull request. The rulesets require the one
-*CI result* check, which passes when every job passed or was skipped, and require a branch to be up to date with its
-base before it merges: merge the base in and push, so that CI has run on the code that lands (there is no merge
-queue). CI runs the script as the base branch has it, so a branch cannot change its own checks; a job the base's
+*CI result* check, which passes when every job passed or was skipped, and `dev`'s requires a branch to be up to date
+with it before it merges: merge `dev` in and push, so that CI has run on the code that lands (there is no merge
+queue; a work order's jobs need not be up to date with it, *Work orders* below). CI runs the script as the base branch has it, so a branch cannot change its own checks; a job the base's
 script does not know yet runs. A path no row below names counts as part of the kit until `tools/ci-changes.sh` and its
 test (`tools/tests/ci-changes.sh`) say otherwise. A deleted file counts as a change to its path, a renamed one as a
 change to both paths.
@@ -100,6 +101,7 @@ change to both paths.
 | `tools/build-static.sh` | *Static site* |
 | `tools/phpstan.neon` | *Kit PHP* |
 | `tools/release-plan.sh`, `tools/tests/release-plan.sh` | *Workflows* |
+| `tools/monthly/` (the monthly job's tools and their cases) | nothing: only `monthly.yml` runs them; run it by hand on the branch (*Monthly job* in [`docs/TESTING.md`](docs/TESTING.md)) |
 | `tools/tests/fresh-install.sh`, `docker-install.sh`, their shared steps `install-scenario.sh`, `check-fresh-app.sh`, `live-action.php`, `tools/tests/fixtures/fresh-app/` | both *Fresh install* jobs |
 | any other file in `tools/` | *Kit PHP*, *Static site*, *Demo + Playwright* |
 | `demo/compose.yaml`, `demo/frankenphp/Caddyfile` | *Kit PHP*, *Static site*, both *Fresh install* jobs, *Demo + Playwright* |
@@ -108,6 +110,7 @@ change to both paths.
 | `.github/workflows/pages.yml` | *Workflows*, *Static site* (the same build, `tools/build-static.sh`, without the upload) |
 | `.github/workflows/release.yml` | *Workflows*, both *Fresh install* jobs (it runs `docker-install.sh`), *Static site* (it calls `pages.yml`); nothing runs the release itself, *Workflows* runs its plan as a dry run |
 | `.github/workflows/audit.yml`, `.github/workflows/codeql.yml` | *Workflows*; each also runs itself on the pull request that changes it |
+| `.github/workflows/monthly.yml` | *Workflows*; it runs on its schedule and by hand, never on a push |
 | `.github/workflows/ci.yml`, `tools/ci-changes.sh`, `tools/tests/ci-changes.sh`, any other file in `.github/` (a new or renamed workflow) | everything |
 
 *Workflows* runs [actionlint](https://github.com/rhysd/actionlint) with ShellCheck on every workflow: YAML, expressions,
@@ -141,6 +144,12 @@ phpstan analyse -c tools/phpstan.neon --autoload-file=demo/vendor/autoload.php d
 tools/tests/fresh-install.sh                        # a new Symfony app installs dashboard-home, signup and data-table from the last commit (PHP=…, COMPOSER_BIN=…: other binaries)
 KIT_REF=<pushed commit SHA or tag> tools/tests/docker-install.sh   # the same in a new Symfony Docker project (Symfony 8.1), kit downloaded from GitHub
 npx playwright test                                 # every browser test: see below
+node --test 'tools/monthly/*.test.mjs'              # the cases of the monthly job's report tools (tools/monthly/)
+php tools/monthly/php-scope.php coverage/php        # the monthly job's PHP scope: coverage/php/phpunit.xml and infection.json5 (the recipes' src/)
+(cd demo && bin/phpunit -c ../coverage/php/phpunit.xml --coverage-clover ../coverage/php/clover.xml) && node tools/monthly/php-coverage.mjs --out coverage/php coverage/php/clover.xml   # PHP coverage per recipe class (needs PCOV, or Xdebug with XDEBUG_MODE=coverage)
+(cd demo && php infection.phar -c ../coverage/php/infection.json5) && node tools/monthly/infection.mjs --out coverage/php coverage/php/infection/infection.json   # Infection's MSI and surviving mutants (the PHAR CI pins in monthly.yml)
+JS_COVERAGE=$PWD/coverage/js/raw npx playwright test && node tools/monthly/js-coverage.mjs --out coverage/js coverage/js/raw   # the controllers' JS coverage and the methods no test runs (Chromium)
+node tools/monthly/trends.mjs --out coverage/trends --php coverage/php/php-coverage.json --infection coverage/php/infection-summary.json --js coverage/js/js-coverage.json   # the numbers in one monthly.json, against --previous <monthly.json>
 actionlint                                          # every workflow, with ShellCheck on its run steps (CI pins actionlint 1.7.12 and ShellCheck 0.11.0)
 ```
 
@@ -163,8 +172,10 @@ the same section.
 
 - `smoke` runs the specs in `tests/e2e/`: the demo pages, the forms, the `/lab` pages for Turbo and Live
   Components, the components given hostile prop values (`hostile-props.spec.ts`), the demo's security headers and
-  Content Security Policy (`csp.spec.ts`), and an axe accessibility scan of every demo page (no serious or critical
-  issue).
+  Content Security Policy (`csp.spec.ts`), an axe accessibility scan of every demo page (no serious or critical
+  issue), and the counts of the key interactions (`counts.spec.ts`: requests, Stimulus controllers connected and
+  disconnected, listeners left, response bytes under a budget; a change that moves one updates its number in the spec,
+  [`docs/TESTING.md`](docs/TESTING.md), *Interaction counts*).
 - `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
   runs the recipes' own specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`). It fails
   on a committed screenshot that no test compares (`baselines.spec.ts`).
@@ -405,7 +416,29 @@ side effect. A visual change is a commit of its own:
 Examples: `feat(stat-card): show the trend as text`, `fix(layouts): every layout shows flash messages`.
 
 **Branches:** `main` holds released code only. Work branches start from `dev` and their pull requests target `dev`;
-a release is a pull request from `dev` to `main` (*Releases* below).
+a release is a pull request from `dev` to `main` (*Releases* below). Work made of several pull requests goes through
+a work order (below); a single change stays one branch and one pull request into `dev`.
+
+**Work orders:** one objective delivered in several reviewable parts, without each part merging into `dev` on its own.
+
+- **Branches:** the work order is `claude/wo-<name>`, made from `dev`; each part (a job) is
+  `claude/wo-<name>--<job>`, made from the work order and merged back into it by its pull request. The names are
+  siblings, not `<name>/<job>`, which Git cannot hold beside `<name>`. The work order's ruleset (`claude/wo-*`,
+  leaving out `claude/wo-*--*`) requires *CI result* and *CodeQL*, merge commits and resolved conversations, but not
+  being up to date, so jobs merge as they are ready. Job branches take ordinary pushes, review fixes included.
+- **The record:** the work order's pull request into `dev`, opened as a draft once its first job has merged, holds the
+  objective, what is in and out, the completion criteria, each revision of them and why, a row per job (outcome,
+  branch, pull request, merged head, disposition) and what is still open.
+- **A job's pull request** follows the standard here, Codex review included, and carries its own `CHANGELOG.md`
+  entries and `docs/TEST-INVENTORY.md` rows. A conflict with a job merged before it is resolved in the job's branch,
+  by merging the work order in.
+- **Bringing `dev` in:** the work order takes no direct push (a new commit has no checks yet), so `dev` comes in
+  through a job, `claude/wo-<name>--sync`, that merges it; once just before the final pull request, and earlier
+  when a job needs something `dev` gained.
+- **Finishing:** the work order's pull request into `dev` is marked ready when every job has merged and CI has passed
+  on the work order with `dev` in it; its description then checks each completion criterion against that commit. It
+  merges like any pull request into `dev`. Each job ends merged, superseded (naming its successor) or abandoned
+  (saying why); its branch is deleted once its work is in the work order or recorded as dropped.
 
 **Pull request:** one topic, with a title in the commit subject format. The description follows
 [the template](.github/pull_request_template.md):
