@@ -12,6 +12,8 @@ import { summarize, markdown as infectionMarkdown } from './infection.mjs';
 import { codeLines, controllerName, declaredMethods, ranCharacters, report } from './js-coverage.mjs';
 import { parseClover } from './php-coverage.mjs';
 import { collect, markdown as trendsMarkdown } from './trends.mjs';
+import { gather as gatherTimings, markdown as timingsMarkdown } from './timings.mjs';
+import { merge as mergeScreenshots, screenshotResults } from './screenshots.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const run = (script, args) => spawnSync(process.execPath, [join(here, script), ...args], { encoding: 'utf8', env: { ...process.env, GITHUB_STEP_SUMMARY: '' } });
@@ -182,4 +184,96 @@ test('trends.mjs writes monthly.json, the artifact the next run compares with', 
     assert.equal(saved.version, 1);
     assert.equal(saved.php.lines.pct, 75);
     assert.equal(saved.js, null);
+});
+
+// A Playwright JSON report holding the given tests: [project, file, line, title, results, annotations?]
+const pwReport = (tests) => ({
+    config: { version: '1.58.2', projects: [] },
+    suites: [{
+        title: 'f', file: 'f', specs: tests.map(([project, file, line, title, results, annotations = []]) => ({
+            title, file, line, ok: true, tests: [{ projectName: project, status: 'expected', annotations, results }],
+        })),
+    }],
+});
+const timing = (step, durationMs, inpMs) => ({ type: 'timing', description: JSON.stringify({ step, durationMs, inpMs }) });
+
+test('timings: per step, the median, the spread (p25–p75), min and max over every passed run, and the median INP', () => {
+    const runs = [12, 10, 30, 11, 13].map((ms, i) => ['smoke', 'tests/e2e/counts.spec.ts', 35, 'dropdown', [{ status: 'passed', annotations: [timing('dropdown open', ms, i < 4 ? 40 + i : null), timing('dropdown close', 5, null)] }]]);
+    // a failed run's timings are left out: the step may not have completed
+    runs.push(['smoke', 'tests/e2e/counts.spec.ts', 35, 'dropdown', [{ status: 'failed', annotations: [timing('dropdown open', 999, 999)] }]]);
+    const { steps } = gatherTimings([pwReport(runs)]);
+    assert.deepEqual(steps['dropdown open'], { runs: 5, medianMs: 12, p25Ms: 11, p75Ms: 13, spreadMs: 2, minMs: 10, maxMs: 30, inpMedianMs: 41.5, inpRuns: 4 });
+    assert.equal(steps['dropdown close'].inpMedianMs, null, 'no interaction recorded: null, not 0');
+    const text = timingsMarkdown({ steps });
+    assert.match(text, /\| dropdown open \| 5 \| 12 ms \| 11–13 ms \(2\) \| 10–30 ms \| 41\.5 ms \|/);
+    assert.match(text, /\| dropdown close \| 5 \| 5 ms \| 5–5 ms \(0\) \| 5–5 ms \| — \|/);
+});
+
+test('timings: a test-level annotation is read when the results carry none (older reports)', () => {
+    const { steps } = gatherTimings([pwReport([['smoke', 'c.spec.ts', 1, 't', [{ status: 'passed' }], [timing('editor typing', 20, 8)]]])]);
+    assert.equal(steps['editor typing'].medianMs, 20);
+});
+
+test('timings.mjs fails, not reports nothing, when no step was timed', () => {
+    const dir = scratch();
+    writeFileSync(join(dir, 'results.json'), JSON.stringify(pwReport([['smoke', 'c.spec.ts', 1, 't', [{ status: 'passed', annotations: [] }]]])));
+    const result = run('timings.mjs', ['--out', dir, join(dir, 'results.json')]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /no timing/);
+    const ok = scratch();
+    writeFileSync(join(ok, 'results.json'), JSON.stringify(pwReport([['smoke', 'c.spec.ts', 1, 't', [{ status: 'passed', annotations: [timing('modal open', 7, null)] }]]])));
+    const written = run('timings.mjs', ['--out', ok, join(ok, 'results.json')]);
+    assert.equal(written.status, 0, written.stderr);
+    assert.equal(JSON.parse(readFileSync(join(ok, 'timings.json'), 'utf8')).steps['modal open'].runs, 1);
+});
+
+test('screenshots: each test matches, differs (with the ratio Playwright gives) or errs, keyed apart from the engine', () => {
+    const differs = { status: 'failed', errors: [{ message: 'Error: expect(page).toHaveScreenshot(expected) failed\n\n  1203 pixels (ratio 0.01 of all image pixels) are different.' }] };
+    const size = { status: 'failed', errors: [{ message: 'Error: expect(page).toHaveScreenshot(expected) failed\n\n  Expected an image 800px by 600px, received 800px by 610px.' }] };
+    const other = { status: 'timedOut', errors: [{ message: 'Test timeout of 30000ms exceeded.' }] };
+    const result = screenshotResults(pwReport([
+        ['examples-firefox', 'alert/tests/alert.spec.ts', 8, 'default', [{ status: 'passed', errors: [] }]],
+        ['examples-firefox', 'badge/tests/badge.spec.ts', 5, 'pill', [differs]],
+        ['examples-firefox', 'card/tests/card.spec.ts', 3, 'image', [size]],
+        ['smoke-firefox', 'tests/e2e/forms.spec.ts', 40, 'parity', [{ status: 'failed', errors: [] }, other]],
+    ]), 'firefox');
+    assert.deepEqual(result, {
+        browser: 'firefox',
+        tests: {
+            'examples alert/tests/alert.spec.ts:8 › default': { status: 'matches', ratio: null },
+            'examples badge/tests/badge.spec.ts:5 › pill': { status: 'differs', ratio: 0.01 },
+            'examples card/tests/card.spec.ts:3 › image': { status: 'differs', ratio: null },
+            'smoke tests/e2e/forms.spec.ts:40 › parity': { status: 'error', ratio: null },
+        },
+    });
+});
+
+test('screenshots: the shards merge per engine', () => {
+    const a = { browser: 'webkit', tests: { 'examples a:1 › x': { status: 'matches', ratio: null } } };
+    const b = { browser: 'webkit', tests: { 'examples b:1 › y': { status: 'differs', ratio: 0.2 } } };
+    const c = { browser: 'firefox', tests: { 'examples a:1 › x': { status: 'differs', ratio: 0.05 } } };
+    assert.deepEqual(mergeScreenshots([a, b, c]), {
+        firefox: { 'examples a:1 › x': { status: 'differs', ratio: 0.05 } },
+        webkit: { 'examples a:1 › x': { status: 'matches', ratio: null }, 'examples b:1 › y': { status: 'differs', ratio: 0.2 } },
+    });
+});
+
+test('trends: timings and screenshots next to last month\'s, report only', () => {
+    const steps = (open, inp) => ({ 'modal open': { runs: 5, medianMs: open, p25Ms: open, p75Ms: open, spreadMs: 0, minMs: open, maxMs: open, inpMedianMs: inp, inpRuns: 5 } });
+    const shots = (pill, card) => ({
+        firefox: { 'examples badge:5 › pill': pill, 'examples card:3 › image': card, 'examples alert:8 › default': { status: 'matches', ratio: null } },
+    });
+    const previous = collect({ timings: { steps: steps(10, 40) }, screenshots: shots({ status: 'matches', ratio: null }, { status: 'differs', ratio: 0.02 }) }, { ref: 'dev', commit: '1111111' });
+    const current = collect({ timings: { steps: steps(14, 38) }, screenshots: shots({ status: 'differs', ratio: 0.01 }, { status: 'differs', ratio: 0.05 }) }, { ref: 'dev', commit: '2222222' });
+    const text = trendsMarkdown(current, previous);
+    assert.match(text, /\| Firefox screenshots differing from the Chromium baselines \| 2\/3 \| 1\/3 \| \+1 \|/);
+    assert.match(text, /\| WebKit screenshots differing from the Chromium baselines \| not reported \| not reported \| +\|/);
+    assert.match(text, /\| modal open \| 14 ms \| 10 ms \| \+4 \| 38 ms \| 40 ms \|/);
+    assert.match(text, /\*\*Screenshots that differ now and matched last time:\*\* \n- firefox `examples badge:5 › pill` \(ratio 0\.01\)/);
+    assert.match(text, /\*\*Screenshots whose difference changed:\*\* \n- firefox `examples card:3 › image` 0\.02 → 0\.05/);
+    // last month's monthly.json, written before these sections existed, still compares: not reported, not a crash
+    const old = collect({ php }, { ref: 'dev', commit: '0000000' });
+    delete old.timings;
+    delete old.screenshots;
+    assert.match(trendsMarkdown(current, old), /\| modal open \| 14 ms \| — \| +\|/);
 });
