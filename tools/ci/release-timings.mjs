@@ -15,7 +15,7 @@
  *            [--date <ISO date>] [--out <dir>] <results.json>...
  * Writes <dir>/release-timings.md when --out is given; appends the report to $GITHUB_STEP_SUMMARY and prints it.
  * Exit status 0 (whatever the numbers); 1 when no step was timed (no report, never an empty one); 2 when --record
- * refuses a partial run (a step with fewer than --min-runs runs, 5 by default, or a step of the comparable baseline
+ * refuses a partial run (a step with fewer than --min-runs runs, 5 by default, or a step of the baseline, of any harness,
  * left out), writing no baseline; 64 on bad usage or an unreadable report or baseline.
  * Test: node --test tools/tests/*.test.mjs
  */
@@ -131,11 +131,14 @@ function main(argv) {
     }
     let current;
     let base = null;
+    // the baseline's step names, whatever harness recorded it: a recording never leaves one out
+    let baseSteps = {};
     let baselineNote = '';
     try {
         current = gather(options.files.map((file) => JSON.parse(readFileSync(file, 'utf8'))));
         if (options.baseline && existsSync(options.baseline)) {
             base = JSON.parse(readFileSync(options.baseline, 'utf8'));
+            baseSteps = base.steps ?? {};
             const recordedWith = base.harness ?? 1;
             if (HARNESS !== recordedWith) {
                 baselineNote = `${options.baseline} was recorded with timing harness ${recordedWith}, this run uses ${HARNESS}: record it again`;
@@ -159,12 +162,12 @@ function main(argv) {
     }
     if (options.record) {
         // a baseline replaces the whole file: never from a partial run (a step with fewer runs than asked, or one the
-        // comparable baseline has and this run did not time)
+        // baseline has and this run did not time, even one of another harness)
         const minRuns = Number(options['min-runs'] ?? 5); // a positive whole number: parseArgs refuses anything else
         const gaps = [
             ...Object.entries(current.steps).filter(([, step]) => metricsOf(step).durationMs.runs < minRuns)
                 .map(([name, step]) => `${name}: ${metricsOf(step).durationMs.runs} runs of durationMs, ${minRuns} needed`),
-            ...Object.keys(base?.steps ?? {}).filter((name) => !(name in current.steps)).map((name) => `${name}: in the baseline, not timed in this run`),
+            ...Object.keys(baseSteps).filter((name) => !(name in current.steps)).map((name) => `${name}: in the baseline, not timed in this run`),
         ];
         if (gaps.length) {
             console.error(`release-timings: no baseline recorded, the run is partial:\n${gaps.map((gap) => `- ${gap}`).join('\n')}`);

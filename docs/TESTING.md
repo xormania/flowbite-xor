@@ -1280,7 +1280,7 @@ plan's step 8). A behavior assertion, a leak counter over its tolerance, a fuzzi
 as any test does. `main`'s ruleset requires the *Release checks* check on the release pull request from 0.2.0 (decision 4
 of the plan): every failure above blocks the release; the timings do not until step 8. A recorded baseline comes only
 from a run whose tests, properties and evidence all passed, and `--record` refuses a partial run (a step with fewer
-than 5 runs, or a step of the comparable baseline not timed) and writes nothing.
+than 5 runs, or a step of the baseline not timed, whatever harness recorded it) and writes nothing.
 
 A malformed form post (an array where the controller reads a string) is a 400, answered with Symfony's error page,
 whose inline styles the demo's policy blocks: the form fuzzing checks markup and the CSP on the answers the app renders

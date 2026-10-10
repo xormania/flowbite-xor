@@ -133,6 +133,15 @@ test('--record refuses a partial baseline: a step with fewer runs than asked, or
     assert.match(missing.stderr, /dashboard back: in the baseline, not timed/);
     assert.throws(() => readFileSync(join(dir, 'partial.json')));
 
+    // a baseline of another harness is not compared with, but its steps still count: none may be left out
+    const old = { ...base };
+    delete old.harness;
+    writeFileSync(join(dir, 'old.json'), JSON.stringify(old));
+    const oldMissing = run(['--baseline', join(dir, 'old.json'), '--record', join(dir, 'old-partial.json'), '--commit', 'abc', join(dir, 'five.json')]);
+    assert.equal(oldMissing.status, 2, oldMissing.stdout + oldMissing.stderr);
+    assert.match(oldMissing.stderr, /dashboard back: in the baseline, not timed/);
+    assert.throws(() => readFileSync(join(dir, 'old-partial.json')));
+
     // complete: recorded
     assert.equal(run(['--record', join(dir, 'ok.json'), '--commit', 'abc', join(dir, 'five.json')]).status, 0);
     assert.equal(JSON.parse(readFileSync(join(dir, 'ok.json'), 'utf8')).steps['table sort'].durationMs.runs, 5);
