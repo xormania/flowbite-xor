@@ -91,8 +91,8 @@ test('on a phone the drawer holds the sidebar navigation, then the navbar menu',
     await page.getByRole('button', { name: 'Open menu' }).click();
     const drawer = page.getByRole('dialog', { name: 'Main' });
     // the sidebar's navigation, the same tree and brand, focused on the current page
-    await expect(drawer.getByRole('link', { name: 'Acme' })).toBeVisible();
-    const nav = drawer.getByRole('navigation', { name: 'Main' }).getByRole('tree', { name: 'Acme' });
+    await expect(drawer.getByRole('link', { name: 'xor' })).toBeVisible();
+    const nav = drawer.getByRole('navigation', { name: 'Main' }).getByRole('tree', { name: 'xor' });
     await expect(nav.getByRole('treeitem', { name: 'Profile' })).toBeFocused();
     await expect(nav.getByRole('treeitem', { name: 'Settings' })).toHaveAttribute('aria-expanded', 'true');
     const account = drawer.getByRole('button', { name: 'Account' });
