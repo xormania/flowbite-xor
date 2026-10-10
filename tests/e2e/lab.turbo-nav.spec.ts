@@ -188,3 +188,23 @@ test('the sidebar open over the page closes when the screen grows to a desktop, 
     await expect(sidebar(page)).toBeVisible();
     await expect(menu(page)).toHaveAttribute('aria-expanded', 'true');
 });
+
+// storage full: reads work, writes throw; the collapse cannot be saved, and lasts the page instead of the stored value
+test('with localStorage writes failing, a collapse lasts across Turbo visits, Back and Forward', async ({ page }) => {
+    await page.addInitScript(() => {
+        Storage.prototype.setItem = () => {
+            throw new DOMException('full', 'QuotaExceededError');
+        };
+    });
+    await page.goto('/lab/turbo-nav');
+    await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+    await expect(sidebar(page)).toHaveAttribute('data-collapsed');
+
+    await visit(page, 'Go to page two', 'Page two');
+    await expect(sidebar(page)).toHaveAttribute('data-collapsed');
+    await back(page, 'Page one');
+    await expect(sidebar(page)).toHaveAttribute('data-collapsed');
+    await forward(page, 'Page two');
+    await expect(sidebar(page)).toHaveAttribute('data-collapsed');
+    await expect(page.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute('aria-expanded', 'false');
+});

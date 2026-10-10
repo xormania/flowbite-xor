@@ -29,11 +29,15 @@ export default class extends Controller {
 
     connect() {
         // storage unavailable: a permanent sidebar reconnecting after a visit keeps its state, a new page starts expanded
+        // a collapse that could not be saved (storage blocked or full) lasts until the next page load: the element's own
+        // state wins over a stale stored value
         let collapsed = this.element.hasAttribute('data-collapsed');
-        try {
-            collapsed = 'true' === localStorage.getItem(this.storageKeyValue);
-        } catch {
-            // the state lasts until the next page load
+        if (!this.unsaved) {
+            try {
+                collapsed = 'true' === localStorage.getItem(this.storageKeyValue);
+            } catch {
+                // storage unavailable: keep the element's state
+            }
         }
         this.setCollapsed(collapsed);
         this.markCurrentItem();
@@ -62,8 +66,10 @@ export default class extends Controller {
         this.setCollapsed(collapsed);
         try {
             localStorage.setItem(this.storageKeyValue, String(collapsed));
+            this.unsaved = false;
         } catch {
-            // storage unavailable: the state lasts until the next page load
+            // storage unavailable or full: the state lasts until the next page load
+            this.unsaved = true;
         }
     }
 
