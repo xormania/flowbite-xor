@@ -163,8 +163,10 @@ the same section.
 
 - `smoke` runs the specs in `tests/e2e/`: the demo pages, the forms, the `/lab` pages for Turbo and Live
   Components, the components given hostile prop values (`hostile-props.spec.ts`), the demo's security headers and
-  Content Security Policy (`csp.spec.ts`), and an axe accessibility scan of every demo page (no serious or critical
-  issue).
+  Content Security Policy (`csp.spec.ts`), an axe accessibility scan of every demo page (no serious or critical
+  issue), and the counts of the key interactions (`counts.spec.ts`: requests, Stimulus controllers connected and
+  disconnected, listeners left, response bytes under a budget; a change that moves one updates its number in the spec,
+  [`docs/TESTING.md`](docs/TESTING.md), *Interaction counts*).
 - `examples` compares a screenshot of every README example and of every `/demo` page with the committed one, and
   runs the recipes' own specs (`<recipe>/tests/*.spec.ts`, ported to `tests/e2e/examples/recipes/`). It fails
   on a committed screenshot that no test compares (`baselines.spec.ts`).

@@ -445,6 +445,78 @@ Here: [`lab.turbo-stream-toast.spec.ts`](../tests/e2e/lab.turbo-stream-toast.spe
 Counts give the same result on every run, so they fail like any other assertion; timings belong to separate,
 repeated runs ([`PLAN-test-tiers.md`](PLAN-test-tiers.md)).
 
+### Interaction counts
+
+**Catches:** a key interaction that costs more than it did: an extra or duplicated request, a controller connected
+again (a re-render that replaces what it should move, an element given a second controller), a listener added and
+never removed (on `document`, `window` or an element that stays), a response grown past its budget.
+
+Each key interaction is a few steps (open, close; sort, page, filter; a pick; typing), and each step is gated on what
+it counts from its start until the page is quiet again (no request in flight, two animation frames later):
+
+| Count | Read from | Expected |
+|---|---|---|
+| `requests`, by kind | Playwright's `request` events, by `resourceType()`: `document`, `fetch`, `xhr`, `script`, `stylesheet`, `image`… | exact |
+| `connected`, `disconnected`, by identifier | the Stimulus application's `logDebugActivity`, which Stimulus calls on every controller's connect and disconnect | exact |
+| `listeners`, by `<target> <type>[ capture]` | an init script wrapping `addEventListener` and `removeEventListener`: added minus removed, on `document`, `window` and the elements still in the document | exact |
+| bytes | the bodies of the step's `document`, `fetch` and `xhr` responses, decoded (the HTML received, not its compressed size) | at most a budget |
+
+```ts
+const counts = await trackCounts(page);            // before the first goto: installs the listener tracker
+await page.goto('/lab/dropdown-turbo');
+await counts.warmUp(openIt, closeIt);              // uncounted: Turbo adds listeners on the first click and submit
+await counts.expect('dropdown open', openIt, {
+    requests: {}, connected: {}, disconnected: {}, maxBytes: 0,
+    listeners: { 'document click capture': 1, 'window resize': 1, 'window scroll capture': 1 },
+});
+await counts.expect('dropdown close', closeIt, { /* … */ listeners: { 'document click capture': -1, /* … */ } });
+```
+
+A step that differs fails with its name and every count, the difference marked (here a `hide()` that no longer
+removes its `resize` listener):
+
+```text
+Error: dropdown close: requests by kind, Stimulus controllers connected and disconnected, listeners added minus removed
+    "listeners": Object {
+      "document click capture": -1,
+-     "window resize": -1,
+      "window scroll capture": -1,
+    },
+```
+
+What makes the numbers the same on every run:
+
+- **A warm-up round.** Each test runs its steps once uncounted, then counts them. Turbo's link and form observers add
+  their bubbling `click` and `submit` listeners on the first captured event of a document (`html click`, `window click`,
+  `document submit`), a frame's on its first click and submit, and a lazy controller loads on first use.
+- **Links from the keyboard.** A pointer over a link makes Turbo prefetch it, and the click then reuses that request,
+  or not, depending on timing: focus the link and press Enter. A Live Component's links (`href="#"`) are not
+  prefetched.
+- **Each step waits for its own completion** (a Turbo operation, Live's rendered result, the overlay shown), then for
+  quiet: a request that starts after that is not counted, so a step that waits too little passes, never flakes.
+- **Bodies decoded, under a budget.** The CSP nonce changes every response, so a compressed size varies; the decoded
+  length does not. It is still a budget, not an exact number: a frame visit's response is the whole page, whose layout
+  and import map grow with every recipe. The budget is the measured bytes plus a quarter, rounded up to the thousand.
+- **Not counted:** `{ once: true }` listeners (they remove themselves when they run), a listener removed by its
+  `AbortSignal` (taken off when the signal aborts), listeners on other targets (a media query, an `AbortSignal`),
+  observers and timers, and Playwright's own listeners (scripts without a URL).
+
+**Updating an expected number.** A change that makes a step cost more, or less, on purpose updates the step's numbers
+in the spec in the same pull request, and says why in its description: the failure prints each count as it is now.
+A budget is raised to the new bytes plus a quarter, rounded up to the thousand, only for a response that grew for a
+reason; one that grew unexpectedly is a regression to find. A new key interaction gets a test of its own: its steps,
+its warm-up, then `counts.expect` for each step with the numbers read from a first run (`counts.measure(step)` returns
+them).
+
+The counts run in the `smoke` project (Chromium) with the rest of the suite. Nothing they read is Chromium's own: run
+locally in Firefox and WebKit (October 2026, three times each), every step that ran gave Chromium's numbers; WebKit's date
+picker stayed open after a pick, a behavior to look at before WebKit joins CI. The request kinds are the likeliest to
+differ between browsers (Playwright reports each browser's own resource type).
+
+Here: [`tests/e2e/counts.ts`](../tests/e2e/counts.ts) (`trackCounts`), [`counts.spec.ts`](../tests/e2e/counts.spec.ts)
+(the dropdown, modal and drawer opening and closing; the data table's sort, page and filter in a Turbo Frame and in
+Live; a Live action re-sorting rows; a date pick; typing in the editor).
+
 ### No transition runs where the change should be instant
 
 **Catches:** a whole page fading into a new theme because some element has `transition-colors` for its hover.
