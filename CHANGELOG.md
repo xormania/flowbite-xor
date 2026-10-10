@@ -54,6 +54,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 - `calendar` (and `date-picker`): in WebKit a click on a day that did not have the focus selected nothing: the render
   that follows the focus rewrote every day's number between the mousedown and the mouseup, which cancels the click
   there. A day's number is now written only when it changes.
+- `side-nav`: a tree shown again (a `MobileNav` drawer opening, the screen growing to show the `Sidebar`) caused a
+  *ResizeObserver loop completed with undelivered notifications* error, which WebKit reports as a page error: the
+  tree restored its branches inside the observer's callback. It now handles a resize in the next frame.
 - `editor`: a submit of more than `EditorHtmlPolicy::MAX_INPUT_BYTES` (1000000 bytes) was a 500: the form showing its
   error printed the refused value through `flowbite_editor_html`, which refuses it. It is now a 422 with the field's
   error, the editor and its textarea empty (the value is never cut); the same in a Live Component.
