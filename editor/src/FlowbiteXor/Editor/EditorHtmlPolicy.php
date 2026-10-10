@@ -74,7 +74,10 @@ final class EditorHtmlPolicy
         if (!self::isReadable($html)) {
             throw new \LengthException(\sprintf('The HTML holds %d bytes, more than the %d the editor policy reads.', \strlen($html), self::MAX_INPUT_BYTES));
         }
-        $clean = trim(self::asTheEditorReadsIt($this->sanitizer->sanitize($html)));
+        // twice: a block unwrapped from between two others can leave one inside the other (`<h2><div><h2>` gives
+        // `<h2><h2>`), which the next parse, a browser's or this policy's, splits; the second pass gives what it splits
+        // to, so the output is its own output
+        $clean = trim(self::asTheEditorReadsIt($this->sanitizer->sanitize($this->sanitizer->sanitize($html))));
 
         return self::isEmpty($clean) ? '' : $clean;
     }

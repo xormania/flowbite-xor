@@ -41,6 +41,9 @@ final class EditorHtmlPolicyTest extends TestCase
         yield 'tricks' => [self::TRICKS];
         yield 'empty' => [self::EMPTY];
         yield 'white space between blocks' => [self::INDENTED];
+        // found by MarkupPropertyTest (SEED=20261011): the unwrapped div left a heading inside a heading, which the next
+        // parse split, so the output was not its own output
+        yield 'a heading in an unwrapped block in a heading' => ['<h2><div><h2>x</h2></div></h2><h3><span><h2>y</h2></span></h3>'];
     }
 
     #[DataProvider('inputs')]

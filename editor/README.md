@@ -52,7 +52,8 @@ $builder->add('body', EditorType::class, [
 - `max_chars` counts the characters the editor's counter shows: the text without markup, an entity as one character,
   a line break (`<br>`) as one, and white space between blocks as none.
 - Print stored content with the `flowbite_editor_html` filter, which sanitizes it again (content saved by another
-  path is safe too), and throws a `LengthException` for more than 1000000 bytes. Never with `|raw`:
+  path is safe too; sanitized content comes back unchanged, nested blocks included), and throws a `LengthException`
+  for more than 1000000 bytes. Never with `|raw`:
 
   ```twig
   <div class="space-y-2">{{ post.body|flowbite_editor_html }}</div>
