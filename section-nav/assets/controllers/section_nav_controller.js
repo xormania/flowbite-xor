@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { markCurrentLinks, rememberCurrent } from '../lib/flowbite-xor-navigation.js';
 
 /**
  * A section navigation: one link per page of a group of pages (settings), the current one marked
@@ -18,23 +19,17 @@ export default class extends Controller {
 
     connect() {
         // the items' current state as rendered, given back on disconnect
-        this.renderedCurrent = new Map(this.itemTargets.map((item) => [item, item.getAttribute('aria-current')]));
+        this.restoreCurrent = rememberCurrent(this.itemTargets);
         this.markCurrentItem();
         this.revealCurrentItem();
     }
 
     disconnect() {
-        this.renderedCurrent.forEach((value, item) => (null === value ? item.removeAttribute('aria-current') : item.setAttribute('aria-current', value)));
+        this.restoreCurrent();
     }
 
     markCurrentItem() {
-        const path = window.location.pathname;
-        this.itemTargets.filter((item) => item.hasAttribute('data-section-nav-match-url')).forEach((item) => {
-            // a link to a fragment of the page ("#", what SectionNav:Item renders for a rejected URL) is not a page
-            const isFragment = (item.getAttribute('href') ?? '').trim().startsWith('#');
-            const isCurrent = !isFragment && new URL(item.href, window.location.href).pathname === path;
-            isCurrent ? item.setAttribute('aria-current', 'page') : item.removeAttribute('aria-current');
-        });
+        markCurrentLinks(this.itemTargets.filter((item) => item.hasAttribute('data-section-nav-match-url')));
     }
 
     /** Scrolls the strip, never the page, so the current section is in view when the list overflows sideways. */

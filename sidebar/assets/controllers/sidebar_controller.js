@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { markCurrentLinks, whenMediaMatches } from '../lib/flowbite-xor-navigation.js';
 
 /**
  * Collapses the `Sidebar` to its icons (saved in `localStorage`), opens it over the page on small
@@ -46,13 +47,11 @@ export default class extends Controller {
         }
         // the page shown may be a copy Turbo took with the sidebar open over it: its menu buttons follow the sidebar
         this.syncMobileTriggers();
-        this.wide = window.matchMedia(this.mediaValue);
-        this.closeWhenWide = () => this.wide.matches && this.setMobileOpen(false);
-        this.wide.addEventListener('change', this.closeWhenWide);
+        this.stopClosingWhenWide = whenMediaMatches(this.mediaValue, () => this.setMobileOpen(false));
     }
 
     disconnect() {
-        this.wide.removeEventListener('change', this.closeWhenWide);
+        this.stopClosingWhenWide();
         this.setMobileOpen(false);
     }
 
@@ -121,13 +120,7 @@ export default class extends Controller {
 
     markCurrentItem() {
         if (!this.itemTargets.some((item) => item.hasAttribute('data-sidebar-active-fixed'))) {
-            const path = window.location.pathname;
-            this.itemTargets.forEach((item) => {
-                // a link to a fragment of the page ("#", what Sidebar:Item renders for a rejected URL) is not a page
-                const isFragment = (item.getAttribute('href') ?? '').trim().startsWith('#');
-                const isCurrent = !isFragment && new URL(item.href, window.location.href).pathname === path;
-                isCurrent ? item.setAttribute('aria-current', 'page') : item.removeAttribute('aria-current');
-            });
+            markCurrentLinks(this.itemTargets);
         }
     }
 }
