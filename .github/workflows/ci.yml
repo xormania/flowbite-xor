@@ -258,7 +258,7 @@ jobs:
         needs: [changes, importmap]
         if: needs.changes.outputs.php == 'true'
         runs-on: ubuntu-latest
-        timeout-minutes: 15
+        timeout-minutes: 18 # 15, plus 3 for the advisory Jev step (.github/actions/jev-diagnosis): a diagnosis must never be what times the job out
         env:
             PHPSTAN_VERSION: '2.3.0'
             PHPSTAN_SYMFONY_VERSION: '2.1.0'
@@ -311,27 +311,17 @@ jobs:
             # becomes the same failed-attempts.json (tools/ci/junit-attempts.mjs), with the test log as the server log. It
             # never changes the verdict (continue-on-error, and it exits 0 without the key or when the provider fails).
             - name: Jev diagnosis (advisory)
-              id: jev
               if: ${{ failure() && steps.phpunit.outcome == 'failure' }}
               continue-on-error: true
-              timeout-minutes: 2
-              env:
-                  TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-                  JEV_DIR: ${{ runner.temp }}/jev-phpunit
-              run: |
-                  mkdir -p "$JEV_DIR"
-                  node tools/ci/junit-attempts.mjs "$RUNNER_TEMP/phpunit.xml" "$JEV_DIR/failed-attempts.json"
-                  node tools/ci/jev-diagnosis.mjs --attempts "$JEV_DIR/failed-attempts.json" \
-                      --server-log demo/var/log/test.log --output "$JEV_DIR/assessment" --job "Kit PHP"
-
-            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ always() && steps.jev.outcome != 'skipped' }}
-              continue-on-error: true
+              timeout-minutes: 3
+              uses: ./.github/actions/jev-diagnosis
               with:
-                  name: jev-phpunit-${{ github.run_id }}-${{ github.run_attempt }}
-                  path: ${{ runner.temp }}/jev-phpunit/assessment/
-                  if-no-files-found: warn
-                  retention-days: 30
+                  api-key: ${{ secrets.TYPESAFE_API_KEY }}
+                  junit: ${{ runner.temp }}/phpunit.xml
+                  server-log: demo/var/log/test.log
+                  job: Kit PHP
+                  dir: ${{ runner.temp }}/jev-phpunit
+                  artifact: jev-phpunit-${{ github.run_id }}-${{ github.run_attempt }}
 
             # PHPStan reads the classes the kit's PHP uses (Symfony) from the demo's dependencies, and also checks the
             # demo's tables and tests; it is installed in a scratch directory with its Symfony and PHPUnit extensions
@@ -469,8 +459,8 @@ jobs:
         needs: [changes, importmap]
         if: needs.changes.outputs.demo == 'true'
         runs-on: ubuntu-latest
-        # 25 for the tests, plus 3 for the advisory Jev step (2) and its upload: a diagnosis must never be what
-        # times the job out
+        # 25 for the tests, plus 3 for the advisory Jev step and its upload (.github/actions/jev-diagnosis): a diagnosis
+        # must never be what times the job out
         timeout-minutes: 28
         # the browser suite is most of CI's time: three shards per browser, each with its own demo and browser (Chromium's
         # shard 1 writes the image cache the others read). Chromium runs every test, the screenshots included; Firefox
@@ -657,33 +647,22 @@ jobs:
 
             # Advisory diagnosis of each failed attempt, retry-recovered ones included, by Jev (TypeSafe):
             # tools/ci/jev-diagnosis.mjs sends each attempt's sanitized error and the server log lines of its time span,
-            # and shows the likely cause and the excerpt it selects as a warning. It never changes the verdict: it may
-            # fail or time out (continue-on-error), it exits 0 when the key is missing or the provider fails, and it
-            # runs after the tests. The key is given to this step only.
+            # and shows the likely cause and the excerpt it selects as a warning; one assessment.json per failed attempt
+            # and the summary are kept like the results, 30 days (.github/actions/jev-diagnosis). It never changes the
+            # verdict: it may fail or time out (continue-on-error), it exits 0 when the key is missing or the provider
+            # fails, and it runs after the tests. The key is given to this step only.
             - name: Jev diagnosis (advisory)
-              id: jev
               if: ${{ always() && (steps.results.outputs.failed > 0 || steps.results.outputs.flaky > 0) }}
               continue-on-error: true
-              timeout-minutes: 2
-              env:
-                  TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-                  SHARD: ${{ matrix.browser }} ${{ matrix.shard }}/3
-                  JEV_DIR: ${{ runner.temp }}/jev-${{ matrix.browser }}-${{ matrix.shard }}
-              run: |
-                  mkdir -p "$JEV_DIR"
-                  (cd demo && timeout 15 docker compose logs --no-color --timestamps php > "$JEV_DIR/server.log" 2>/dev/null) || true
-                  node tools/ci/jev-diagnosis.mjs --attempts playwright-results/failed-attempts.json \
-                      --server-log "$JEV_DIR/server.log" --output "$JEV_DIR/assessment"
-
-            # One assessment.json per failed attempt and the summary, kept like the results: 30 days
-            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-              if: ${{ always() && steps.jev.outcome != 'skipped' }}
-              continue-on-error: true
+              timeout-minutes: 3
+              uses: ./.github/actions/jev-diagnosis
               with:
-                  name: jev-${{ matrix.browser }}-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
-                  path: ${{ runner.temp }}/jev-${{ matrix.browser }}-${{ matrix.shard }}/assessment/
-                  if-no-files-found: warn
-                  retention-days: 30
+                  api-key: ${{ secrets.TYPESAFE_API_KEY }}
+                  attempts: playwright-results/failed-attempts.json
+                  compose-logs: demo
+                  shard: ${{ matrix.browser }} ${{ matrix.shard }}/3
+                  dir: ${{ runner.temp }}/jev-${{ matrix.browser }}-${{ matrix.shard }}
+                  artifact: jev-${{ matrix.browser }}-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
 
             # Last, so the end of the job log names what failed (after the demo's logs): the summary written above
             - name: Playwright summary
