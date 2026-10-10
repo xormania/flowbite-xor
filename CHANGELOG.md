@@ -51,6 +51,15 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `calendar` (and `date-picker`): in WebKit a click on a day that did not have the focus selected nothing: the render
+  that follows the focus rewrote every day's number between the mousedown and the mouseup, which cancels the click
+  there. A day's number is now written only when it changes.
+- `side-nav`: a tree shown again (a `MobileNav` drawer opening, the screen growing to show the `Sidebar`) caused a
+  *ResizeObserver loop completed with undelivered notifications* error, which WebKit reports as a page error: the
+  tree restored its branches inside the observer's callback. It now handles a resize in the next frame.
+- `modal`: in WebKit, an open modal whose container a Live re-render replaced closed: without `moveBefore`, the morph
+  moves the `<dialog>` out of the top layer, open but no longer modal, which the new controller took for Turbo's copy
+  of the page. It now shows that same dialog as a modal again; a copy still connects closed.
 - `autocomplete`: Back from a frame visit promoted to history (`data-turbo-action="advance"`, a data table's pages)
   showed each field twice, the Tom Select copied with the page beside a new one hidden like the `<select>` (Turbo
   copies the page as such a visit starts, Tom Select still on screen); `autocomplete-sync` now removes the copied one,

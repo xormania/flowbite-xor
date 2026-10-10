@@ -10,6 +10,14 @@ function isPromotedFrameCache() {
     return false === window.Turbo?.session?.navigator?.currentVisit?.willRender;
 }
 
+/**
+ * The mark a controller leaves on the dialog it showed as a modal, removed when it closes it: state of the dialog
+ * itself, not of the module. A morph moves an open dialog into a new container: with `moveBefore` it stays modal,
+ * without it (WebKit) it leaves the top layer, open but no longer modal. A dialog with the mark is that same element,
+ * to show as a modal again; Turbo's copy of a page holds clones, which copy attributes, never properties.
+ */
+const SHOWN_AS_MODAL = Symbol.for('flowbite-xor.modal.shownAsModal');
+
 export default class extends Controller {
     static targets = ['trigger', 'modal'];
 
@@ -20,12 +28,15 @@ export default class extends Controller {
     #wasOpen = null;
 
     connect() {
+        const demoted = this.modalTarget.open && !this.modalTarget.matches(':modal');
+        // moved by a morph without `moveBefore` (WebKit) while open: shown as a modal again
+        const moved = demoted && true === this.modalTarget[SHOWN_AS_MODAL];
         // a copy of the page Turbo cached while the dialog was open keeps its `open` attribute but not its
         // modality: a new controller closes it, then opens it as a modal if it should be open
-        if (null === this.#wasOpen && this.modalTarget.open && !this.modalTarget.matches(':modal')) {
+        if (null === this.#wasOpen && demoted) {
             this.close();
         }
-        if (this.#wasOpen ?? this.openValue) {
+        if (this.#wasOpen ?? (this.openValue || moved)) {
             this.open();
         } else if (this.modalTarget.matches(':modal')) {
             // a dialog already open and modal: a Live re-render that replaced the container moved it in, and the
@@ -47,6 +58,7 @@ export default class extends Controller {
 
     open() {
         this.modalTarget.showModal();
+        this.modalTarget[SHOWN_AS_MODAL] = true;
 
         if (this.hasTriggerTarget) {
             if (this.modalTarget.getAnimations().length > 0) {
@@ -73,6 +85,7 @@ export default class extends Controller {
 
     close() {
         this.modalTarget.close();
+        delete this.modalTarget[SHOWN_AS_MODAL];
 
         if (this.hasTriggerTarget) {
             if (this.modalTarget.getAnimations().length > 0) {
@@ -112,6 +125,7 @@ export default class extends Controller {
     // before it ends.
     #closeNow() {
         this.modalTarget.close();
+        delete this.modalTarget[SHOWN_AS_MODAL];
         if (this.hasTriggerTarget) {
             this.triggerTarget.setAttribute('aria-expanded', 'false');
         }

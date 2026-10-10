@@ -143,12 +143,13 @@ find */src -name '*.php' -not -path 'demo/*' -not -path 'tools/*' -print0 | xarg
 phpstan analyse -c tools/phpstan.neon --autoload-file=demo/vendor/autoload.php data-table/src data-table-live/src editor/src markdown-editor/src demo/src/Demo demo/tests   # PHPStan with its Symfony and PHPUnit extensions installed next to it (CI pins all three); run the tests first
 tools/tests/fresh-install.sh                        # a new Symfony app installs dashboard-home, signup and data-table from the last commit (PHP=…, COMPOSER_BIN=…: other binaries)
 KIT_REF=<pushed commit SHA or tag> tools/tests/docker-install.sh   # the same in a new Symfony Docker project (Symfony 8.1), kit downloaded from GitHub
-npx playwright test                                 # every browser test: see below
+npx playwright test                                 # every browser test, in Chromium, Firefox and WebKit: see below
+npx playwright test --project=smoke --project=examples   # Chromium only, the screenshots included: the quicker loop
 node --test 'tools/monthly/*.test.mjs'              # the cases of the monthly job's report tools (tools/monthly/)
 php tools/monthly/php-scope.php coverage/php        # the monthly job's PHP scope: coverage/php/phpunit.xml and infection.json5 (the recipes' src/)
 (cd demo && bin/phpunit -c ../coverage/php/phpunit.xml --coverage-clover ../coverage/php/clover.xml) && node tools/monthly/php-coverage.mjs --out coverage/php coverage/php/clover.xml   # PHP coverage per recipe class (needs PCOV, or Xdebug with XDEBUG_MODE=coverage)
 (cd demo && php infection.phar -c ../coverage/php/infection.json5) && node tools/monthly/infection.mjs --out coverage/php coverage/php/infection/infection.json   # Infection's MSI and surviving mutants (the PHAR CI pins in monthly.yml)
-JS_COVERAGE=$PWD/coverage/js/raw npx playwright test && node tools/monthly/js-coverage.mjs --out coverage/js coverage/js/raw   # the controllers' JS coverage and the methods no test runs (Chromium)
+JS_COVERAGE=$PWD/coverage/js/raw npx playwright test --project=smoke --project=examples && node tools/monthly/js-coverage.mjs --out coverage/js coverage/js/raw   # the controllers' JS coverage and the methods no test runs (Chromium)
 node tools/monthly/trends.mjs --out coverage/trends --php coverage/php/php-coverage.json --infection coverage/php/infection-summary.json --js coverage/js/js-coverage.json   # the numbers in one monthly.json, against --previous <monthly.json>
 actionlint                                          # every workflow, with ShellCheck on its run steps (CI pins actionlint 1.7.12 and ShellCheck 0.11.0)
 ```
@@ -159,14 +160,18 @@ The PHP tests render the recipes as the demo has them, and the demo's pages with
 runs them with `CREATE_SNAPSHOTS=false`, so a missing snapshot fails there. The patterns are in
 [`docs/TESTING.md`](docs/TESTING.md) (*PHP tests*).
 
-`npx playwright test` runs two projects; pick one with `--project=smoke` or `--project=examples`.
+`npx playwright test` runs six projects, two per browser: `smoke` and `examples` in Chromium, `smoke-firefox` and
+`examples-firefox`, `smoke-webkit` and `examples-webkit`. Firefox and WebKit run every behavior test and no screenshot
+comparison: a test that compares pixels is tagged `@screenshot` and runs in Chromium only. Pick projects with
+`--project` (several allowed). See [`docs/TESTING.md`](docs/TESTING.md), *Browsers*.
 
-In CI each browser shard retries a failed test once and ends with its summary: the counts, every failed test and every
+CI runs *Demo + Playwright* as three shards per browser, nine jobs side by side, each with its own demo and
+browser. Each shard retries a failed test once and ends with its summary: the counts, every failed test and every
 flaky one (passed only on its retry) with its error, on the run's *Summary* page, as annotations at the failing lines
 and as the last step of the job log; a shard whose tests did not run says which step failed. A flaky test keeps the run
 green but is reported as flaky, never as a clean pass. See [`docs/TESTING.md`](docs/TESTING.md), *Reading CI results*.
 A shard with a failed or flaky test then asks Jev (TypeSafe) for a likely cause of each failed attempt, at most 10 per
-shard: a warning per attempt and the `jev-<shard>-<run>-<attempt>` artifact, kept 30 days. It is advisory: it cannot
+shard: a warning per attempt and the `jev-<browser>-<shard>-<run>-<attempt>` artifact, kept 30 days. It is advisory: it cannot
 fail the job, and the attempt's sanitized error and server log excerpts are sent to TypeSafe. See *Jev diagnosis* in
 the same section.
 
@@ -184,7 +189,7 @@ A test that brings a new technique (a way to provoke a state, to observe a cost,
 sends) is written up in [`docs/TESTING.md`](docs/TESTING.md), with its core and a link to the spec: apps built with
 the kit reuse those patterns.
 
-Every test of both projects blocks requests leaving the demo, and fails on a console error, a page error, a local
+Every test of every project blocks requests leaving the demo, and fails on a console error, a page error, a local
 request that fails or answers >= 400, or a Content Security Policy violation (`tests/e2e/fixtures.ts`).
 The demo enforces a strict policy (`demo/src/EventListener/SecurityHeadersListener.php`): scripts and styles run
 only with the request's nonces, which the layouts print (`layouts/README.md`), and no inline event handler or style

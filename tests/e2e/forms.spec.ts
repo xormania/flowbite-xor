@@ -35,8 +35,9 @@ async function maxChannelDelta(page: Page, a: Buffer, b: Buffer): Promise<number
     }, [a.toString('base64'), b.toString('base64')]);
 }
 
+// It compares pixels, so it is tagged @screenshot: Chromium only, with the baseline comparisons (playwright.config.ts)
 for (const colorScheme of ['light', 'dark'] as const) {
-    test(`rows rendered by the form theme look like the hand-written components (${colorScheme})`, async ({ page }) => {
+    test(`rows rendered by the form theme look like the hand-written components (${colorScheme})`, { tag: '@screenshot' }, async ({ page }) => {
         await page.emulateMedia({ colorScheme });
         await page.goto('/forms/parity');
         for (const pair of pairs) {

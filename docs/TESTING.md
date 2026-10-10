@@ -287,8 +287,9 @@ covers every way the URL and the table can disagree. Do it again after Forward a
 check the table takes the next change.
 
 Back can cancel the frame's request on purpose (Back disconnects the frame, which aborts its `src` load). Allow
-exactly that request, never every `ERR_ABORTED`: `allowCancelledRequest({ url, method: 'GET', frame: 'orders',
-count: 1 })` drops at most `count` failures that are exactly `net::ERR_ABORTED`, of that exact URL, method and
+exactly that request, never every cancelled one: `allowCancelledRequest({ url, method: 'GET', frame: 'orders',
+count: 1 })` drops at most `count` failures that are exactly the engine's cancellation (`net::ERR_ABORTED` in
+Chromium, `NS_BINDING_ABORTED` in Firefox, `Load request cancelled` in WebKit), of that exact URL, method and
 `Turbo-Frame` header; any other failed request still fails the test.
 
 A phase that ends inconsistent is a defect of Turbo or the kit: keep the test, marked `test.fail(condition, '<the
@@ -915,16 +916,77 @@ ours in it is news from upstream: read the versions it resolved before looking f
 The moving parts are on purpose: the install jobs are the kit as a user installs it, and the toolkit is pinned
 because it is experimental (`ci.yml`, `UX_TOOLKIT_VERSION`).
 
+## Browsers
+
+**Catches:** a controller that works only in Chromium (an event order, a focus rule, an API another engine lacks or
+implements differently), and a test that passes only there.
+
+Chromium runs every test; Firefox and WebKit run every behavior test, without the screenshot comparisons. Each
+browser has two projects in `playwright.config.ts` (`browserProjects()`): `smoke` and `examples` for Chromium,
+`smoke-firefox` and `examples-firefox`, `smoke-webkit` and `examples-webkit` for the others. A test that compares
+pixels, with a baseline or two screenshots with each other, is tagged `@screenshot` (`screenshotAnnotation()` in
+`tests/e2e/examples/fixtures.ts` tags every baseline test, `testState()` included; `forms.spec.ts`' parity test and
+`baselines.spec.ts` carry the tag themselves), and the Firefox and WebKit projects leave it out (`grepInvert`): the
+baselines are Chromium's, rendered in upstream's Playwright image. A new screenshot test takes the tag: without it,
+the other engines compare it with a baseline that is not theirs (`examples-*`) or that does not exist (`smoke-*`), and
+fail.
+
+In CI, *Demo + Playwright* is one job per browser and shard: three shards for each browser, side by side, so the
+other engines add jobs, not time. `PW_SCREENSHOTS=all` turns the Firefox and WebKit projects around: they run the
+tagged tests only, compared with the Chromium baselines, to report how far the other engines render from them. Any
+difference fails that run, so its exit status is no verdict: run it apart from the behavior tests and report it,
+never gate on it. It never writes a baseline (`updateSnapshots: 'none'`).
+
+What differs between the engines, met so far, and how the kit and the suite stay portable:
+
+- **A click whose target changes under the pointer:** WebKit fires no `click` when the text node under the pointer is
+  replaced between `mousedown` and `mouseup`. The calendar re-rendered every day's number on focus (`trackFocus`), so
+  a click on a day without the focus selected nothing; it now writes a number only when it changes. A controller that
+  re-renders on `focusin` or `mousedown` leaves the clicked element's content alone.
+- **A ResizeObserver whose callback resizes what it observes** ends with *ResizeObserver loop completed with
+  undelivered notifications*, which WebKit reports as a page error. `side-nav` handles a resize in the next frame
+  (`requestAnimationFrame`, cancelled in `disconnect()`).
+- **A morph moving an open `<dialog>`:** Live's morph moves nodes with `moveBefore` where the engine has it (Chromium,
+  Firefox), which keeps a modal in the top layer; WebKit has none, so the moved dialog stays open but is no longer
+  modal. `modal` marks the dialog it showed with a property of the dialog itself (no module state) and shows that
+  same element as a modal again, while Turbo's copy of a page, whose clones copy attributes but not properties, still
+  connects closed (`lab.live-modal.spec.ts`).
+- **The scroll event of a Turbo visit** comes with the next frame; WebKit can dispatch it after a Back sent at once,
+  and Turbo then records 0 as the restored page's position. A test that goes Back to check the restored scroll waits
+  two frames after the visit first (`demo-app.spec.ts`).
+- **A full load (reload, `goto`) while the document still runs a fetch:** WebKit rejects the fetch (`TypeError: Load
+  failed`, *due to access control checks*); Turbo's prefetch of a link under the pointer rethrows it, unhandled. The
+  other engines drop the document without rejecting. `guardPage()` drops exactly those two messages, and only from a
+  full load's request until its document replaces the old one (`FETCH_CANCELLED_BY_UNLOAD`); anywhere else they fail
+  the test.
+
+- **A cancelled request** fails with `net::ERR_ABORTED` in Chromium, `NS_BINDING_ABORTED` in Firefox, `Load request
+  cancelled` in WebKit: `allowCancelledRequest` accepts each engine's own text (`CANCELLED` in `tests/e2e/fixtures.ts`),
+  still for that exact request only.
+- **A constructed `ClipboardEvent`** gets an empty `clipboardData` of Firefox's own, whatever its init passes: a paste
+  sets the data as the event's own property (`editor.spec.ts`, `paste()`).
+- **Leaving a page while it loads a lazy controller** cancels the module's request; Firefox also rejects the import,
+  which the Stimulus loader logs as a console error. A test that leaves a page right after an assertion waits for what
+  the page loads first (`demo-app.spec.ts`, the flash messages test: the login form's `csrf-protection` module, read
+  from Resource Timing).
+
+- **An axe scan takes longer in Firefox and WebKit** (2-5 s for a recipe's page, 13-18 s for `/lab/value-matrix` in
+  every engine, several times that on a loaded machine). A test that scans a heavy page, or scans several times, says
+  so with `test.slow()` and the reason (`a11y.spec.ts` for the value matrix, `markdown-editor.spec.ts`' four scans)
+  rather than running out of its 30 s budget mid-step.
+
+Run one browser with its projects: `npx playwright test --project=smoke-firefox --project=examples-firefox`.
+
 ## Reading CI results
 
 **Catches:** a red shard whose failing test is lost in the log, a test that passed only on its retry and went
 unnoticed, a setup failure or a missing report read as "no tests failed".
 
-CI runs the browser tests in three shards, with one retry (`retries: 1` in `playwright.config.ts`). After the tests,
+CI runs the browser tests in three shards per browser (*Browsers*), with one retry (`retries: 1` in `playwright.config.ts`). After the tests,
 each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summary.mjs) on its
 `playwright-results/results.json`. It does not decide pass or fail: Playwright's exit status does.
 
-- **The job summary** (the run's *Summary* page, one section per shard) gives the counts, then each failed and each
+- **The job summary** (the run's *Summary* page, one section per shard, under its job's name: `Demo + Playwright (firefox 2/3)`) gives the counts, then each failed and each
   flaky test as `[project] file:line › title` with the first lines of each failed attempt's error, the tested commit,
   the shard, the projects and the runtime versions (Node, Playwright, and PHP, Symfony and Turbo from the demo's
   container). The same text is the last step of the job log (*Playwright summary*), after the demo's logs.
@@ -933,12 +995,12 @@ each shard runs [`tools/ci/playwright-summary.mjs`](../tools/ci/playwright-summa
   recipe's own spec runs as a copy `tools/prepare-tests.mjs` generates in `tests/e2e/examples/recipes/`: its annotation points at the committed
   `<recipe>/tests/*.spec.ts` instead.
 - **Flaky** means failed, then passed on its retry. The run stays green, but the summary says *flaky (passed on retry)*
-  instead of *all N passed*, and the shard keeps the traces (`playwright-report-<shard>`, 7 days). A flaky test is a
+  instead of *all N passed*, and the shard keeps the traces (`playwright-report-<browser>-<shard>`, 7 days). A flaky test is a
   test to fix or a bug to find (see *Wait for the operation to complete*), not noise.
 - **No evidence** is said as such, and fails the step: *tests not reached: setup failed at &lt;step&gt;* (the image,
-  the demo's start, a check on shard 1, the Playwright install or the tests' preparation failed, so no test ran), *no test evidence: tests not
+  the demo's start, a check on Chromium's shard 1, the Playwright install or the tests' preparation failed, so no test ran), *no test evidence: tests not
   reached or report not written* (Playwright ran but left no report), *report invalid* (it does not parse).
-- **Kept 30 days** in `playwright-results-<shard>`: `results.json` (every test's attempts), `summary.md`, and
+- **Kept 30 days** in `playwright-results-<browser>-<shard>`: `results.json` (every test's attempts), `summary.md`, and
   `failed-attempts.json`, one entry per failed attempt, retry-recovered ones included (test id, file, line, title,
   project, shard, retry, status, error, duration, error location), for tools that read them one by one, and
   `durations.json` (below).
@@ -992,7 +1054,7 @@ key, a provider error or an answer that does not validate gives an *unavailable*
 
 - **Where:** a warning per assessed attempt at the line that failed (the category, its confidence, and where the
   selected excerpt comes from: `test error lines a-b` or `server log lines a-b`, with its text); a *Jev diagnosis*
-  section on the run's *Summary* page; and the `jev-<shard>-<run>-<attempt>` artifact, kept 30 days, with one
+  section on the run's *Summary* page; and the `jev-<browser>-<shard>-<run>-<attempt>` artifact, kept 30 days, with one
   `attempts/<NN>-<test>/assessment.json` per failed attempt (the request sent, the validated answer with its
   probabilities, the policy, the model, the elapsed time) and `summary.md`.
 - **Confidence:** each answer comes with Jev's confidence. Below 0.65 (the policy's `min_confidence`) the category is
@@ -1072,7 +1134,7 @@ php tools/monthly/php-scope.php coverage/php
 node tools/monthly/php-coverage.mjs --out coverage/php coverage/php/clover.xml
 (cd demo && php /path/to/infection.phar --configuration=../coverage/php/infection.json5 --threads=max)
 node tools/monthly/infection.mjs --out coverage/php coverage/php/infection/infection.json
-JS_COVERAGE=$PWD/coverage/js/raw DEMO_URL=https://localhost npx playwright test   # Chromium projects; add --shard as in CI
+JS_COVERAGE=$PWD/coverage/js/raw DEMO_URL=https://localhost npx playwright test --project=smoke --project=examples   # Chromium projects; add --shard as in CI
 node tools/monthly/js-coverage.mjs --out coverage/js coverage/js/raw
 node tools/monthly/trends.mjs --out coverage/trends --php coverage/php/php-coverage.json \
     --infection coverage/php/infection-summary.json --js coverage/js/js-coverage.json [--previous monthly.json]
