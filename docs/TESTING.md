@@ -932,9 +932,10 @@ the other engines compare it with a baseline that is not theirs (`examples-*`) o
 fail.
 
 In CI, *Demo + Playwright* is one job per browser and shard: three shards for each browser, side by side, so the
-other engines add jobs, not time. `PW_SCREENSHOTS=all` keeps the tagged tests in Firefox and WebKit, compared with the
-Chromium baselines: a report of how far the other engines render from them, never a gate, and never a way to write
-a baseline (`updateSnapshots: 'none'`).
+other engines add jobs, not time. `PW_SCREENSHOTS=all` turns the Firefox and WebKit projects around: they run the
+tagged tests only, compared with the Chromium baselines, to report how far the other engines render from them. Any
+difference fails that run, so its exit status is no verdict: run it apart from the behavior tests and report it,
+never gate on it. It never writes a baseline (`updateSnapshots: 'none'`).
 
 What differs between the engines, met so far, and how the kit and the suite stay portable:
 
@@ -947,8 +948,9 @@ What differs between the engines, met so far, and how the kit and the suite stay
   (`requestAnimationFrame`, cancelled in `disconnect()`).
 - **A morph moving an open `<dialog>`:** Live's morph moves nodes with `moveBefore` where the engine has it (Chromium,
   Firefox), which keeps a modal in the top layer; WebKit has none, so the moved dialog stays open but is no longer
-  modal. `modal` remembers the dialogs it showed (a `WeakSet`) and shows that same element as a modal again, while
-  Turbo's copy of a page, which holds clones, still connects closed (`lab.live-modal.spec.ts`).
+  modal. `modal` marks the dialog it showed with a property of the dialog itself (no module state) and shows that
+  same element as a modal again, while Turbo's copy of a page, whose clones copy attributes but not properties, still
+  connects closed (`lab.live-modal.spec.ts`).
 - **The scroll event of a Turbo visit** comes with the next frame; WebKit can dispatch it after a Back sent at once,
   and Turbo then records 0 as the restored page's position. A test that goes Back to check the restored scroll waits
   two frames after the visit first (`demo-app.spec.ts`).
