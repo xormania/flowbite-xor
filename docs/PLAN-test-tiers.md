@@ -19,7 +19,8 @@ _2026-10-08. Decided with the user on 2026-10-08:_
 6. _**PHP tests first:** PHPUnit and the Symfony UX test helpers are set up before the rest of this plan, from the
    survey of PHP and Symfony testing projects._
 7. _**Before 0.2.0:** this plan, with the Turbo cleanup and the other work first planned after the release, is done
-   before 0.2.0 is tagged._
+   before 0.2.0 is tagged, except step 8 (decided 2026-10-10: the gates need tolerances picked from the release
+   checks' first reports, so step 8 follows the release and the gates apply from 0.3.0, as decision 4 says)._
 
 _What led here: the theme toggle showed no icon under a dark system with the light theme chosen, and a theme switch
 faded table rows (`fix(theme-toggle)`). Each component's states were tested, not the moves between them, and nothing
@@ -135,4 +136,6 @@ One pull request each, in order:
 1. Tolerances per timing metric: decided after the report-only runs (step 8).
 2. How many runs per scenario: 5 is the starting point; more if the spread is wide.
 3. Firefox and WebKit: Chromium only for now (the metrics above are Chromium's); revisit after the release.
-4. The work lands before 0.2.0 (decision 7): does the release gate then already apply to 0.2.0, or still from 0.3.0?
+4. ~~The work lands before 0.2.0 (decision 7): does the release gate then already apply to 0.2.0, or still from 0.3.0?~~
+   **Decided 2026-10-10:** from 0.3.0. Steps 1–7 land before 0.2.0; step 8 follows the release, once the user has
+   reviewed the first reports.
