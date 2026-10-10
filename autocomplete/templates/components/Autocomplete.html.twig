@@ -9,6 +9,7 @@
     multiple = false
 -%}
 {%- set controller = 'symfony--ux-autocomplete--autocomplete' -%}
+{#- the kit's autocomplete-assist controller next to it: syncs Tom Select after a reset of the select's form -#}
 {#- the texts UX Autocomplete's form type sets (in English): override one with its attribute, e.g. `data-symfony--ux-autocomplete--autocomplete-no-results-found-text-value` -#}
 {#- Tom Select points the label at its own input and names the label "<id>-ts-label": aria-labelledby keeps the label's name on the hidden select -#}
 <twig:Select
@@ -21,7 +22,7 @@
     {{ ...(url ? {('data-' ~ controller ~ '-url-value'): url} : {}) }}
     {{ ...(minCharacters is not null ? {('data-' ~ controller ~ '-min-characters-value'): minCharacters} : {}) }}
     {{ ...(options ? {('data-' ~ controller ~ '-tom-select-options-value'): options|json_encode} : {}) }}
-    {{ ...attributes.defaults({'data-controller': controller}) }}
+    {{ ...attributes.defaults({'data-controller': controller ~ ' autocomplete-assist'}) }}
 >
     {##- The options (`<option>` elements); with `url`, only the selected ones. -#}
     {{- block(outerBlocks.content) -}}

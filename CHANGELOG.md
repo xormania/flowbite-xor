@@ -51,6 +51,14 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `autocomplete`: after a reset of its form (a reset button, `form.reset()`), Tom Select showed the choice made before,
+  the `<select>` holding the one rendered; it showed it right only after Back through the layouts' `form-reset`. The
+  new `autocomplete-assist` controller, next to UX Autocomplete's in `Autocomplete` and in the form theme's choice
+  fields, syncs Tom Select once the reset is done, without `layouts`, for a field tied to its form by `form` too, with
+  no `input` or `change` event (no Live request).
+- `calendar`: a form reset cancelled by another listener (`preventDefault()` on `reset`) still brought back the dates
+  rendered; the calendar now acts once the `reset` event is over, and only when it was not cancelled. Its README lists
+  the `reset` source of `calendar:select`.
 - `editor`: a submit of more than `EditorHtmlPolicy::MAX_INPUT_BYTES` (1000000 bytes) was a 500: the form showing its
   error printed the refused value through `flowbite_editor_html`, which refuses it. It is now a 422 with the field's
   error, the editor and its textarea empty (the value is never cut); the same in a Live Component.

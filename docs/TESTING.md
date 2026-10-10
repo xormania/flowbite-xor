@@ -339,8 +339,11 @@ replaces on every visit: `form-reset` (the `layouts` recipe) calls `reset()` on 
 page's controllers have connected, unless the focus is inside the form or it sits in a `data-turbo-permanent` element:
 a copy is a new element, and `reset()` puts back the `value`, `selected` and `checked` attributes the server rendered.
 Call it as `HTMLFormElement.prototype.reset.call(form)`: a field named `reset` (a kept URL parameter) shadows the
-method. A widget whose state `reset()` cannot reach follows the form's `reset` event (the calendar: a hidden input's
-value is its attribute) or is synced after it (Tom Select's own display). Check what the user sees, not only the value
+method. A widget whose state `reset()` cannot reach follows the form's `reset` event itself (the calendar: a hidden
+input's value is its attribute; the autocomplete's `autocomplete-assist`: Tom Select's own display), so it holds
+without `layouts` too. That event comes before the fields are reset and can be cancelled by any listener: act a task
+later (a click on a reset button runs microtasks between listeners), and only if `defaultPrevented` is false; test a
+cancelled reset, and a reset with the body's controller removed. Check what the user sees, not only the value
 sent: Tom Select's item, the date picker's field and selected day. A Live Component needs none: its controller sets
 each `data-model` field from the component's state as it connects.
 
