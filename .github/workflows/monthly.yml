@@ -135,10 +135,11 @@ jobs:
               with:
                   ref: ${{ inputs.ref || 'dev' }}
 
+            # no npm cache: this workflow runs in the default branch's context on any `ref`, so a cache it saved could carry
+            # that ref's packages into other runs (cache poisoning); once a month, the install costs little
             - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
                   node-version: 22
-                  cache: npm
 
             - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
