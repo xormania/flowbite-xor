@@ -8,6 +8,10 @@ Symfony UX (https://github.com/symfony/ux), src/Toolkit/kits/shadcn
     Copyright (c) 2025-present Fabien Potencier
     popover, calendar and date-picker are derived from its recipes of the same names (not copied).
 
+shadcn/ui (https://github.com/shadcn-ui/ui)
+    Copyright (c) 2023 shadcn
+    The design the Symfony UX Toolkit shadcn kit ports, which popover, calendar and date-picker follow.
+
 ProseMirror (https://github.com/ProseMirror/prosemirror-view)
     Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
     The editor recipe's stylesheet adapts prosemirror-view's style/prosemirror.css.

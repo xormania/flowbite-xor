@@ -35,6 +35,14 @@ export const test = base.extend({
 Here: [`tests/e2e/fixtures.ts`](../tests/e2e/fixtures.ts) (`guardPage`, `recordCspViolations`, `allowHttpError`; `allowCancelledRequest`
 for a request a test cancels on purpose, *Back during a frame visit promoted to history*).
 
+The guard drops two page errors of its own, each the rejection of Turbo's prefetch (a link under the pointer) that a
+full load (a reload, a `goto`) cancels, in the one engine that throws it (*Browsers*): WebKit's
+(`FETCH_CANCELLED_BY_UNLOAD`, from the full load's request until its document replaces the old one) and Firefox's
+(`PREFETCH_CANCELLED_BY_UNLOAD`: *NetworkError when attempting to fetch resource.*, thrown from Turbo's prefetch code
+as its own request ends cancelled, and a full load after it commits). Anywhere else
+the same messages fail the test: `smoke.spec.ts` ("the page guard") calibrates both, with the real case and with the
+message where one condition is missing.
+
 ## Turbo
 
 ### The page stayed one document
@@ -993,11 +1001,27 @@ What differs between the engines, met so far, and how the kit and the suite stay
   and Turbo then records 0 as the restored page's position. A test that goes Back to check the restored scroll waits
   two frames after the visit first (`demo-app.spec.ts`).
 - **A full load (reload, `goto`) while the document still runs a fetch:** WebKit rejects the fetch (`TypeError: Load
-  failed`, *due to access control checks*); Turbo's prefetch of a link under the pointer rethrows it, unhandled. The
-  other engines drop the document without rejecting. `guardPage()` drops exactly those two messages, in WebKit only,
-  and only from a full load's request until its document replaces the old one (`FETCH_CANCELLED_BY_UNLOAD`); a
-  navigation that fails or leaves the document in place (a 204) ends that window. Anywhere else they fail the test:
-  `smoke.spec.ts` ("the page guard") plants them during a full load, outside one and after a 204, in every engine.
+  failed`, *due to access control checks*); Turbo's prefetch of a link under the pointer rethrows it, unhandled.
+  Chromium drops the document without rejecting; Firefox rejects Turbo's prefetch its own way (next item).
+  `guardPage()` drops exactly those two messages, in WebKit only, and only from a full load's request until its
+  document replaces the old one (`FETCH_CANCELLED_BY_UNLOAD`); a navigation that fails or leaves the document in place
+  (a 204) ends that window. Anywhere else they fail the test: `smoke.spec.ts` ("the page guard") plants them during a
+  full load, outside one and after a 204, in every engine.
+- **A full load while Turbo's prefetch runs:** Firefox cancels the request (`NS_BINDING_ABORTED`) and rejects the
+  fetch with a TypeError, *NetworkError when attempting to fetch resource.*, not an AbortError. Turbo 8.0.23 starts
+  its prefetch from a timer with no catch (`PrefetchCache.putLater`) and rethrows all but an AbortError, so the page
+  error is unhandled, reported before or after the full load's request. A library behavior, not the kit's: the
+  error's stack is Turbo's (`perform`, from `putLater`'s timer). `guardPage()` drops that message in Firefox only,
+  thrown from there, when it is the end of Turbo's own request: as it is thrown, no prefetch request still runs and the
+  last one to end failed as cancelled, on the document on screen (after its last commit), paired with no other error;
+  then a full load follows, a main-frame navigation request after that commit and the document it commits
+  (`PREFETCH_CANCELLED_BY_UNLOAD`). The cancel and the error can come before or after the load's request, so the rule
+  asks only for the load somewhere after the last commit. Firefox also cancels the prefetch, with the same error, on a
+  navigation answered 204 and on `window.stop()`: the document stays, so those are reported. `smoke.spec.ts` ("the
+  page guard") holds a real prefetch and leaves with `goto`: nothing reported, in every engine. It reports the same
+  message thrown by the page outside a full load, or during one by a fetch like Turbo's; thrown by Turbo's prefetch
+  failing with no cancellation, after a full load cancelled another prefetch request, or after the page cancelled a
+  prefetch request of its own; and Turbo's prefetch cancelled by a 204 or by `window.stop()`.
 
 - **A cancelled request** fails with `net::ERR_ABORTED` in Chromium, `NS_BINDING_ABORTED` in Firefox, `Load request
   cancelled` in WebKit: `allowCancelledRequest` accepts each engine's own text (`CANCELLED` in `tests/e2e/fixtures.ts`),
