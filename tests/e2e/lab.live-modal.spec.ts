@@ -36,8 +36,13 @@ test('a modal whose container a Live re-render replaces is torn down cleanly, an
     await expect(page.locator('#replaced-modal-0')).toHaveCount(0);
     await expect(dialog).toBeVisible();
     expect(await dialog.evaluate((element) => element.matches(':modal'))).toBe(true);
+    // the new container's trigger, rendered anew, says the modal it now holds is open (the page behind is inert)
+    const newTrigger = page.locator('#replaced-modal-1 [data-flowbite-modal-target="trigger"]');
+    await expect(newTrigger).toHaveAttribute('aria-expanded', 'true');
+    await expect(dialog).toHaveAttribute('aria-hidden', 'false');
     await dialog.getByRole('button', { name: 'Done' }).click();
     await expect(dialog).toBeHidden();
+    await expect(newTrigger).toHaveAttribute('aria-expanded', 'false');
     expect(await openDialogs()).toBe(0);
 
     // closed: the page is usable and the new instance opens and closes
