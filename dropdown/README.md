@@ -85,6 +85,14 @@ resize, and the final placement is in `data-popper-placement`, as with Flowbite'
 `floating` recipe's module (`assets/lib/flowbite-xor-floating.js`), which `ux:install dropdown` installs with it:
 `popover` and `tooltip` place their content with the same module.
 
+### Keyboard
+
+- On the trigger, ArrowDown, Enter and Space open the menu on its first item, ArrowUp on its last.
+- In the menu, ArrowDown and ArrowUp move through its items and wrap, Home and End go to the first and the last,
+  Escape closes it and focuses the trigger, Tab and Shift+Tab close it and move on from the trigger.
+- On a submenu's item, ArrowRight, Enter and Space open the submenu on its first item (ArrowRight on one already open
+  moves into it); in the submenu, ArrowLeft and Escape close it and focus its item.
+
 ### With Turbo and Live Components
 
 - Before Turbo caches a page, an open menu closes: Back and Forward show it closed. One inside a

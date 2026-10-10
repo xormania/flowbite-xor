@@ -54,6 +54,13 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Fixed
 
+- `dropdown`: ArrowRight on a submenu's item opened the submenu but left the focus on the item, and closed a submenu
+  already open (by a click); it now opens the submenu, or keeps it open, and focuses its first item.
+- `sidebar`: with `localStorage` blocked, a Turbo visit expanded a collapsed sidebar; the collapse now lasts until the
+  next page load. Forward to a page left with the sidebar open over it showed the menu button expanded on a closed
+  sidebar, and the sidebar stayed open over the page when the screen grew to a desktop, so shrinking it again showed
+  it open and the menu button took two clicks; the menu button now follows the sidebar on reconnect, and the sidebar
+  closes where it sits beside the page.
 - `calendar` (and `date-picker`): in WebKit a click on a day that did not have the focus selected nothing: the render
   that follows the focus rewrote every day's number between the mousedown and the mouseup, which cancels the click
   there. A day's number is now written only when it changes.

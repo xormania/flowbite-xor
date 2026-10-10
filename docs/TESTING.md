@@ -1001,6 +1001,9 @@ What differs between the engines, met so far, and how the kit and the suite stay
 - **A cancelled request** fails with `net::ERR_ABORTED` in Chromium, `NS_BINDING_ABORTED` in Firefox, `Load request
   cancelled` in WebKit: `allowCancelledRequest` accepts each engine's own text (`CANCELLED` in `tests/e2e/fixtures.ts`),
   still for that exact request only.
+- **A response rewritten by the test** (`route.fetch()`, then `route.fulfill()` with a changed body): Firefox asks for
+  `zstd`, which Playwright does not decode, so `response.text()` is the compressed bytes and the page renders them.
+  Fetch it with `accept-encoding: identity` (`demo-app.spec.ts`, the tracked importmap test).
 - **A constructed `ClipboardEvent`** gets an empty `clipboardData` of Firefox's own, whatever its init passes: a paste
   sets the data as the event's own property (`editor.spec.ts`, `paste()`).
 - **Leaving a page while it loads a lazy controller** cancels the module's request; Firefox also rejects the import,
