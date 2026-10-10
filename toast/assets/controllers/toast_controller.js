@@ -14,7 +14,7 @@ import { Controller } from '@hotwired/stimulus';
  * @value  timeout Milliseconds before the toast dismisses itself, `0` to keep it until closed.
  * @action pause   Stops the countdown while the toast is hovered or focused, keeping the time left.
  * @action resume  Restarts the countdown with the time left once it is neither hovered nor focused.
- * @action close   Fades the toast out and removes it.
+ * @action close   Fades the toast out and removes it; under `prefers-reduced-motion`, removes it at once.
  */
 export default class extends Controller {
     static values = { timeout: { type: Number, default: 5000 } };
@@ -69,6 +69,10 @@ export default class extends Controller {
         }
         this.closing = true;
         this.stop();
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            this.element.remove();
+            return;
+        }
         this.element.classList.add('opacity-0');
         this.removeTimer = setTimeout(() => this.element.remove(), 300);
     }

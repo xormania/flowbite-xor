@@ -36,3 +36,5 @@ A toast placed outside a region belongs to its page: Back and Forward never show
 Toasts written inside `<twig:ToastRegion>` show on a full page load only: on a Turbo Drive visit, Turbo keeps the region already on screen and drops the new page's copy, with its toasts. Use `<twig:Toast:Stream>` instead.
 
 The region is a polite live region, so new toasts are announced (`danger` ones interrupt, with `role="alert"`). Toasts pause while hovered or focused and never move focus.
+
+A closed toast fades out (`opacity`), then leaves the page; under `prefers-reduced-motion` it leaves at once.

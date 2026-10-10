@@ -73,6 +73,8 @@ Use the table component to show text, images, links, and other elements inside a
 </twig:Table>
 ```
 
+Body rows fade their colors on hover (`transition-colors`); under `prefers-reduced-motion` they change at once.
+
 ## Examples
 
 ### Highlight striped
