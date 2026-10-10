@@ -64,6 +64,8 @@ Use the following default tabs component example to show a list of links that th
   cached with the tab that was selected. A new visit or a reload starts from `defaultValue`: render the tab to
   select from the request (`defaultValue="{{ app.request.query.get('tab', 'account') }}"`, checked against your
   values) when it must be linkable.
+- **Motion:** a tab fades its colors (text, background, border) when hovered or selected, no layout property;
+  under `prefers-reduced-motion` they change at once.
 
 ## Examples
 

@@ -17,7 +17,7 @@
             <span class="inline-flex size-5 shrink-0 items-center justify-center">{{ _icon }}</span>
         {%- endif %}
         <span class="min-w-0 flex-1 truncate group-data-collapsed/sidebar:sr-only">{{ label }}</span>
-        <twig:ux:icon name="flowbite:chevron-right-outline" class="size-4 shrink-0 transition-transform group-data-collapsed/sidebar:hidden [[aria-expanded=true]>*>&]:rotate-90" />
+        <twig:ux:icon name="flowbite:chevron-right-outline" class="size-4 shrink-0 transition-transform motion-reduce:transition-none! group-data-collapsed/sidebar:hidden [[aria-expanded=true]>*>&]:rotate-90" />
     </span>
     <ul role="group" class="ms-4.5 mt-1 space-y-1 border-s border-default ps-2 group-data-collapsed/sidebar:hidden [[aria-expanded=false]>&]:hidden">
         {{- _content -}}

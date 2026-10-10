@@ -55,6 +55,8 @@ Use the modal component to show interactive dialogs and notifications to your we
 
 In a Live Component, an open modal stays open and modal across a re-render. A re-render that replaces the modal's container (a wrapper whose id changes) moves the `<dialog>` to a new controller: the old one disconnects without an error and the new one keeps the dialog as it is, open or closed, with its own trigger's `aria-expanded` set to match.
 
+The backdrop appears and goes with the dialog, at once: it does not fade, with or without `prefers-reduced-motion`.
+
 ## Examples
 
 ### Static modal

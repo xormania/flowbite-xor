@@ -134,6 +134,12 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
 
 ### Changed
 
+- Motion: transitions name the properties they animate and stop under `prefers-reduced-motion`. `tabs` triggers fade
+  their colors only (was `transition-all`), the `toggle` knob animates `translate` and its border color (was
+  `transition-all`), and the `modal` backdrop its color (was every property); these, the `sidebar` width and chevron,
+  the `nav-menu` and `side-nav` chevrons, `table` row hovers and the `toast` fade change at once under reduced motion.
+  There, a dismissed `alert` hides and a closed `toast` leaves the page at once, without waiting for the fade, and
+  the `spinner` and the `skeleton` pulse run three times slower.
 - `theme`: on-fill roles in `flowbite-xor.css`, the color of text on a solid fill (`fg-on-brand`, `fg-on-success`,
   `fg-on-danger`, `fg-on-warning`, `fg-on-dark`) and of the toggle's knob (`knob`). All are white, so nothing looks
   different, and a project with a light brand color can set `fg-on-brand` to a dark one. `button`, `indicator`,

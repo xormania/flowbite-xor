@@ -257,6 +257,12 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
   - Flowbite's `max-w-2xl` is 16rem, not 42rem: do not use it.
 
   Check the computed style in the browser. Details are in [`docs/NOTES.md`](docs/NOTES.md).
+- **Motion.** A transition names the properties it animates (`transition-colors`, `transition-[translate,border-color]`,
+  never `transition-all`, no layout property unless it is the point, like the sidebar's width) and stops under reduced
+  motion with `motion-reduce:transition-none!` (important, because of the CSS order above). An animation that is the
+  content (a spinner, a skeleton's pulse) runs three times slower there instead. A controller that waits for a fade
+  before hiding or removing an element does it at once under `prefers-reduced-motion`; never wait for a
+  `transitionend` that may not come. `tests/e2e/motion.spec.ts` checks each moving recipe.
 - **Twig inside components.** In a component's content (`<twig:X>…</twig:X>`), `block('name')` and `{% block %}`
   belong to the component: reach the surrounding template's blocks with `block(outerBlocks.name)`.
 - **Turbo forms.** A submitted form answers with a redirect (303) when it succeeds and 422 when it shows errors;
