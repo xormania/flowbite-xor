@@ -40,6 +40,9 @@ const clip = (text, limit) => {
     return data.length <= limit ? text : `${data.subarray(0, limit).toString('utf8').replace(/�$/, '')}…`;
 };
 
+/** `text` as a literal inside a regular expression: every character with a meaning there escaped. */
+const escapeRegExp = (text) => String(text).replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+
 /** A block's lines without their common indentation. */
 function dedent(lines) {
     const depth = Math.min(...lines.filter((line) => line.trim()).map(indent));
@@ -52,11 +55,11 @@ function dedent(lines) {
  */
 export function stepIn(text, job, id) {
     const lines = text.split('\n');
-    const start = lines.findIndex((line, i) => new RegExp(`^\\s+${job}:\\s*(#.*)?$`).test(line) && lines.slice(0, i).some((l) => /^jobs:/.test(l)));
+    const start = lines.findIndex((line, i) => new RegExp(`^\\s+${escapeRegExp(job)}:\\s*(#.*)?$`).test(line) && lines.slice(0, i).some((l) => /^jobs:/.test(l)));
     if (start < 0) return null;
     let end = lines.findIndex((line, i) => i > start && !blank(line) && indent(line) <= indent(lines[start]));
     if (end < 0) end = lines.length;
-    const at = lines.findIndex((line, i) => i > start && i < end && new RegExp(`^\\s*(- )?id:\\s*['"]?${id}['"]?\\s*(#.*)?$`).test(line));
+    const at = lines.findIndex((line, i) => i > start && i < end && new RegExp(`^\\s*(- )?id:\\s*['"]?${escapeRegExp(id)}['"]?\\s*(#.*)?$`).test(line));
     if (at < 0) return null;
     let item = at;
     while (item > start && !(lines[item].trimStart().startsWith('- ') && indent(lines[item]) + 2 === indent(lines[at].replace(/^(\s*)- /, '$1  ')))) item--;
