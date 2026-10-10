@@ -39,8 +39,9 @@ export type Expected = Counts & {
 
 /**
  * One step's counts, its response bytes (bodies decoded; one that cannot be read counts 0) and its timings, which are
- * reported, never gated: `durationMs` from the start of the step's action until the action's own completion resolves
- * (the update it waits for has landed; the wait for quiet after it is not counted), Playwright's round trips included,
+ * reported, never gated: `durationMs` from the start of the step's action until the frame presented after the
+ * action's own completion (the update it waits for has landed, then two animation frames; the wait for quiet after it
+ * is not counted), Playwright's round trips included,
  * so not the component's time alone; `inpMs` the longest interaction the step caused, by the page's Event Timing
  * (Chromium and Firefox; `null` where the engine has none or the step had no interaction): one synthetic step's
  * longest entry, not the real-user INP of Core Web Vitals.
@@ -245,6 +246,9 @@ export async function trackCounts(page: Page) {
         try {
             const start = performance.now();
             await action();
+            // completion: the frame presented after the update, so the rendering it costs counts (two animation frames:
+            // the one that renders the update has run when the second starts)
+            await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
             durationMs = performance.now() - start;
             // quiet: nothing in flight, then still nothing after two animation frames (a render may start a request)
             await expect
