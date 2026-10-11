@@ -1,4 +1,4 @@
-# flowbite-xor
+# UXor
 
 A [Symfony UX Toolkit](https://symfony.com/bundles/ux-toolkit/current/index.html) kit built on the free
 [Flowbite](https://flowbite.com/) v4 library and Tailwind CSS v4. A kit is a set of recipes. A recipe (not a
@@ -10,7 +10,7 @@ login card or a dashboard.
 controller (no Flowbite JavaScript, no global `initFlowbite()`), so components keep working when Turbo
 navigates and when Live Components re-render them.
 
-**Gallery:** <https://xormania.github.io/flowbite-xor/> shows every recipe and every example of its README, in light
+**Gallery:** <https://xormania.github.io/uxor/> shows every recipe and every example of its README, in light
 and dark, with its code and its install command. It is a static copy of the demo app, published with each release.
 
 ## Install
@@ -42,11 +42,11 @@ sections of [`INSTALL.md`](INSTALL.md) say (its *Symfony* steps are the commands
 
 ```bash
 # from main: the last release
-php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor
+php bin/console ux:install <recipe> --kit=https://github.com/xormania/uxor
 
 # from a release tag (`0.1.0`), a branch (`dev`: the work since the last release), or a full 40-character commit
 # SHA (no "/": use the SHA for feat/x)
-php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version>
+php bin/console ux:install <recipe> --kit=https://github.com/xormania/uxor:<version>
 ```
 
 `ux:install` also installs the recipes a recipe depends on. It then prints the commands that install the
@@ -123,8 +123,8 @@ Installed with the recipes that use it; install it yourself only for code of you
 | [`breadcrumb`](breadcrumb/README.md) | A trail of links showing where the current page sits in the site hierarchy. |
 | [`calendar`](calendar/README.md) ✦ | Pick a date, several dates or a range inline: keyboard navigation, disabled dates and bounds, several months, locales, right to left, hidden inputs for forms and a `model` prop for Live Components. |
 | [`chart`](chart/README.md) ✦ | Charts with Symfony UX Chart.js in the theme's colors, light and dark, each with its data as a table; from arrays or `ChartBuilderInterface`, updated in place by Live Components. |
-| [`data-table`](data-table/README.md) ✦ | A server-driven table: search, filters, sortable columns, page size and pages in a Turbo Frame, with Back and Forward through each state. Copies PHP classes into `src/FlowbiteXor/`. |
-| [`data-table-live`](data-table-live/README.md) | `data-table` as a Live Component: search while typing, filters, sorting, pages and row selection for bulk actions, its state in the URL. Copies PHP classes into `src/FlowbiteXor/`. |
+| [`data-table`](data-table/README.md) ✦ | A server-driven table: search, filters, sortable columns, page size and pages in a Turbo Frame, with Back and Forward through each state. Copies PHP classes into `src/UXor/`. |
+| [`data-table-live`](data-table-live/README.md) | `data-table` as a Live Component: search while typing, filters, sorting, pages and row selection for bulk actions, its state in the URL. Copies PHP classes into `src/UXor/`. |
 | [`date-picker`](date-picker/README.md) ✦ | A date or a range picked in a calendar that opens from a button or a typed field; a `DateType` opts in through the form theme. |
 | [`drawer`](drawer/README.md) ✦ | A panel sliding over one side of the page, for navigation, filters or details, as a native `<dialog>`. |
 | [`empty-state`](empty-state/README.md) | What a list or page shows when it has nothing yet, with a way forward. |
@@ -180,7 +180,7 @@ Recipes are copies you own, so an update is a change you review like any other. 
 the recipe from the newer version with `--force`:
 
 ```bash
-php bin/console ux:install <recipe> --kit=https://github.com/xormania/flowbite-xor:<version> --force
+php bin/console ux:install <recipe> --kit=https://github.com/xormania/uxor:<version> --force
 ```
 
 `--force` replaces every file of the recipe and of every recipe it depends on: `ux:install dashboard-home --force`
@@ -264,12 +264,12 @@ unchecked. On top of escaping, the components check what shapes their markup:
 
 `tests/e2e/hostile-props.spec.ts` renders each of these props with hostile values and checks what the browser parses.
 The kit's demo enforces a strict Content Security Policy, and every browser test fails on a violation. Report a
-vulnerability privately: see [`SECURITY.md`](https://github.com/xormania/flowbite-xor/blob/main/SECURITY.md).
+vulnerability privately: see [`SECURITY.md`](https://github.com/xormania/uxor/blob/main/SECURITY.md).
 
 ## Versioning
 
-Versions are git tags `X.Y.Z`, without a `v`: GitHub names the archive of a `v1.2.3` tag `flowbite-xor-1.2.3`,
-which the toolkit then cannot find. Install one with `--kit=https://github.com/xormania/flowbite-xor:<version>`;
+Versions are git tags `X.Y.Z`, without a `v`: GitHub names the archive of a `v1.2.3` tag `uxor-1.2.3`,
+which the toolkit then cannot find. Install one with `--kit=https://github.com/xormania/uxor:<version>`;
 without a version, `ux:install` downloads `main`, which holds the last release; `:dev` installs the work merged since.
 [`CHANGELOG.md`](CHANGELOG.md) lists what each version changes.
 
