@@ -42,3 +42,10 @@
     box-shadow: 0 0 12px rgb(45 212 191 / 0.45);
     background: #000 url("../images/xor/mascot.gif") center / cover no-repeat;
 }
+
+/* the mascot holds still for visitors who ask for less motion (and for the page screenshots, taken that way) */
+@media (prefers-reduced-motion: reduce) {
+    .xor-avatar {
+        background-image: url("../images/xor/mascot-still.png");
+    }
+}
