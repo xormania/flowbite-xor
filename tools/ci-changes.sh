@@ -89,7 +89,7 @@ while IFS= read -r path; do
 
         # Anything else is part of the kit (recipes, kit.css, kit.js, manifest.json, README.md, .gitattributes...).
         # Contrast checks the theme's roles, what the markdown teaches and the palette colors of the recipes' templates
-        # (tools/docs-lint.mjs), the README tables and the controllers' rows; it reads every file in a directory (a
+        # (tools/docs-lint.mjs), the recipe tables and the controllers' rows; it reads every file in a directory (a
         # recipe: tools/readme-pairing.mjs pairs its code with its README, tools/readme-versions.mjs its README with its
         # manifest) and the root files below
         *)

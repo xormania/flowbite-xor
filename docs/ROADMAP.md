@@ -3,8 +3,8 @@
 _2026-10-07. Decisions made with the user, item by item. Roadmap only: no code. Each package gets its own
 detailed plan before it is built._
 
-Each package's status is in the *Sequence* table: `shipped` means its recipes are in `README.md`, and their READMEs
-describe how they behave now. This page and the `shipped` plans are records of the decisions, not instructions.
+Each package's status is in the *Sequence* table: `shipped` means its recipes are in `docs/RECIPES.md`, and their
+READMEs describe how they behave now. This page and the `shipped` plans are records of the decisions, not instructions.
 
 ## Context
 

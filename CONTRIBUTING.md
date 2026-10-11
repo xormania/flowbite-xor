@@ -13,7 +13,7 @@ and pull request standard.
 | `tools/sync-demo` | no | copies every recipe into `demo/` the way `ux:install --force` does |
 | `tools/demo-php` | no | runs PHP in the demo's container, for the Playwright specs (`DEMO_URL`) |
 | `tools/contrast/` | no | WCAG contrast check of the theme's color roles |
-| `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `README.md`'s recipe tables, and checks the plans' status |
+| `tools/llms-txt.mjs` | no | writes `llms.txt` and the recipe table of `FOR-AGENTS.md` from `docs/RECIPES.md`'s recipe tables, and checks the plans' status |
 | `tools/docs-lint.mjs`, `tools/fence-coverage.mjs` | no | what the markdown examples teach, and a gallery page for every recipe and README example (*Docs*) |
 | `tools/recipe-imports.mjs` | no | every relative import in a recipe's JavaScript names a file the recipe or its recipe dependencies install (*Checks*) |
 | `tools/js-duplication.mjs` | no | the copies of code in the recipes' JavaScript: the duplicated lines stay within a budget, and no recipe declares again a name a shared module exports (*Checks*, *Shared code*) |
@@ -137,7 +137,7 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/flowbite-xor.css    # the theme recipe ships kit.css unchanged
-node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match README.md's recipe tables (without --check: rewrites both; see Docs)
+node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match docs/RECIPES.md's recipe tables (without --check: rewrites both; see Docs)
 node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles; no recipe template uses a palette color (see Docs)
 node tools/icon-lint.mjs                            # every icon in the recipes' templates and the markdown is a flowbite: name written in full; lists the names chosen by a Twig expression (see Docs)
 node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
@@ -241,18 +241,18 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
   `manifest.json` copying `assets/`, a module `assets/lib/flowbite-xor-<name>.js` with no dependency, a README listing
   its exports. A recipe imports it by its relative path (`../lib/flowbite-xor-turbo.js`) and lists the recipe in
   `dependencies.recipe` (`tools/recipe-imports.mjs` checks it); add the module to `demo/.gitignore` and a row to
-  `README.md`'s *Shared code* table. A shared function has one meaning wherever it is called: what differs between
-  recipes stays in each controller. `node tools/js-duplication.mjs` fails a new copy of 40 tokens or more beyond the
-  budget it holds, and a declaration of a name a shared module exports; lower its `BUDGET` when a change removes
-  copies.
+  `docs/RECIPES.md`'s *Shared code* table. A shared function has one meaning wherever it is called: what differs
+  between recipes stays in each controller. `node tools/js-duplication.mjs` fails a new copy of 40 tokens or more
+  beyond the budget it holds, and a declaration of a name a shared module exports; lower its `BUDGET` when a change
+  removes copies.
 - **No inline code.** Recipes print no `<style>` element and no `style="…"` or `on…="…"` attribute, and an inline
   `<script>` only in the layouts' `<head>`, with `csp_script_nonce`. A Content Security Policy blocks inline code
   without its nonce, no nonce covers an attribute, and with a nonce per request Turbo reports the `<style>` of every
   page it fetches. Behavior goes in a controller, CSS in the theme, and a size computed from data in an attribute
   other than `style` (`Progress` draws its bar as an `<svg width>`). The demo's policy fails the browser tests on a
   violation (*Checks*).
-- **Props that shape markup are checked** (README, *Security*). A tag prop (`as`) is lower-cased and kept only when
-  it is one of the tags its `##` line lists, right after `{% props %}`:
+- **Props that shape markup are checked** (`docs/GUIDE.md`, *Security*). A tag prop (`as`) is lower-cased and kept
+  only when it is one of the tags its `##` line lists, right after `{% props %}`:
   `{%- set as = as|lower in ['div', 'a'] ? as|lower : 'div' -%}`. An attribute name taken from data is escaped with
   `|e('html_attr_relaxed')`. A link prop goes through the scheme guard of
   `breadcrumb/templates/components/Breadcrumb/Item.html.twig`, and the template prints the guarded variable. Add each
@@ -342,7 +342,7 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
 
    If the recipe puts a text, icon or bar color on a background that `tools/contrast/pairs.json` does not cover yet,
    add a row there: `fg`, `bg`, `min` (4.5 for text, 3 for icons, bars and focus rings) and `usage`.
-7. Add a row for the recipe to the matching table under *Recipes* in `README.md` (mark it ✦ if it ships a Stimulus
+7. Add a row for the recipe to the matching table in `docs/RECIPES.md` (mark it ✦ if it ships a Stimulus
    controller), run `node tools/llms-txt.mjs` to add it to `llms.txt` and to `FOR-AGENTS.md`'s table, and add an
    entry to `CHANGELOG.md` (see *Changelog*). If it is close to another recipe, say which to pick in the list under
    that table (*Which recipe*). Commit, then run
@@ -351,7 +351,7 @@ example: `default` for the one under the title, with `-2`, `-3`… added when a 
 
 ## Docs
 
-The lists of recipes that agents read are written from `README.md`'s recipe tables by `tools/llms-txt.mjs`: edit a
+The lists of recipes that agents read are written from `docs/RECIPES.md`'s recipe tables by `tools/llms-txt.mjs`: edit a
 row there, never the copies, then run `node tools/llms-txt.mjs` and commit what it writes. CI's *Contrast* job runs
 it with `--check`, which fails when:
 
@@ -433,7 +433,7 @@ recipes: chart      # comma-separated, or none for a plan that adds no recipe
 ```
 
 The roadmap's *Sequence* table has the same two columns per package. `--check` fails an `open` plan or roadmap row
-whose recipes are all in `README.md`'s tables, and a `shipped` one naming a recipe that is not: the pull request
+whose recipes are all in `docs/RECIPES.md`'s tables, and a `shipped` one naming a recipe that is not: the pull request
 that adds a plan's last recipe marks the plan `shipped`. `llms.txt` never links a plan that is not `open`.
 
 ## Screenshots

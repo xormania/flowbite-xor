@@ -30,7 +30,7 @@
         <header class="border-b border-default bg-neutral-primary">
             <nav class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3" aria-label="Main">
                 <a href="{{ path('app_index') }}" class="flex items-center gap-2 font-semibold text-heading">
-                    <span class="grid size-7 place-items-center rounded-base bg-brand text-xs font-bold text-white" aria-hidden="true">fx</span>
+                    <span class="xor-logo xor-glow size-7 shrink-0 rounded-base" aria-hidden="true"></span>
                     flowbite-xor
                 </a>
                 <a href="{{ path('app_index') }}#recipes" class="text-sm font-medium hover:text-heading">Recipes</a>
@@ -60,6 +60,7 @@
                 </p>
             </div>
         {% endif %}
+        {% block hero %}{% endblock %}
         <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
             {% block body %}{% endblock %}
         </main>
