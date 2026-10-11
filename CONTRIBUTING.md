@@ -138,7 +138,7 @@ demo/vendor/bin/ux-toolkit-kit-debug .              # lists each recipe with its
 node tools/contrast/check.mjs                       # every pair in tools/contrast/pairs.json meets its contrast minimum
 cmp kit.css theme/assets/styles/uxor.css            # the theme recipe ships kit.css unchanged
 node tools/llms-txt.mjs --check                     # llms.txt and FOR-AGENTS.md's recipe table match docs/RECIPES.md's recipe tables (without --check: rewrites both; see Docs)
-node tools/name-check.mjs                           # every URL of the kit's repository (github.com, raw files, the gallery) in any file is manifest.json's homepage (see Renaming the kit)
+node tools/name-check.mjs                           # no file names a former repository of the kit (tools/kit-former-names.json) by its github.com, raw or gallery URL (see Renaming the kit)
 node tools/docs-lint.mjs                            # no markdown example teaches Flowbite JS, palette colors, dark: overrides, inline handlers or styles; no recipe template uses a palette color (see Docs)
 node tools/icon-lint.mjs                            # every icon in the recipes' templates and the markdown is a flowbite: name written in full; lists the names chosen by a Twig expression (see Docs)
 node tools/fence-coverage.mjs                       # every README example is one the demo reads; with --site _site, after app:export-static: every recipe and example has its pages (see Docs)
@@ -442,9 +442,10 @@ that adds a plan's last recipe marks the plan `shipped`. `llms.txt` never links 
 (through `tools/kit-identity.mjs`), the demo's pages (the `kit_reader` Twig global), the browser tests' index heading,
 `tools/tests/docker-install.sh`'s default repository, and `release.yml`'s tag message; the gallery's base path is the
 repository's name (`ci.yml`, `pages.yml`). The markdown keeps literal URLs, because GitHub renders it as written. To
-rename: change `manifest.json`, rename the repository on GitHub, run `node tools/llms-txt.mjs`, then
-`node tools/name-check.mjs` (CI's *Tool tests* job runs it), which lists every URL of the kit's repository
-(`github.com/<owner>/<repo>`, its raw files, `<owner>.github.io/<repo>`) in any file that is not the homepage;
+rename: change `manifest.json`, add the old `owner/repo` to `tools/kit-former-names.json`, rename the repository on
+GitHub, run `node tools/llms-txt.mjs`, then `node tools/name-check.mjs` (CI's *Tool tests* job runs it), which lists
+every URL of a former repository (`github.com/<owner>/<repo>`, its raw files, `<owner>.github.io/<repo>`) in any
+file, and the homepage's repository written in another case; the owner's other repositories pass;
 `CHANGELOG.md`'s released sections are history and are left as written. The display name in prose (`UXor is…`) and
 the code names (`App\UXor`, `uxor-*.js`, `uxor*.css`) are renamed by hand, with a breaking entry in `CHANGELOG.md`.
 

@@ -5,15 +5,18 @@
 // what it lists. The tools and the demo read the name and the repository from manifest.json (tools/kit-identity.mjs,
 // the demo's `kit_reader` Twig global) and need no change.
 //
-// A URL names the kit's repository when its owner or its repository name is the homepage's (an owner's or a
-// repository's rename): `https://github.com/<owner>/<repo>…` (install commands, links to files), its raw files
-// `https://raw.githubusercontent.com/<owner>/<repo>/…` and its gallery `https://<owner>.github.io/<repo>/`. It must
-// then be the homepage's owner (in any case, as GitHub reads it) and repository name (as written). Other projects'
-// URLs, and a name outside a URL (`the old repository, acme/old-kit`), pass.
+// A URL is stale when it names one of the kit's former repositories (tools/kit-former-names.json, `owner/repo`
+// each, kept on a rename) or the homepage's repository with its name in another case: `https://github.com/<owner>/
+// <repo>…` (install commands, links to files), its raw files `https://raw.githubusercontent.com/<owner>/<repo>/…` and
+// its gallery `https://<owner>.github.io/<repo>/`. Owners compare in any case, as GitHub reads them. Other
+// repositories, the owner's other projects included, and a name outside a URL (`the old repository,
+// acme/old-kit`), pass.
 //
 // It reads every file git tracks or would add (not ignored), or every file under --root outside dependencies and
 // build output when that is not a git checkout. CHANGELOG.md's released sections (from the first `## [X.Y.Z]`
 // heading) are history and are not read, except its link references (`[0.1.0]: https://…`), which must still work.
+//
+// A rename adds the old `owner/repo` to tools/kit-former-names.json.
 //
 //   node tools/name-check.mjs                 # this repository
 //   node tools/name-check.mjs --root <dir>    # another kit (the tests' scratch kits)
@@ -57,6 +60,13 @@ function files() {
 
 const owner = kit.owner.toLowerCase();
 const repo = kit.repo;
+const formerFile = join(root, 'tools', 'kit-former-names.json');
+const former = new Set(
+    (existsSync(formerFile) ? JSON.parse(readFileSync(formerFile, 'utf8')) : []).map((slug) => {
+        const [o = '', r = ''] = String(slug).split('/');
+        return `${o.toLowerCase()}/${r.toLowerCase()}`;
+    }),
+);
 // [the URL as written, its owner, its repository name]
 const patterns = [
     /https?:\/\/(?:www\.)?github\.com\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)/g,
@@ -64,13 +74,14 @@ const patterns = [
 ];
 const pages = /https?:\/\/([A-Za-z0-9-]+)\.github\.io\/([A-Za-z0-9._-]+)/g;
 
-/** The URLs of `line` that name the kit's repository by another owner or repository name. */
+/** The URLs of `line` that name a former repository of the kit, or the current one in another case. */
 function stale(line) {
     const found = [];
     const consider = (url, urlOwner, urlRepo) => {
         const name = urlRepo.replace(/\.git$/, '').replace(/\.+$/, '');
-        const ours = urlOwner.toLowerCase() === owner || name.toLowerCase() === repo.toLowerCase();
-        if (ours && (urlOwner.toLowerCase() !== owner || name !== repo)) {
+        const slug = `${urlOwner.toLowerCase()}/${name.toLowerCase()}`;
+        const miscased = urlOwner.toLowerCase() === owner && name.toLowerCase() === repo.toLowerCase() && name !== repo;
+        if (former.has(slug) || miscased) {
             found.push(url);
         }
     };

@@ -13,9 +13,11 @@ const check = fileURLToPath(new URL('../name-check.mjs', import.meta.url));
 const manifest = { name: 'Kit', description: 'A kit.', license: 'MIT', homepage: 'https://github.com/acme/kit' };
 
 /** name-check's exit status and output on a scratch kit holding `files` ({path: content}) beside its manifest.json. */
-function run(files, homepage = manifest.homepage) {
+function run(files, homepage = manifest.homepage, former = ['acme/old-kit', 'old-owner/kit']) {
     const root = mkdtempSync(join(tmpdir(), 'name-check-'));
     writeFileSync(join(root, 'manifest.json'), JSON.stringify({ ...manifest, homepage }));
+    mkdirSync(join(root, 'tools'), { recursive: true });
+    writeFileSync(join(root, 'tools', 'kit-former-names.json'), JSON.stringify(former));
     for (const [path, content] of Object.entries(files)) {
         mkdirSync(dirname(join(root, path)), { recursive: true });
         writeFileSync(join(root, path), content);
@@ -34,6 +36,8 @@ const passes = {
     'another project': 'Built on https://github.com/themesberg/flowbite and https://github.com/symfony/ux.',
     'the owner alone': 'Maintained by https://github.com/acme.',
     'the old name outside a URL': 'Commands naming the old repository (`acme/old-kit`) stop working.',
+    "a sibling repository of the owner": 'The runner: https://github.com/acme/another-project and https://acme.github.io/another-project/.',
+    "another owner's repository of the same name": 'Not to be confused with https://github.com/someone/kit.',
 };
 
 const fails = {
