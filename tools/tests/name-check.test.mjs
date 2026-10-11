@@ -57,7 +57,7 @@ for (const [name, [path, body]] of Object.entries(fails)) {
     test(`fails ${name}`, () => {
         const { status, output } = run({ [path]: `Intro.\n${body}\n` });
         assert.equal(status, 1, output);
-        assert.match(output, new RegExp(`${path.replace(/[.]/g, '\\.')}:2: `));
+        assert.match(output, new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:2: `));
     });
 }
 
