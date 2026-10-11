@@ -11,7 +11,9 @@ The links below point at `dev`, the work merged since the last release: install 
 - [For agents](https://raw.githubusercontent.com/xormania/uxor/dev/FOR-AGENTS.md): what the kit gives you, how to set a project up, which recipe to install for what, and the rules to follow
 - [Project agents snippet](https://raw.githubusercontent.com/xormania/uxor/dev/docs/PROJECT-AGENTS-SNIPPET.md): the block to paste into a project's AGENTS.md or CLAUDE.md
 - [Install](https://raw.githubusercontent.com/xormania/uxor/dev/INSTALL.md): each setup step explained, AssetMapper or Webpack Encore
-- [README](https://raw.githubusercontent.com/xormania/uxor/dev/README.md): every recipe, updating, Turbo and Live Components, security, versions and requirements
+- [README](https://raw.githubusercontent.com/xormania/uxor/dev/README.md): what the kit is, how to install it, requirements
+- [Recipes](https://raw.githubusercontent.com/xormania/uxor/dev/docs/RECIPES.md): every recipe, one line each
+- [Guide](https://raw.githubusercontent.com/xormania/uxor/dev/docs/GUIDE.md): installing and updating recipes, Turbo and Live Components, security, versioning
 
 ## Theme
 

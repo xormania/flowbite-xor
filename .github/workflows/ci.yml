@@ -444,7 +444,7 @@ jobs:
             - name: The theme recipe ships kit.css unchanged
               run: cmp kit.css theme/assets/styles/uxor.css
 
-            - name: llms.txt matches README.md's recipe tables
+            - name: llms.txt matches docs/RECIPES.md's recipe tables
               run: node tools/llms-txt.mjs --check
 
             - name: The markdown teaches no Flowbite JS, palette color, inline handler or style

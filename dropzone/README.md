@@ -277,5 +277,5 @@ promoted to history, are answered by the `turbo` recipe's module (`assets/lib/ux
 
 ## Security
 
-`Dropzone` has no tag, URL or attribute-name prop. Its attributes render escaped, as the kit's README says
-(*Security*).
+`Dropzone` has no tag, URL or attribute-name prop. Its attributes render escaped, as the kit's guide says
+(`docs/GUIDE.md`, *Security*).

@@ -65,9 +65,9 @@ Keep `php bin/console tailwind:build --watch` running while you work, or run `ta
 
 ## Which recipe
 
-Every recipe, as `README.md` lists it:
+Every recipe, as [`docs/RECIPES.md`](docs/RECIPES.md) lists it:
 
-<!-- recipes:start: written by tools/llms-txt.mjs from README.md's recipe tables; edit those, then run it -->
+<!-- recipes:start: written by tools/llms-txt.mjs from docs/RECIPES.md's tables; edit those, then run it -->
 
 **Theme**
 
@@ -227,10 +227,10 @@ release; `:dev` takes the work merged since.
 |---|---|
 | Every page, one line each | [`llms.txt`](llms.txt) |
 | The rules to paste into the project | [`docs/PROJECT-AGENTS-SNIPPET.md`](docs/PROJECT-AGENTS-SNIPPET.md) |
-| Every recipe, one line each | [`README.md`](README.md#recipes) |
+| Every recipe, one line each | [`docs/RECIPES.md`](docs/RECIPES.md) |
 | A recipe's props and examples | `<recipe>/README.md` |
 | Each setup step explained | [`INSTALL.md`](INSTALL.md) |
-| Turbo, Live Components, security | [`README.md`](README.md#turbo-and-live-components) |
+| Turbo, Live Components, security | [`docs/GUIDE.md`](docs/GUIDE.md#turbo-and-live-components) |
 | Every example rendered, light and dark | <https://xormania.github.io/uxor/> |
 | Testing an app built with the kit (Turbo, Live, CSP, request limits) | [`docs/TESTING.md`](docs/TESTING.md) |
 | Changing the kit itself | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`AGENTS.md`](AGENTS.md) |

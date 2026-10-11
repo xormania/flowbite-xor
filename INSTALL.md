@@ -50,7 +50,7 @@ php bin/console ux:install theme --kit=https://github.com/xormania/uxor
 @import './uxor.css';
 ```
 
-3. Install the recipes you need; the kit's [README](README.md) lists them. Each `ux:install` prints a `composer require` command for the packages the recipe needs: run it.
+3. Install the recipes you need; [`docs/RECIPES.md`](docs/RECIPES.md) lists them. Each `ux:install` prints a `composer require` command for the packages the recipe needs: run it.
 
 ```
 php bin/console ux:install <recipe> --kit=https://github.com/xormania/uxor

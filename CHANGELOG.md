@@ -184,6 +184,9 @@ and versions follow [Semantic Versioning](https://semver.org/) as git tags (`X.Y
   longer fades table rows into the new theme: the color transitions it starts are finished at once.
 - `input`: the "With Button" example shows the `flowbite` set's search icon (`flowbite:search-outline`), not
   `tabler:search`.
+- `README.md` is a short introduction: what the kit is, how to install it, its requirements. The recipe list moved
+  to `docs/RECIPES.md`, and the updating, Turbo and Live Components, security and versioning sections to
+  `docs/GUIDE.md`.
 
 ## [0.1.0] - 2026-10-06
 
